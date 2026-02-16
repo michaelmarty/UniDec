@@ -625,8 +625,33 @@ def pie_chart(df, set, ax=None, title="Class Distribution", otherthresh=0.035):
     plt.pie(class_sums_filtered, labels=class_sums_filtered.index, colors=colors, autopct='%1.0f%%', startangle=140)
     plt.title(title)
 
+def cv_pipeline(filepath, results_set=None, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=True, plot_results=True,
+                figsavepath=None):
+    df = pd.read_csv(filepath)
+    normdf, replicates = sum_transitions(df, mode=mode, drop_IS=drop_IS, normalize_IS=normalize_IS,
+                                         normalize_TIC=normalize_TIC)
+    if results_set is not None:
+        # Take only replicates that are in results_set
+        replicates = [r for r in replicates if r in results_set]
+    # Calculate CV for each molecule across all replicates
+    normdf["CV"] = normdf[replicates].std(axis=1, ddof=1) / normdf[replicates].mean(axis=1)
 
-def full_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
+    if plot_results:
+        # Plot CV distribution
+        plt.figure(figsize=(8, 6))
+        plt.hist(normdf["CV"].dropna(), bins=30, color='skyblue', edgecolor='black')
+        plt.title("CV Distribution")
+        plt.xlabel("Coefficient of Variation (CV)")
+        plt.ylabel("Frequency")
+        # plt.axvline(x=0.2, color='r', linestyle='--', label='CV = 0.2')
+        # plt.legend()
+        plt.tight_layout()
+        if figsavepath is not None:
+            plt.savefig(figsavepath)
+        plt.show()
+
+
+def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
                   normalize_TIC=True, paired=True, bh_correction=True, plot_results=True, heatplots=True,
                   piecharts=True, figsavepath=None):
 
@@ -706,5 +731,9 @@ if __name__ == "__main__":
     set1 = ["0.5% FT1", "0.5% FT2", "0.5% FT3"]
     set2 = ["0.5% D1", "0.5% D2", "0.5% D3"]
 
-    full_pipeline(file, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
+    cv_pipeline(file, results_set=set2, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=True,)
+
+    exit()
+
+    compare_pipeline(file, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
                   normalize_TIC=True, paired=True, bh_correction=True, plot_results=True)
