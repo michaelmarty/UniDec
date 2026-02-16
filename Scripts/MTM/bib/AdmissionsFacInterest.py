@@ -332,11 +332,11 @@ if __name__ == "__main__":
     print(len(df))
     df = filter_df_visit(df)
     print(len(df))
-    outdf = filter_fac(df, facname="Ren")
+    outdf = filter_fac(df, facname="Hsu")
     print(len(facdf))
     # Write to excel
-    outdf.to_excel(r"C:\Users\mm96978\OneDrive - The University of Texas at Austin\Attachments\Offers_Ren_2.4.26.xlsx", index=False)
-
+    outdf.to_excel(r"C:\Users\mm96978\OneDrive - The University of Texas at Austin\Attachments\Offers_Hsu_2.4.26.xlsx", index=False)
+    exit()
 
     # df.columns = ["col1", "col2"]
 

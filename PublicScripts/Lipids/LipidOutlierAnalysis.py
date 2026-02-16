@@ -166,7 +166,7 @@ def random_split_rf_data(df, features, target="Low_Quality_Flag", test_size=0.1,
     return X_train, X_test, y_train, y_test
 
 def dataset_split_rf_data(df, features, target="Low_Quality_Flag", dataset_col="Dataset", test_dataset="Stellar",
-                          training_dataset=None):
+                          training_dataset=None, use_percent=1.0, random_state=42):
     if training_dataset is None:
         train_df = df[df[dataset_col] != test_dataset]
         test_df = df[df[dataset_col] == test_dataset]
@@ -176,6 +176,8 @@ def dataset_split_rf_data(df, features, target="Low_Quality_Flag", dataset_col="
     else:
         train_df = df[df[dataset_col] == training_dataset]
         test_df = df[df[dataset_col] == test_dataset]
+    if use_percent < 1.0:
+        train_df = train_df.sample(frac=use_percent, random_state=random_state)
     X_train = train_df[features].fillna(0)
     y_train = train_df[target]
     X_test = test_df[features].fillna(0)
