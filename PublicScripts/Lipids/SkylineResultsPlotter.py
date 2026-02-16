@@ -44,6 +44,7 @@ def translate_to_skyline(vdf, mdf):
 
 class_color_map = {
     "PC": "#788BFF",
+    "OxPC": "#788BFF",
     "PC O": "#BFD7FF",
     "EtherPC": "#BFD7FF",
     "LPC-O/P": "#27D3F5",
@@ -64,6 +65,8 @@ class_color_map = {
     "LPA": "#42EBB3",
     "PI": "#8FFBFF",
     "EtherPI": "#8FFBFF",
+    "EtherDG": "#F4845F",
+    "EtherPS": "#C89504",
     "LPI": "#00CAD1",
     "CL": "#FFA200",
     "MLCL": "#FFDAA5",
@@ -97,6 +100,7 @@ class_color_map = {
     "NAE": "#777777",
     "ST": "#B40808",
     "Standard": "#0D0D0D",
+    "Other": "#333333",
     "GM3": "#FF73FF",
     "HBMP": "#FFA200",
     "SHexCer": "#F708E3",
@@ -112,7 +116,8 @@ class_color_map = {
     "EtherPG": "#356935",
     "EtherTG": "#8F1458",
     "BileAcid": "#FF8800",
-    "SL": "#FFDB73",
+    # Red
+    "SL": "#B40808",
     "LNAPE": "#8F5CD2",
     "LNAPS": "#FDF32F",
     "EtherDGDG": "#FFA200",
@@ -121,6 +126,12 @@ class_color_map = {
     "SQDG": "#FFA200",
     "MGDG": "#FFA200",
     "OxPS": "#C89504",
+    "DGDG" : "#FFA200",
+    "SHex": "#F708E3",
+    "Sph": "#AB30A1",
+    "ADGGA": "#FFA200",
+    "STSE" : "#B40808",
+    "GL": "#F7B267",
 }
 
 # python
