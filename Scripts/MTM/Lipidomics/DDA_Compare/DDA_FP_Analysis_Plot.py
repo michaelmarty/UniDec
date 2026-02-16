@@ -58,17 +58,22 @@ accuracies = []
 fimps2 = []
 accuracies2 = []
 savemodel = None
+
+# Drop dataset "Stellar"
+df = df[df["Dataset"] != "Stellar"]
+print("Datasets:", df["Dataset"].unique())
+
 for dataset in df["Dataset"].unique():
     # print(f"Processing dataset: {dataset}")
     x_train, x_test, y_train, y_test = dataset_split_rf_data(df, features, "Low_Quality_Flag",
-                                                             test_dataset=None, training_dataset=dataset)
+                                                             test_dataset=None, training_dataset=dataset, use_percent=1.0)
     # x_train, x_test, y_train, y_test = dataset_split_rf_data(df, features, "Low_Quality_Flag",
     #                                                          test_dataset=dataset, training_dataset=None)
     # x_train, x_test, y_train, y_test = random_split_rf_data(df, features, "Low_Quality_Flag", random_state=None)
     plsrmodel, feature_importance2, y_pred2, report2 = plsr(x_train, x_test, y_train, y_test, features)
     clf, feature_importance, y_pred, report = random_forest(x_train, x_test, y_train, y_test, features, n_estimators=25)
 
-    if dataset == "Stellar":
+    if dataset == "OTOT":
         savemodel = clf
     accuracies.append(report["accuracy"])
     print(f"Accuracy for {dataset}: {report['accuracy']:.3f}")
@@ -85,15 +90,19 @@ print("Average Accuracy PLSR: {:.3f}".format(np.mean(accuracies2)))
 avg_fimp = pd.concat(fimps, axis=1).mean(axis=1).sort_values(ascending=False)
 avg_fimp2 = pd.concat(fimps2, axis=1).mean(axis=1).sort_values(ascending=False)
 
+# Create model using all data and apply to all data to get predictions for outlier flag
+x_train, x_test, y_train, y_test = random_split_rf_data(df, features, "Low_Quality_Flag", random_state=None, test_size=0.8)
+clf, feature_importance, y_pred, report = random_forest(x_train, x_test, y_train, y_test, features, n_estimators=25)
+savemodel = clf
+
 df = apply_rf_prediction(df, savemodel)
 # Write all to sheet and then split by "Outlier_Prediction into two additional sheets
 with pd.ExcelWriter("Combined_DDA_OutlierAnalysis_Results.xlsx") as writer:
     df.to_excel(writer, sheet_name="All Data", index=False)
     df[df["Outlier_Prediction"] == 0].to_excel(writer, sheet_name="Predicted Good", index=False)
     df[df["Outlier_Prediction"] == 1].to_excel(writer, sheet_name="Predicted Bad", index=False)
-print(df)
 
-
+exit()
 # Feature importance plots
 plt.figure(figsize=(10, 6))
 ax = plt.subplot(1, 2, 1)
