@@ -14,6 +14,112 @@ from unidec.tools import center_of_mass
 # import warnings
 # warnings.filterwarnings("error")
 
+
+
+class_color_map = {
+    "PC": "#788BFF",
+    "OxPC": "#788BFF",
+    "PC O": "#BFD7FF",
+    "EtherPC": "#BFD7FF",
+    "LPC-O/P": "#27D3F5",
+    "LPC": "#3019E3",
+    "EtherLPC": "#27D3F5",
+    "PE": "#6017A9",
+    "PE-O": "#A276E5",
+    "EtherPE": "#A276E5",
+    "LPE": "#8F5CD2",
+    "EtherLPE": "#8F5CD2",
+    "PEtOH" : "#D291EF",
+    "PMeOH": "#D291EF",
+    "PG": "#356935",
+    "LPG": "#B1D8B1",
+    "LPS": "#FDF32F",
+    "PS": "#C89504",
+    "PA": "#95F4D4",
+    "LPA": "#42EBB3",
+    "PI": "#8FFBFF",
+    "EtherPI": "#8FFBFF",
+    "EtherDG": "#F4845F",
+    "EtherPS": "#C89504",
+    "LPI": "#00CAD1",
+    "CL": "#FFA200",
+    "MLCL": "#FFDAA5",
+    "DLCL": "#FFE6C2",
+    "Cer": "#AB30A1",
+    "Cer_NS": "#AB30A1",
+    "Cer_NDS": "#AB30A1",
+    "Cer_EODS": "#AB30A1",
+    "Cer_EOS": "#AB30A1",
+    "Cer_EBDS": "#AB30A1",
+    "Cer_AP": "#AB30A1",
+    "Cer_AS": "#AB30A1",
+    "CAR": "#AB30A1",
+    "HexCer": "#F708E3",
+    "HexCer_NS": "#F708E3",
+    "HexCer_NDS": "#F708E3",
+    "HexCer_HDS": "#F708E3",
+    "HexCer_AP": "#F708E3",
+    "HexCer_HS": "#F708E3",
+    "Hex2Cer": "#FF73FF",
+    "SM": "#FFDB73",
+    "ASM": "#FFDB73",
+    "CoQ": "#F25C54",
+    "MAG": "#F7B267",
+    "DG": "#F4845F",
+    "DAG": "#F4845F",
+    "TG": "#8F1458",
+    "TAG": "#8F1458",
+    "FA": "#FFA1DB",
+    "CE": "#D10081",
+    "NAE": "#777777",
+    "ST": "#B40808",
+    "Standard": "#0D0D0D",
+    "Other": "#333333",
+    "GM3": "#FF73FF",
+    "HBMP": "#FFA200",
+    "SHexCer": "#F708E3",
+    "OxPI": "#8FFBFF",
+    "PI_Cer": "#8FFBFF",
+    "PE_Cer": "#6017A9",
+    "AHexBRS": "#FF73FF",
+    "AHexCAS": "#FF73FF",
+    "EtherPG": "#356935",
+    "OxPE": "#6017A9",
+    "AHexCer": "#FF73FF",
+    "EtherLPG": "#B1D8B1",
+    "EtherPG": "#356935",
+    "EtherTG": "#8F1458",
+    "BileAcid": "#FF8800",
+    # Red
+    "SL": "#B40808",
+    "LNAPE": "#8F5CD2",
+    "LNAPS": "#FDF32F",
+    "EtherDGDG": "#FFA200",
+    "EtherMGDG": "#FFA200",
+    "DGGA": "#FFA200",
+    "SQDG": "#FFA200",
+    "MGDG": "#FFA200",
+    "OxPS": "#C89504",
+    "DGDG" : "#FFA200",
+    "SHex": "#F708E3",
+    "Sph": "#AB30A1",
+    "ADGGA": "#FFA200",
+    "STSE" : "#B40808",
+    "GL": "#F7B267",
+}
+
+# python
+default_color = "#0D0D0D"
+lower_color_map = {k.strip().lower(): v for k, v in class_color_map.items()}
+
+def get_color_for_class(cls):
+    key = str(cls).strip().lower()
+    color = lower_color_map.get(key)
+    if color is None:
+        print(f"WARNING: No color found for class '{cls}'. Using default color.")
+        return default_color
+    return color
+
 posadducts = [
     ["[M+H]+", 1, 1.00782503207, True],
     ["[M+NH4]+", 1, 18.03437413, True],
@@ -109,7 +215,11 @@ class_nfattyacids = {
 hg_simplifier = {"Cer_AP": "Cer", "Cer_HDS": "Cer", 'Cer_NDS': "Cer", 'Cer_NP': "Cer", 'Cer_NS': "Cer",
                  "Cer_EODS" : "Cer", "Cer_EOS" : "Cer", "Cer_HS" : "Cer", "Cer_AS": "Cer",
                  "HexCer_AP": "HexCer", "HexCer_NDS": "HexCer", "HexCer_HS": "HexCer", "HexCer_NS": "HexCer",
-                 "HexCer_EOS": "HexCer", "HexCer_HDS": "HexCer",}
+                 "HexCer_EOS": "HexCer", "HexCer_HDS": "HexCer", "AHexCer": "HexCer", "Hex2Cer": "HexCer",
+                 "Hex3Cer": "HexCer", "SHexCer": "HexCer", "ASM": "SM", "LNAPE":"PE", "LNAPS":"PS", "NAPE":"PE", "NAPS":"PS",
+                 "PE_Cer":"Cer",
+                 "PI_Cer":"Cer", "ADGGA":"GL", "GM3":"GL", "DGDG":"GL", "DGGA":"GL", "MGDG":"GL", "SQDG":"GL",
+                 "SHex":"SL", "STSE":"SL"}
 
 def msdialnames_to_LC(df):
     fixednames = []
@@ -1773,7 +1883,7 @@ def network_plot(G, axis=None, colortarget="z_Anomaly_Score"):
         sel.annotation.set_text(labels_text[node])
 
 
-def make_plots(posdf, negdf):
+def make_lipid_summary_plots(posdf, negdf):
 
     plt.figure(figsize=(8, 6))
     # Make plots of Average RT versus reference RT
@@ -1837,75 +1947,6 @@ def make_plots(posdf, negdf):
 
     plt.tight_layout()
     plt.show()
-
-    def fix_inhomogeneous_rt(rtdata):
-        lengths = [len(rt[0]) for rt in rtdata]
-        # If all lengths are the same, return as is
-        if len(set(lengths)) == 1:
-            return np.array(rtdata)
-        # Otherwise, interpolate to min to max range
-        min_time = min([min(rt[0]) for rt in rtdata])
-        max_time = max([max(rt[0]) for rt in rtdata])
-        spacing = rtdata[0][0][1] - rtdata[0][0][0]
-        new_times = np.arange(min_time, max_time, spacing)
-        new_rtdata = []
-        for times, intensities in rtdata:
-            new_intensities = np.interp(new_times, times, intensities, left=0, right=0)
-            new_rtdata.append((new_times, new_intensities))
-        return np.array(new_rtdata)
-
-    def get_rt(rtrows, tcol="Times", icol="Intensities", mode="apex"):
-        rtdata = []
-        for index, row in rtrows.iterrows():
-            times = [float(x) for x in row[tcol].split(",")]
-            intensities = [float(x) for x in row[icol].split(",")]
-            rtdata.append((times, intensities))
-        rtdata = fix_inhomogeneous_rt(rtdata)
-        times = rtdata[0, 0]
-        summed_eic = np.sum(rtdata[:, 1], axis=0)
-        rtsummed = np.transpose([times, summed_eic])
-
-        com_rt = center_of_mass(rtsummed, relative_cutoff=0.1)
-        if mode == "apex":
-            max_index = np.argmax(rtsummed[:, 1])
-            max_pos = rtsummed[max_index, 0]
-            com_rt = (max_pos, com_rt[1])
-
-        return float(com_rt[0]), float(com_rt[1])
-
-    def update_rt(df, cdf, min_window=3.0, max_window=5.0, mode="apex", nstds=8, forcedrts=None):
-        # Find all unique molecule names in transition list
-        unique_names = df["Molecule Name"].unique()
-        outdf = df.copy()
-        # Set Explicity Retention Time and Window as floats to avoid dtype issues
-        outdf["Explicit Retention Time"] = outdf["Explicit Retention Time"].astype(float)
-        outdf["Explicit Retention Time Window"] = outdf["Explicit Retention Time Window"].astype(float)
-
-        for name in unique_names:
-            if forcedrts is not None and name in forcedrts:
-                outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time"] = forcedrts[name]
-                outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time Window"] = min_window
-                print(f"Manually setting {name} to RT: {forcedrts[name]:.2f} with window: {min_window:.2f}")
-                continue
-
-            # name = row["Molecule Name"]
-            rt_row = cdf[cdf["PeptideModifiedSequence"] == name]
-            # adduct = row["Precursor Adduct"][:-1]  # remove + or - at end
-            # rt_row = rt_row[rt_row["PrecursorCharge"] == adduct]
-            if not rt_row.empty:
-                # df.at[index, "Explicit Retention Time"] = rt_row["Retention Time (min)"].values[0]
-                # df.at[index, "Explicit Retention Time Window"] = rt_row["RT Window (min)"].values[0]
-                rt, window = get_rt(rt_row, mode=mode)
-                window = nstds * window
-                window = max(min_window, min(window, max_window))
-                outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time"] = rt
-                outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time Window"] = window
-                print(f"Updated RT for: {name} to {rt:.2f} +/- {window:.2f}")
-            else:
-                print(f"No RT found for: {name}")
-                outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time Window"] = max_window
-        return outdf
-
 
 def fix_inhomogeneous_rt(rtdata):
     lengths = [len(rt[0]) for rt in rtdata]
@@ -1974,6 +2015,8 @@ def update_rt(df, cdf, min_window=3.0, max_window=5.0, mode="apex", nstds=8, for
             print(f"No RT found for: {name}")
             outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time Window"] = max_window
     return outdf
+
+
 
 def tl_to_il(df):
     il_df = pd.DataFrame()
@@ -2068,3 +2111,83 @@ def derplicate_il(df, mztol=0.8):
     outdata = outdata.drop(columns=["t start (min)", "t stop (min)"])
 
     return outdata
+
+def simplify_class_name(name):
+    if isinstance(name, str):
+        name = name.replace("Ox", "")
+        name = name.replace("Ether", "")
+        if name.startswith("L"):
+            name = name[1:]
+        if name.startswith("ML") or name.startswith("DL"):
+            name = name[2:]
+        if name in hg_simplifier.keys():
+            name = hg_simplifier[name]
+    return name
+
+def simplify_class_df(df, class_col="Ontology"):
+    df[class_col] = df[class_col].apply(simplify_class_name)
+    return df
+
+def mzrt_plot(df, class_col="Ontology", title="", simplify=True):
+    # ------------------------------
+    # Plot setup
+    # ------------------------------
+    mpl.rcParams['pdf.fonttype'] = 42
+    mpl.rcParams['ps.fonttype'] = 42
+    mpl.rcParams['font.family'] = 'Arial'
+    mpl.rcParams['font.size'] = 18
+
+    if simplify:
+        df = simplify_class_df(df, class_col=class_col)
+    else:
+        # Apply hg_simplifier to class_col for better color mapping
+        df[class_col] = df[class_col].apply(lambda x: hg_simplifier.get(x) if x in hg_simplifier.keys() else x)
+
+    # Legend order: alphabetical, but put Other last if present
+    unique_classes = sorted([c for c in df[class_col].unique() if c != "Other"])
+    if "Other" in df[class_col].unique():
+        unique_classes.append("Other")
+
+    # Build legend
+    custom_legend = [
+         mpl.lines.Line2D([0], [0], marker='o', color=get_color_for_class(cls), label=cls,
+               markerfacecolor=get_color_for_class(cls), linestyle='None', markersize=10)
+        for cls in unique_classes
+    ]
+
+    # Set Color column for plotting
+    df["Color"] = df[class_col].apply(get_color_for_class)
+
+
+    # ------------------------------
+    # Plot
+    # ------------------------------
+    plt.figure(figsize=(12, 8))
+    plt.scatter(df["Average Rt(min)"], df["Average Mz"], c=df["Color"], s=80)
+
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+    plt.xlabel("Retention Time (min)")
+    plt.ylabel("m/z")
+    plt.title(title)
+    plt.xticks(np.arange(0.0, 18, 2.5))
+    plt.yticks(np.arange(0.0, 1600.1, 200))
+
+    # Add total number of lipids on the plot
+    total_lipids = len(df)
+    plt.text(
+        0.98, 0.98, f"Total lipids: {total_lipids}",
+        horizontalalignment='right',
+        verticalalignment='top',
+        transform=plt.gca().transAxes,
+        fontsize=20,
+        bbox=dict(facecolor='white', alpha=0.6, edgecolor='none', pad=5)
+    )
+
+    ncol = min(6, len(unique_classes))
+    plt.legend(handles=custom_legend, loc='upper center', bbox_to_anchor=(0.5, -0.1),
+               ncol=ncol, frameon=False)
+
+    plt.subplots_adjust(bottom=0.25)
+    plt.tight_layout()
+    plt.show()

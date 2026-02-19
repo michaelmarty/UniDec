@@ -82,6 +82,10 @@ def merge_files(rawlist, dmtlist, outfile):
     HTanalysistime = start_time
     HTmaxscans = start_scan
 
+    # Create output folder
+    outfolder = outfile + "_unidecfiles"
+    os.makedirs(outfolder, exist_ok=True)
+
     confout = os.path.join(outfile+"_unidecfiles", outfile + "_conf.dat")
     with open(confout, "w") as f:
         f.write(f"HTanalysistime {HTanalysistime}\n")
@@ -93,7 +97,7 @@ def merge_files(rawlist, dmtlist, outfile):
 
 if __name__ == "__main__":
 
-    folder = r"C:\Users\bht442\Desktop\New folder\18 Injections"
+    folder = r"Z:\Group Share\BHT\Short Temp\Dummy"
     os.chdir(folder)
 
     #strip_dmt_files(folder)
