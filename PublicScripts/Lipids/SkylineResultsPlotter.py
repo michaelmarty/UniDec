@@ -234,9 +234,13 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
     molecules = df["Molecule"].unique()
     replicates = df["Replicate Name"].unique()
 
+    # Precompute average RT per molecule
+    rt_df = df.groupby("Molecule")["RT"].mean().reset_index()
+
     newrows = []
     for m in molecules:
-        newrow = {"Molecule": m, "Molecule List Name": df[df["Molecule"] == m]["Molecule List Name"].values[0]}
+        newrow = {"Molecule": m, "Molecule List Name": df[df["Molecule"] == m]["Molecule List Name"].values[0],
+                  "RT": rt_df[rt_df["Molecule"] == m]["RT"].values[0]}  # Add RT here}
         for r in replicates:
             mask = (df["Molecule"] == m) & (df["Replicate Name"] == r)
             subset = df[mask]
@@ -282,30 +286,33 @@ def normalize_tic(df, replicates):
     return normdf
 
 def get_is_conc_from_isdf(isrow, isdf):
-    isname = isrow["Molecule"].values[0]
-    # Drop first three characters if they start with "IS"
-    if isname.startswith("IS"):
-        isname = isname[3:]
+    isname = isrow["Molecule"].values[0].strip()
+    # Remove only leading 'IS ' (with space), keep rest intact
+    if isname.startswith("IS "):
+        isname = isname[3:].strip()
     isclass = isrow["Molecule List Name"].values[0]
     isdf_row = isdf[(isdf["Lipid"] == isname) & (isdf["Class"] == isclass)]
 
     if len(isdf_row) == 0:
-        print(f"WARNING: No matching IS found in IS dataframe for {isname} of class {isclass}. Assuming concentration of 1 for this compound.")
+        print(f"WARNING: No matching IS found in IS dataframe for '{isname}' of class '{isclass}'. Assuming concentration of 1 for this compound.")
         return None
-    # Get and return concentration value
     conc = isdf_row["Concentration (ug/mL)"].values[0]
     return conc
 
+
 def calc_is(df, isrows, replicates, isdf=None):
-    # Set normdata to be just the replicates columns of the df
+    # Copy just the replicate columns
     normdata = df[replicates].copy()
     if len(df) == 0:
         print("WARNING: No data rows found. Skipping IS calculation.")
-        return None
+        return normdata
     if len(isrows) == 0:
         print("WARNING: No IS rows found. Skipping IS calculation.")
-        return None
-    elif len(isrows) == 1:
+        return normdata
+
+    # Single IS row
+    if len(isrows) == 1:
+        cls = isrows["Molecule List Name"].values[0] if "Molecule List Name" in isrows.columns else "Unknown"
         for r in replicates:
             isval = float(isrows[r].values[0])
             if isdf is not None:
@@ -313,29 +320,33 @@ def calc_is(df, isrows, replicates, isdf=None):
                 if conc is not None:
                     isval /= conc
             if isval == 0:
-                print(
-                    f"WARNING: IS value is zero for class {c} in replicate {r}. Skipping normalization for this class and replicate.")
+                print(f"WARNING: IS value is zero for class {cls} in replicate {r}. Skipping normalization.")
                 continue
             normdata[r] = normdata[r].astype(float) / isval
-    elif len(isrows) > 1:
-        # Loop through each row in the df and find the IS row with the closest RT, then use that for normalization
+
+    # Multiple IS rows — match by closest RT
+    else:
         for i, row in df.iterrows():
-            rt = row["RT"]
+            rt = row.get("RT", None)
+            if rt is None:
+                print(f"WARNING: No RT found for row {i}. Skipping IS normalization for this row.")
+                continue
+            # Find closest IS row by RT
             closest_isrow = isrows.iloc[(isrows["RT"] - rt).abs().argsort()[:1]]
+            cls = closest_isrow["Molecule List Name"].values[0] if "Molecule List Name" in closest_isrow.columns else "Unknown"
             for r in replicates:
                 isval = float(closest_isrow[r].values[0])
                 if isdf is not None:
-                    if isdf is not None:
-                        conc = get_is_conc_from_isdf(isrows, isdf)
-                        if conc is not None:
-                            isval /= conc
+                    conc = get_is_conc_from_isdf(closest_isrow, isdf)
+                    if conc is not None:
+                        isval /= conc
                 if isval == 0:
-                    print(
-                        f"WARNING: IS value is zero for class {c} in replicate {r}. Skipping normalization for this class and replicate.")
+                    print(f"WARNING: IS value is zero for class {cls} in replicate {r}. Skipping normalization.")
                     continue
                 normdata.at[i, r] = float(normdata.at[i, r]) / isval
 
     return normdata
+
 
 def normalize_is(df, replicates, isdf=default_isdf):
     normdf = df.copy()
@@ -346,7 +357,7 @@ def normalize_is(df, replicates, isdf=default_isdf):
     for c in classes:
         subdf = normdf[normdf["Molecule List Name"] == c]
         # Find IS as molecule that starts with "IS_"
-        isrow = subdf[subdf["Molecule"].str.startswith("IS")]
+        isrow = subdf[subdf["Molecule"].str.startswith("IS ")]
         # Calculate normalized data for this class and replicate
         normdata = calc_is(subdf, isrow, replicates, isdf=isdf)
         # Merge back into normdf
@@ -651,6 +662,8 @@ def cv_pipeline(filepath, results_set=None, mode="Products", drop_IS=True, norma
         plt.show()
 
 
+
+
 def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
                   normalize_TIC=True, paired=True, bh_correction=True, plot_results=True, heatplots=True,
                   piecharts=True, figsavepath=None):
@@ -726,12 +739,12 @@ def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normal
         plt.show()
 
 if __name__ == "__main__":
-    file = r"Z:\Group Share\Annika\Stellar\EC\0.5% DDM\Molecule Ratio Results.csv"
+    file = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\Extr_US_MoleculeTransResults.csv"
 
-    set1 = ["0.5% FT1", "0.5% FT2", "0.5% FT3"]
-    set2 = ["0.5% D1", "0.5% D2", "0.5% D3"]
+    # set1 = ["0.5% FT1", "0.5% FT2", "0.5% FT3"]
+    set2 = ["Rep1", "Rep2", "Rep3"]
 
-    cv_pipeline(file, results_set=set2, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=True,)
+    cv_pipeline(file, results_set=set2, mode="Products", drop_IS=False, normalize_IS=True, normalize_TIC=False,)
 
     exit()
 
