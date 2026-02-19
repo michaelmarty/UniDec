@@ -8,11 +8,12 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 import matplotlib as mpl
 import io
+from PublicScripts.Lipids.LipidFunctions import simplify_class_df, get_color_for_class
 
 mpl.use("WxAgg")
 
 
-israw = """Class,Lipid,Concentration (ug/mL),m/z (+),m/z (-),RT
+israw1 = """Class,Lipid,Concentration (ug/mL),m/z (+),m/z (-),RT
 CL,14:0-14:0-14:0-14:0 CL,15,1241.5,1239.5,12.6
 ST,d7-cholesterol,10,376.5,374.5,7
 CE,14:1 cholesteryl-d7 ester,25,602.58,600.58,10
@@ -86,116 +87,91 @@ TG,18:1-19:2-18:1 TG-d5,50,902.81,900.81,16.6
 TG,18:1-21:2-18:1 TG-d5,25,930.85,928.85,16.8
 """
 
+israw = """
+Class,Lipid,Name 2,Concentration (ug/mL),m/z (+),m/z (-),RT,Product Number
+CL,14:0-14:0-14:0-14:0 CL,IS CL 14:0-14:0-14:0-14:0,15,1241.5,1239.5,12.6,750332
+ST,d7-cholesterol,IS ST 27:1;1(+[2]H7),10,376.5,374.5,7,700041
+CE,14:1 cholesteryl-d7 ester,IS SE 27:1(+[2]H7) 14:1,25,602.58,600.58,10,700220
+CE,16:1 cholesteryl-d7 ester,IS SE 27:1(+[2]H7) 16:1,50,630.61,628.61,11,700221
+CE,18:1 cholesteryl-d7 ester,IS SE 27:1(+[2]H7) 18:1,75,658.64,656.64,11.7,700222
+CE,20:3 cholesteryl-d7 ester,IS SE 27:1(+[2]H7) 20:3,50,682.64,680.64,12,700223
+CE,22:4 cholesteryl-d7 ester,IS SE 27:1(+[2]H7) 22:4,25,708.66,706.66,12,700226
+Cer,C16:1 Ceramide-d7 (d18:1-d7/16:1),IS Cer 18:1;2(+[2]H7)/16:1,75,543.54,541.54,8,860748
+Cer,C18:1 Ceramide-d7 (d18:1-d7/18:1),IS Cer 18:1;2(+[2]H7)/18:1,50,571.57,569.57,9,860747
+Cer,C20:1 Ceramide-d7 (d18:1-d7/20:1),IS Cer 18:1;2(+[2]H7)/20:1,25,599.6,597.6,10,860746
+Cer,C22:1 Ceramide-d7 (d18:1-d7/22:1),IS Cer 18:1;2(+[2]H7)/22:1,50,627.63,625.63,11,860745
+Cer,C24:1 Ceramide-d7 (d18:1-d7/24:1),IS Cer 18:1;2(+[2]H7)/24:1,75,655.67,653.67,12.4,860679
+DG,17:0-14:1 DG-d5,IS DAG(+[2]H5) 14:1-17:0,25,558.51,556.51,9,800827
+DG,17:0-16:1 DG-d5,IS DAG(+[2]H5) 16:1-17:0,50,586.54,584.54,10.2,800826
+DG,17:0-18:1 DG-d5,IS DAG(+[2]H5) 17:0-18:1,75,614.57,612.57,11,800824
+DG,17:0-20:3 DG-d5,IS DAG(+[2]H5) 17:0-20:3,50,638.57,636.57,10.7,800825
+DG,17:0-22:4 DG-d5,IS DAG(+[2]H5) 17:0-22:4,25,664.59,662.59,10.9,800823
+LPC,15:0 Lyso PC-d5,IS LPC 15:0(+[2]H5),25,464.35,462.35,2,870309
+LPC,17:0 Lyso PC-d5,IS LPC 17:0(+[2]H5),50,492.38,490.38,3,855679
+LPC,19:0 Lyso PC-d5,IS LPC 19:0(+[2]H5),25,520.41,518.41,4,855778
+LPE,15:0 Lyso PE-d5,IS LPE(+[2]H5) 15:0,25,422.3,420.3,2.5,856709
+LPE,17:0 Lyso PE-d5,IS LPE(+[2]H5) 17:0,50,450.33,448.33,3.2,856710
+LPE,19:0 Lyso PE-d5,IS LPE(+[2]H5) 19:0,25,478.36,476.36,4.3,856716
+LPG,15:0 Lyso PG-d5,IS LPG(+[2]H5) 15:0,25,476.3,474.3,2,858123
+LPG,17:0 Lyso PG-d5,IS LPG(+[2]H5) 17:0,50,504.3,502.3,2.5,858130
+LPG,19:0 Lyso PG-d5,IS LPG(+[2]H5) 19:0,25,532.4,530.4,3,858129
+LPI,15:0 Lyso PI-d5,IS LPI(+[2]H5) 15:0,25,564.3,562.3,1.95,850107
+LPI,17:0 Lyso PI-d5,IS LPI(+[2]H5) 17:0,50,592.4,590.4,2.3,850108
+LPI,19:0 Lyso PI-d5,IS LPI(+[2]H5) 19:0,25,620.4,618.4,2.9,850106
+LPS,15:0 Lyso PS-d5,IS LPS(+[2]H5) 15:0,25,489.3,487.3,1.9,858146
+LPS,17:0 Lyso PS-d5,IS LPS(+[2]H5) 17:0,50,517.3,515.3,2.3,858148
+LPS,19:0 Lyso PS-d5,IS LPS(+[2]H5) 19:0,25,545.4,543.4,3,858147
+PC,17:0-14:1 PC-d5,IS PC(+[2]H5) 14:1-17:0,50,723.56,721.56,7.5,855683
+PC,17:0-16:1 PC-d5,IS PC(+[2]H5) 16:1-17:0,100,751.59,749.59,8.5,855682
+PC,17:0-18:1 PC-d5,IS PC(+[2]H5) 17:0-18:1,150,779.62,777.62,9.2,855681
+PC,17:0-20:3 PC-d5,IS PC(+[2]H5) 17:0-20:3,100,803.62,801.62,8.9,855680
+PC,17:0-22:4 PC-d5,IS PC(+[2]H5) 17:0-22:4,50,829.64,827.64,9.1,855678
+PE,17:0-14:1 PE-d5,IS PE(+[2]H5) 14:1-17:0,25,681.52,679.52,7.7,856721
+PE,17:0-16:1 PE-d5,IS PE(+[2]H5) 16:1-17:0,50,709.55,707.55,8.7,856720
+PE,17:0-18:1 PE-d5,IS PE(+[2]H5) 17:0-18:1,75,737.58,735.58,9.6,856719
+PE,17:0-20:3 PE-d5,IS PE(+[2]H5) 17:0-20:3,50,761.58,759.58,9.1,856718
+PE,17:0-22:4 PE-d5,IS PE(+[2]H5) 17:0-22:4,25,787.59,785.59,9.3,856717
+PG,17:0-14:1 PG-d5,IS PG(+[2]H5) 14:1-17:0,25,712.5,710.5,6.3,858135
+PG,17:0-16:1 PG-d5,IS PG(+[2]H5) 16:1-17:0,50,740.5,738.5,7.1,858134
+PG,17:0-18:1 PG-d5,IS PG(+[2]H5) 17:0-18:1,75,768.5,766.5,7.8,858133
+PG,17:0-20:3 PG-d5,IS PG(+[2]H5) 17:0-20:3,50,792.6,790.6,7.4,858132
+PG,17:0-22:4 PG-d5,IS PG(+[2]H5) 17:0-22:4,25,818.6,816.6,7.6,858131
+PI,17:0-14:1 PI-d5,IS PI(+[2]H5) 14:1-17:0,25,800.5,798.5,6.1,850109
+PI,17:0-16:1 PI-d5,IS PI(+[2]H5) 16:1-17:0,50,828.6,826.6,6.9,850110
+PI,17:0-18:1 PI-d5,IS PI(+[2]H5) 17:0-18:1,75,856.6,854.6,7.6,850111
+PI,17:0-20:3 PI-d5,IS PI(+[2]H5) 17:0-20:3,50,880.6,878.6,7.3,850112
+PI,17:0-22:4 PI-d5,IS PI(+[2]H5) 17:0-22:4,25,906.6,904.6,7.5,850118
+PS,17:0-14:1 PS-d5,IS PS(+[2]H5) 14:1-17:0,25,725.5,723.5,6.2,858153
+PS,17:0-16:1 PS-d5,IS PS(+[2]H5) 16:1-17:0,50,753.5,751.5,7,858152
+PS,17:0-18:1 PS-d5,IS PS(+[2]H5) 17:0-18:1,75,781.6,779.6,7.7,858151
+PS,17:0-20:3 PS-d5,IS PS(+[2]H5) 17:0-20:3,50,805.6,803.6,7.4,858150
+PS,17:0-22:4 PS-d5,IS PS(+[2]H5) 17:0-22:4,25,831.6,829.6,7.6,858149
+SM,16:1 SM (d18:1/16:1)-d9,IS SM(+[2]H9) 18:1;2/16:1,75,710.61,708.61,7.2,860741
+SM,18:1 SM (d18:1/18:1)-d9,IS SM(+[2]H9) 18:1;2/18:1,50,738.64,736.64,8,860740
+SM,20:1 SM (d18:1/20:1)-d9,IS SM(+[2]H9) 18:1;2/20:1,25,766.67,764.67,8.9,860742
+SM,22:1 SM (d18:1/22:1)-d9,IS SM(+[2]H9) 18:1;2/22:1,50,794.7,792.7,9.8,860743
+SM,24:1 SM (d18:1/24:1)-d9,IS SM(+[2]H9) 18:1;2/24:1,75,822.73,820.73,10,860744
+TG,14:0-13:0-14:0 TG-d5,IS TAG(+[2]H5) 13:0-14:0-14:0,25,714.66,712.66,15.6,860906
+TG,14:0-15:1-14:0 TG-d5,IS TAG(+[2]H5) 14:0-14:0-15:1,50,740.67,738.67,15.6,860907
+TG,14:0-17:1-14:0 TG-d5,IS TAG(+[2]H5) 14:0-14:0-17:1,75,768.71,766.71,15.9,860908
+TG,16:0-15:1-16:0 TG-d5,IS TAG(+[2]H5) 15:1-16:0-16:0,100,796.74,794.74,16.3,860910
+TG,16:0-17:1-16:0 TG-d5,IS TAG(+[2]H5) 16:0-16:0-17:1,125,824.77,822.77,16.5,860909
+TG,16:0-19:2-16:0 TG-d5,IS TAG(+[2]H5) 16:0-16:0-19:2,100,850.78,848.78,16.6,860911
+TG,18:1-17:1-18:1 TG-d5,IS TAG(+[2]H5) 17:1-18:1-18:1,75,876.8,874.8,16.5,860914
+TG,18:1-19:2-18:1 TG-d5,IS TAG(+[2]H5) 18:1-18:1-19:2,50,902.81,900.81,16.6,860912
+TG,18:1-21:2-18:1 TG-d5,IS TAG(+[2]H5) 18:1-18:1-21:2,25,930.85,928.85,16.8,860913
+"""
+
 # Load the inline CSV into a DataFrame for quick use
 default_isdf = pd.read_csv(io.StringIO(israw))
+# Rename "Lipid" column to "Name 1" and "Name 2" to "Lipid"
+default_isdf = default_isdf.rename(columns={"Lipid": "Name 1", "Name 2": "Lipid"})
+# Drop "IS " prefix from "Lipid" column
+default_isdf["Lipid"] = default_isdf["Lipid"].str.replace(r"^IS\s+", "", regex=True)
 # Drop last two columns
 # default_isdf = default_isdf.iloc[:, :-2]
 
-
-class_color_map = {
-    "PC": "#788BFF",
-    "OxPC": "#788BFF",
-    "PC O": "#BFD7FF",
-    "EtherPC": "#BFD7FF",
-    "LPC-O/P": "#27D3F5",
-    "LPC": "#3019E3",
-    "EtherLPC": "#27D3F5",
-    "PE": "#6017A9",
-    "PE-O": "#A276E5",
-    "EtherPE": "#A276E5",
-    "LPE": "#8F5CD2",
-    "EtherLPE": "#8F5CD2",
-    "PEtOH" : "#D291EF",
-    "PMeOH": "#D291EF",
-    "PG": "#356935",
-    "LPG": "#B1D8B1",
-    "LPS": "#FDF32F",
-    "PS": "#C89504",
-    "PA": "#95F4D4",
-    "LPA": "#42EBB3",
-    "PI": "#8FFBFF",
-    "EtherPI": "#8FFBFF",
-    "EtherDG": "#F4845F",
-    "EtherPS": "#C89504",
-    "LPI": "#00CAD1",
-    "CL": "#FFA200",
-    "MLCL": "#FFDAA5",
-    "DLCL": "#FFE6C2",
-    "Cer": "#AB30A1",
-    "Cer_NS": "#AB30A1",
-    "Cer_NDS": "#AB30A1",
-    "Cer_EODS": "#AB30A1",
-    "Cer_EOS": "#AB30A1",
-    "Cer_EBDS": "#AB30A1",
-    "Cer_AP": "#AB30A1",
-    "Cer_AS": "#AB30A1",
-    "CAR": "#AB30A1",
-    "HexCer": "#F708E3",
-    "HexCer_NS": "#F708E3",
-    "HexCer_NDS": "#F708E3",
-    "HexCer_HDS": "#F708E3",
-    "HexCer_AP": "#F708E3",
-    "HexCer_HS": "#F708E3",
-    "Hex2Cer": "#FF73FF",
-    "SM": "#FFDB73",
-    "ASM": "#FFDB73",
-    "CoQ": "#F25C54",
-    "MAG": "#F7B267",
-    "DG": "#F4845F",
-    "DAG": "#F4845F",
-    "TG": "#8F1458",
-    "TAG": "#8F1458",
-    "FA": "#FFA1DB",
-    "CE": "#D10081",
-    "NAE": "#777777",
-    "ST": "#B40808",
-    "Standard": "#0D0D0D",
-    "Other": "#333333",
-    "GM3": "#FF73FF",
-    "HBMP": "#FFA200",
-    "SHexCer": "#F708E3",
-    "OxPI": "#8FFBFF",
-    "PI_Cer": "#8FFBFF",
-    "PE_Cer": "#6017A9",
-    "AHexBRS": "#FF73FF",
-    "AHexCAS": "#FF73FF",
-    "EtherPG": "#356935",
-    "OxPE": "#6017A9",
-    "AHexCer": "#FF73FF",
-    "EtherLPG": "#B1D8B1",
-    "EtherPG": "#356935",
-    "EtherTG": "#8F1458",
-    "BileAcid": "#FF8800",
-    # Red
-    "SL": "#B40808",
-    "LNAPE": "#8F5CD2",
-    "LNAPS": "#FDF32F",
-    "EtherDGDG": "#FFA200",
-    "EtherMGDG": "#FFA200",
-    "DGGA": "#FFA200",
-    "SQDG": "#FFA200",
-    "MGDG": "#FFA200",
-    "OxPS": "#C89504",
-    "DGDG" : "#FFA200",
-    "SHex": "#F708E3",
-    "Sph": "#AB30A1",
-    "ADGGA": "#FFA200",
-    "STSE" : "#B40808",
-    "GL": "#F7B267",
-}
-
-# python
-default_color = "#0D0D0D"
-lower_color_map = {k.strip().lower(): v for k, v in class_color_map.items()}
-
-def get_color_for_class(cls):
-    key = str(cls).strip().lower()
-    color = lower_color_map.get(key)
-    if color is None:
-        print(f"WARNING: No color found for class '{cls}'. Using default color.")
-        return default_color
-    return color
-
+default_is_mapper = {"GM3": "PI", "PA": "PG", "PEtOH": "PG"}
 
 def get_row_dict(id, mdf):
     row = mdf[mdf["Alignment ID"] == id]
@@ -228,19 +204,32 @@ def translate_to_skyline(vdf, mdf):
     sdf = pd.DataFrame(rows)
     return sdf
 
-
+def clean_classes(df):
+    # Switch any DAG to DG and TAG to TG in "Molecule List Name"
+    df["Molecule List Name"] = df["Molecule List Name"].str.replace("DAG", "DG")
+    df["Molecule List Name"] = df["Molecule List Name"].str.replace("TAG", "TG")
+    # Switch "SE 27:1 to CE"
+    df["Molecule List Name"] = df["Molecule List Name"].str.replace("SE 27:1", "CE")
+    # Switch any lipids with "SE" in the name to CE
+    df["Molecule List Name"] = df["Molecule List Name"].str.replace("SE", "CE")
+    # Switch name ST 27:1;1 to ST
+    df["Molecule List Name"] = df["Molecule List Name"].str.replace("ST 27:1;1", "ST")
+    return df
 
 def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=True):
     molecules = df["Molecule"].unique()
     replicates = df["Replicate Name"].unique()
 
+    df = clean_classes(df)
+
+    rtcol = "RT" if "RT" in df.columns else "Retention Time"
     # Precompute average RT per molecule
-    rt_df = df.groupby("Molecule")["RT"].mean().reset_index()
+    rt_df = df.groupby("Molecule")[rtcol].mean().reset_index()
 
     newrows = []
     for m in molecules:
         newrow = {"Molecule": m, "Molecule List Name": df[df["Molecule"] == m]["Molecule List Name"].values[0],
-                  "RT": rt_df[rt_df["Molecule"] == m]["RT"].values[0]}  # Add RT here}
+                  "RT": rt_df[rt_df["Molecule"] == m][rtcol].values[0]}  # Add RT here}
         for r in replicates:
             mask = (df["Molecule"] == m) & (df["Replicate Name"] == r)
             subset = df[mask]
@@ -303,16 +292,16 @@ def get_is_conc_from_isdf(isrow, isdf):
 def calc_is(df, isrows, replicates, isdf=None):
     # Copy just the replicate columns
     normdata = df[replicates].copy()
+    cls = df["Molecule List Name"].values[0] if "Molecule List Name" in df.columns else "Unknown"
     if len(df) == 0:
         print("WARNING: No data rows found. Skipping IS calculation.")
         return normdata
     if len(isrows) == 0:
-        print("WARNING: No IS rows found. Skipping IS calculation.")
+        print(f"WARNING: No IS rows found for class {cls}. Skipping IS calculation.")
         return normdata
 
     # Single IS row
     if len(isrows) == 1:
-        cls = isrows["Molecule List Name"].values[0] if "Molecule List Name" in isrows.columns else "Unknown"
         for r in replicates:
             isval = float(isrows[r].values[0])
             if isdf is not None:
@@ -329,12 +318,12 @@ def calc_is(df, isrows, replicates, isdf=None):
         for i, row in df.iterrows():
             rt = row.get("RT", None)
             if rt is None:
-                print(f"WARNING: No RT found for row {i}. Skipping IS normalization for this row.")
+                print(f"WARNING: No RT found for row {i} but multiple standards are found. Skipping normalization")
                 continue
-            # Find closest IS row by RT
-            closest_isrow = isrows.iloc[(isrows["RT"] - rt).abs().argsort()[:1]]
-            cls = closest_isrow["Molecule List Name"].values[0] if "Molecule List Name" in closest_isrow.columns else "Unknown"
+
             for r in replicates:
+                possible_rows = isrows[isrows[r] > 0]
+                closest_isrow = possible_rows.iloc[(possible_rows["RT"] - rt).abs().argsort()[:1]]
                 isval = float(closest_isrow[r].values[0])
                 if isdf is not None:
                     conc = get_is_conc_from_isdf(closest_isrow, isdf)
@@ -342,10 +331,23 @@ def calc_is(df, isrows, replicates, isdf=None):
                         isval /= conc
                 if isval == 0:
                     print(f"WARNING: IS value is zero for class {cls} in replicate {r}. Skipping normalization.")
+                    print("This should actually not be possible to access...")
                     continue
                 normdata.at[i, r] = float(normdata.at[i, r]) / isval
 
     return normdata
+
+def get_is(df, class_name, is_mapper_dict=None):
+    if is_mapper_dict is not None and class_name in is_mapper_dict:
+        mapped_class = is_mapper_dict[class_name]
+        print(f"Mapping class '{class_name}' to '{mapped_class}' for IS lookup.")
+        class_name = mapped_class
+    if "Ether" in class_name:
+        # print(f"Class '{class_name}' contains 'Ether'. Attempting to find IS for 'non-Ether' version of the class.")
+        class_name = class_name.replace("Ether", "").strip()
+    subdf = df[df["Molecule List Name"] == class_name]
+    isrows = subdf[subdf["Molecule"].str.startswith("IS ")]
+    return isrows
 
 
 def normalize_is(df, replicates, isdf=default_isdf):
@@ -356,8 +358,8 @@ def normalize_is(df, replicates, isdf=default_isdf):
 
     for c in classes:
         subdf = normdf[normdf["Molecule List Name"] == c]
-        # Find IS as molecule that starts with "IS_"
-        isrow = subdf[subdf["Molecule"].str.startswith("IS ")]
+        # Get IS rows for this class
+        isrow = get_is(normdf, c, is_mapper_dict=default_is_mapper)
         # Calculate normalized data for this class and replicate
         normdata = calc_is(subdf, isrow, replicates, isdf=isdf)
         # Merge back into normdf
@@ -637,8 +639,14 @@ def pie_chart(df, set, ax=None, title="Class Distribution", otherthresh=0.035):
     plt.title(title)
 
 def cv_pipeline(filepath, results_set=None, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=True, plot_results=True,
-                figsavepath=None):
+                figsavepath=None, nbins=50, cleanup=True):
     df = pd.read_csv(filepath)
+
+    if cleanup:
+        # Drop replicate name or Area nan
+        df = df.dropna(subset=["Replicate Name", "Area"])
+
+
     normdf, replicates = sum_transitions(df, mode=mode, drop_IS=drop_IS, normalize_IS=normalize_IS,
                                          normalize_TIC=normalize_TIC)
     if results_set is not None:
@@ -650,12 +658,30 @@ def cv_pipeline(filepath, results_set=None, mode="Products", drop_IS=True, norma
     if plot_results:
         # Plot CV distribution
         plt.figure(figsize=(8, 6))
-        plt.hist(normdf["CV"].dropna(), bins=30, color='skyblue', edgecolor='black')
+        # plt.hist(normdf["CV"].dropna(), bins=30, color='skyblue', edgecolor='black')
+        # Make the histogram stacked bars with colors by class
+        normdf = simplify_class_df(normdf, "Molecule List Name")
+
+        classes = normdf["Molecule List Name"].unique()
+        bins = np.linspace(0, 1, nbins)
+        hists = []
+        for cls in classes:
+            subset = normdf[normdf["Molecule List Name"] == cls]
+            histdata = subset["CV"].dropna()
+            hist, _ = np.histogram(histdata, bins=bins)
+            hists.append(hist)
+        hists = np.array(hists)
+        bottom = np.zeros(hists.shape[1])
+        for i, cls in enumerate(classes):
+            plt.bar(bins[:-1], hists[i], width=bins[1]-bins[0], bottom=bottom, color=get_color_for_class(cls),
+                    edgecolor='black', label=cls)
+            bottom += hists[i]
+
         plt.title("CV Distribution")
         plt.xlabel("Coefficient of Variation (CV)")
-        plt.ylabel("Frequency")
+        plt.ylabel("Count")
         # plt.axvline(x=0.2, color='r', linestyle='--', label='CV = 0.2')
-        # plt.legend()
+        plt.legend()
         plt.tight_layout()
         if figsavepath is not None:
             plt.savefig(figsavepath)
@@ -744,7 +770,7 @@ if __name__ == "__main__":
     # set1 = ["0.5% FT1", "0.5% FT2", "0.5% FT3"]
     set2 = ["Rep1", "Rep2", "Rep3"]
 
-    cv_pipeline(file, results_set=set2, mode="Products", drop_IS=False, normalize_IS=True, normalize_TIC=False,)
+    cv_pipeline(file, results_set=set2, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=False,)
 
     exit()
 

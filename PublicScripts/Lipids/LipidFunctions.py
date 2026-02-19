@@ -10,10 +10,115 @@ import matchms as mms
 import matplotlib as mpl
 import mplcursors
 from unidec.tools import center_of_mass
-from PublicScripts.Lipids.SkylineResultsPlotter import get_color_for_class
 
 # import warnings
 # warnings.filterwarnings("error")
+
+
+
+class_color_map = {
+    "PC": "#788BFF",
+    "OxPC": "#788BFF",
+    "PC O": "#BFD7FF",
+    "EtherPC": "#BFD7FF",
+    "LPC-O/P": "#27D3F5",
+    "LPC": "#3019E3",
+    "EtherLPC": "#27D3F5",
+    "PE": "#6017A9",
+    "PE-O": "#A276E5",
+    "EtherPE": "#A276E5",
+    "LPE": "#8F5CD2",
+    "EtherLPE": "#8F5CD2",
+    "PEtOH" : "#D291EF",
+    "PMeOH": "#D291EF",
+    "PG": "#356935",
+    "LPG": "#B1D8B1",
+    "LPS": "#FDF32F",
+    "PS": "#C89504",
+    "PA": "#95F4D4",
+    "LPA": "#42EBB3",
+    "PI": "#8FFBFF",
+    "EtherPI": "#8FFBFF",
+    "EtherDG": "#F4845F",
+    "EtherPS": "#C89504",
+    "LPI": "#00CAD1",
+    "CL": "#FFA200",
+    "MLCL": "#FFDAA5",
+    "DLCL": "#FFE6C2",
+    "Cer": "#AB30A1",
+    "Cer_NS": "#AB30A1",
+    "Cer_NDS": "#AB30A1",
+    "Cer_EODS": "#AB30A1",
+    "Cer_EOS": "#AB30A1",
+    "Cer_EBDS": "#AB30A1",
+    "Cer_AP": "#AB30A1",
+    "Cer_AS": "#AB30A1",
+    "CAR": "#AB30A1",
+    "HexCer": "#F708E3",
+    "HexCer_NS": "#F708E3",
+    "HexCer_NDS": "#F708E3",
+    "HexCer_HDS": "#F708E3",
+    "HexCer_AP": "#F708E3",
+    "HexCer_HS": "#F708E3",
+    "Hex2Cer": "#FF73FF",
+    "SM": "#FFDB73",
+    "ASM": "#FFDB73",
+    "CoQ": "#F25C54",
+    "MAG": "#F7B267",
+    "DG": "#F4845F",
+    "DAG": "#F4845F",
+    "TG": "#8F1458",
+    "TAG": "#8F1458",
+    "FA": "#FFA1DB",
+    "CE": "#D10081",
+    "NAE": "#777777",
+    "ST": "#B40808",
+    "Standard": "#0D0D0D",
+    "Other": "#333333",
+    "GM3": "#FF73FF",
+    "HBMP": "#FFA200",
+    "SHexCer": "#F708E3",
+    "OxPI": "#8FFBFF",
+    "PI_Cer": "#8FFBFF",
+    "PE_Cer": "#6017A9",
+    "AHexBRS": "#FF73FF",
+    "AHexCAS": "#FF73FF",
+    "EtherPG": "#356935",
+    "OxPE": "#6017A9",
+    "AHexCer": "#FF73FF",
+    "EtherLPG": "#B1D8B1",
+    "EtherPG": "#356935",
+    "EtherTG": "#8F1458",
+    "BileAcid": "#FF8800",
+    # Red
+    "SL": "#B40808",
+    "LNAPE": "#8F5CD2",
+    "LNAPS": "#FDF32F",
+    "EtherDGDG": "#FFA200",
+    "EtherMGDG": "#FFA200",
+    "DGGA": "#FFA200",
+    "SQDG": "#FFA200",
+    "MGDG": "#FFA200",
+    "OxPS": "#C89504",
+    "DGDG" : "#FFA200",
+    "SHex": "#F708E3",
+    "Sph": "#AB30A1",
+    "ADGGA": "#FFA200",
+    "STSE" : "#B40808",
+    "GL": "#F7B267",
+}
+
+# python
+default_color = "#0D0D0D"
+lower_color_map = {k.strip().lower(): v for k, v in class_color_map.items()}
+
+def get_color_for_class(cls):
+    key = str(cls).strip().lower()
+    color = lower_color_map.get(key)
+    if color is None:
+        print(f"WARNING: No color found for class '{cls}'. Using default color.")
+        return default_color
+    return color
 
 posadducts = [
     ["[M+H]+", 1, 1.00782503207, True],
@@ -2007,6 +2112,22 @@ def derplicate_il(df, mztol=0.8):
 
     return outdata
 
+def simplify_class_name(name):
+    if isinstance(name, str):
+        name = name.replace("Ox", "")
+        name = name.replace("Ether", "")
+        if name.startswith("L"):
+            name = name[1:]
+        if name.startswith("ML") or name.startswith("DL"):
+            name = name[2:]
+        if name in hg_simplifier.keys():
+            name = hg_simplifier[name]
+    return name
+
+def simplify_class_df(df, class_col="Ontology"):
+    df[class_col] = df[class_col].apply(simplify_class_name)
+    return df
+
 def mzrt_plot(df, class_col="Ontology", title="", simplify=True):
     # ------------------------------
     # Plot setup
@@ -2017,17 +2138,10 @@ def mzrt_plot(df, class_col="Ontology", title="", simplify=True):
     mpl.rcParams['font.size'] = 18
 
     if simplify:
-        # Drop Ox
-        df[class_col] = df[class_col].apply(lambda x: x.replace("Ox", "") if isinstance(x, str) else x)
-        # Drop ether in class names for better color mapping
-        df[class_col] = df[class_col].apply(lambda x: x.replace("Ether", "") if isinstance(x, str) else x)
-        # Drop "L" from the start if present for better color mapping
-        df[class_col] = df[class_col].apply(lambda x: x[1:] if isinstance(x, str) and x.startswith("L") else x)
-        # Drop "ML" or "DL" from the start if present for better color mapping
-        df[class_col] = df[class_col].apply(lambda x: x[2:] if isinstance(x, str) and (x.startswith("ML") or x.startswith("DL")) else x)
-
-    # Apply hg_simplifier to class_col for better color mapping
-    df[class_col] = df[class_col].apply(lambda x: hg_simplifier.get(x) if x in hg_simplifier.keys() else x)
+        df = simplify_class_df(df, class_col=class_col)
+    else:
+        # Apply hg_simplifier to class_col for better color mapping
+        df[class_col] = df[class_col].apply(lambda x: hg_simplifier.get(x) if x in hg_simplifier.keys() else x)
 
     # Legend order: alphabetical, but put Other last if present
     unique_classes = sorted([c for c in df[class_col].unique() if c != "Other"])
