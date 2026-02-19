@@ -147,53 +147,75 @@ def clean_classes(df):
 
 def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=True,
                     conc_col="Concentration (uM)"):
-    molecules = df["Molecule"].unique()
-    replicates = df["Replicate Name"].unique()
+    adduct_col="Precursor Adduct" if "Precursor Adduct" in df.columns else "Adduct"
+    mol_col = "Molecule"
+    class_col = "Molecule List Name"
+    rep_col = "Replicate Name"
+
+    molecules = df[mol_col].unique()
+    replicates = df[rep_col].unique()
 
     df = clean_classes(df)
 
+    # Fix adduct names
+    # Swap [M7H2+H] to [M+H] and such
+    df = df.replace({adduct_col: {"[M7H2+H]": "[M+H]", "[M7H2-H]": "[M-H]",
+                                  "[M5H2+H]":"[M+H]", "[M5H2-H]":"[M-H]",
+                                  "[M5H2+CH3COO]": "[M+CH3COO]", "[M5H2-CH3COO]": "[M-CH3COO]",
+                                  "[M9H2+H]": "[M+H]", "[M9H2-H]": "[M-H]",
+                                  "[M9H2+CH3COO]": "[M+CH3COO]", "[M9H2-CH3COO]": "[M-CH3COO]"}})
+
     rtcol = "RT" if "RT" in df.columns else "Retention Time"
     # Precompute average RT per molecule
-    rt_df = df.groupby("Molecule")[rtcol].mean().reset_index()
+    rt_df = df.groupby(mol_col)[rtcol].mean().reset_index()
 
     newrows = []
     for m in molecules:
-        newrow = {"Molecule": m, "Molecule List Name": df[df["Molecule"] == m]["Molecule List Name"].values[0],
-                  "RT": rt_df[rt_df["Molecule"] == m][rtcol].values[0]}  # Add RT here}
-        for r in replicates:
-            mask = (df["Molecule"] == m) & (df["Replicate Name"] == r)
-            subset = df[mask]
-            if mode == "Products":
-                # Drop any with "precursor" in "Fragment Ion"
-                subset = subset[~subset["Fragment Ion"].str.contains("precursor", case=False, na=False)]
-            elif mode == "Precursors":
-                # Keep only those with "precursor" in "Fragment Ion"
-                subset = subset[subset["Fragment Ion"].str.contains("precursor", case=False, na=False)]
-            elif mode == "Tails":
-                # Keep only those with "T" at the start of "Fragment Ion"
-                subset = subset[subset["Fragment Ion"].str.startswith("T", na=False)]
-            elif mode == "Heads":
-                # Keep only those with "H" at the start of "Fragment Ion"
-                subset = subset[subset["Fragment Ion"].str.startswith("H", na=False)]
-            elif mode == "All":
-                pass
+        # Get all adducts for the molecule
+        subdf = df[df[mol_col]==m]
+        adducts = subdf[adduct_col].unique()
+        for a in adducts:
+            newrow = {"Molecule": m, "Molecule List Name": df[df[mol_col] == m][class_col].values[0],
+                      "RT": rt_df[rt_df[mol_col] == m][rtcol].values[0], "Adduct": a}
+            for r in replicates:
+                mask = (df[mol_col] == m) & (df[rep_col] == r) & (df[adduct_col] == a)
+                subset = df[mask]
+                if mode == "Products":
+                    # Drop any with "precursor" in "Fragment Ion"
+                    subset = subset[~subset["Fragment Ion"].str.contains("precursor", case=False, na=False)]
+                elif mode == "Precursors":
+                    # Keep only those with "precursor" in "Fragment Ion"
+                    subset = subset[subset["Fragment Ion"].str.contains("precursor", case=False, na=False)]
+                elif mode == "Tails":
+                    # Keep only those with "T" at the start of "Fragment Ion"
+                    subset = subset[subset["Fragment Ion"].str.startswith("T", na=False)]
+                elif mode == "Heads":
+                    # Keep only those with "H" at the start of "Fragment Ion"
+                    subset = subset[subset["Fragment Ion"].str.startswith("H", na=False)]
+                elif mode == "All":
+                    pass
 
-            total_area = subset["Area"].sum()
-            newrow[r] = total_area
-        newrows.append(newrow)
+                total_area = subset["Area"].sum()
+                newrow[r] = total_area
+            newrows.append(newrow)
 
     outdf = pd.DataFrame(newrows)
+
     if normalize_IS:
         outdf = normalize_is(outdf, replicates, conc_col)
         if len(outdf) == 0:
             raise ValueError("No data left after IS normalization. Check if IS compounds are present.")
+        # Drop species that are 0 in all replicates after IS normalization
+        outdf = outdf[~(outdf[replicates].sum(axis=1) == 0)]
 
     if drop_IS:
         # Drop any rows where Molecule starts with "IS_"
-        outdf = outdf[~outdf["Molecule"].str.startswith("IS")]
+        outdf = outdf[~outdf[mol_col].str.startswith("IS")]
 
     if normalize_TIC:
         outdf = normalize_tic(outdf, replicates)
+
+
     return outdf, replicates
 
 
@@ -215,6 +237,9 @@ def get_is_conc_from_isdf(isrow, isdf, conc_col):
     if len(isdf_row) == 0:
         print(f"WARNING: No matching IS found in IS dataframe for '{isname}' of class '{isclass}'. Assuming concentration of 1 for this compound.")
         return None
+    if len(isdf_row) > 1:
+        print(f"WARNING: Multiple matching IS found in IS dataframe for {isname}")
+        return None
     conc = isdf_row[conc_col].values[0]
     return conc
 
@@ -223,12 +248,13 @@ def calc_is(df, isrows, replicates, conc_col, isdf=default_isdf):
     # Copy just the replicate columns
     normdata = df[replicates].copy()
     cls = df["Molecule List Name"].values[0] if "Molecule List Name" in df.columns else "Unknown"
+    adduct = df["Adduct"].values[0] if "Adduct" in df.columns else "Unknown"
     if len(df) == 0:
         print("WARNING: No data rows found. Skipping IS calculation.")
         return normdata
     if len(isrows) == 0:
-        print(f"WARNING: No IS rows found for class {cls}. Skipping IS calculation.")
-        return normdata
+        print(f"WARNING: No IS rows found for class {cls} and adduct {adduct}. Setting this data to 0.")
+        return normdata * 0
 
     # Single IS row
     if len(isrows) == 1:
@@ -239,7 +265,7 @@ def calc_is(df, isrows, replicates, conc_col, isdf=default_isdf):
                 if conc is not None:
                     isval /= conc
             if isval == 0:
-                print(f"WARNING: IS value is zero for class {cls} in replicate {r}. Skipping normalization.")
+                print(f"WARNING: IS value is zero for class {cls} and adduct {adduct} in replicate {r}. Skipping normalization.")
                 continue
             normdata[r] = normdata[r].astype(float) / isval
 
@@ -254,20 +280,23 @@ def calc_is(df, isrows, replicates, conc_col, isdf=default_isdf):
             for r in replicates:
                 possible_rows = isrows[isrows[r] > 0]
                 closest_isrow = possible_rows.iloc[(possible_rows["RT"] - rt).abs().argsort()[:1]]
+                if len(closest_isrow) == 0:
+                    print(f"WARNING: No IS rows with nonzero value found for class {cls} and adduct {adduct} in replicate {r}. Skipping normalization.")
+                    continue
                 isval = float(closest_isrow[r].values[0])
                 if isdf is not None:
                     conc = get_is_conc_from_isdf(closest_isrow, isdf, conc_col)
                     if conc is not None:
                         isval /= conc
                 if isval == 0:
-                    print(f"WARNING: IS value is zero for class {cls} in replicate {r}. Skipping normalization.")
+                    print(f"WARNING: IS value is zero for class {cls} and adduct {adduct} in replicate {r}. Skipping normalization.")
                     print("This should actually not be possible to access...")
                     continue
                 normdata.at[i, r] = float(normdata.at[i, r]) / isval
 
     return normdata
 
-def get_is(df, class_name, is_mapper_dict=None):
+def get_is(df, class_name, adduct, is_mapper_dict=None):
     if is_mapper_dict is not None and class_name in is_mapper_dict:
         mapped_class = is_mapper_dict[class_name]
         print(f"Mapping class '{class_name}' to '{mapped_class}' for IS lookup.")
@@ -275,7 +304,7 @@ def get_is(df, class_name, is_mapper_dict=None):
     if "Ether" in class_name:
         # print(f"Class '{class_name}' contains 'Ether'. Attempting to find IS for 'non-Ether' version of the class.")
         class_name = class_name.replace("Ether", "").strip()
-    subdf = df[df["Molecule List Name"] == class_name]
+    subdf = df[(df["Molecule List Name"] == class_name) & (df["Adduct"] == adduct)]
     isrows = subdf[subdf["Molecule"].str.startswith("IS ")]
     return isrows
 
@@ -287,14 +316,17 @@ def normalize_is(df, replicates, conc_col, isdf=default_isdf):
         normdf[r] = normdf[r].astype(float)
 
     for c in classes:
-        subdf = normdf[normdf["Molecule List Name"] == c]
-        # Get IS rows for this class
-        isrow = get_is(normdf, c, is_mapper_dict=default_is_mapper)
-        # Calculate normalized data for this class and replicate
-        normdata = calc_is(subdf, isrow, replicates, conc_col, isdf=isdf)
-        # Merge back into normdf
-        mask = normdf["Molecule List Name"] == c
-        normdf.loc[mask, replicates] = normdata
+        subdf_class = normdf[normdf["Molecule List Name"] == c]
+        adducts = subdf_class["Adduct"].unique()
+        for a in adducts:
+            subdf = subdf_class[subdf_class["Adduct"] == a]
+            # Get IS rows for this class
+            isrow = get_is(normdf, c, a, is_mapper_dict=default_is_mapper)
+            # Calculate normalized data for this class and replicate
+            normdata = calc_is(subdf, isrow, replicates, conc_col, isdf=isdf)
+            # Merge back into normdf
+            mask = (normdf["Molecule List Name"] == c) & (normdf["Adduct"] == a)
+            normdf.loc[mask, replicates] = normdata
     return normdf
 
 
@@ -568,50 +600,72 @@ def pie_chart(df, set, ax=None, title="Class Distribution", otherthresh=0.035):
     plt.pie(class_sums_filtered, labels=class_sums_filtered.index, colors=colors, autopct='%1.0f%%', startangle=140)
     plt.title(title)
 
+def plot_cv_hist(normdf, ax=None, nbins=50):
+    if ax is None:
+        plt.figure(figsize=(8, 6))
+    else:
+        plt.sca(ax)
+    classes = normdf["Molecule List Name"].unique()
+    bins = np.linspace(0, 1, nbins)
+    hists = []
+    for cls in classes:
+        subset = normdf[normdf["Molecule List Name"] == cls]
+        histdata = subset["CV"].dropna()
+        hist, _ = np.histogram(histdata, bins=bins)
+        hists.append(hist)
+    hists = np.array(hists)
+    bottom = np.zeros(hists.shape[1])
+    for i, cls in enumerate(classes):
+        plt.bar(bins[:-1], hists[i], width=bins[1] - bins[0], bottom=bottom, color=get_color_for_class(cls),
+                edgecolor='black', label=cls)
+        bottom += hists[i]
+
+    plt.title("CV Distribution")
+    plt.xlabel("Coefficient of Variation (CV)")
+    plt.ylabel("Count")
+    # plt.axvline(x=0.2, color='r', linestyle='--', label='CV = 0.2')
+    plt.legend()
+
 def cv_pipeline(filepath, results_set=None, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=True, plot_results=True,
-                figsavepath=None, nbins=50, cleanup=True):
+                figsavepath=None, nbins=50, cleanup=True, write_output=False):
     df = pd.read_csv(filepath)
 
     if cleanup:
         # Drop replicate name or Area nan
         df = df.dropna(subset=["Replicate Name", "Area"])
 
-
     normdf, replicates = sum_transitions(df, mode=mode, drop_IS=drop_IS, normalize_IS=normalize_IS,
                                          normalize_TIC=normalize_TIC)
+
+    # Sort NormDF by molecule list name, then by molecule name, then by adduct
+    normdf = normdf.sort_values(by=["Molecule List Name", "Molecule", "Adduct"], ascending=[True, True, True]).reset_index(drop=True)
+
     if results_set is not None:
         # Take only replicates that are in results_set
         replicates = [r for r in replicates if r in results_set]
     # Calculate CV for each molecule across all replicates
+    # Drop all where mean is 0 to avoid division by zero
+    normdf["Mean"] = normdf[replicates].mean(axis=1)
+    normdf = normdf[normdf["Mean"] > 0].copy()
     normdf["CV"] = normdf[replicates].std(axis=1, ddof=1) / normdf[replicates].mean(axis=1)
+
+    if write_output:
+        # Write normdf to xlsx
+        outfile = os.path.splitext(filepath)[0] + "_cv_output.xlsx"
+        normdf.to_excel(outfile, index=False)
+        print(f"CV output written to {outfile}")
+        print(normdf.to_string())
 
     if plot_results:
         # Plot CV distribution
         plt.figure(figsize=(8, 6))
-        # plt.hist(normdf["CV"].dropna(), bins=30, color='skyblue', edgecolor='black')
-        # Make the histogram stacked bars with colors by class
-        normdf = simplify_class_df(normdf, "Molecule List Name")
-
-        classes = normdf["Molecule List Name"].unique()
-        bins = np.linspace(0, 1, nbins)
-        hists = []
-        for cls in classes:
-            subset = normdf[normdf["Molecule List Name"] == cls]
-            histdata = subset["CV"].dropna()
-            hist, _ = np.histogram(histdata, bins=bins)
-            hists.append(hist)
-        hists = np.array(hists)
-        bottom = np.zeros(hists.shape[1])
-        for i, cls in enumerate(classes):
-            plt.bar(bins[:-1], hists[i], width=bins[1]-bins[0], bottom=bottom, color=get_color_for_class(cls),
-                    edgecolor='black', label=cls)
-            bottom += hists[i]
-
-        plt.title("CV Distribution")
-        plt.xlabel("Coefficient of Variation (CV)")
-        plt.ylabel("Count")
-        # plt.axvline(x=0.2, color='r', linestyle='--', label='CV = 0.2')
-        plt.legend()
+        ncol=2
+        nrow=1
+        ax1 = plt.subplot(nrow, ncol, 1)
+        # normdf = simplify_class_df(normdf, "Molecule List Name")
+        plot_cv_hist(normdf, ax=ax1, nbins=nbins)
+        ax2 = plt.subplot(nrow, ncol, 2)
+        pie_chart(normdf, "Mean", ax=ax2)
         plt.tight_layout()
         if figsavepath is not None:
             plt.savefig(figsavepath)
@@ -696,11 +750,13 @@ def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normal
 
 if __name__ == "__main__":
     file = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\Extr_US_MoleculeTransResults.csv"
+    file = r"C:\Users\marty\Downloads\Extr_US_MoleculeTransResults.csv"
 
     # set1 = ["0.5% FT1", "0.5% FT2", "0.5% FT3"]
     set2 = ["Rep1", "Rep2", "Rep3"]
 
-    cv_pipeline(file, results_set=set2, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=False,)
+    cv_pipeline(file, results_set=set2, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=False,
+                write_output=True, plot_results=True)
 
     exit()
 
