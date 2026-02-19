@@ -12,81 +12,6 @@ from PublicScripts.Lipids.LipidFunctions import simplify_class_df, get_color_for
 
 mpl.use("WxAgg")
 
-
-israw1 = """Class,Lipid,Concentration (ug/mL),m/z (+),m/z (-),RT
-CL,14:0-14:0-14:0-14:0 CL,15,1241.5,1239.5,12.6
-ST,d7-cholesterol,10,376.5,374.5,7
-CE,14:1 cholesteryl-d7 ester,25,602.58,600.58,10
-CE,16:1 cholesteryl-d7 ester,50,630.61,628.61,11
-CE,18:1 cholesteryl-d7 ester,75,658.64,656.64,11.7
-CE,20:3 cholesteryl-d7 ester,50,682.64,680.64,12
-CE,22:4 cholesteryl-d7 ester,25,708.66,706.66,12
-Cer,C16:1 Ceramide-d7 (d18:1-d7/16:1),75,543.54,541.54,8
-Cer,C18:1 Ceramide-d7 (d18:1-d7/18:1),50,571.57,569.57,9
-Cer,C20:1 Ceramide-d7 (d18:1-d7/20:1),25,599.6,597.6,10
-Cer,C22:1 Ceramide-d7 (d18:1-d7/22:1),50,627.63,625.63,11
-Cer,C24:1 Ceramide-d7 (d18:1-d7/24:1),75,655.67,653.67,12.4
-DG,17:0-14:1 DG-d5,25,558.51,556.51,9
-DG,17:0-16:1 DG-d5,50,586.54,584.54,10.2
-DG,17:0-18:1 DG-d5,75,614.57,612.57,11
-DG,17:0-20:3 DG-d5,50,638.57,636.57,10.7
-DG,17:0-22:4 DG-d5,25,664.59,662.59,10.9
-LPC,15:0 Lyso PC-d5,25,464.35,462.35,2
-LPC,17:0 Lyso PC-d5,50,492.38,490.38,3
-LPC,19:0 Lyso PC-d5,25,520.41,518.41,4
-LPE,15:0 Lyso PE-d5,25,422.3,420.3,2.5
-LPE,17:0 Lyso PE-d5,50,450.33,448.33,3.2
-LPE,19:0 Lyso PE-d5,25,478.36,476.36,4.3
-LPG,15:0 Lyso PG-d5,25,476.3,474.3,2
-LPG,17:0 Lyso PG-d5,50,504.3,502.3,2.5
-LPG,19:0 Lyso PG-d5,25,532.4,530.4,3
-LPI,15:0 Lyso PI-d5,25,564.3,562.3,1.95
-LPI,17:0 Lyso PI-d5,50,592.4,590.4,2.3
-LPI,19:0 Lyso PI-d5,25,620.4,618.4,2.9
-LPS,15:0 Lyso PS-d5,25,489.3,487.3,1.9
-LPS,17:0 Lyso PS-d5,50,517.3,515.3,2.3
-LPS,19:0 Lyso PS-d5,25,545.4,543.4,3
-PC,17:0-14:1 PC-d5,50,723.56,721.56,7.5
-PC,17:0-16:1 PC-d5,100,751.59,749.59,8.5
-PC,17:0-18:1 PC-d5,150,779.62,777.62,9.2
-PC,17:0-20:3 PC-d5,100,803.62,801.62,8.9
-PC,17:0-22:4 PC-d5,50,829.64,827.64,9.1
-PE,17:0-14:1 PE-d5,25,681.52,679.52,7.7
-PE,17:0-16:1 PE-d5,50,709.55,707.55,8.7
-PE,17:0-18:1 PE-d5,75,737.58,735.58,9.6
-PE,17:0-20:3 PE-d5,50,761.58,759.58,9.1
-PE,17:0-22:4 PE-d5,25,787.59,785.59,9.3
-PG,17:0-14:1 PG-d5,25,712.5,710.5,6.3
-PG,17:0-16:1 PG-d5,50,740.5,738.5,7.1
-PG,17:0-18:1 PG-d5,75,768.5,766.5,7.8
-PG,17:0-20:3 PG-d5,50,792.6,790.6,7.4
-PG,17:0-22:4 PG-d5,25,818.6,816.6,7.6
-PI,17:0-14:1 PI-d5,25,800.5,798.5,6.1
-PI,17:0-16:1 PI-d5,50,828.6,826.6,6.9
-PI,17:0-18:1 PI-d5,75,856.6,854.6,7.6
-PI,17:0-20:3 PI-d5,50,880.6,878.6,7.3
-PI,17:0-22:4 PI-d5,25,906.6,904.6,7.5
-PS,17:0-14:1 PS-d5,25,725.5,723.5,6.2
-PS,17:0-16:1 PS-d5,50,753.5,751.5,7
-PS,17:0-18:1 PS-d5,75,781.6,779.6,7.7
-PS,17:0-20:3 PS-d5,50,805.6,803.6,7.4
-PS,17:0-22:4 PS-d5,25,831.6,829.6,7.6
-SM,16:1 SM (d18:1/16:1)-d9,75,710.61,708.61,7.2
-SM,18:1 SM (d18:1/18:1)-d9,50,738.64,736.64,8
-SM,20:1 SM (d18:1/20:1)-d9,25,766.67,764.67,8.9
-SM,22:1 SM (d18:1/22:1)-d9,50,794.7,792.7,9.8
-SM,24:1 SM (d18:1/24:1)-d9,75,822.73,820.73,10
-TG,14:0-13:0-14:0 TG-d5,25,714.66,712.66,15.6
-TG,14:0-15:1-14:0 TG-d5,50,740.67,738.67,15.6
-TG,14:0-17:1-14:0 TG-d5,75,768.71,766.71,15.9
-TG,16:0-15:1-16:0 TG-d5,100,796.74,794.74,16.3
-TG,16:0-17:1-16:0 TG-d5,125,824.77,822.77,16.5
-TG,16:0-19:2-16:0 TG-d5,100,850.78,848.78,16.6
-TG,18:1-17:1-18:1 TG-d5,75,876.8,874.8,16.5
-TG,18:1-19:2-18:1 TG-d5,50,902.81,900.81,16.6
-TG,18:1-21:2-18:1 TG-d5,25,930.85,928.85,16.8
-"""
-
 israw = """
 Class,Lipid,Name 2,Concentration (ug/mL),m/z (+),m/z (-),RT,Product Number
 CL,14:0-14:0-14:0-14:0 CL,IS CL 14:0-14:0-14:0-14:0,15,1241.5,1239.5,12.6,750332
@@ -170,6 +95,10 @@ default_isdf = default_isdf.rename(columns={"Lipid": "Name 1", "Name 2": "Lipid"
 default_isdf["Lipid"] = default_isdf["Lipid"].str.replace(r"^IS\s+", "", regex=True)
 # Drop last two columns
 # default_isdf = default_isdf.iloc[:, :-2]
+# Calculated mass from m/z avg
+default_isdf["Mass"] = (default_isdf["m/z (+)"] + default_isdf["m/z (-)"]) / 2.
+# Calculate conc in uM from ug/mL using mass
+default_isdf["Concentration (uM)"] = default_isdf["Concentration (ug/mL)"] / default_isdf["Mass"]
 
 default_is_mapper = {"GM3": "PI", "PA": "PG", "PEtOH": "PG"}
 
@@ -216,7 +145,8 @@ def clean_classes(df):
     df["Molecule List Name"] = df["Molecule List Name"].str.replace("ST 27:1;1", "ST")
     return df
 
-def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=True):
+def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=True,
+                    conc_col="Concentration (uM)"):
     molecules = df["Molecule"].unique()
     replicates = df["Replicate Name"].unique()
 
@@ -254,7 +184,7 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
 
     outdf = pd.DataFrame(newrows)
     if normalize_IS:
-        outdf = normalize_is(outdf, replicates)
+        outdf = normalize_is(outdf, replicates, conc_col)
         if len(outdf) == 0:
             raise ValueError("No data left after IS normalization. Check if IS compounds are present.")
 
@@ -274,7 +204,7 @@ def normalize_tic(df, replicates):
         normdf[r] = normdf[r] / total
     return normdf
 
-def get_is_conc_from_isdf(isrow, isdf):
+def get_is_conc_from_isdf(isrow, isdf, conc_col):
     isname = isrow["Molecule"].values[0].strip()
     # Remove only leading 'IS ' (with space), keep rest intact
     if isname.startswith("IS "):
@@ -285,11 +215,11 @@ def get_is_conc_from_isdf(isrow, isdf):
     if len(isdf_row) == 0:
         print(f"WARNING: No matching IS found in IS dataframe for '{isname}' of class '{isclass}'. Assuming concentration of 1 for this compound.")
         return None
-    conc = isdf_row["Concentration (ug/mL)"].values[0]
+    conc = isdf_row[conc_col].values[0]
     return conc
 
 
-def calc_is(df, isrows, replicates, isdf=None):
+def calc_is(df, isrows, replicates, conc_col, isdf=default_isdf):
     # Copy just the replicate columns
     normdata = df[replicates].copy()
     cls = df["Molecule List Name"].values[0] if "Molecule List Name" in df.columns else "Unknown"
@@ -305,7 +235,7 @@ def calc_is(df, isrows, replicates, isdf=None):
         for r in replicates:
             isval = float(isrows[r].values[0])
             if isdf is not None:
-                conc = get_is_conc_from_isdf(isrows, isdf)
+                conc = get_is_conc_from_isdf(isrows, isdf, conc_col)
                 if conc is not None:
                     isval /= conc
             if isval == 0:
@@ -326,7 +256,7 @@ def calc_is(df, isrows, replicates, isdf=None):
                 closest_isrow = possible_rows.iloc[(possible_rows["RT"] - rt).abs().argsort()[:1]]
                 isval = float(closest_isrow[r].values[0])
                 if isdf is not None:
-                    conc = get_is_conc_from_isdf(closest_isrow, isdf)
+                    conc = get_is_conc_from_isdf(closest_isrow, isdf, conc_col)
                     if conc is not None:
                         isval /= conc
                 if isval == 0:
@@ -350,7 +280,7 @@ def get_is(df, class_name, is_mapper_dict=None):
     return isrows
 
 
-def normalize_is(df, replicates, isdf=default_isdf):
+def normalize_is(df, replicates, conc_col, isdf=default_isdf):
     normdf = df.copy()
     classes = normdf["Molecule List Name"].unique()
     for r in replicates:
@@ -361,7 +291,7 @@ def normalize_is(df, replicates, isdf=default_isdf):
         # Get IS rows for this class
         isrow = get_is(normdf, c, is_mapper_dict=default_is_mapper)
         # Calculate normalized data for this class and replicate
-        normdata = calc_is(subdf, isrow, replicates, isdf=isdf)
+        normdata = calc_is(subdf, isrow, replicates, conc_col, isdf=isdf)
         # Merge back into normdf
         mask = normdf["Molecule List Name"] == c
         normdf.loc[mask, replicates] = normdata
