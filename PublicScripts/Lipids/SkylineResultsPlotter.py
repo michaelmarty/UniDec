@@ -152,6 +152,9 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
     class_col = "Molecule List Name"
     rep_col = "Replicate Name"
 
+    # Drop any with nan in rep_col, mol_col, adduct_col, or class_col
+    df = df.dropna(subset=[rep_col, mol_col, adduct_col, class_col]).copy()
+
     molecules = df[mol_col].unique()
     replicates = df[rep_col].unique()
 
@@ -197,6 +200,11 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
 
                 total_area = subset["Area"].sum()
                 newrow[r] = total_area
+            if normalize_IS:
+                # If any IS values have a zero in any replicate, skip this IS compound
+                if any(newrow[r] == 0 for r in replicates) and m.startswith("IS"):
+                    print(f"WARNING: Removing IS compound {m} with adduct {a}")
+                    continue
             newrows.append(newrow)
 
     outdf = pd.DataFrame(newrows)
@@ -215,6 +223,11 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
     if normalize_TIC:
         outdf = normalize_tic(outdf, replicates)
 
+    # Calculate CV for each molecule across all replicates
+    # Drop all where mean is 0 to avoid division by zero
+    outdf["Mean"] = outdf[replicates].mean(axis=1)
+    outdf = outdf[outdf["Mean"] > 0].copy()
+    outdf["CV"] = outdf[replicates].std(axis=1, ddof=1) / outdf[replicates].mean(axis=1)
 
     return outdf, replicates
 
@@ -227,13 +240,19 @@ def normalize_tic(df, replicates):
     return normdf
 
 def get_is_conc_from_isdf(isrow, isdf, conc_col):
-    isname = isrow["Molecule"].values[0].strip()
+    try:
+        isname = isrow["Molecule"].values[0].strip()
+        isclass = isrow["Molecule List Name"].values[0]
+    except Exception as e:
+        isname = isrow["Molecule"].strip()
+        isclass = isrow["Molecule List Name"].strip()
+
     # Remove only leading 'IS ' (with space), keep rest intact
     if isname.startswith("IS "):
         isname = isname[3:].strip()
-    isclass = isrow["Molecule List Name"].values[0]
+    # Find matches
     isdf_row = isdf[(isdf["Lipid"] == isname) & (isdf["Class"] == isclass)]
-
+    # If none or multiple matches, print warning and return None
     if len(isdf_row) == 0:
         print(f"WARNING: No matching IS found in IS dataframe for '{isname}' of class '{isclass}'. Assuming concentration of 1 for this compound.")
         return None
@@ -264,6 +283,9 @@ def calc_is(df, isrows, replicates, conc_col, isdf=default_isdf):
                 conc = get_is_conc_from_isdf(isrows, isdf, conc_col)
                 if conc is not None:
                     isval /= conc
+                    # print(f"INFO: Normalizing by IS value {isval} for class {cls} and adduct {adduct} in replicate {r}.")
+                else:
+                    print(f"WARNING: No valid concentration found for IS row in class {cls} and adduct {adduct}. Assuming concentration of 1 for normalization.")
             if isval == 0:
                 print(f"WARNING: IS value is zero for class {cls} and adduct {adduct} in replicate {r}. Skipping normalization.")
                 continue
@@ -287,10 +309,28 @@ def calc_is(df, isrows, replicates, conc_col, isdf=default_isdf):
                 if isdf is not None:
                     conc = get_is_conc_from_isdf(closest_isrow, isdf, conc_col)
                     if conc is not None:
-                        isval /= conc
+                        rawarea = normdata.at[i, r]
+                        intratio = rawarea / isval
+                        if intratio > 50:
+                            print(f"WARNING: High internal standard ratio of {intratio} for row {i} in class {cls} and adduct {adduct} in replicate {r}. This may indicate an issue with the IS normalization.")
+                            normdata.at[i, r] = 0
+                            continue
+                        else:
+                            isval /= conc
+                        #
+                        # corrected = float(rawarea) / isval
+                        # if corrected > 1:
+                        #     print(row.to_string())
+                        #     print(closest_isrow.to_string())
+                        #     print("ISval:", isval, "Raw area:", rawarea, "Corrected area:", corrected, "Int Ratio:", intratio)
+                    else:
+                        print(f"WARNING: No valid concentration found for IS row in class {cls} and adduct {adduct}. Setting to 0.")
+                        normdata.at[i, r] = 0
+                        continue
                 if isval == 0:
                     print(f"WARNING: IS value is zero for class {cls} and adduct {adduct} in replicate {r}. Skipping normalization.")
                     print("This should actually not be possible to access...")
+                    normdata.at[i, r] = 0
                     continue
                 normdata.at[i, r] = float(normdata.at[i, r]) / isval
 
@@ -316,17 +356,45 @@ def normalize_is(df, replicates, conc_col, isdf=default_isdf):
         normdf[r] = normdf[r].astype(float)
 
     for c in classes:
-        subdf_class = normdf[normdf["Molecule List Name"] == c]
+        mask1 = normdf["Molecule List Name"] == c
+        subdf_class = normdf[mask1]
         adducts = subdf_class["Adduct"].unique()
         for a in adducts:
-            subdf = subdf_class[subdf_class["Adduct"] == a]
+            mask2 = subdf_class["Adduct"] == a
+            subdf = subdf_class[mask2]
+            # Remove ones with IS in the name from subdf to avoid self-normalization
+            mask3 = ~subdf["Molecule"].str.startswith("IS ")
+            subdf = subdf[mask3]
+            if len(subdf)==0:
+                continue
             # Get IS rows for this class
             isrow = get_is(normdf, c, a, is_mapper_dict=default_is_mapper)
             # Calculate normalized data for this class and replicate
             normdata = calc_is(subdf, isrow, replicates, conc_col, isdf=isdf)
             # Merge back into normdf
-            mask = (normdf["Molecule List Name"] == c) & (normdf["Adduct"] == a)
+            mask = (mask1) & (mask2) & (mask3)
             normdf.loc[mask, replicates] = normdata
+
+    # Repeat with IS lipids
+    for c in classes:
+        mask1 = normdf["Molecule List Name"] == c
+        subdf_class = normdf[mask1]
+        adducts = subdf_class["Adduct"].unique()
+        for a in adducts:
+            mask2 = subdf_class["Adduct"] == a
+            subdf = subdf_class[mask2]
+            mask3 = subdf["Molecule"].str.startswith("IS ")
+            subdf = subdf[mask3]
+            # Get IS rows for this class
+            isrow = get_is(normdf, c, a, is_mapper_dict=default_is_mapper)
+            if len(isrow) == 0 or len(subdf)==0:
+                continue
+            # Calculate normalized data for this class and replicate
+            normdata = calc_is(subdf, isrow, replicates, conc_col, isdf=isdf)
+            # Merge back into normdf
+            mask = (mask1) & (mask2) & (mask3)
+            normdf.loc[mask, replicates] = normdata
+
     return normdf
 
 
@@ -607,6 +675,8 @@ def plot_cv_hist(normdf, ax=None, nbins=50):
         plt.sca(ax)
     classes = normdf["Molecule List Name"].unique()
     bins = np.linspace(0, 1, nbins)
+    # Add maxcv to the end of bins to capture any CVs above 1
+    bins = np.append(bins, normdf["CV"].max())
     hists = []
     for cls in classes:
         subset = normdf[normdf["Molecule List Name"] == cls]
@@ -630,7 +700,7 @@ def cv_pipeline(filepath, results_set=None, mode="Products", drop_IS=True, norma
                 figsavepath=None, nbins=50, cleanup=True, write_output=False):
     df = pd.read_csv(filepath)
     # Drop all but PC and EtherPC classes to debug
-    df = df[df["Molecule List Name"].isin(["PC", "EtherPC"])]
+    # df = df[df["Molecule List Name"].isin(["PC", "EtherPC"])]
 
     if cleanup:
         # Drop replicate name or Area nan
@@ -645,11 +715,6 @@ def cv_pipeline(filepath, results_set=None, mode="Products", drop_IS=True, norma
     if results_set is not None:
         # Take only replicates that are in results_set
         replicates = [r for r in replicates if r in results_set]
-    # Calculate CV for each molecule across all replicates
-    # Drop all where mean is 0 to avoid division by zero
-    normdf["Mean"] = normdf[replicates].mean(axis=1)
-    normdf = normdf[normdf["Mean"] > 0].copy()
-    normdf["CV"] = normdf[replicates].std(axis=1, ddof=1) / normdf[replicates].mean(axis=1)
 
     if write_output:
         # Write normdf to xlsx
@@ -667,6 +732,8 @@ def cv_pipeline(filepath, results_set=None, mode="Products", drop_IS=True, norma
         # normdf = simplify_class_df(normdf, "Molecule List Name")
         plot_cv_hist(normdf, ax=ax1, nbins=nbins)
         ax2 = plt.subplot(nrow, ncol, 2)
+        # Drop classes with CV greater than 1 for pie chart to avoid clutter
+        normdf = normdf[normdf["CV"] < 1]
         pie_chart(normdf, "Mean", ax=ax2)
         plt.tight_layout()
         if figsavepath is not None:
@@ -750,15 +817,48 @@ def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normal
 
         plt.show()
 
+def is_analysis(file, mode="Products", isdf=None):
+    df = pd.read_csv(file)
+    isrows = df[df["Molecule"].str.startswith("IS ")]
+    isrows, replicates = sum_transitions(isrows, mode=mode, drop_IS=False, normalize_IS=False, normalize_TIC=False)
+
+    if isdf is None:
+        isdf = default_isdf
+
+    # Calculate response factors for each IS compound in each replicate
+    for i, row in isrows.iterrows():
+        isname = row["Molecule"].strip().replace("IS ", "")
+        isclass = row["Molecule List Name"]
+        conc = get_is_conc_from_isdf(row, isdf, "Concentration (uM)")
+        # Create new columns of rep + _"RF" for response factor
+        if conc is not None:
+            for r in replicates:
+                response_factor = row[r] / conc if conc != 0 else 0
+                isrows.at[i, r + "_RF"] = response_factor
+        else:
+            print(f"IS Compound: {isname}, Class: {isclass}, Replicate: {r}, Concentration: Unknown, Area: {row[r]}, Response Factor: Unknown (no matching IS found in IS dataframe)")
+
+    # Mean response factor across replicates for each IS compound
+    rf_cols = [r + "_RF" for r in replicates]
+    isrows["Mean_RF"] = isrows[rf_cols].mean(axis=1)
+    # CV rt
+    isrows["CV_RF"] = isrows[rf_cols].std(axis=1, ddof=1) / isrows[rf_cols].mean(axis=1)
+    print(isrows.to_string())
+
+
+
 if __name__ == "__main__":
     file = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\Extr_US_MoleculeTransResults.csv"
-    file = r"C:\Users\marty\Downloads\Extr_US_MoleculeTransResults.csv"
+    # file = r"C:\Users\marty\Downloads\Extr_US_MoleculeTransResults.csv"
 
     # set1 = ["0.5% FT1", "0.5% FT2", "0.5% FT3"]
     set2 = ["Rep1", "Rep2", "Rep3"]
 
-    cv_pipeline(file, results_set=set2, mode="Products", drop_IS=False, normalize_IS=False, normalize_TIC=False,
-                write_output=True, plot_results=False)
+    # is_analysis(file)
+    # exit()
+
+    cv_pipeline(file, results_set=set2, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=False,
+                write_output=True, plot_results=True)
 
     exit()
 
