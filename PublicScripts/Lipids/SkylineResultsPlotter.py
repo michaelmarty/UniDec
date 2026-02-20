@@ -629,6 +629,8 @@ def plot_cv_hist(normdf, ax=None, nbins=50):
 def cv_pipeline(filepath, results_set=None, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=True, plot_results=True,
                 figsavepath=None, nbins=50, cleanup=True, write_output=False):
     df = pd.read_csv(filepath)
+    # Drop all but PC and EtherPC classes to debug
+    df = df[df["Molecule List Name"].isin(["PC", "EtherPC"])]
 
     if cleanup:
         # Drop replicate name or Area nan
@@ -755,8 +757,8 @@ if __name__ == "__main__":
     # set1 = ["0.5% FT1", "0.5% FT2", "0.5% FT3"]
     set2 = ["Rep1", "Rep2", "Rep3"]
 
-    cv_pipeline(file, results_set=set2, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=False,
-                write_output=True, plot_results=True)
+    cv_pipeline(file, results_set=set2, mode="Products", drop_IS=False, normalize_IS=False, normalize_TIC=False,
+                write_output=True, plot_results=False)
 
     exit()
 
