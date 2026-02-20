@@ -8,7 +8,9 @@ import numpy as np
 import pandas as pd
 import rainbow as rb
 import matplotlib.pyplot as plt
-from matplotlib import colormaps, colors, rcParams
+from matplotlib import colormaps, rcParams
+import matplotlib.colors as mcolors
+from matplotlib.colorbar import ColorbarBase
 
 '''======================================================================'''
 G_FILENAME = "UIB1B_gdata.txt"
@@ -19,7 +21,7 @@ FIG_DIR = "Figures"
 
 '''======================================================================'''
 # Global color tuning (HSL Modifiers)
-global_LUM = 0.55  # brightness (1 = normal, <1 = darker, >1 = brighter)
+global_LUM = 0.8  # brightness (1 = normal, <1 = darker, >1 = brighter)
 global_SAT = 1.4  # saturation (1 = normal, >1 = more vivid)
 global_HUE = 0  # hue shift (0–1; cycles colors)
 
@@ -29,8 +31,8 @@ color_scheme = {
     "alpha": "winter_r",
     "beta": "cool",
     "gamma": "Wistia",
-    "gdata": "GnBu_r",
-    "rdata": "OrRd_r",
+    "gdata": "winter",
+    "rdata": "spring",
     "overlay": "cool",
 }
 
@@ -126,7 +128,7 @@ def nonlinearize(datatop, num_compressed, gap=20):
         out = out[~np.isnan(out).any(axis=1)]
         return out
 
-def calc_lock_index(data, lock_time =0.00333):
+def calc_lock_index(data, lock_time =0.003):
     times = data[:,0]
     diffs = np.abs(times - lock_time)
     lock_index = np.argmin(diffs)
@@ -134,7 +136,7 @@ def calc_lock_index(data, lock_time =0.00333):
     return lock_index
 
 def parse_lock_data(data, num_compressed, gap=20):
-    start_idx = calc_lock_index(data, lock_time = 0.00333)
+    start_idx = calc_lock_index(data, lock_time = 0.003)
 
     parseddata = nonlinearize(data[start_idx:], num_compressed, gap=gap)
 
@@ -195,7 +197,9 @@ def plot_subtraction_verification(path, original, blank, subtracted, channel_nam
     plt.legend(loc='upper right', fontsize='x-small')
     plt.tight_layout()
 
-    plt.savefig(os.path.join(path, f"Verify_Subtraction_{channel_name}.png"))
+    save_dir = topdir if topdir else path
+    fname = f"{os.path.basename(path)}_Verify_Subtraction_{channel_name}.png" if topdir else f"Verify_Subtraction_{channel_name}.png"
+    plt.savefig(os.path.join(save_dir, fname), dpi=300)
     plt.close()
 
 def extract_numeric_key(filename):
@@ -278,7 +282,7 @@ def analyze_UIB_samples(files, topdir, num_compressed=50):
         # Title and save
         fig.suptitle(f"Demux Verification: {base_name}\n(Using Blank: {os.path.basename(blank_path)})", fontsize=12)
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-        plt.savefig(os.path.join(txt_out_dir, f"{base_name}_UIB1B_shift_diag.png"))
+        plt.savefig(os.path.join(current_path, f"{base_name}_UIB1B_shift_diag.png"))
         plt.close(fig)
 
         #Interpolation and Subtraction Logic
@@ -419,10 +423,12 @@ def plot_UIB_dashboard(analysis_results, topdir, sort_by='reps', kin_xaxis='reps
     for ax, title in zip([ax_raw_g, ax_raw_r, ax_sub_g, ax_sub_r, ax_kin_g, ax_kin_r], titles):
         ax.set_title(title, fontweight='bold', fontsize=14)
 
-    # Standard axis labels
+        # Standard axis labels
     for ax in [ax_raw_g, ax_raw_r, ax_sub_g, ax_sub_r]:
         ax.set_xlabel("Time (min)")
         ax.set_ylabel("Intensity")
+
+    plt.subplots_adjust(left=0.06, right=0.88, wspace=0.6, hspace=0.4, top=0.92, bottom=0.07)
 
     # Dynamic x-axis labels for Kinetics
     for ax in [ax_kin_g, ax_kin_r]:
@@ -435,10 +441,46 @@ def plot_UIB_dashboard(analysis_results, topdir, sort_by='reps', kin_xaxis='reps
             from matplotlib.ticker import MaxNLocator
             ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 
-    ax_raw_g.legend(loc='upper left', bbox_to_anchor=(1.05, 1), fontsize='small', title="Samples")
+    # 1. Setup Scales and Colors
+    norm = mcolors.Normalize(vmin=0, vmax=len(sorted_paths) - 1)
+    cmap_g = mcolors.ListedColormap(g_colors)
+    cmap_r = mcolors.ListedColormap(r_colors)
 
-    plt.tight_layout()
+    fig.canvas.draw()
+
+    # 3. Setup Scales
+    norm = mcolors.Normalize(vmin=0, vmax=len(sorted_paths) - 1)
+    cmap_g = mcolors.ListedColormap(g_colors)
+    cmap_r = mcolors.ListedColormap(r_colors)
+
+    # 2. Helper to create aligned colorbar
+    def add_aligned_cbar(parent_ax, cmap, title):
+        pos = parent_ax.get_position()
+
+        # Define cax using the actual rendered position of the subplot
+        # x0=pos.x1 + 0.005 puts it just barely to the right of the plot line
+        cax = fig.add_axes([pos.x1 + 0.005, pos.y0, 0.01, pos.height])
+
+        cb = ColorbarBase(cax, cmap=cmap, norm=norm)
+        cax.set_title(title, fontsize=10, fontweight='bold', pad=10)
+
+        indices = [0, len(sorted_paths) - 1]
+        labels = [f"t={analysis_results[sorted_paths[idx]]['hours']}h" for idx in indices]
+
+        cb.set_ticks(indices)
+        cb.set_ticklabels(labels, fontsize=9)
+        return cb
+
+    # 5. Attach the 4 bars
+    add_aligned_cbar(ax_raw_g, cmap_g, " " )
+    add_aligned_cbar(ax_raw_r, cmap_r, " " )
+    add_aligned_cbar(ax_sub_g, cmap_g, " " )
+    add_aligned_cbar(ax_sub_r, cmap_r, " " )
+
+    # 4. Final Layout Adjustment
+    # Increase wspace to prevent the G-bars from hitting the R-plot Y-labels
     plt.savefig(os.path.join(topdir, f"UIB_Dashboard_{kin_xaxis}.png"), dpi=300)
+    plt.savefig(os.path.join(topdir, f"UIB_Dashboard_{kin_xaxis}.pdf"), dpi=300)
     plt.show()
 
 def parse_array_to_xy(arr):
@@ -648,8 +690,6 @@ def plot_individual_samples(files, figsize=(12, 10), save=True):
 
         txt_out_dir = os.path.join(s_path, TXT_DIR)
         os.makedirs(txt_out_dir, exist_ok=True)
-        diag_dir = os.path.join(s_path, "individual_plots")
-        os.makedirs(diag_dir, exist_ok=True)
 
         targets = {
             "UIB1B_gdata.txt": ("Green Channel (UIB)", 0, False, None),
@@ -746,7 +786,7 @@ def plot_individual_samples(files, figsize=(12, 10), save=True):
         plt.tight_layout()
 
         if save:
-            save_path = os.path.join(diag_dir, f"{sample_name}_report.png")
+            save_path = os.path.join(s_path, f"{sample_name}_report.png")
             save_path2 = save_path.replace(".png", ".pdf")
             plt.savefig(save_path2, dpi=300)
             plt.savefig(save_path, dpi=300)
@@ -864,70 +904,84 @@ def plot_multidetector_overlay(files, topdir, read_files=None, figsize=(16, 7), 
     plt.show()
 
 
-def plot_UIB_ridgelines_combined(analysis_results, topdir, autoscale=True, v_step=1.0, scale_factor=0.8):
-    print("[PLOTTING] Generating Combined UIB Ridgeline Plot with defined spacing...")
+def plot_UIB_ridgelines_combined(analysis_results, topdir, sort_by='reps', v_step=1.0, scale_factor=0.8):
+    print(f"[PLOTTING] Generating Combined UIB Ridgeline Plot (Sorted by: {sort_by})...")
 
-    # Sort results by time/rep
-    sort_key = lambda x: (analysis_results[x]['hours'], analysis_results[x].get('rep', 0))
+    # 1. Sorting Logic
+    if sort_by == 'reps':
+        sort_key = lambda x: (analysis_results[x]['hours'], analysis_results[x].get('rep', 0))
+    else:
+        sort_key = lambda x: (analysis_results[x].get('rep', 0), analysis_results[x]['hours'])
+
     sorted_paths = sorted(analysis_results.keys(), key=sort_key)
+    if not sorted_paths: return
 
-    if not sorted_paths:
-        return
-
-    # Create figure
-    fig, ax = plt.subplots(figsize=(12, 10))
+    fig, ax = plt.subplots(figsize=(14, 10))
 
     # Colors
     g_colors = get_filtered_colors(color_scheme['gdata'], len(sorted_paths))
     r_colors = get_filtered_colors(color_scheme['rdata'], len(sorted_paths))
-    labels = [f"t={analysis_results[p]['hours']}h (rep {analysis_results[p].get('rep', 0)})" for p in sorted_paths]
-    labels = [f"rep {analysis_results[p].get('rep', 0)}" for p in sorted_paths]
 
-    # Plotting loop
-    for i in range(len(sorted_paths)):
-        # The 'baseline' is where the flat part of the graph sits
+    # 2. Plotting Loop
+    for i, p in enumerate(sorted_paths):
         baseline = i * v_step
+        current_z = i
+        res = analysis_results[p]
 
-        # Lower zorder for higher indices so top plots stay "behind" bottom ones
-        # (or vice-versa depending on your visual preference)
-        current_z = len(sorted_paths) - i
+        # Green Channel
+        if res['tg_sub'].size > 0:
+            y_max = np.max(res['tg_sub'][:, 1])
+            y_norm = (res['tg_sub'][:, 1] / y_max * scale_factor) if y_max > 0 else 0
+            ax.plot(res['tg_sub'][:, 0], y_norm + baseline, color=g_colors[i], lw=1.5, zorder=current_z)
+            ax.fill_between(res['tg_sub'][:, 0], y_norm + baseline, baseline, color=g_colors[i], alpha=0.3,
+                            zorder=current_z)
 
-        # --- Green Channel ---
-        data_g = analysis_results[sorted_paths[i]]['tg_sub']
-        if data_g.size > 0:
-            # Normalize to 0-1, then multiply by scale_factor
-            # This ensures peak height < v_step
-            y_max = np.max(data_g[:, 1])
-            y_norm_g = (data_g[:, 1] / y_max * scale_factor) if y_max > 0 else 0
-            y_shifted_g = y_norm_g + baseline
+        # Red Channel
+        if res['tr_sub'].size > 0:
+            y_max_r = np.max(res['tr_sub'][:, 1])
+            y_norm_r = (res['tr_sub'][:, 1] / y_max_r * scale_factor) if y_max_r > 0 else 0
+            ax.plot(res['tr_sub'][:, 0], y_norm_r + baseline, color=r_colors[i], lw=1.5, zorder=current_z)
+            ax.fill_between(res['tr_sub'][:, 0], y_norm_r + baseline, baseline, color=r_colors[i], alpha=0.3,
+                            zorder=current_z)
 
-            ax.plot(data_g[:, 0], y_shifted_g, color=g_colors[i], lw=1.5, zorder=current_z)
-            ax.fill_between(data_g[:, 0], y_shifted_g, baseline, color=g_colors[i], alpha=0.4, zorder=current_z)
-
-        # --- Red Channel ---
-        data_r = analysis_results[sorted_paths[i]]['tr_sub']
-        if data_r.size > 0:
-            y_max_r = np.max(data_r[:, 1])
-            y_norm_r = (data_r[:, 1] / y_max_r * scale_factor) if y_max_r > 0 else 0
-            y_shifted_r = y_norm_r + baseline
-
-            ax.plot(data_r[:, 0], y_shifted_r, color=r_colors[i], lw=1.5, zorder=current_z)
-            ax.fill_between(data_r[:, 0], y_shifted_r, baseline, color=r_colors[i], alpha=0.4, zorder=current_z)
-
-
-    # Formatting
-    ax.set_title("Dimension 1 (Normalized in Channel)", fontweight='bold')
-    ax.set_xlabel("Time (min)")
-    ax.set_yticks([i * v_step for i in range(len(labels))])
-    ax.set_yticklabels(labels, fontsize='small')
-
-    # Remove spines for that clean ridgeline look
+    # 3. Initial Formatting
+    ax.set_title(f"UIB Ridgeline Analysis (Sorted by {sort_by.capitalize()})", fontweight='bold', fontsize=16)
+    ax.set_xlabel("Time (min)", fontsize=12)
+    ax.set_yticks([])  # Hide standard Y-ticks; colorbar will provide the scale
     for spine in ['top', 'right', 'left']:
         ax.spines[spine].set_visible(False)
-    #ax.grid(True, axis='x', linestyle=':', alpha=0.3)
 
-    plt.tight_layout()
-    plt.savefig(os.path.join(topdir, "UIB_Combined_Ridgelines_Spaced.png"), dpi=300)
+    # 4. LOCK LAYOUT
+    plt.subplots_adjust(left=0.08, right=0.82, top=0.92, bottom=0.1)
+    fig.canvas.draw()
+
+    # 5. Add Aligned Dual Colorbars
+    pos = ax.get_position()
+    norm = mcolors.Normalize(vmin=0, vmax=len(sorted_paths) - 1)
+
+    # Green Bar
+    cax_g = fig.add_axes([pos.x1 + 0.01, pos.y0, 0.012, pos.height])
+    cb_g = ColorbarBase(cax_g, cmap=mcolors.ListedColormap(g_colors), norm=norm)
+    cax_g.set_title("G", fontsize=10, fontweight='bold')
+    cb_g.set_ticks([])  # USE THE COLORBAR OBJECT 'cb_g' HERE
+
+    # Red Bar
+    cax_r = fig.add_axes([pos.x1 + 0.06, pos.y0, 0.012, pos.height])
+    cb_r = ColorbarBase(cax_r, cmap=mcolors.ListedColormap(r_colors), norm=norm)
+    cax_r.set_title("R", fontsize=10, fontweight='bold')
+
+    # Annotations: First and Last
+    indices = [0, len(sorted_paths) - 1]
+    labels = [
+        f"t={analysis_results[sorted_paths[idx]]['hours']}h (r{analysis_results[sorted_paths[idx]].get('rep', 0)})" for
+        idx in indices]
+
+    cb_r.set_ticks(indices)  # USE THE COLORBAR OBJECT 'cb_r' HERE
+    cb_r.set_ticklabels(labels, fontsize=9)
+
+    # 6. Final Save
+    plt.savefig(os.path.join(topdir, f"UIB_Ridgelines_{sort_by}.png"), dpi=300)
+    plt.savefig(os.path.join(topdir, f"UIB_Ridgelines_{sort_by}.pdf"), dpi=300)
     plt.show()
 
 def move_figures(files, topdir):
@@ -942,26 +996,26 @@ def move_figures(files, topdir):
 
 def main():
     rc_params_setup()
-    topdir = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\Repeat Injection Tests\20260213 Dim1 Stuff 2026-02-13 21-29-04\Rep3"
+    topdir = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\Kinetics Replicates\20260218 POPC_POPG_LX_FLMSP rep3"
     files = glob.glob(os.path.join(topdir, "*.D"))
     detector_files = ["UIB1B_rawdata.npz", "FLD1A_rawdata.npz"]
 
-    # extract_all_files(files)
-    # convert_acq_to_utf8(files)
-    # parse_instrument_method(files)
-    # plot_instrument_timetables(files)
+    extract_all_files(files)
+    convert_acq_to_utf8(files)
+    parse_instrument_method(files)
+    plot_instrument_timetables(files)
 
     analysis_results = analyze_UIB_samples(files, topdir, num_compressed=50)
 
     # Visualization & cleanup using results
     if analysis_results:
-        # plot_UIB_dashboard(analysis_results, topdir, sort_by='reps', kin_xaxis='reps', figsize=(20, 18))
-        plot_UIB_ridgelines_combined(analysis_results, topdir, autoscale=True, v_step=1.0, scale_factor=0.8)
+        plot_UIB_dashboard(analysis_results, topdir, sort_by='hours', kin_xaxis='hours', figsize=(20, 18)) #it is either 'reps' or 'hours'
+        plot_UIB_ridgelines_combined(analysis_results, topdir, sort_by='hours', v_step=1.0, scale_factor=0.8)
     else:
         print("[MAIN] No analysis results generated; skipping dashboard/ridgeline plots.")
 
-    # plot_multidetector_overlay(files, topdir, read_files=detector_files, figsize=(16, 7), save=True)
-    # plot_individual_samples(files, figsize=(12, 10), save=True)
+    plot_multidetector_overlay(files, topdir, read_files=detector_files, figsize=(16, 7), save=True)
+    plot_individual_samples(files, figsize=(12, 10), save=True)
     move_figures(files, topdir)
 
     print("[Main] Pipeline Complete!")
