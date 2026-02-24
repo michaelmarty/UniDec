@@ -26,6 +26,7 @@ class Peak:
         self.ccs = 0
         self.centroid = 0
         self.area = 0
+        self.arearange = []
         self.color = [1, 1, 1]
         self.label = ""
         self.marker = "."
@@ -83,6 +84,8 @@ class Peak:
         self.filenumber = -1
         self.zs = []
         self.avgmass = 0
+        self.apexvar1 = 0
+        self.avgvar1 = 0
 
     def line_out(self, type="Full", rounding=3):
         if type == "Full":
@@ -331,6 +334,28 @@ class Peaks:
             p.integral = ud.integrate(data, p.integralrange[0], p.integralrange[1])[0]
             self.areas.append(p.integral)
         self.areas = np.array(self.areas)
+
+    def extract_integrate(self, xvalues=None, n_stds=4):
+        for p in self.peaks:
+            if xvalues is None:
+                xvalues = np.arange(len(p.extracts))
+            yvalues = p.extracts
+            mean = ud.weighted_avg(xvalues, yvalues)
+            # print("Extracts:", xvalues, yvalues)
+            if n_stds == 0 or n_stds is None:
+                lb = np.amin(xvalues)
+                ub = np.amax(xvalues)
+            else:
+                std = ud.weighted_std(xvalues, yvalues)
+                lb = mean - n_stds * std
+                ub = mean + n_stds * std
+            p.apexvar1 = xvalues[np.argmax(yvalues)]
+            p.avgvar1 = mean
+            area = ud.integrate(np.column_stack((xvalues, yvalues)), lb, ub)[0]
+            p.area = area
+            p.arearange = [lb, ub]
+            print(f"Extract Integration for Peak {p.label}: Area={area}, Range=({lb}, {ub})")
+
 
     def auto_format(self):
 

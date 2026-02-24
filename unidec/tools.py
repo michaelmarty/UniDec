@@ -430,8 +430,10 @@ def get_zvalue(ci=0.99):
 
 def integrate(data, start, end):
     boo1 = data[:, 0] < end
-    boo2 = data[:, 0] > start
+    boo2 = data[:, 0] >= start
     intdat = data[np.all([boo1, boo2], axis=0)]
+    if len(intdat) == 1:
+        return intdat[0, 1], intdat
     integral = np.trapezoid(intdat[:, 1], x=intdat[:, 0])
     return integral, intdat
 
