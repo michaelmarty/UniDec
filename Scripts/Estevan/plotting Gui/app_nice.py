@@ -25,6 +25,7 @@ from chromatogram_plot_utils import plot_chrom_stack
 from cdms_mass_plot_utils import plot_cdms_mass_offset_stack, plot_single_cdms_mass
 from mwd_chromatogram_utils import plot_mwd_chromatograms
 from mz_spectrum_plot_utils import plot_single_mz_spectrum, plot_mz_spectrum_offset_stack
+from thermo_raw_utils import plot_raw_chrom_and_spectrum  # NEW
 
 # Defaults
 DEFAULT_CHROM_COLORS = ["#333333", "#00A9A5", "#C76BA0", "#2C7FB8", "#7A7A7A", "#00A9A5"]
@@ -65,26 +66,23 @@ class CommonConfig:
 
 class PlotApp:
     """
-    Chromatograms, CD-MS Mass, MWD Chromatograms, and m/z Spectra GUI:
+    Chromatograms, CD-MS Mass, MWD Chromatograms, m/z Spectra, and Thermo RAW GUI:
       - msgcat fix for ttkbootstrap Style initialization
       - Drag-and-drop support (fallback to Tk if not available)
-      - Centered body content with max width when you maximize the window
+      - Clean centered layout using grid
       - Persistent footer bar with Plot button
       - Color pickers for palette selection
       - Standards toggle for Chromatograms
       - MWD paths integrated into main Files list
       - Normalization toggles for ALL tabs
+      - NEW: Thermo RAW tab (TIC + m/z plotting)
     """
     def __init__(self, root: tk.Tk, themename: str = "flatly"):
         self.root = root
-
-        # Ensure Tcl msgcat package is loaded before ttkbootstrap Style
         try:
             self.root.tk.call('package', 'require', 'msgcat')
         except tk.TclError:
             pass
-
-        # Attach ttkbootstrap Style explicitly to this root
         try:
             self.style = tb.Style(master=self.root, theme=themename)
         except TypeError:
@@ -94,140 +92,84 @@ class PlotApp:
         except Exception:
             pass
 
-        # Window and centering
         self.win_w = 1200
         self.win_h = 850
         self.root.geometry(f"{self.win_w}x{self.win_h}")
-        self.body_max_w = 1300
-        self.margins = 12  # outer margin around centered body
 
-        # Theme background fill
         try:
             self.root.configure(bg=self.style.colors.bg)
         except Exception:
             pass
 
-        # State
-        self.files: List[str] = []
-        self.canvas: Optional[FigureCanvasTkAgg] = None
-        self.toolbar: Optional[NavigationToolbar2Tk] = None
+        self.header = tb.Frame(self.root, bootstyle="secondary"); self.header.pack(fill=X)
+        self.centerer = tb.Frame(self.root, bootstyle="secondary"); self.centerer.pack(fill=BOTH, expand=YES)
+        self.footer = tb.Frame(self.root, bootstyle="secondary"); self.footer.pack(fill=X, side=BOTTOM)
 
-        # Main vertical layout: header, body (centered container), footer
-        self.header = tb.Frame(self.root, bootstyle="secondary")
-        self.header.pack(fill=X)
-        # Centered container for the body: we place it (not pack) so we can center it horizontally on resize
-        self.body_container = tb.Frame(self.root, bootstyle="secondary")
-        self.body_container.place(x=self.margins, y=self.margins)  # initial placeholder; updated by _on_resize
-        self.footer = tb.Frame(self.root, bootstyle="secondary")
-        self.footer.pack(fill=X, side=BOTTOM)
+        # Centerer grid for centered content
+        self.centerer.grid_columnconfigure(0, weight=1)
+        self.centerer.grid_columnconfigure(1, weight=0)
+        self.centerer.grid_columnconfigure(2, weight=1)
+        self.centerer.grid_rowconfigure(0, weight=1)
+        self.body = tb.Frame(self.centerer, bootstyle="secondary"); self.body.grid(row=0, column=1, sticky="n")
 
-        # Build header/body/footer
+        # Build sections
         self._build_header(self.header)
-        self._build_body(self.body_container)  # build inside centered container
-        self._build_footer(self.footer)        # persistent Plot button
+        self._build_body(self.body)
+        self._build_footer(self.footer)
 
-        # Center window initially and center body on resize/maximize
         self._center_on_screen()
-        self.root.bind("<Configure>", self._on_resize)
-
-        # Initial status
         self._set_status("Ready. Drag files into the list or use the pickers, then click Plot.")
 
-    # ---------- Header ----------
     def _build_header(self, parent):
-        header = tb.Frame(parent, padding=10, bootstyle="secondary")
-        header.pack(fill=X)
-        tb.Label(header, text="Plotting GUI: Chromatograms, CD-MS Mass, MWD, and m/z Spectra", font=("Arial", 16, "bold")).pack(side=LEFT)
-
+        header = tb.Frame(parent, padding=10, bootstyle="secondary"); header.pack(fill=X)
+        tb.Label(header, text="Plotting GUI: Chromatograms, CD-MS Mass, MWD, m/z Spectra, and Thermo RAW", font=("Arial", 16, "bold")).pack(side=LEFT)
         theme_frame = tb.Frame(header, bootstyle="secondary"); theme_frame.pack(side=RIGHT)
         tb.Label(theme_frame, text="Theme:", font=("Arial", 10, "bold")).pack(side=LEFT, padx=(0, 6))
         self.theme_var = tk.StringVar(value=self.style.theme_use())
         combo = tb.Combobox(theme_frame, values=THEMES, textvariable=self.theme_var, state="readonly", width=10)
         combo.pack(side=LEFT)
         combo.bind("<<ComboboxSelected>>", self._on_theme_change)
-
-        # Status bar
         bar = tb.Frame(parent, bootstyle="secondary"); bar.pack(fill=X)
         self.status_label = tb.Label(bar, text="Status: Ready", anchor=W); self.status_label.pack(side=LEFT, padx=8, pady=4)
 
     def _on_theme_change(self, event=None):
         self.style.theme_use(self.theme_var.get())
-        try:
-            self.root.configure(bg=self.style.colors.bg)
-        except Exception:
-            pass
+        try: self.root.configure(bg=self.style.colors.bg)
+        except Exception: pass
 
-    # ---------- Body (inside centered container) ----------
     def _build_body(self, parent):
-        # The body content frame (we center this by placing parent on resize)
-        self.body_frame = tb.Frame(parent, bootstyle="secondary")
-        self.body_frame.pack(fill=BOTH, expand=YES)
-
-        paned = tb.Panedwindow(self.body_frame, orient=HORIZONTAL, bootstyle="secondary")
+        paned = tb.Panedwindow(parent, orient=HORIZONTAL, bootstyle="secondary")
         paned.pack(fill=BOTH, expand=YES, padx=10, pady=6)
-
         left = tb.Frame(paned, padding=10, bootstyle="secondary"); paned.add(left, weight=1)
         right = tb.Frame(paned, padding=10, bootstyle="secondary"); paned.add(right, weight=3)
         self.plot_area = right
-
         nb = tb.Notebook(left, bootstyle="primary"); nb.pack(fill=BOTH, expand=YES)
+
+        # Common options
         self._build_common_options(left)
 
-        # Chromatograms tab
-        self.chrom_tab = tb.Frame(nb, padding=8, bootstyle="secondary")
-        nb.add(self.chrom_tab, text="Chromatograms")
-        self._build_chrom_tab()
-
-        # CD-MS tab
-        self.cdms_tab = tb.Frame(nb, padding=8, bootstyle="secondary")
-        nb.add(self.cdms_tab, text="CD-MS Mass")
-        self._build_cdms_tab()
-
-        # MWD tab
-        self.mwd_tab = tb.Frame(nb, padding=8, bootstyle="secondary")
-        nb.add(self.mwd_tab, text="MWD Chromatograms")
-        self._build_mwd_tab()
-
-        # m/z Spectra tab
-        self.mz_tab = tb.Frame(nb, padding=8, bootstyle="secondary")
-        nb.add(self.mz_tab, text="m/z Spectra")
-        self._build_mz_tab()
+        # Tabs
+        self._build_chrom_tab(nb)
+        self._build_cdms_tab(nb)
+        self._build_mwd_tab(nb)
+        self._build_mz_tab(nb)
+        self._build_raw_tab(nb)  # NEW
 
         # Files panel
         self._build_file_panel(left)
 
-    # ---------- Persistent footer ----------
     def _build_footer(self, parent):
-        frame = tb.Frame(parent, bootstyle="secondary")
-        frame.pack(fill=X, pady=6)
+        frame = tb.Frame(parent, bootstyle="secondary"); frame.pack(fill=X, pady=6)
         self.progress = tb.Progressbar(frame, mode="indeterminate", bootstyle="info")
         self.progress.pack(side=LEFT, fill=X, expand=YES, padx=6)
         tb.Button(frame, text="Plot", bootstyle="primary", command=self._plot).pack(side=RIGHT, padx=6)
 
-    # ---------- Centering logic ----------
     def _center_on_screen(self):
         self.root.update_idletasks()
         sw, sh = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
         x = (sw - self.win_w) // 2; y = (sh - self.win_h) // 2
         self.root.geometry(f"{self.win_w}x{self.win_h}+{x}+{y}")
-        self._on_resize()  # also center the body content
 
-    def _on_resize(self, event=None):
-        # Center the body_container horizontally with a max width
-        self.root.update_idletasks()
-        ww, wh = self.root.winfo_width(), self.root.winfo_height()
-
-        # Compute centered body size (leave some top space for header)
-        max_w = self.body_max_w
-        body_w = min(max(ww - 2 * self.margins, 600), max_w)
-        body_h = max(wh - 2 * self.margins - 60, 400)  # 60px for header/status area
-
-        x = (ww - body_w) // 2
-        y = self.margins + 40  # push down a bit to clear header/status
-
-        self.body_container.place(x=x, y=y, width=body_w, height=body_h)
-
-    # ---------- Common options ----------
     def _build_common_options(self, parent):
         lf = tb.Labelframe(parent, text="Common Options", padding=10, bootstyle="secondary"); lf.pack(fill=X, pady=6)
         sp = tb.Frame(lf, bootstyle="secondary"); sp.pack(fill=X, pady=4)
@@ -235,7 +177,6 @@ class PlotApp:
         self.save_var = tk.StringVar()
         tb.Entry(sp, textvariable=self.save_var).pack(side=LEFT, fill=X, expand=YES, padx=6)
         tb.Button(sp, text="Browse", bootstyle="secondary", command=self._browse_save).pack(side=LEFT)
-
         grid = tb.Frame(lf, bootstyle="secondary"); grid.pack(fill=X, pady=4)
         tb.Label(grid, text="Font:", width=8).grid(row=0, column=0, sticky=W)
         self.font_name = tk.StringVar(value="Arial"); tb.Entry(grid, textvariable=self.font_name, width=14).grid(row=0, column=1, sticky=W, padx=4)
@@ -246,21 +187,20 @@ class PlotApp:
         tb.Label(grid, text="Figsize (W,H):", width=14).grid(row=0, column=6, sticky=W)
         self.fig_w = tk.DoubleVar(value=10.0); tb.Entry(grid, textvariable=self.fig_w, width=6).grid(row=0, column=7, sticky=W, padx=2)
         self.fig_h = tk.DoubleVar(value=6.0); tb.Entry(grid, textvariable=self.fig_h, width=6).grid(row=0, column=8, sticky=W, padx=2)
-
         toggles = tb.Frame(lf, bootstyle="secondary"); toggles.pack(fill=X, pady=4)
         self.show_plot = tk.BooleanVar(value=True)
         tb.Checkbutton(toggles, text="Show Figure in external window (in addition to preview)", variable=self.show_plot).pack(anchor=W, pady=2)
         self.transparent_export = tk.BooleanVar(value=False)
         tb.Checkbutton(toggles, text="Transparent export background", variable=self.transparent_export).pack(anchor=W, pady=2)
 
-    # ---------- Tabs (Chromatograms/CD-MS/MWD/mz) ----------
-    def _build_chrom_tab(self):
+    def _build_chrom_tab(self, nb):
+        self.chrom_tab = tb.Frame(nb, padding=8, bootstyle="secondary")
+        nb.add(self.chrom_tab, text="Chromatograms")
         mode = tb.Frame(self.chrom_tab, bootstyle="secondary"); mode.pack(fill=X, pady=4)
         tb.Label(mode, text="Plot Mode:", font=("Arial", 10, "bold")).pack(side=LEFT)
         self.chrom_mode = tk.StringVar(value="single")
         tb.Radiobutton(mode, text="Single Chromatogram", variable=self.chrom_mode, value="single").pack(side=LEFT, padx=8)
         tb.Radiobutton(mode, text="Stacked Chromatograms", variable=self.chrom_mode, value="stacked").pack(side=LEFT)
-
         lf_labels = tb.Labelframe(self.chrom_tab, text="Chromatogram Labels & Colors", padding=8, bootstyle="secondary"); lf_labels.pack(fill=X, pady=4)
         tb.Label(lf_labels, text="Sample Labels (comma-separated; blank = filenames)").pack(anchor=W)
         self.chrom_labels = tk.Text(lf_labels, height=2); self.chrom_labels.pack(fill=X, pady=4)
@@ -269,7 +209,6 @@ class PlotApp:
         color_row = tb.Frame(lf_labels, bootstyle="secondary"); color_row.pack(fill=X, pady=2)
         tb.Entry(color_row, textvariable=self.chrom_colors).pack(side=LEFT, fill=X, expand=YES, padx=6)
         tb.Button(color_row, text="Pick Colors…", bootstyle="info", command=lambda: self._open_palette_editor(self.chrom_colors, "Chromatogram Colors")).pack(side=LEFT)
-
         lf_axes = tb.Labelframe(self.chrom_tab, text="Chromatogram Axes & Standards", padding=8, bootstyle="secondary"); lf_axes.pack(fill=X, pady=6)
         grid = tb.Frame(lf_axes, bootstyle="secondary"); grid.pack(fill=X)
         tb.Label(grid, text="X-lim (mL):").grid(row=0, column=0, sticky=W)
@@ -279,7 +218,6 @@ class PlotApp:
         self.chrom_ymin = tk.DoubleVar(value=0.0); tb.Entry(grid, textvariable=self.chrom_ymin, width=8).grid(row=0, column=4, padx=4)
         self.chrom_ymax = tk.DoubleVar(value=1.0); tb.Entry(grid, textvariable=self.chrom_ymax, width=8).grid(row=0, column=5, padx=4)
         self.chrom_normalize = tk.BooleanVar(value=True); tb.Checkbutton(lf_axes, text="Normalize traces to max", variable=self.chrom_normalize).pack(anchor=W, pady=4)
-
         std_row = tb.Frame(lf_axes, bootstyle="secondary"); std_row.pack(fill=X, pady=4)
         self.chrom_show_standards = tk.BooleanVar(value=True)
         tb.Checkbutton(std_row, text="Show standard volumes (top ticks)", variable=self.chrom_show_standards).pack(side=LEFT)
@@ -287,13 +225,14 @@ class PlotApp:
         self.chrom_standards = tk.StringVar(value=DEFAULT_CHROM_STANDARDS)
         tb.Entry(std_row, textvariable=self.chrom_standards, width=28).pack(side=LEFT, padx=6)
 
-    def _build_cdms_tab(self):
+    def _build_cdms_tab(self, nb):
+        self.cdms_tab = tb.Frame(nb, padding=8, bootstyle="secondary")
+        nb.add(self.cdms_tab, text="CD-MS Mass")
         mode = tb.Frame(self.cdms_tab, bootstyle="secondary"); mode.pack(fill=X, pady=4)
         tb.Label(mode, text="Plot Mode:", font=("Arial", 10, "bold")).pack(side=LEFT)
         self.cdms_mode = tk.StringVar(value="single")
         tb.Radiobutton(mode, text="Single CD-MS Mass", variable=self.cdms_mode, value="single").pack(side=LEFT, padx=8)
         tb.Radiobutton(mode, text="Stacked CD-MS Mass", variable=self.cdms_mode, value="stacked").pack(side=LEFT)
-
         lf_labels = tb.Labelframe(self.cdms_tab, text="CD-MS Mass Labels & Colors", padding=8, bootstyle="secondary"); lf_labels.pack(fill=X, pady=4)
         tb.Label(lf_labels, text="Labels (comma-separated; blank = filenames)").pack(anchor=W)
         self.cdms_labels = tk.Text(lf_labels, height=2); self.cdms_labels.pack(fill=X, pady=4)
@@ -308,7 +247,6 @@ class PlotApp:
         color_row = tb.Frame(lf_labels, bootstyle="secondary"); color_row.pack(fill=X, pady=2)
         tb.Entry(color_row, textvariable=self.cdms_colors).pack(side=LEFT, fill=X, expand=YES, padx=6)
         tb.Button(color_row, text="Pick Colors…", bootstyle="info", command=lambda: self._open_palette_editor(self.cdms_colors, "CD-MS Colors")).pack(side=LEFT)
-
         lf_axes = tb.Labelframe(self.cdms_tab, text="CD-MS Mass Axes & Layout", padding=8, bootstyle="secondary"); lf_axes.pack(fill=X, pady=6)
         grid = tb.Frame(lf_axes, bootstyle="secondary"); grid.pack(fill=X)
         tb.Label(grid, text="X-range (kDa):").grid(row=0, column=0, sticky=W)
@@ -319,7 +257,9 @@ class PlotApp:
         self.cdms_normalize = tk.BooleanVar(value=True)
         tb.Checkbutton(lf_axes, text="Normalize to max (percent)", variable=self.cdms_normalize).pack(anchor=W, pady=4)
 
-    def _build_mwd_tab(self):
+    def _build_mwd_tab(self, nb):
+        self.mwd_tab = tb.Frame(nb, padding=8, bootstyle="secondary")
+        nb.add(self.mwd_tab, text="MWD Chromatograms")
         lf_files = tb.Labelframe(self.mwd_tab, text="MWD Files (drag & drop or browse)", padding=8, bootstyle="secondary"); lf_files.pack(fill=X, pady=4)
         row1 = tb.Frame(lf_files, bootstyle="secondary"); row1.pack(fill=X, pady=2)
         tb.Label(row1, text="mAU file:").pack(side=LEFT)
@@ -330,7 +270,6 @@ class PlotApp:
         if DND_AVAILABLE:
             self.mwd_mau_entry.drop_target_register(DND_FILES)
             self.mwd_mau_entry.dnd_bind("<<Drop>>", lambda e: self._on_single_file_drop(e, self.mwd_mau_path))
-
         row2 = tb.Frame(lf_files, bootstyle="secondary"); row2.pack(fill=X, pady=2)
         tb.Label(row2, text="mV file:").pack(side=LEFT)
         self.mwd_mv_path = tk.StringVar()
@@ -340,7 +279,6 @@ class PlotApp:
         if DND_AVAILABLE:
             self.mwd_mv_entry.drop_target_register(DND_FILES)
             self.mwd_mv_entry.dnd_bind("<<Drop>>", lambda e: self._on_single_file_drop(e, self.mwd_mv_path))
-
         lf_labels = tb.Labelframe(self.mwd_tab, text="Labels & Colors", padding=8, bootstyle="secondary"); lf_labels.pack(fill=X, pady=4)
         row3 = tb.Frame(lf_labels, bootstyle="secondary"); row3.pack(fill=X, pady=2)
         tb.Label(row3, text="mAU label:").pack(side=LEFT)
@@ -349,14 +287,12 @@ class PlotApp:
         tb.Label(row3, text="mV label:").pack(side=LEFT)
         self.mwd_mv_label = tk.StringVar(value="AqpZ (mV)")
         tb.Entry(row3, textvariable=self.mwd_mv_label, width=24).pack(side=LEFT, padx=6)
-
         row4 = tb.Frame(lf_labels, bootstyle="secondary"); row4.pack(fill=X, pady=2)
         tb.Label(row4, text="Colors (mAU, mV hex):").pack(side=LEFT)
         self.mwd_colors = tk.StringVar(value=", ".join(DEFAULT_MWD_COLORS))
         tb.Entry(row4, textvariable=self.mwd_colors).pack(side=LEFT, fill=X, expand=YES, padx=6)
         tb.Button(row4, text="Pick mAU", bootstyle="info", command=lambda: self._pick_mwd_color(index=0)).pack(side=LEFT, padx=4)
         tb.Button(row4, text="Pick mV", bootstyle="info", command=lambda: self._pick_mwd_color(index=1)).pack(side=LEFT, padx=4)
-
         lf_axes = tb.Labelframe(self.mwd_tab, text="Axes & Options", padding=8, bootstyle="secondary"); lf_axes.pack(fill=X, pady=4)
         grid = tb.Frame(lf_axes, bootstyle="secondary"); grid.pack(fill=X)
         tb.Label(grid, text="X-lim (mL):").grid(row=0, column=0, sticky=W)
@@ -365,30 +301,28 @@ class PlotApp:
         self.mwd_normalize = tk.BooleanVar(value=True)
         tb.Checkbutton(lf_axes, text="Normalize each trace to max", variable=self.mwd_normalize).pack(anchor=W, pady=4)
 
-    def _build_mz_tab(self):
+    def _build_mz_tab(self, nb):
+        self.mz_tab = tb.Frame(nb, padding=8, bootstyle="secondary")
+        nb.add(self.mz_tab, text="m/z Spectra")
         mode = tb.Frame(self.mz_tab, bootstyle="secondary"); mode.pack(fill=X, pady=4)
         tb.Label(mode, text="Plot Mode:", font=("Arial", 10, "bold")).pack(side=LEFT)
         self.mz_mode = tk.StringVar(value="single")
         tb.Radiobutton(mode, text="Single m/z Spectrum",  variable=self.mz_mode, value="single").pack(side=LEFT, padx=8)
         tb.Radiobutton(mode, text="Stacked m/z Spectra", variable=self.mz_mode, value="stacked").pack(side=LEFT)
-
         lf_labels = tb.Labelframe(self.mz_tab, text="m/z Labels & Colors", padding=8, bootstyle="secondary"); lf_labels.pack(fill=X, pady=4)
         tb.Label(lf_labels, text="Labels (comma-separated; blank = filenames)").pack(anchor=W)
         self.mz_labels = tk.Text(lf_labels, height=2); self.mz_labels.pack(fill=X, pady=4)
-
         self.mz_two_legends = tk.BooleanVar(value=False)
         tb.Checkbutton(lf_labels, text="Include second legend near peak", variable=self.mz_two_legends).pack(anchor=W, pady=2)
         tb.Label(lf_labels, text="Second Labels (one per file; used when second legend is enabled)").pack(anchor=W)
         self.mz_second_labels = tk.Text(lf_labels, height=2); self.mz_second_labels.pack(fill=X, pady=4)
         self.mz_second_labels.config(state=tk.DISABLED)
         self.mz_two_legends.trace_add("write", lambda *args: self._toggle_mz_second_labels())
-
         tb.Label(lf_labels, text="Colors (comma-separated hex)").pack(anchor=W)
         self.mz_colors = tk.StringVar(value=", ".join(DEFAULT_MZ_COLORS))
         color_row = tb.Frame(lf_labels, bootstyle="secondary"); color_row.pack(fill=X, pady=2)
         tb.Entry(color_row, textvariable=self.mz_colors).pack(side=LEFT, fill=X, expand=YES, padx=6)
         tb.Button(color_row, text="Pick Colors…", bootstyle="info", command=lambda: self._open_palette_editor(self.mz_colors, "m/z Colors")).pack(side=LEFT)
-
         lf_axes = tb.Labelframe(self.mz_tab, text="m/z Axes & Layout", padding=8, bootstyle="secondary"); lf_axes.pack(fill=X, pady=6)
         grid = tb.Frame(lf_axes, bootstyle="secondary"); grid.pack(fill=X)
         tb.Label(grid, text="X-range (m/z):").grid(row=0, column=0, sticky=W)
@@ -399,32 +333,60 @@ class PlotApp:
         self.mz_normalize = tk.BooleanVar(value=True)
         tb.Checkbutton(lf_axes, text="Normalize to max (percent)", variable=self.mz_normalize).pack(anchor=W, pady=4)
 
-    def _toggle_second_labels_input(self):
-        state = tk.NORMAL if self.cdms_two_legends.get() else tk.DISABLED
-        self.cdms_second_labels.config(state=state)
+    def _build_raw_tab(self, nb):
+        self.raw_tab = tb.Frame(nb, padding=8, bootstyle="secondary")
+        nb.add(self.raw_tab, text="Thermo RAW")
+        # File picker
+        lf_file = tb.Labelframe(self.raw_tab, text="RAW/mzML File", padding=8, bootstyle="secondary"); lf_file.pack(fill=X, pady=4)
+        row = tb.Frame(lf_file, bootstyle="secondary"); row.pack(fill=X, pady=2)
+        tb.Label(row, text="Path:").pack(side=LEFT)
+        self.raw_path = tk.StringVar()
+        self.raw_entry = tb.Entry(row, textvariable=self.raw_path)
+        self.raw_entry.pack(side=LEFT, fill=X, expand=YES, padx=6)
+        tb.Button(row, text="Browse", bootstyle="secondary", command=self._browse_raw_file).pack(side=LEFT)
+        if DND_AVAILABLE:
+            self.raw_entry.drop_target_register(DND_FILES)
+            self.raw_entry.dnd_bind("<<Drop>>", lambda e: self._on_single_file_drop(e, self.raw_path))
+        # Options
+        lf_opts = tb.Labelframe(self.raw_tab, text="Options", padding=8, bootstyle="secondary"); lf_opts.pack(fill=X, pady=4)
+        grid = tb.Frame(lf_opts, bootstyle="secondary"); grid.pack(fill=X)
+        tb.Label(grid, text="MS level:").grid(row=0, column=0, sticky=W)
+        self.raw_ms_level = tk.IntVar(value=1)
+        tb.Entry(grid, textvariable=self.raw_ms_level, width=6).grid(row=0, column=1, padx=6)
+        tb.Label(grid, text="Max scans:").grid(row=0, column=2, sticky=W)
+        self.raw_max_scans = tk.IntVar(value=200)
+        tb.Entry(grid, textvariable=self.raw_max_scans, width=8).grid(row=0, column=3, padx=6)
+        tb.Label(grid, text="Spectrum:").grid(row=1, column=0, sticky=W)
+        self.raw_mode = tk.StringVar(value="apex")
+        tb.Radiobutton(grid, text="Apex", variable=self.raw_mode, value="apex").grid(row=1, column=1, sticky=W)
+        tb.Radiobutton(grid, text="Index", variable=self.raw_mode, value="index").grid(row=1, column=2, sticky=W)
+        tb.Label(grid, text="Index:").grid(row=1, column=3, sticky=W)
+        self.raw_index = tk.IntVar(value=0)
+        self.raw_index_entry = tb.Entry(grid, textvariable=self.raw_index, width=6)
+        self.raw_index_entry.grid(row=1, column=4, padx=6)
+        # Enable/disable index entry
+        def _toggle_raw_index(*args):
+            state = tk.NORMAL if self.raw_mode.get() == "index" else tk.DISABLED
+            self.raw_index_entry.config(state=state)
+        self.raw_mode.trace_add("write", _toggle_raw_index)
+        _toggle_raw_index()
+        self.raw_norm = tk.BooleanVar(value=True)
+        tb.Checkbutton(lf_opts, text="Normalize spectrum to max (percent)", variable=self.raw_norm).pack(anchor=W, pady=4)
 
-    def _toggle_mz_second_labels(self):
-        state = tk.NORMAL if self.mz_two_legends.get() else tk.DISABLED
-        self.mz_second_labels.config(state=state)
-
-    # ---------- Files panel ----------
     def _build_file_panel(self, parent):
         lf = tb.Labelframe(parent, text="Files (Chromatograms, CD-MS Mass, MWD, m/z)", padding=8, bootstyle="secondary"); lf.pack(fill=BOTH, expand=YES, pady=6)
         btns = tb.Frame(lf, bootstyle="secondary"); btns.pack(fill=X, pady=4)
         tb.Button(btns, text="Add Files...", bootstyle="success", command=self._add_files).pack(side=LEFT)
         tb.Button(btns, text="Remove Selected", bootstyle="warning", command=self._remove_selected).pack(side=LEFT, padx=6)
         tb.Button(btns, text="Clear", bootstyle="danger", command=self._clear_files).pack(side=LEFT)
-
         self.file_tree = tb.Treeview(lf, columns=("idx", "path"), show="headings", height=8, bootstyle="info")
         self.file_tree.heading("idx", text="#"); self.file_tree.column("idx", width=40, anchor=CENTER)
         self.file_tree.heading("path", text="File Path"); self.file_tree.column("path", width=700, anchor=W)
         self.file_tree.pack(fill=BOTH, expand=YES, pady=6)
-
         if DND_AVAILABLE:
             self.file_tree.drop_target_register(DND_FILES)
             self.file_tree.dnd_bind("<<Drop>>", self._on_files_drop)
 
-    # ---------- Utility ----------
     def _set_status(self, text: str):
         self.status_label.configure(text=f"Status: {text}")
         self.root.update_idletasks()
@@ -432,8 +394,7 @@ class PlotApp:
     def _browse_save(self):
         path = filedialog.asksaveasfilename(title="Save figure as...", defaultextension=".png",
                                             filetypes=[("PNG", "*.png"), ("PDF", "*.pdf"), ("SVG", "*.svg")])
-        if path:
-            self.save_var.set(path)
+        if path: self.save_var.set(path)
 
     def _refresh_files(self):
         for i in self.file_tree.get_children():
@@ -441,56 +402,45 @@ class PlotApp:
         for idx, p in enumerate(self.files):
             self.file_tree.insert("", "end", values=(idx, p))
 
-    def _sync_mwd_from_files(self):
-        if self._active_tab() != "MWD Chromatograms":
-            return
-        mau = self.files[0] if len(self.files) >= 1 else ""
-        mv  = self.files[1] if len(self.files) >= 2 else ""
-        self.mwd_mau_path.set(mau)
-        self.mwd_mv_path.set(mv)
-
     def _add_files(self):
         tab = self._active_tab()
         if tab == "Chromatograms":
             paths = filedialog.askopenfilenames(title="Select Chromatogram Excel files",
                                                 filetypes=[("Excel files", "*.xlsx *.xls"), ("All files", "*.*")])
-            if paths:
-                self.files.extend(paths); self._refresh_files()
         elif tab == "CD-MS Mass":
             paths = filedialog.askopenfilenames(title="Select CD-MS mass text files",
                                                 filetypes=[("Text files", "*.txt"), ("All files", "*.*")])
-            if paths:
-                self.files.extend(paths); self._refresh_files()
         elif tab == "m/z Spectra":
             paths = filedialog.askopenfilenames(title="Select m/z spectrum text files",
                                                 filetypes=[("Text files", "*.txt"), ("All files", "*.*")])
-            if paths:
-                self.files.extend(paths); self._refresh_files()
         else:  # MWD Chromatograms
             paths = filedialog.askopenfilenames(title="Select mAU/mV Excel files (first=mAU, second=mV)",
                                                 filetypes=[("Excel files", "*.xlsx *.xls"), ("All files", "*.*")])
             if paths:
-                paths = list(paths)[:2]
-                self.files = list(paths); self._refresh_files(); self._sync_mwd_from_files()
+                self.files = list(paths)[:2]
+                self._refresh_files()
+                return
+        if paths:
+            self.files.extend(paths); self._refresh_files()
 
     def _remove_selected(self):
         selected = self.file_tree.selection()
-        if not selected:
-            return
+        if not selected: return
         idxs = sorted([int(self.file_tree.item(i, "values")[0]) for i in selected], reverse=True)
         for idx in idxs:
             if 0 <= idx < len(self.files):
                 self.files.pop(idx)
-        self._refresh_files(); self._sync_mwd_from_files()
+        self._refresh_files()
 
     def _clear_files(self):
-        self.files = []; self._refresh_files(); self._sync_mwd_from_files()
+        self.files = []; self._refresh_files()
 
     def _active_tab(self) -> str:
         if self.chrom_tab.winfo_ismapped(): return "Chromatograms"
         if self.cdms_tab.winfo_ismapped():  return "CD-MS Mass"
         if self.mwd_tab.winfo_ismapped():   return "MWD Chromatograms"
-        return "m/z Spectra"
+        if self.mz_tab.winfo_ismapped():    return "m/z Spectra"
+        return "Thermo RAW"
 
     def _on_files_drop(self, event):
         try: paths = list(self.root.splitlist(event.data))
@@ -498,7 +448,7 @@ class PlotApp:
         if not paths: return
         tab = self._active_tab()
         if tab == "MWD Chromatograms":
-            self.files = paths[:2]; self._refresh_files(); self._sync_mwd_from_files()
+            self.files = paths[:2]; self._refresh_files()
             self._set_status(f"Set MWD files via drag-and-drop ({len(self.files)} file(s)).")
         else:
             self.files.extend(paths); self._refresh_files()
@@ -509,12 +459,8 @@ class PlotApp:
         except Exception: paths = event.data.split()
         if paths:
             target_var.set(paths[0])
-            if self._active_tab() == "MWD Chromatograms":
-                current = [self.mwd_mau_path.get(), self.mwd_mv_path.get()]
-                self.files = [p for p in current if p]; self._refresh_files()
             self._set_status("Set file via drag-and-drop.")
 
-    # ---------- Color pickers ----------
     def _pick_color(self, initial: str = "#FFFFFF") -> Optional[str]:
         result = askcolor(color=initial, title="Pick a color")
         return result[1] if result and result[1] else None
@@ -553,35 +499,31 @@ class PlotApp:
     def _palette_apply(self, colors: List[str], target_var: tk.StringVar, top: tk.Toplevel):
         target_var.set(", ".join(colors)); top.destroy()
 
-    def _pick_mwd_color(self, index: int):
-        colors = parse_str_list(self.mwd_colors.get()) or DEFAULT_MWD_COLORS.copy()
-        while len(colors) < 2: colors.append("#000000")
-        start_color = colors[index]
-        c = self._pick_color(initial=start_color)
-        if c: colors[index] = c; self.mwd_colors.set(", ".join(colors))
+    def _toggle_second_labels_input(self):
+        state = tk.NORMAL if self.cdms_two_legends.get() else tk.DISABLED
+        self.cdms_second_labels.config(state=state)
 
-    # ---------- MWD file-browse handlers ----------
-    def _browse_mwd_mau(self):
-        path = filedialog.askopenfilename(title="Select mAU Excel file", filetypes=[("Excel files", "*.xlsx *.xls"), ("All files", "*.*")])
+    def _toggle_mz_second_labels(self):
+        state = tk.NORMAL if self.mz_two_legends.get() else tk.DISABLED
+        self.mz_second_labels.config(state=state)
+
+    def _browse_raw_file(self):
+        path = filedialog.askopenfilename(title="Select Thermo RAW or mzML",
+                                          filetypes=[("RAW/mzML", "*.raw *.mzML"), ("All files", "*.*")])
         if path:
-            self.mwd_mau_path.set(path)
-            if self._active_tab() == "MWD Chromatograms":
-                current = [path, self.mwd_mv_path.get()]
-                self.files = [p for p in current if p]
-                self._refresh_files()
-            self._set_status("mAU file selected.")
+            self.raw_path.set(path)
+            self._set_status("RAW/mzML file selected.")
+
+    def _browse_mwd_mau(self):
+        path = filedialog.askopenfilename(title="Select mAU Excel file",
+                                          filetypes=[("Excel files", "*.xlsx *.xls"), ("All files", "*.*")])
+        if path: self.mwd_mau_path.set(path); self._set_status("mAU file selected.")
 
     def _browse_mwd_mv(self):
-        path = filedialog.askopenfilename(title="Select mV Excel file", filetypes=[("Excel files", "*.xlsx *.xls"), ("All files", "*.*")])
-        if path:
-            self.mwd_mv_path.set(path)
-            if self._active_tab() == "MWD Chromatograms":
-                current = [self.mwd_mau_path.get(), path]
-                self.files = [p for p in current if p]
-                self._refresh_files()
-            self._set_status("mV file selected.")
+        path = filedialog.askopenfilename(title="Select mV Excel file",
+                                          filetypes=[("Excel files", "*.xlsx *.xls"), ("All files", "*.*")])
+        if path: self.mwd_mv_path.set(path); self._set_status("mV file selected.")
 
-    # ---------- Plotting ----------
     def _plot(self):
         cfg = CommonConfig(
             save=self.save_var.get() or None,
@@ -592,20 +534,18 @@ class PlotApp:
             transparent=bool(self.transparent_export.get()),
             show=bool(self.show_plot.get()),
         )
-
         try:
             self.progress.start(10)
             self._set_status("Plotting...")
-
             tab = self._active_tab()
 
+            # Chromatograms
             if tab == "Chromatograms":
                 raw_labels = self.chrom_labels.get("1.0", "end").strip()
                 labels = parse_str_list(raw_labels) if raw_labels else filenames_to_labels(self.files)
-                colors = parse_str_list(self.chrom_colors.get()) if parse_str_list(self.chrom_colors.get()) else DEFAULT_CHROM_COLORS
+                colors = parse_str_list(self.chrom_colors.get()) or DEFAULT_CHROM_COLORS
                 std_vols = parse_float_list(self.chrom_standards.get()) if self.chrom_show_standards.get() else None
                 normalize = bool(self.chrom_normalize.get())
-
                 if self.chrom_mode.get() == "single":
                     if len(self.files) != 1:
                         Messagebox.show_error("Select exactly one Excel file for Single Chromatogram.", title="Selection error"); return
@@ -631,6 +571,7 @@ class PlotApp:
                 self._render_figure(fig); self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
                 self._set_status("Chromatogram plot complete.")
 
+            # CD-MS Mass
             elif tab == "CD-MS Mass":
                 raw_labels = self.cdms_labels.get("1.0", "end").strip()
                 labels = parse_str_list(raw_labels) if raw_labels else filenames_to_labels(self.files)
@@ -640,7 +581,6 @@ class PlotApp:
                 colors = parse_str_list(self.cdms_colors.get()) or DEFAULT_CDMS_COLORS
                 x_range = (float(self.cdms_xmin.get()), float(self.cdms_xmax.get()))
                 normalize = bool(self.cdms_normalize.get())
-
                 if self.cdms_mode.get() == "single":
                     if len(self.files) != 1:
                         Messagebox.show_error("Select exactly one text file for Single CD-MS Mass.", title="Selection error"); return
@@ -670,20 +610,19 @@ class PlotApp:
                     self._render_figure(fig); self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
                     self._set_status("CD-MS mass (stacked) plot complete.")
 
+            # MWD Chromatograms
             elif tab == "MWD Chromatograms":
-                mau_path = self.mwd_mau_path.get().strip()
-                mv_path = self.mwd_mv_path.get().strip()
-                if not mau_path or not mv_path:
+                path_mau = self.mwd_mau_path.get().strip()
+                path_mv = self.mwd_mv_path.get().strip()
+                if not path_mau or not path_mv:
                     Messagebox.show_error("Please select both mAU and mV files.", title="MWD files missing"); return
-
                 colors = parse_str_list(self.mwd_colors.get()) or DEFAULT_MWD_COLORS
                 if len(colors) < 2:
                     Messagebox.show_error("Please provide two colors (mAU, mV).", title="Colors required"); return
                 xlim = (float(self.mwd_xmin.get()), float(self.mwd_xmax.get()))
                 normalize = bool(self.mwd_normalize.get())
-
                 fig, (ax1, ax2) = plot_mwd_chromatograms(
-                    mau_file=mau_path, mv_file=mv_path,
+                    mau_file=path_mau, mv_file=path_mv,
                     mau_label=self.mwd_mau_label.get(), mv_label=self.mwd_mv_label.get(),
                     colors=colors[:2], xlim=xlim, normalize=normalize,
                     font_name=cfg.font_name, font_size=cfg.font_size,
@@ -692,7 +631,8 @@ class PlotApp:
                 self._render_figure(fig); self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
                 self._set_status("MWD Chromatograms plot complete.")
 
-            else:  # m/z Spectra
+            # m/z Spectra
+            elif tab == "m/z Spectra":
                 raw_labels = self.mz_labels.get("1.0", "end").strip()
                 labels = parse_str_list(raw_labels) if raw_labels else filenames_to_labels(self.files)
                 use_second = bool(self.mz_two_legends.get())
@@ -701,7 +641,6 @@ class PlotApp:
                 colors = parse_str_list(self.mz_colors.get()) or DEFAULT_MZ_COLORS
                 x_range = (float(self.mz_xmin.get()), float(self.mz_xmax.get()))
                 normalize = bool(self.mz_normalize.get())
-
                 if self.mz_mode.get() == "single":
                     if len(self.files) != 1:
                         Messagebox.show_error("Select exactly one text file for Single m/z Spectrum.", title="Selection error"); return
@@ -731,20 +670,55 @@ class PlotApp:
                     self._render_figure(fig); self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
                     self._set_status("m/z spectra (stacked) plot complete.")
 
+            # Thermo RAW (TIC + m/z)
+            else:
+                raw_path = self.raw_path.get().strip()
+                if not raw_path:
+                    Messagebox.show_error("Please pick a RAW or mzML file.", title="RAW file missing"); return
+                fig, (ax1, ax2) = plot_raw_chrom_and_spectrum(
+                    raw_path=raw_path,
+                    ms_level=int(self.raw_ms_level.get()),
+                    max_scans=int(self.raw_max_scans.get()),
+                    spectrum_mode=self.raw_mode.get(),
+                    spectrum_index=(int(self.raw_index.get()) if self.raw_mode.get()=="index" else None),
+                    normalize_spectrum=bool(self.raw_norm.get()),
+                    figsize=cfg.figsize, dpi=cfg.dpi,
+                    font_name=cfg.font_name, font_size=cfg.font_size,
+                    save=None, show=cfg.show,
+                )
+                self._render_figure(fig); self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
+                self._set_status("Thermo RAW plot (TIC + m/z) complete.")
+
         except Exception as e:
             self._set_status("Error")
             Messagebox.show_error(f"Plotting failed:\n{e}", title="Error")
         finally:
             self.progress.stop()
 
-# Entry point with robust root creation and msgcat require
+    def _render_figure(self, fig):
+        for child in self.plot_area.winfo_children():
+            child.destroy()
+        self.plot_area.configure(style="secondary.TFrame")
+        self.canvas = FigureCanvasTkAgg(fig, master=self.plot_area)
+        self.canvas.draw()
+        self.canvas.get_tk_widget().pack(fill=BOTH, expand=YES)
+        self.toolbar = NavigationToolbar2Tk(self.canvas, self.plot_area)
+        self.toolbar.update()
+        self.toolbar.pack(fill=X)
+
+    def _export_figure(self, fig, save_path: Optional[str], dpi: int, transparent: bool):
+        if not save_path: return
+        try:
+            fig.savefig(save_path, dpi=dpi, bbox_inches="tight", transparent=transparent)
+            self._set_status(f"Saved to {save_path} (transparent={transparent})")
+        except Exception as e:
+            Messagebox.show_error(f"Failed to save figure:\n{e}", title="Export error")
+
 def main():
     root = TkinterDnD.Tk() if DND_AVAILABLE else tk.Tk()
-    try:
-        root.tk.call('package', 'require', 'msgcat')
-    except tk.TclError:
-        pass
-    app = PlotApp(root, themename="darkly")  # choose theme from THEMES
+    try: root.tk.call('package', 'require', 'msgcat')
+    except tk.TclError: pass
+    app = PlotApp(root, themename="darkly")
     root.mainloop()
 
 if __name__ == "__main__":
