@@ -254,7 +254,7 @@ class ImagingWindow(wx.Frame):
         dlg = wx.FileDialog(self, "Choose a data file in HDF5 format", '', "", "*.hdf5*")
         if dlg.ShowModal() == wx.ID_OK:
             path = dlg.GetPath()
-            print("Openening: ", path)
+            print("Opening: ", path)
             if os.path.splitext(path)[1] != ".hdf5":
                 print("Need HDF5 file")
                 return

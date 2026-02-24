@@ -27,7 +27,7 @@ hdat = np.loadtxt(hfile)
 
 padindex = 0
 rollindex = 0
-ymax = 250  # y-axis top value
+ymax = 300  # y-axis top value
 
 for i in range(300, 750):
     startindex = i

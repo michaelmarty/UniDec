@@ -21,10 +21,14 @@ def plot_attributes_by_datasetcount(df, attrlist = []):
     plt.tight_layout()
     plt.show()
 
-def good_percentage_plot(df):
+def good_percentage_plot(df, datasets=None, type="All"):
 
-    dataset_counts = sorted(df["Dataset Count"].unique())
-    datasets = sorted(df["Dataset"].unique())
+
+    if datasets is None:
+        dataset_counts = sorted(df["Dataset Count"].unique())
+        datasets = sorted(df["Dataset"].unique())
+    else:
+        dataset_counts = []
     percentages = []
     labels = []
     totalcounts = []
@@ -39,46 +43,62 @@ def good_percentage_plot(df):
         labels.append(f"{count} datasets")
         print(f"{count} datasets: {good_percentage:.2f}% good IDs")
 
-    for dataset in datasets:
-        # Isolate all where only this dataset is present
-        subset = df[df["Dataset Count"] == 1 & (df["Dataset"] == dataset)]
-        bad_count = len(subset[subset["Comment"].str.contains("Low Quality", case=False, na=False)])
-        total_count = len(subset)
-        good_percentage = 100 * (total_count - bad_count) / total_count if total_count > 0 else 0
-        percentages.append(good_percentage)
-        totalcounts.append(total_count)
-        print(f"{dataset} only: {good_percentage:.2f}% good IDs")
-        labels.append(f"{dataset} only")
+    if type == "All" or type == "Only":
+        for dataset in datasets:
+            # Isolate all where only this dataset is present
+            subset = df[df["Dataset Count"] == 1 & (df["Dataset"] == dataset)]
+            bad_count = len(subset[subset["Comment"].str.contains("Low Quality", case=False, na=False)])
+            total_count = len(subset)
+            good_percentage = 100 * (total_count - bad_count) / total_count if total_count > 0 else 0
+            percentages.append(good_percentage)
+            totalcounts.append(total_count)
+            print(f"{dataset} only: {good_percentage:.2f}% good IDs")
+            labels.append(f"{dataset} only")
 
-    # Repeat for any in the dataset
-    for dataset in datasets:
-        subset = df[df["Dataset"].str.contains(dataset)]
-        bad_count = len(subset[subset["Comment"].str.contains("Low Quality", case=False, na=False)])
-        total_count = len(subset)
-        good_percentage = 100 * (total_count - bad_count) / total_count if total_count > 0 else 0
-        percentages.append(good_percentage)
-        totalcounts.append(total_count)
-        print(f"{dataset} present: {good_percentage:.2f}% good IDs")
-        labels.append(f"{dataset} Total")
+    if type == "All" or type == "Total":
+        # Repeat for any in the dataset
+        for dataset in datasets:
+            subset = df[df["Dataset"].str.contains(dataset)]
+            bad_count = len(subset[subset["Comment"].str.contains("Low Quality", case=False, na=False)])
+            total_count = len(subset)
+            good_percentage = 100 * (total_count - bad_count) / total_count if total_count > 0 else 0
+            percentages.append(good_percentage)
+            totalcounts.append(total_count)
+            print(f"{dataset} present: {good_percentage:.2f}% good IDs")
+            labels.append(f"{dataset} Total")
 
     # plt.bar(dataset_counts, percentages, color="skyblue")
     plt.figure(figsize=(8, 6))
-    plt.subplot(121)
-    plt.bar(labels, percentages)
-    plt.xlabel("Dataset Count")
-    plt.ylabel("Percentage of Good IDs")
-    plt.title("Percentage of Good IDs by Dataset Count")
-    plt.xticks(rotation=45, ha="right")
-    plt.ylim(0, 100)
-
     plt.subplot(122)
-    plt.bar(labels, totalcounts, color="lightgreen")
-    plt.xlabel("Dataset Count")
-    plt.ylabel("Total Count of IDs")
-    plt.title("Total Count of IDs by Dataset Count")
+    plt.bar(labels, percentages)
+    plt.xlabel("Dataset")
+    plt.ylabel("Percentage of Good IDs")
+    # plt.title("Percentage of Good IDs by Dataset Count")
     plt.xticks(rotation=45, ha="right")
+    pmin = np.floor(np.amin(percentages) * 10) / 10 - 5
+    pmin = 70
+    plt.ylim(pmin, 100)
 
+    # plt.subplot(122)
+    # plt.bar(labels, totalcounts, color="lightgreen")
+    # plt.xlabel("Dataset Count")
+    # plt.ylabel("Total Count of IDs")
+    # plt.title("Total Count of IDs by Dataset Count")
+    # plt.xticks(rotation=45, ha="right")
+
+    plt.subplot(121)
+    # Number of good and bad IDs in different colors on stacked bar chart
+    plt.bar(labels, totalcounts, color="forestgreen", label="Good IDs")
+    bad_counts = [total - (total * good / 100) for total, good in zip(totalcounts, percentages)]
+    plt.bar(labels, bad_counts, color="red", label="Bad IDs")
+    plt.xlabel("Dataset")
+    plt.ylabel("Count of IDs")
+    # plt.title("Good vs Bad IDs by Dataset Count")
+    plt.xticks(rotation=45, ha="right")
+    plt.legend()
     plt.tight_layout()
+    plt.savefig("Good_Bad_IDs_by_Dataset.png", dpi=600, bbox_inches="tight")
+
     plt.show()
 
 mpl.use("WxAgg")
@@ -90,7 +110,8 @@ os.chdir(topdir)
 df = pd.read_excel("Combined_DDA_OutlierAnalysis_Results.xlsx", sheet_name="All Data")
 # Drop all where Outlier_Result is 1
 df = df[df["Outlier_Prediction"] == 0]
-good_percentage_plot(df)
+# good_percentage_plot(df)
+good_percentage_plot(df, datasets=["OTOT", "OTIT", "ITIT", "Stellar"], type="Total")
 exit()
 print(df.columns)
 # Create logSN column
