@@ -68,7 +68,8 @@ class PlotApp:
     Chromatograms, CD-MS Mass, MWD Chromatograms, and m/z Spectra GUI:
       - msgcat fix for ttkbootstrap Style initialization
       - Drag-and-drop support (fallback to Tk if not available)
-      - Centered layout and full-window theme fill
+      - Centered body content with max width when you maximize the window
+      - Persistent footer bar with Plot button
       - Color pickers for palette selection
       - Standards toggle for Chromatograms
       - MWD paths integrated into main Files list
@@ -77,20 +78,17 @@ class PlotApp:
     def __init__(self, root: tk.Tk, themename: str = "flatly"):
         self.root = root
 
-        # Ensure Tcl msgcat package is loaded before ttkbootstrap localization/Style
+        # Ensure Tcl msgcat package is loaded before ttkbootstrap Style
         try:
             self.root.tk.call('package', 'require', 'msgcat')
         except tk.TclError:
-            # Some builds already have msgcat initialized; ignore if require fails
             pass
 
         # Attach ttkbootstrap Style explicitly to this root
         try:
             self.style = tb.Style(master=self.root, theme=themename)
         except TypeError:
-            # Older versions may not support master=...; fallback to theme name only
             self.style = tb.Style(themename)
-        # Force theme in case constructor didn't apply it
         try:
             self.style.theme_use(themename)
         except Exception:
@@ -100,8 +98,8 @@ class PlotApp:
         self.win_w = 1200
         self.win_h = 850
         self.root.geometry(f"{self.win_w}x{self.win_h}")
-        self.content_max_w = 1300
-        self.content_margin = 12
+        self.body_max_w = 1300
+        self.margins = 12  # outer margin around centered body
 
         # Theme background fill
         try:
@@ -114,16 +112,21 @@ class PlotApp:
         self.canvas: Optional[FigureCanvasTkAgg] = None
         self.toolbar: Optional[NavigationToolbar2Tk] = None
 
-        # Centered container with themed background
-        self.content = tb.Frame(self.root, bootstyle="secondary")
-        self.content.place(x=self.content_margin, y=self.content_margin)
+        # Main vertical layout: header, body (centered container), footer
+        self.header = tb.Frame(self.root, bootstyle="secondary")
+        self.header.pack(fill=X)
+        # Centered container for the body: we place it (not pack) so we can center it horizontally on resize
+        self.body_container = tb.Frame(self.root, bootstyle="secondary")
+        self.body_container.place(x=self.margins, y=self.margins)  # initial placeholder; updated by _on_resize
+        self.footer = tb.Frame(self.root, bootstyle="secondary")
+        self.footer.pack(fill=X, side=BOTTOM)
 
-        # Build UI
-        self._build_header(self.content)
-        self._build_status_bar(self.content)
-        self._build_body(self.content)
+        # Build header/body/footer
+        self._build_header(self.header)
+        self._build_body(self.body_container)  # build inside centered container
+        self._build_footer(self.footer)        # persistent Plot button
 
-        # Center window and bind resize
+        # Center window initially and center body on resize/maximize
         self._center_on_screen()
         self.root.bind("<Configure>", self._on_resize)
 
@@ -132,7 +135,8 @@ class PlotApp:
 
     # ---------- Header ----------
     def _build_header(self, parent):
-        header = tb.Frame(parent, padding=10, bootstyle="secondary"); header.pack(fill=X)
+        header = tb.Frame(parent, padding=10, bootstyle="secondary")
+        header.pack(fill=X)
         tb.Label(header, text="Plotting GUI: Chromatograms, CD-MS Mass, MWD, and m/z Spectra", font=("Arial", 16, "bold")).pack(side=LEFT)
 
         theme_frame = tb.Frame(header, bootstyle="secondary"); theme_frame.pack(side=RIGHT)
@@ -142,6 +146,10 @@ class PlotApp:
         combo.pack(side=LEFT)
         combo.bind("<<ComboboxSelected>>", self._on_theme_change)
 
+        # Status bar
+        bar = tb.Frame(parent, bootstyle="secondary"); bar.pack(fill=X)
+        self.status_label = tb.Label(bar, text="Status: Ready", anchor=W); self.status_label.pack(side=LEFT, padx=8, pady=4)
+
     def _on_theme_change(self, event=None):
         self.style.theme_use(self.theme_var.get())
         try:
@@ -149,9 +157,13 @@ class PlotApp:
         except Exception:
             pass
 
-    # ---------- Body ----------
+    # ---------- Body (inside centered container) ----------
     def _build_body(self, parent):
-        paned = tb.Panedwindow(parent, orient=HORIZONTAL, bootstyle="secondary")
+        # The body content frame (we center this by placing parent on resize)
+        self.body_frame = tb.Frame(parent, bootstyle="secondary")
+        self.body_frame.pack(fill=BOTH, expand=YES)
+
+        paned = tb.Panedwindow(self.body_frame, orient=HORIZONTAL, bootstyle="secondary")
         paned.pack(fill=BOTH, expand=YES, padx=10, pady=6)
 
         left = tb.Frame(paned, padding=10, bootstyle="secondary"); paned.add(left, weight=1)
@@ -184,9 +196,38 @@ class PlotApp:
         # Files panel
         self._build_file_panel(left)
 
-        # Actions
-        self._build_actions(left)
+    # ---------- Persistent footer ----------
+    def _build_footer(self, parent):
+        frame = tb.Frame(parent, bootstyle="secondary")
+        frame.pack(fill=X, pady=6)
+        self.progress = tb.Progressbar(frame, mode="indeterminate", bootstyle="info")
+        self.progress.pack(side=LEFT, fill=X, expand=YES, padx=6)
+        tb.Button(frame, text="Plot", bootstyle="primary", command=self._plot).pack(side=RIGHT, padx=6)
 
+    # ---------- Centering logic ----------
+    def _center_on_screen(self):
+        self.root.update_idletasks()
+        sw, sh = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
+        x = (sw - self.win_w) // 2; y = (sh - self.win_h) // 2
+        self.root.geometry(f"{self.win_w}x{self.win_h}+{x}+{y}")
+        self._on_resize()  # also center the body content
+
+    def _on_resize(self, event=None):
+        # Center the body_container horizontally with a max width
+        self.root.update_idletasks()
+        ww, wh = self.root.winfo_width(), self.root.winfo_height()
+
+        # Compute centered body size (leave some top space for header)
+        max_w = self.body_max_w
+        body_w = min(max(ww - 2 * self.margins, 600), max_w)
+        body_h = max(wh - 2 * self.margins - 60, 400)  # 60px for header/status area
+
+        x = (ww - body_w) // 2
+        y = self.margins + 40  # push down a bit to clear header/status
+
+        self.body_container.place(x=x, y=y, width=body_w, height=body_h)
+
+    # ---------- Common options ----------
     def _build_common_options(self, parent):
         lf = tb.Labelframe(parent, text="Common Options", padding=10, bootstyle="secondary"); lf.pack(fill=X, pady=6)
         sp = tb.Frame(lf, bootstyle="secondary"); sp.pack(fill=X, pady=4)
@@ -212,6 +253,7 @@ class PlotApp:
         self.transparent_export = tk.BooleanVar(value=False)
         tb.Checkbutton(toggles, text="Transparent export background", variable=self.transparent_export).pack(anchor=W, pady=2)
 
+    # ---------- Tabs (Chromatograms/CD-MS/MWD/mz) ----------
     def _build_chrom_tab(self):
         mode = tb.Frame(self.chrom_tab, bootstyle="secondary"); mode.pack(fill=X, pady=4)
         tb.Label(mode, text="Plot Mode:", font=("Arial", 10, "bold")).pack(side=LEFT)
@@ -274,7 +316,6 @@ class PlotApp:
         self.cdms_xmax = tk.DoubleVar(value=500.0); tb.Entry(grid, textvariable=self.cdms_xmax, width=8).grid(row=0, column=2, padx=4)
         tb.Label(grid, text="Y-offset step (stacked):").grid(row=0, column=3, sticky=W)
         self.cdms_y_offset = tk.DoubleVar(value=120.0); tb.Entry(grid, textvariable=self.cdms_y_offset, width=8).grid(row=0, column=4, padx=4)
-        # Normalization toggle
         self.cdms_normalize = tk.BooleanVar(value=True)
         tb.Checkbutton(lf_axes, text="Normalize to max (percent)", variable=self.cdms_normalize).pack(anchor=W, pady=4)
 
@@ -286,8 +327,9 @@ class PlotApp:
         self.mwd_mau_entry = tb.Entry(row1, textvariable=self.mwd_mau_path)
         self.mwd_mau_entry.pack(side=LEFT, fill=X, expand=YES, padx=6)
         tb.Button(row1, text="Browse", bootstyle="secondary", command=self._browse_mwd_mau).pack(side=LEFT)
-        self.mwd_mau_entry.drop_target_register(DND_FILES)
-        self.mwd_mau_entry.dnd_bind("<<Drop>>", lambda e: self._on_single_file_drop(e, self.mwd_mau_path))
+        if DND_AVAILABLE:
+            self.mwd_mau_entry.drop_target_register(DND_FILES)
+            self.mwd_mau_entry.dnd_bind("<<Drop>>", lambda e: self._on_single_file_drop(e, self.mwd_mau_path))
 
         row2 = tb.Frame(lf_files, bootstyle="secondary"); row2.pack(fill=X, pady=2)
         tb.Label(row2, text="mV file:").pack(side=LEFT)
@@ -295,8 +337,9 @@ class PlotApp:
         self.mwd_mv_entry = tb.Entry(row2, textvariable=self.mwd_mv_path)
         self.mwd_mv_entry.pack(side=LEFT, fill=X, expand=YES, padx=6)
         tb.Button(row2, text="Browse", bootstyle="secondary", command=self._browse_mwd_mv).pack(side=LEFT)
-        self.mwd_mv_entry.drop_target_register(DND_FILES)
-        self.mwd_mv_entry.dnd_bind("<<Drop>>", lambda e: self._on_single_file_drop(e, self.mwd_mv_path))
+        if DND_AVAILABLE:
+            self.mwd_mv_entry.drop_target_register(DND_FILES)
+            self.mwd_mv_entry.dnd_bind("<<Drop>>", lambda e: self._on_single_file_drop(e, self.mwd_mv_path))
 
         lf_labels = tb.Labelframe(self.mwd_tab, text="Labels & Colors", padding=8, bootstyle="secondary"); lf_labels.pack(fill=X, pady=4)
         row3 = tb.Frame(lf_labels, bootstyle="secondary"); row3.pack(fill=X, pady=2)
@@ -353,7 +396,6 @@ class PlotApp:
         self.mz_xmax = tk.DoubleVar(value=2000.0); tb.Entry(grid, textvariable=self.mz_xmax, width=8).grid(row=0, column=2, padx=4)
         tb.Label(grid, text="Y-offset step (stacked):").grid(row=0, column=3, sticky=W)
         self.mz_y_offset = tk.DoubleVar(value=120.0); tb.Entry(grid, textvariable=self.mz_y_offset, width=8).grid(row=0, column=4, padx=4)
-        # Normalization toggle
         self.mz_normalize = tk.BooleanVar(value=True)
         tb.Checkbutton(lf_axes, text="Normalize to max (percent)", variable=self.mz_normalize).pack(anchor=W, pady=4)
 
@@ -365,6 +407,7 @@ class PlotApp:
         state = tk.NORMAL if self.mz_two_legends.get() else tk.DISABLED
         self.mz_second_labels.config(state=state)
 
+    # ---------- Files panel ----------
     def _build_file_panel(self, parent):
         lf = tb.Labelframe(parent, text="Files (Chromatograms, CD-MS Mass, MWD, m/z)", padding=8, bootstyle="secondary"); lf.pack(fill=BOTH, expand=YES, pady=6)
         btns = tb.Frame(lf, bootstyle="secondary"); btns.pack(fill=X, pady=4)
@@ -377,40 +420,11 @@ class PlotApp:
         self.file_tree.heading("path", text="File Path"); self.file_tree.column("path", width=700, anchor=W)
         self.file_tree.pack(fill=BOTH, expand=YES, pady=6)
 
-        # Drag-and-drop
-        try:
+        if DND_AVAILABLE:
             self.file_tree.drop_target_register(DND_FILES)
             self.file_tree.dnd_bind("<<Drop>>", self._on_files_drop)
-        except Exception:
-            # If DND not available, skip
-            pass
 
-    def _build_actions(self, parent):
-        frame = tb.Frame(parent, bootstyle="secondary"); frame.pack(fill=X, pady=10)
-        self.progress = tb.Progressbar(frame, mode="indeterminate", bootstyle="info")
-        self.progress.pack(side=LEFT, fill=X, expand=YES, padx=6)
-        tb.Button(frame, text="Plot", bootstyle="primary", command=self._plot).pack(side=RIGHT, padx=6)
-
-    def _build_status_bar(self, parent):
-        bar = tb.Frame(parent, bootstyle="secondary"); bar.pack(fill=X)
-        self.status_label = tb.Label(bar, text="Status: Ready", anchor=W); self.status_label.pack(side=LEFT, padx=8, pady=4)
-
-    # ---------- Centering ----------
-    def _center_on_screen(self):
-        self.root.update_idletasks()
-        sw, sh = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
-        x = (sw - self.win_w) // 2; y = (sh - self.win_h) // 2
-        self.root.geometry(f"{self.win_w}x{self.win_h}+{x}+{y}")
-
-    def _on_resize(self, event=None):
-        self.root.update_idletasks()
-        ww, wh = self.root.winfo_width(), self.root.winfo_height()
-        cw = min(max(ww - 2 * self.content_margin, 600), self.content_max_w)
-        ch = max(wh - 2 * self.content_margin, 480)
-        x = (ww - cw) // 2; y = self.content_margin
-        self.content.place(x=x, y=y, width=cw, height=ch)
-
-    # ---------- Helpers ----------
+    # ---------- Utility ----------
     def _set_status(self, text: str):
         self.status_label.configure(text=f"Status: {text}")
         self.root.update_idletasks()
@@ -441,28 +455,23 @@ class PlotApp:
             paths = filedialog.askopenfilenames(title="Select Chromatogram Excel files",
                                                 filetypes=[("Excel files", "*.xlsx *.xls"), ("All files", "*.*")])
             if paths:
-                self.files.extend(paths)
-                self._refresh_files()
+                self.files.extend(paths); self._refresh_files()
         elif tab == "CD-MS Mass":
             paths = filedialog.askopenfilenames(title="Select CD-MS mass text files",
                                                 filetypes=[("Text files", "*.txt"), ("All files", "*.*")])
             if paths:
-                self.files.extend(paths)
-                self._refresh_files()
+                self.files.extend(paths); self._refresh_files()
         elif tab == "m/z Spectra":
             paths = filedialog.askopenfilenames(title="Select m/z spectrum text files",
                                                 filetypes=[("Text files", "*.txt"), ("All files", "*.*")])
             if paths:
-                self.files.extend(paths)
-                self._refresh_files()
+                self.files.extend(paths); self._refresh_files()
         else:  # MWD Chromatograms
             paths = filedialog.askopenfilenames(title="Select mAU/mV Excel files (first=mAU, second=mV)",
                                                 filetypes=[("Excel files", "*.xlsx *.xls"), ("All files", "*.*")])
             if paths:
                 paths = list(paths)[:2]
-                self.files = list(paths)
-                self._refresh_files()
-                self._sync_mwd_from_files()
+                self.files = list(paths); self._refresh_files(); self._sync_mwd_from_files()
 
     def _remove_selected(self):
         selected = self.file_tree.selection()
@@ -472,13 +481,10 @@ class PlotApp:
         for idx in idxs:
             if 0 <= idx < len(self.files):
                 self.files.pop(idx)
-        self._refresh_files()
-        self._sync_mwd_from_files()
+        self._refresh_files(); self._sync_mwd_from_files()
 
     def _clear_files(self):
-        self.files = []
-        self._refresh_files()
-        self._sync_mwd_from_files()
+        self.files = []; self._refresh_files(); self._sync_mwd_from_files()
 
     def _active_tab(self) -> str:
         if self.chrom_tab.winfo_ismapped(): return "Chromatograms"
@@ -486,39 +492,16 @@ class PlotApp:
         if self.mwd_tab.winfo_ismapped():   return "MWD Chromatograms"
         return "m/z Spectra"
 
-    def _render_figure(self, fig):
-        for child in self.plot_area.winfo_children():
-            child.destroy()
-        self.plot_area.configure(style="secondary.TFrame")
-        self.canvas = FigureCanvasTkAgg(fig, master=self.plot_area)
-        self.canvas.draw()
-        self.canvas.get_tk_widget().pack(fill=BOTH, expand=YES)
-        self.toolbar = NavigationToolbar2Tk(self.canvas, self.plot_area)
-        self.toolbar.update()
-        self.toolbar.pack(fill=X)
-
-    def _export_figure(self, fig, save_path: Optional[str], dpi: int, transparent: bool):
-        if not save_path: return
-        try:
-            fig.savefig(save_path, dpi=dpi, bbox_inches="tight", transparent=transparent)
-            self._set_status(f"Saved to {save_path} (transparent={transparent})")
-        except Exception as e:
-            Messagebox.show_error(f"Failed to save figure:\n{e}", title="Export error")
-
     def _on_files_drop(self, event):
-        # Robust parsing for paths (supports spaces)
         try: paths = list(self.root.splitlist(event.data))
         except Exception: paths = event.data.split()
         if not paths: return
         tab = self._active_tab()
         if tab == "MWD Chromatograms":
-            self.files = paths[:2]
-            self._refresh_files()
-            self._sync_mwd_from_files()
+            self.files = paths[:2]; self._refresh_files(); self._sync_mwd_from_files()
             self._set_status(f"Set MWD files via drag-and-drop ({len(self.files)} file(s)).")
         else:
-            self.files.extend(paths)
-            self._refresh_files()
+            self.files.extend(paths); self._refresh_files()
             self._set_status(f"Added {len(paths)} file(s) via drag-and-drop.")
 
     def _on_single_file_drop(self, event, target_var: tk.StringVar):
@@ -528,8 +511,7 @@ class PlotApp:
             target_var.set(paths[0])
             if self._active_tab() == "MWD Chromatograms":
                 current = [self.mwd_mau_path.get(), self.mwd_mv_path.get()]
-                self.files = [p for p in current if p]
-                self._refresh_files()
+                self.files = [p for p in current if p]; self._refresh_files()
             self._set_status("Set file via drag-and-drop.")
 
     # ---------- Color pickers ----------
@@ -599,7 +581,7 @@ class PlotApp:
                 self._refresh_files()
             self._set_status("mV file selected.")
 
-    # ---------- Plot ----------
+    # ---------- Plotting ----------
     def _plot(self):
         cfg = CommonConfig(
             save=self.save_var.get() or None,
@@ -617,11 +599,10 @@ class PlotApp:
 
             tab = self._active_tab()
 
-            # Chromatograms
             if tab == "Chromatograms":
                 raw_labels = self.chrom_labels.get("1.0", "end").strip()
                 labels = parse_str_list(raw_labels) if raw_labels else filenames_to_labels(self.files)
-                colors = parse_str_list(self.chrom_colors.get()) or DEFAULT_CHROM_COLORS
+                colors = parse_str_list(self.chrom_colors.get()) if parse_str_list(self.chrom_colors.get()) else DEFAULT_CHROM_COLORS
                 std_vols = parse_float_list(self.chrom_standards.get()) if self.chrom_show_standards.get() else None
                 normalize = bool(self.chrom_normalize.get())
 
@@ -629,42 +610,27 @@ class PlotApp:
                     if len(self.files) != 1:
                         Messagebox.show_error("Select exactly one Excel file for Single Chromatogram.", title="Selection error"); return
                     fig, axes = plot_chrom_stack(
-                        files=self.files[:1],
-                        sample_labels=labels[:1],
-                        colors=colors[:1],
-                        standard_volumes=std_vols,
-                        normalize=normalize,
-                        font_name=cfg.font_name,
-                        font_size=cfg.font_size,
+                        files=self.files[:1], sample_labels=labels[:1], colors=colors[:1],
+                        standard_volumes=std_vols, normalize=normalize,
+                        font_name=cfg.font_name, font_size=cfg.font_size,
                         xlim=(float(self.chrom_xmin.get()), float(self.chrom_xmax.get())),
                         ylim=(float(self.chrom_ymin.get()), float(self.chrom_ymax.get())),
-                        figsize=cfg.figsize,
-                        dpi=cfg.dpi,
-                        save=None,
-                        show=cfg.show,
+                        figsize=cfg.figsize, dpi=cfg.dpi, save=None, show=cfg.show,
                     )
                 else:
                     if len(labels) != len(self.files):
                         Messagebox.show_error("Number of labels must match number of files.", title="Label mismatch"); return
                     fig, axes = plot_chrom_stack(
-                        files=self.files,
-                        sample_labels=labels,
-                        colors=colors,
-                        standard_volumes=std_vols,
-                        normalize=normalize,
-                        font_name=cfg.font_name,
-                        font_size=cfg.font_size,
+                        files=self.files, sample_labels=labels, colors=colors,
+                        standard_volumes=std_vols, normalize=normalize,
+                        font_name=cfg.font_name, font_size=cfg.font_size,
                         xlim=(float(self.chrom_xmin.get()), float(self.chrom_xmax.get())),
                         ylim=(float(self.chrom_ymin.get()), float(self.chrom_ymax.get())),
-                        figsize=cfg.figsize,
-                        dpi=cfg.dpi,
-                        save=None,
-                        show=cfg.show,
+                        figsize=cfg.figsize, dpi=cfg.dpi, save=None, show=cfg.show,
                     )
                 self._render_figure(fig); self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
                 self._set_status("Chromatogram plot complete.")
 
-            # CD-MS Mass
             elif tab == "CD-MS Mass":
                 raw_labels = self.cdms_labels.get("1.0", "end").strip()
                 labels = parse_str_list(raw_labels) if raw_labels else filenames_to_labels(self.files)
@@ -680,18 +646,10 @@ class PlotApp:
                         Messagebox.show_error("Select exactly one text file for Single CD-MS Mass.", title="Selection error"); return
                     second_label_single = second_labels[0] if use_second else None
                     fig, ax = plot_single_cdms_mass(
-                        dataset=self.files[0],
-                        label=labels[0],
-                        second_label=second_label_single,
-                        x_range=x_range,
-                        color=colors[0],
-                        normalize=normalize,
-                        font_name=cfg.font_name,
-                        font_size=cfg.font_size,
-                        figsize=cfg.figsize,
-                        dpi=cfg.dpi,
-                        save=None,
-                        show=cfg.show,
+                        dataset=self.files[0], label=labels[0], second_label=second_label_single,
+                        x_range=x_range, color=colors[0], normalize=normalize,
+                        font_name=cfg.font_name, font_size=cfg.font_size,
+                        figsize=cfg.figsize, dpi=cfg.dpi, save=None, show=cfg.show,
                     )
                     self._render_figure(fig); self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
                     self._set_status("CD-MS mass (single) plot complete.")
@@ -702,25 +660,16 @@ class PlotApp:
                         Messagebox.show_error("Second labels must match number of files when second legend is enabled.", title="Second label mismatch"); return
                     y_ticks = ("0", "%", "100") if normalize else ("", "", "")
                     fig, axes = plot_cdms_mass_offset_stack(
-                        datasets=self.files,
-                        labels=labels,
+                        datasets=self.files, labels=labels,
                         second_labels=second_labels if use_second else [None] * len(self.files),
-                        x_range=x_range,
-                        colors=colors,
-                        y_offset_step=float(self.cdms_y_offset.get()),
-                        y_tick_labels=y_ticks,
-                        normalize=normalize,
-                        font_name=cfg.font_name,
-                        font_size=cfg.font_size,
-                        figsize=cfg.figsize,
-                        dpi=cfg.dpi,
-                        save=None,
-                        show=cfg.show,
+                        x_range=x_range, colors=colors, y_offset_step=float(self.cdms_y_offset.get()),
+                        y_tick_labels=y_ticks, normalize=normalize,
+                        font_name=cfg.font_name, font_size=cfg.font_size,
+                        figsize=cfg.figsize, dpi=cfg.dpi, save=None, show=cfg.show,
                     )
                     self._render_figure(fig); self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
                     self._set_status("CD-MS mass (stacked) plot complete.")
 
-            # MWD Chromatograms
             elif tab == "MWD Chromatograms":
                 mau_path = self.mwd_mau_path.get().strip()
                 mv_path = self.mwd_mv_path.get().strip()
@@ -734,25 +683,16 @@ class PlotApp:
                 normalize = bool(self.mwd_normalize.get())
 
                 fig, (ax1, ax2) = plot_mwd_chromatograms(
-                    mau_file=mau_path,
-                    mv_file=mv_path,
-                    mau_label=self.mwd_mau_label.get(),
-                    mv_label=self.mwd_mv_label.get(),
-                    colors=colors[:2],
-                    xlim=xlim,
-                    normalize=normalize,
-                    font_name=cfg.font_name,
-                    font_size=cfg.font_size,
-                    figsize=cfg.figsize,
-                    dpi=cfg.dpi,
-                    save=None,
-                    show=cfg.show,
+                    mau_file=mau_path, mv_file=mv_path,
+                    mau_label=self.mwd_mau_label.get(), mv_label=self.mwd_mv_label.get(),
+                    colors=colors[:2], xlim=xlim, normalize=normalize,
+                    font_name=cfg.font_name, font_size=cfg.font_size,
+                    figsize=cfg.figsize, dpi=cfg.dpi, save=None, show=cfg.show,
                 )
                 self._render_figure(fig); self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
                 self._set_status("MWD Chromatograms plot complete.")
 
-            # m/z Spectra
-            else:
+            else:  # m/z Spectra
                 raw_labels = self.mz_labels.get("1.0", "end").strip()
                 labels = parse_str_list(raw_labels) if raw_labels else filenames_to_labels(self.files)
                 use_second = bool(self.mz_two_legends.get())
@@ -767,18 +707,10 @@ class PlotApp:
                         Messagebox.show_error("Select exactly one text file for Single m/z Spectrum.", title="Selection error"); return
                     second_label_single = second_labels[0] if use_second else None
                     fig, ax = plot_single_mz_spectrum(
-                        dataset=self.files[0],
-                        label=labels[0],
-                        second_label=second_label_single,
-                        x_range=x_range,
-                        color=colors[0],
-                        normalize=normalize,
-                        font_name=cfg.font_name,
-                        font_size=cfg.font_size,
-                        figsize=cfg.figsize,
-                        dpi=cfg.dpi,
-                        save=None,
-                        show=cfg.show,
+                        dataset=self.files[0], label=labels[0], second_label=second_label_single,
+                        x_range=x_range, color=colors[0], normalize=normalize,
+                        font_name=cfg.font_name, font_size=cfg.font_size,
+                        figsize=cfg.figsize, dpi=cfg.dpi, save=None, show=cfg.show,
                     )
                     self._render_figure(fig); self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
                     self._set_status("m/z spectrum (single) plot complete.")
@@ -789,20 +721,12 @@ class PlotApp:
                         Messagebox.show_error("Second labels must match number of files when second legend is enabled.", title="Second label mismatch"); return
                     y_ticks = ("0", "%", "100") if normalize else ("", "", "")
                     fig, axes = plot_mz_spectrum_offset_stack(
-                        datasets=self.files,
-                        labels=labels,
+                        datasets=self.files, labels=labels,
                         second_labels=second_labels if use_second else [None] * len(self.files),
-                        x_range=x_range,
-                        colors=colors,
-                        y_offset_step=float(self.mz_y_offset.get()),
-                        y_tick_labels=y_ticks,
-                        normalize=normalize,
-                        font_name=cfg.font_name,
-                        font_size=cfg.font_size,
-                        figsize=cfg.figsize,
-                        dpi=cfg.dpi,
-                        save=None,
-                        show=cfg.show,
+                        x_range=x_range, colors=colors, y_offset_step=float(self.mz_y_offset.get()),
+                        y_tick_labels=y_ticks, normalize=normalize,
+                        font_name=cfg.font_name, font_size=cfg.font_size,
+                        figsize=cfg.figsize, dpi=cfg.dpi, save=None, show=cfg.show,
                     )
                     self._render_figure(fig); self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
                     self._set_status("m/z spectra (stacked) plot complete.")
@@ -815,15 +739,11 @@ class PlotApp:
 
 # Entry point with robust root creation and msgcat require
 def main():
-    # Prefer DnD root if available, else standard Tk
     root = TkinterDnD.Tk() if DND_AVAILABLE else tk.Tk()
-
-    # Ensure msgcat package is loaded on this root
     try:
         root.tk.call('package', 'require', 'msgcat')
     except tk.TclError:
         pass
-
     app = PlotApp(root, themename="darkly")  # choose theme from THEMES
     root.mainloop()
 
