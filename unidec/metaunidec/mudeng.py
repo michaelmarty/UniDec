@@ -274,6 +274,11 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
             p.mztab = np.array(p.mztab)
             p.mztab2 = np.array(p.mztab2)
 
+    def peaks_eic_integrate(self):
+        xvalues = self.data.var1
+        self.pks.extract_integrate(xvalues)
+        self.export_peaks_2d_apex()
+
     def peaks_error_replicates(self, pks, spectra, config):
         peakvals = []
         for x in range(0, len(pks.peaks)):
@@ -368,21 +373,18 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
             self.config.config_export(self.config.outfname + "_conf.dat")
 
     def export_peaks_2d_apex(self, e=None):
+        self.peaks_eic_integrate()
         if len(self.pks.peaks) == 0:
             print("No peaks to export. Try picking peaks first.")
             return
         outfile = self.config.outfname + "_peaks_apexes.txt"
         outputdata = []
         for i, p in enumerate(self.pks.peaks):
-            mass = p.mass
-            intensity = p.height
-            dscore = p.dscore
-            apex_var1 = self.data.var1[np.argmax(p.extracts)]
-            line = [mass, intensity, dscore, apex_var1]
+            line = [p.mass, p.height, p.dscore, p.area, p.apexvar1, p.avgvar1]
             outputdata.append(line)
         outputdata = np.array(outputdata)
         print(outputdata)
-        np.savetxt(outfile, outputdata, header="Mass\tIntensity\tDScore\tApex_Var1", comments='', fmt='%.2f', delimiter="\t")
+        np.savetxt(outfile, outputdata, header="Mass\tIntensity\tDScore\tExtracts Area\tApex_Var1\tWAvg_Var1", comments='', fmt='%.2f', delimiter="\t")
         print("Writing peak apexes to text file:", outfile)
 
     def batch_set_config(self, paths):

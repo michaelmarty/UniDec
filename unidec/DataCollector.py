@@ -1336,7 +1336,7 @@ class DataCollector(wx.Frame):
             path = os.path.join(dirname, filename)
 
             dlg.Destroy()
-            print("Openening: ", path)
+            print("Opening: ", path)
             msdat = np.loadtxt(path)
             mids = np.array([y[1] for y in self.yvals]).astype(float)
             wins = np.array([y[2] for y in self.yvals]).astype(float)

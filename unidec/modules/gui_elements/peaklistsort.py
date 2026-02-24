@@ -123,7 +123,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         print("test")
         self.add_data(self.pks, show="dscore")
 
-    def add_data(self, pks, show="area", collab1="Mass (Da)"):
+    def add_data(self, pks, show="area", collab1="Mass (Da)", show2="height"):
         """
         Add data from a Peaks object to the list_ctrl
         :param pks: Peaks object
@@ -139,6 +139,15 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.list_ctrl.DeleteAllItems()
         self.pks = pks
 
+        col = self.list_ctrl.GetColumn(2)
+        if show2 == "height":
+            col.SetText("Intensity")
+        elif show2 == "apexvar1":
+            col.SetText("Var1 Apex")
+        elif show2 == "avgvar1":
+            col.SetText("Var1 Avg.")
+        self.list_ctrl.SetColumn(2, col)
+
         col = self.list_ctrl.GetColumn(3)
         width = 65
         if not self.meta:
@@ -147,7 +156,13 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
             col.SetText("Avg. Charge")
         elif show == "zs":
             col.SetText("Z")
-        if "score" in show:
+        elif show == "integral":
+            col.SetText("Integral")
+        elif show == "area":
+            col.SetText("Area")
+        elif show == "diff":
+            col.SetText("Diff.")
+        elif "score" in show:
             col.SetText("DScore")
 
         self.list_ctrl.SetColumn(3, col)
@@ -178,10 +193,16 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
                     else:
                         self.list_ctrl.SetItem(i, 1, f'{float(str(p.mass)):,}')
 
-                self.list_ctrl.SetItem(i, 2, "%.2f" % p.height)
+                if show2 == "height":
+                    self.list_ctrl.SetItem(i, 2, "%.2f" % p.height)
+                elif show2 == "apexvar1":
+                    self.list_ctrl.SetItem(i, 2, "%.2f" % p.apexvar1)
+                elif show2 == "avgvar1":
+                    self.list_ctrl.SetItem(i, 2, "%.2f" % p.avgvar1)
+
                 try:
                     if show == "area":
-                        self.list_ctrl.SetItem(i, 3, str(p.area))
+                        self.list_ctrl.SetItem(i, 3, "%.2f" % p.area)
                     elif show == "integral":
                         self.list_ctrl.SetItem(i, 3, "%.2f" % p.integral)
                     elif show == "diff":
