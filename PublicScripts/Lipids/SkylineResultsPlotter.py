@@ -854,10 +854,10 @@ if __name__ == "__main__":
     # set1 = ["0.5% FT1", "0.5% FT2", "0.5% FT3"]
     set2 = ["Rep1", "Rep2", "Rep3"]
 
-    # is_analysis(file)
-    # exit()
+    is_analysis(file)
+    exit()
 
-    cv_pipeline(file, results_set=set2, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=False,
+    cv_pipeline(file, results_set=set2, mode="Products", drop_IS=False, normalize_IS=False, normalize_TIC=False,
                 write_output=True, plot_results=True)
 
     exit()
