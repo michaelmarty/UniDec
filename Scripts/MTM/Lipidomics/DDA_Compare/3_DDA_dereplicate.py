@@ -61,6 +61,7 @@ def split_dfs(df):
 mpl.use("WxAgg")
 
 topdir = r"Z:\Group Share\Shivam\DDA"
+topdir = r"Z:\Group Share\Shivam\IQX_Stellar_fixed"
 os.chdir(topdir)
 
 df = pd.read_csv("Combined_DDA_RT_Corrected.csv")

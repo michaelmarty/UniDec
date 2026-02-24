@@ -10,12 +10,13 @@ import joblib
 mpl.use("WxAgg")
 
 topdir = r"Z:\Group Share\Shivam\DDA"
+topdir = r"Z:\Group Share\Shivam\IQX_Stellar_fixed"
 os.chdir(topdir)
 
 filepath = r"Combined_DDA_OutlierAnalysis.xlsx"
 df = pd.read_excel(filepath)
 # Drop any with "AqX" in the dataset name, since those are all not annotated and will just add noise to the model
-df = df[~df["Dataset"].str.contains("AqX", case=False, na=False)]
+# df = df[~df["Dataset"].str.contains("AqX", case=False, na=False)]
 
 drop_columns = ["Post curation result", "MS/MS assigned", "Annotation tag (VS1.0)", "INCHIKEY", "m/z matched",
                 "MS/MS matched", "Manually modified for quantification", "Manually modified for annotation",
@@ -60,7 +61,7 @@ accuracies2 = []
 savemodel = None
 
 # Drop dataset "Stellar"
-df = df[df["Dataset"] != "Stellar"]
+# df = df[df["Dataset"] != "Stellar"]
 print("Datasets:", df["Dataset"].unique())
 
 for dataset in df["Dataset"].unique():
@@ -102,7 +103,7 @@ with pd.ExcelWriter("Combined_DDA_OutlierAnalysis_Results.xlsx") as writer:
     df[df["Outlier_Prediction"] == 0].to_excel(writer, sheet_name="Predicted Good", index=False)
     df[df["Outlier_Prediction"] == 1].to_excel(writer, sheet_name="Predicted Bad", index=False)
 
-exit()
+
 # Feature importance plots
 plt.figure(figsize=(10, 6))
 ax = plt.subplot(1, 2, 1)

@@ -3,6 +3,7 @@ import os
 from PublicScripts.Lipids.LipidFunctions import msdial_to_transitionlist, tl_to_il, derplicate_il
 
 topdir = r"Z:\Group Share\Shivam\DDA"
+topdir = r"Z:\Group Share\Shivam\IQX_Stellar_fixed"
 os.chdir(topdir)
 
 filepath = r"Combined_DDA_Full.xlsx"
