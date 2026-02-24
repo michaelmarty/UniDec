@@ -7,8 +7,12 @@ from tkinter.colorchooser import askcolor
 from typing import List, Sequence, Tuple, Optional
 from dataclasses import dataclass
 
-# Drag-and-drop root
-from tkinterdnd2 import TkinterDnD, DND_FILES
+# Drag-and-drop root (optional)
+try:
+    from tkinterdnd2 import TkinterDnD, DND_FILES
+    DND_AVAILABLE = True
+except Exception:
+    DND_AVAILABLE = False
 
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
@@ -16,15 +20,15 @@ from ttkbootstrap.dialogs import Messagebox
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
-# Import plotting utilities
+# Plotting utilities (ensure these files exist in the same folder)
 from chromatogram_plot_utils import plot_chrom_stack
 from cdms_mass_plot_utils import plot_cdms_mass_offset_stack, plot_single_cdms_mass
 from mwd_chromatogram_utils import plot_mwd_chromatograms
 from mz_spectrum_plot_utils import plot_single_mz_spectrum, plot_mz_spectrum_offset_stack
 
 # Defaults
-DEFAULT_CHROM_COLORS = ["#333333", "#00A9A5", "#C76BA0", "#C76BA0", "#C76BA0", "#2C7FB8", "#7A7A7A", "#00A9A5"]
-DEFAULT_CDMS_COLORS  = ["#CC79A7", "#CC79A7", "#2C7FB8", "#7A7A7A", "#00A9A5"]
+DEFAULT_CHROM_COLORS = ["#333333", "#00A9A5", "#C76BA0", "#2C7FB8", "#7A7A7A", "#00A9A5"]
+DEFAULT_CDMS_COLORS  = ["#CC79A7", "#2C7FB8", "#7A7A7A", "#00A9A5"]
 DEFAULT_CHROM_STANDARDS = "13.81, 16.82, 18.09, 19.05, 20.79"
 DEFAULT_MWD_COLORS   = ["#0F0C08", "#3CAEA3"]
 DEFAULT_MZ_COLORS    = ["#2C7FB8", "#CC79A7", "#00A9A5", "#7A7A7A", "#F0E442"]
@@ -62,16 +66,35 @@ class CommonConfig:
 class PlotApp:
     """
     Chromatograms, CD-MS Mass, MWD Chromatograms, and m/z Spectra GUI:
-      - Drag-and-drop support
+      - msgcat fix for ttkbootstrap Style initialization
+      - Drag-and-drop support (fallback to Tk if not available)
       - Centered layout and full-window theme fill
       - Color pickers for palette selection
       - Standards toggle for Chromatograms
       - MWD paths integrated into main Files list
-      - New m/z Spectra tab (single/stacked, second legend, color palette)
+      - Normalization toggles for ALL tabs
     """
-    def __init__(self, root: TkinterDnD.Tk, themename: str = "flatly"):
+    def __init__(self, root: tk.Tk, themename: str = "flatly"):
         self.root = root
-        self.style = tb.Style(themename)
+
+        # Ensure Tcl msgcat package is loaded before ttkbootstrap localization/Style
+        try:
+            self.root.tk.call('package', 'require', 'msgcat')
+        except tk.TclError:
+            # Some builds already have msgcat initialized; ignore if require fails
+            pass
+
+        # Attach ttkbootstrap Style explicitly to this root
+        try:
+            self.style = tb.Style(master=self.root, theme=themename)
+        except TypeError:
+            # Older versions may not support master=...; fallback to theme name only
+            self.style = tb.Style(themename)
+        # Force theme in case constructor didn't apply it
+        try:
+            self.style.theme_use(themename)
+        except Exception:
+            pass
 
         # Window and centering
         self.win_w = 1200
@@ -80,9 +103,11 @@ class PlotApp:
         self.content_max_w = 1300
         self.content_margin = 12
 
-        # Theme background
-        try: self.root.configure(bg=self.style.colors.bg)
-        except Exception: pass
+        # Theme background fill
+        try:
+            self.root.configure(bg=self.style.colors.bg)
+        except Exception:
+            pass
 
         # State
         self.files: List[str] = []
@@ -119,8 +144,10 @@ class PlotApp:
 
     def _on_theme_change(self, event=None):
         self.style.theme_use(self.theme_var.get())
-        try: self.root.configure(bg=self.style.colors.bg)
-        except Exception: pass
+        try:
+            self.root.configure(bg=self.style.colors.bg)
+        except Exception:
+            pass
 
     # ---------- Body ----------
     def _build_body(self, parent):
@@ -154,7 +181,7 @@ class PlotApp:
         nb.add(self.mz_tab, text="m/z Spectra")
         self._build_mz_tab()
 
-        # Files panel (supports all tabs)
+        # Files panel
         self._build_file_panel(left)
 
         # Actions
@@ -211,7 +238,6 @@ class PlotApp:
         self.chrom_ymax = tk.DoubleVar(value=1.0); tb.Entry(grid, textvariable=self.chrom_ymax, width=8).grid(row=0, column=5, padx=4)
         self.chrom_normalize = tk.BooleanVar(value=True); tb.Checkbutton(lf_axes, text="Normalize traces to max", variable=self.chrom_normalize).pack(anchor=W, pady=4)
 
-        # Standards toggle
         std_row = tb.Frame(lf_axes, bootstyle="secondary"); std_row.pack(fill=X, pady=4)
         self.chrom_show_standards = tk.BooleanVar(value=True)
         tb.Checkbutton(std_row, text="Show standard volumes (top ticks)", variable=self.chrom_show_standards).pack(side=LEFT)
@@ -248,10 +274,12 @@ class PlotApp:
         self.cdms_xmax = tk.DoubleVar(value=500.0); tb.Entry(grid, textvariable=self.cdms_xmax, width=8).grid(row=0, column=2, padx=4)
         tb.Label(grid, text="Y-offset step (stacked):").grid(row=0, column=3, sticky=W)
         self.cdms_y_offset = tk.DoubleVar(value=120.0); tb.Entry(grid, textvariable=self.cdms_y_offset, width=8).grid(row=0, column=4, padx=4)
+        # Normalization toggle
+        self.cdms_normalize = tk.BooleanVar(value=True)
+        tb.Checkbutton(lf_axes, text="Normalize to max (percent)", variable=self.cdms_normalize).pack(anchor=W, pady=4)
 
     def _build_mwd_tab(self):
         lf_files = tb.Labelframe(self.mwd_tab, text="MWD Files (drag & drop or browse)", padding=8, bootstyle="secondary"); lf_files.pack(fill=X, pady=4)
-        # mAU file
         row1 = tb.Frame(lf_files, bootstyle="secondary"); row1.pack(fill=X, pady=2)
         tb.Label(row1, text="mAU file:").pack(side=LEFT)
         self.mwd_mau_path = tk.StringVar()
@@ -261,7 +289,6 @@ class PlotApp:
         self.mwd_mau_entry.drop_target_register(DND_FILES)
         self.mwd_mau_entry.dnd_bind("<<Drop>>", lambda e: self._on_single_file_drop(e, self.mwd_mau_path))
 
-        # mV file
         row2 = tb.Frame(lf_files, bootstyle="secondary"); row2.pack(fill=X, pady=2)
         tb.Label(row2, text="mV file:").pack(side=LEFT)
         self.mwd_mv_path = tk.StringVar()
@@ -326,6 +353,9 @@ class PlotApp:
         self.mz_xmax = tk.DoubleVar(value=2000.0); tb.Entry(grid, textvariable=self.mz_xmax, width=8).grid(row=0, column=2, padx=4)
         tb.Label(grid, text="Y-offset step (stacked):").grid(row=0, column=3, sticky=W)
         self.mz_y_offset = tk.DoubleVar(value=120.0); tb.Entry(grid, textvariable=self.mz_y_offset, width=8).grid(row=0, column=4, padx=4)
+        # Normalization toggle
+        self.mz_normalize = tk.BooleanVar(value=True)
+        tb.Checkbutton(lf_axes, text="Normalize to max (percent)", variable=self.mz_normalize).pack(anchor=W, pady=4)
 
     def _toggle_second_labels_input(self):
         state = tk.NORMAL if self.cdms_two_legends.get() else tk.DISABLED
@@ -347,8 +377,13 @@ class PlotApp:
         self.file_tree.heading("path", text="File Path"); self.file_tree.column("path", width=700, anchor=W)
         self.file_tree.pack(fill=BOTH, expand=YES, pady=6)
 
-        self.file_tree.drop_target_register(DND_FILES)
-        self.file_tree.dnd_bind("<<Drop>>", self._on_files_drop)
+        # Drag-and-drop
+        try:
+            self.file_tree.drop_target_register(DND_FILES)
+            self.file_tree.dnd_bind("<<Drop>>", self._on_files_drop)
+        except Exception:
+            # If DND not available, skip
+            pass
 
     def _build_actions(self, parent):
         frame = tb.Frame(parent, bootstyle="secondary"); frame.pack(fill=X, pady=10)
@@ -446,12 +481,9 @@ class PlotApp:
         self._sync_mwd_from_files()
 
     def _active_tab(self) -> str:
-        if self.chrom_tab.winfo_ismapped():
-            return "Chromatograms"
-        if self.cdms_tab.winfo_ismapped():
-            return "CD-MS Mass"
-        if self.mwd_tab.winfo_ismapped():
-            return "MWD Chromatograms"
+        if self.chrom_tab.winfo_ismapped(): return "Chromatograms"
+        if self.cdms_tab.winfo_ismapped():  return "CD-MS Mass"
+        if self.mwd_tab.winfo_ismapped():   return "MWD Chromatograms"
         return "m/z Spectra"
 
     def _render_figure(self, fig):
@@ -466,16 +498,15 @@ class PlotApp:
         self.toolbar.pack(fill=X)
 
     def _export_figure(self, fig, save_path: Optional[str], dpi: int, transparent: bool):
-        if not save_path:
-            return
+        if not save_path: return
         try:
             fig.savefig(save_path, dpi=dpi, bbox_inches="tight", transparent=transparent)
             self._set_status(f"Saved to {save_path} (transparent={transparent})")
         except Exception as e:
             Messagebox.show_error(f"Failed to save figure:\n{e}", title="Export error")
 
-    # ---------- Drag-and-drop handlers ----------
     def _on_files_drop(self, event):
+        # Robust parsing for paths (supports spaces)
         try: paths = list(self.root.splitlist(event.data))
         except Exception: paths = event.data.split()
         if not paths: return
@@ -510,16 +541,13 @@ class PlotApp:
         top = tk.Toplevel(self.root); top.title(title); top.geometry("420x300")
         try: top.configure(bg=self.style.colors.bg)
         except Exception: pass
-
         colors = parse_str_list(target_var.get())
         lb_frame = tb.Frame(top, padding=6, bootstyle="secondary"); lb_frame.pack(fill=BOTH, expand=YES)
         lb = tk.Listbox(lb_frame, height=10); lb.pack(fill=BOTH, expand=YES)
-
         def refresh_list():
             lb.delete(0, tk.END)
             for c in colors: lb.insert(tk.END, c)
         refresh_list()
-
         ctrl = tb.Frame(top, padding=6, bootstyle="secondary"); ctrl.pack(fill=X)
         tb.Button(ctrl, text="Add…", bootstyle="info", command=lambda: self._palette_add(colors, refresh_list)).pack(side=LEFT, padx=4)
         tb.Button(ctrl, text="Remove", bootstyle="warning", command=lambda: self._palette_remove(colors, lb, refresh_list)).pack(side=LEFT, padx=4)
@@ -550,7 +578,7 @@ class PlotApp:
         c = self._pick_color(initial=start_color)
         if c: colors[index] = c; self.mwd_colors.set(", ".join(colors))
 
-    # ---------- NEW: MWD file-browse handlers ----------
+    # ---------- MWD file-browse handlers ----------
     def _browse_mwd_mau(self):
         path = filedialog.askopenfilename(title="Select mAU Excel file", filetypes=[("Excel files", "*.xlsx *.xls"), ("All files", "*.*")])
         if path:
@@ -595,6 +623,7 @@ class PlotApp:
                 labels = parse_str_list(raw_labels) if raw_labels else filenames_to_labels(self.files)
                 colors = parse_str_list(self.chrom_colors.get()) or DEFAULT_CHROM_COLORS
                 std_vols = parse_float_list(self.chrom_standards.get()) if self.chrom_show_standards.get() else None
+                normalize = bool(self.chrom_normalize.get())
 
                 if self.chrom_mode.get() == "single":
                     if len(self.files) != 1:
@@ -604,7 +633,7 @@ class PlotApp:
                         sample_labels=labels[:1],
                         colors=colors[:1],
                         standard_volumes=std_vols,
-                        normalize=bool(self.chrom_normalize.get()),
+                        normalize=normalize,
                         font_name=cfg.font_name,
                         font_size=cfg.font_size,
                         xlim=(float(self.chrom_xmin.get()), float(self.chrom_xmax.get())),
@@ -622,7 +651,7 @@ class PlotApp:
                         sample_labels=labels,
                         colors=colors,
                         standard_volumes=std_vols,
-                        normalize=bool(self.chrom_normalize.get()),
+                        normalize=normalize,
                         font_name=cfg.font_name,
                         font_size=cfg.font_size,
                         xlim=(float(self.chrom_xmin.get()), float(self.chrom_xmax.get())),
@@ -632,8 +661,7 @@ class PlotApp:
                         save=None,
                         show=cfg.show,
                     )
-                self._render_figure(fig)
-                self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
+                self._render_figure(fig); self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
                 self._set_status("Chromatogram plot complete.")
 
             # CD-MS Mass
@@ -645,6 +673,7 @@ class PlotApp:
                 second_labels = parse_str_list(second_raw) if (use_second and second_raw) else [None] * len(self.files)
                 colors = parse_str_list(self.cdms_colors.get()) or DEFAULT_CDMS_COLORS
                 x_range = (float(self.cdms_xmin.get()), float(self.cdms_xmax.get()))
+                normalize = bool(self.cdms_normalize.get())
 
                 if self.cdms_mode.get() == "single":
                     if len(self.files) != 1:
@@ -656,6 +685,7 @@ class PlotApp:
                         second_label=second_label_single,
                         x_range=x_range,
                         color=colors[0],
+                        normalize=normalize,
                         font_name=cfg.font_name,
                         font_size=cfg.font_size,
                         figsize=cfg.figsize,
@@ -663,14 +693,14 @@ class PlotApp:
                         save=None,
                         show=cfg.show,
                     )
-                    self._render_figure(fig)
-                    self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
+                    self._render_figure(fig); self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
                     self._set_status("CD-MS mass (single) plot complete.")
                 else:
                     if len(labels) != len(self.files):
                         Messagebox.show_error("Number of labels must match number of files.", title="Label mismatch"); return
                     if use_second and len(second_labels) != len(self.files):
                         Messagebox.show_error("Second labels must match number of files when second legend is enabled.", title="Second label mismatch"); return
+                    y_ticks = ("0", "%", "100") if normalize else ("", "", "")
                     fig, axes = plot_cdms_mass_offset_stack(
                         datasets=self.files,
                         labels=labels,
@@ -678,6 +708,8 @@ class PlotApp:
                         x_range=x_range,
                         colors=colors,
                         y_offset_step=float(self.cdms_y_offset.get()),
+                        y_tick_labels=y_ticks,
+                        normalize=normalize,
                         font_name=cfg.font_name,
                         font_size=cfg.font_size,
                         figsize=cfg.figsize,
@@ -685,8 +717,7 @@ class PlotApp:
                         save=None,
                         show=cfg.show,
                     )
-                    self._render_figure(fig)
-                    self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
+                    self._render_figure(fig); self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
                     self._set_status("CD-MS mass (stacked) plot complete.")
 
             # MWD Chromatograms
@@ -700,6 +731,7 @@ class PlotApp:
                 if len(colors) < 2:
                     Messagebox.show_error("Please provide two colors (mAU, mV).", title="Colors required"); return
                 xlim = (float(self.mwd_xmin.get()), float(self.mwd_xmax.get()))
+                normalize = bool(self.mwd_normalize.get())
 
                 fig, (ax1, ax2) = plot_mwd_chromatograms(
                     mau_file=mau_path,
@@ -708,7 +740,7 @@ class PlotApp:
                     mv_label=self.mwd_mv_label.get(),
                     colors=colors[:2],
                     xlim=xlim,
-                    normalize=bool(self.mwd_normalize.get()),
+                    normalize=normalize,
                     font_name=cfg.font_name,
                     font_size=cfg.font_size,
                     figsize=cfg.figsize,
@@ -716,8 +748,7 @@ class PlotApp:
                     save=None,
                     show=cfg.show,
                 )
-                self._render_figure(fig)
-                self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
+                self._render_figure(fig); self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
                 self._set_status("MWD Chromatograms plot complete.")
 
             # m/z Spectra
@@ -729,6 +760,7 @@ class PlotApp:
                 second_labels = parse_str_list(second_raw) if (use_second and second_raw) else [None] * len(self.files)
                 colors = parse_str_list(self.mz_colors.get()) or DEFAULT_MZ_COLORS
                 x_range = (float(self.mz_xmin.get()), float(self.mz_xmax.get()))
+                normalize = bool(self.mz_normalize.get())
 
                 if self.mz_mode.get() == "single":
                     if len(self.files) != 1:
@@ -740,6 +772,7 @@ class PlotApp:
                         second_label=second_label_single,
                         x_range=x_range,
                         color=colors[0],
+                        normalize=normalize,
                         font_name=cfg.font_name,
                         font_size=cfg.font_size,
                         figsize=cfg.figsize,
@@ -747,14 +780,14 @@ class PlotApp:
                         save=None,
                         show=cfg.show,
                     )
-                    self._render_figure(fig)
-                    self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
+                    self._render_figure(fig); self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
                     self._set_status("m/z spectrum (single) plot complete.")
                 else:
                     if len(labels) != len(self.files):
                         Messagebox.show_error("Number of labels must match number of files.", title="Label mismatch"); return
                     if use_second and len(second_labels) != len(self.files):
                         Messagebox.show_error("Second labels must match number of files when second legend is enabled.", title="Second label mismatch"); return
+                    y_ticks = ("0", "%", "100") if normalize else ("", "", "")
                     fig, axes = plot_mz_spectrum_offset_stack(
                         datasets=self.files,
                         labels=labels,
@@ -762,6 +795,8 @@ class PlotApp:
                         x_range=x_range,
                         colors=colors,
                         y_offset_step=float(self.mz_y_offset.get()),
+                        y_tick_labels=y_ticks,
+                        normalize=normalize,
                         font_name=cfg.font_name,
                         font_size=cfg.font_size,
                         figsize=cfg.figsize,
@@ -769,8 +804,7 @@ class PlotApp:
                         save=None,
                         show=cfg.show,
                     )
-                    self._render_figure(fig)
-                    self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
+                    self._render_figure(fig); self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
                     self._set_status("m/z spectra (stacked) plot complete.")
 
         except Exception as e:
@@ -779,9 +813,17 @@ class PlotApp:
         finally:
             self.progress.stop()
 
-# Entry point
+# Entry point with robust root creation and msgcat require
 def main():
-    root = TkinterDnD.Tk()
+    # Prefer DnD root if available, else standard Tk
+    root = TkinterDnD.Tk() if DND_AVAILABLE else tk.Tk()
+
+    # Ensure msgcat package is loaded on this root
+    try:
+        root.tk.call('package', 'require', 'msgcat')
+    except tk.TclError:
+        pass
+
     app = PlotApp(root, themename="darkly")  # choose theme from THEMES
     root.mainloop()
 
