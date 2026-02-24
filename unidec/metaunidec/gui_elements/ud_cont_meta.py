@@ -368,6 +368,8 @@ class main_controls(wx.Panel):
         self.plotbutton2 = wx.Button(panel3, -1, "Plot 2D Grids")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.make2dplots, self.plotbutton2)
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_pick_peaks, self.plotbutton)
+        self.integratebutton = wx.Button(panel3, -1, "Integrate Across Var1")
+        self.parent.Bind(wx.EVT_BUTTON, self.pres.on_eic_integrate, self.integratebutton)
 
         i = 0
         sizercontrol3.Add(self.ctlwindow, (i, 1))
@@ -399,6 +401,9 @@ class main_controls(wx.Panel):
         sizercontrol3.Add(self.plotbutton, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
         sizercontrol3.Add(self.plotbutton2, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
+        sizercontrol3.Add(self.integratebutton, (i, 0), span=(1, 2), flag=wx.EXPAND)
+
 
         panel3.SetSizer(sizercontrol3)
         sizercontrol3.Fit(panel3)

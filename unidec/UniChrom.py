@@ -47,10 +47,11 @@ class ChromApp(MetaUniDecBase):
             # path = "D:\Data\ChromTest\SYJMX160819_04.hdf5"
             self.open_file(path)
 
-        if False and platform.node() == 'CHEM-A90237':
+        if True and platform.node() == 'CHEM-A90237':
             self.open_most_recent()
             self.on_pick_peaks()
-            self.eng.export_peaks_2d_apex()
+            # self.eng.export_peaks_2d_apex()
+            self.on_eic_integrate()
 
     def on_open(self, e=None):
         """

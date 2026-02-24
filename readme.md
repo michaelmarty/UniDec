@@ -228,6 +228,8 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 v.8.1.2
 
+Added retention time integration into UniChrom and MetaUniDec. It will now report the area and apex value of var1 (RT) extracts.
+
 Changed UniChrom default to timemid rather than timestart.
 
 v.8.1.1
