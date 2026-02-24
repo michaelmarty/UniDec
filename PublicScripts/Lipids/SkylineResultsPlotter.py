@@ -848,7 +848,7 @@ def is_analysis(file, mode="Products", isdf=None):
 
 
 if __name__ == "__main__":
-    file = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\Extr_US_MoleculeTransResults.csv"
+    file = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\Molecule Transition Results.csv"
     # file = r"C:\Users\marty\Downloads\Extr_US_MoleculeTransResults.csv"
 
     # set1 = ["0.5% FT1", "0.5% FT2", "0.5% FT3"]
