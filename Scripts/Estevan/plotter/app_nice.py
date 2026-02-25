@@ -41,7 +41,119 @@ DEFAULT_CDMS_COLORS  = ["#CC79A7", "#2C7FB8", "#7A7A7A", "#00A9A5"]
 DEFAULT_CHROM_STANDARDS = "13.81, 16.82, 18.09, 19.05, 20.79"
 DEFAULT_MWD_COLORS   = ["#0F0C08", "#3CAEA3"]
 DEFAULT_MZ_COLORS    = ["#2C7FB8", "#CC79A7", "#00A9A5", "#7A7A7A", "#F0E442"]
-THEMES = ["flatly", "cosmo", "lumen", "minty", "sandstone", "superhero", "cyborg", "darkly", "morph"]
+
+import subprocess
+import configparser
+
+# Popular themes used for fallback selection
+POPULAR_THEMES_RANKED = [
+    # Light
+    "litera", "flatly", "cosmo", "minty", "yeti", "sandstone", "journal", "united",
+    "cerulean", "lux", "quartz", "zephyr",
+    # Dark
+    "darkly", "morph", "vapor", "cyborg", "superhero",
+]
+
+def is_system_dark_mode() -> bool:
+    """
+    Best-effort cross-platform detection of user dark mode preference.
+    Returns True for dark mode, False for light/unknown.
+    """
+    # Windows 10/11: HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize\AppsUseLightTheme
+    try:
+        import winreg
+        with winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+        ) as key:
+            val, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
+            return int(val) == 0  # 0 = dark, 1 = light
+    except Exception:
+        pass
+
+    # macOS: 'defaults read -g AppleInterfaceStyle' returns 'Dark' when dark mode is active
+    try:
+        proc = subprocess.run(
+            ["defaults", "read", "-g", "AppleInterfaceStyle"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        if proc.returncode == 0:
+            return proc.stdout.strip().lower() == "dark" or proc.stdout.strip() != ""
+    except Exception:
+        pass
+
+    # GNOME: org.gnome.desktop.interface color-scheme: 'prefer-dark' or 'prefer-light'
+    try:
+        proc = subprocess.run(
+            ["gsettings", "get", "org.gnome.desktop.interface", "color-scheme"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        if proc.returncode == 0:
+            val = proc.stdout.strip().strip("'").lower()
+            if "prefer-dark" in val:
+                return True
+            if "prefer-light" in val:
+                return False
+    except Exception:
+        pass
+
+    # GNOME fallback: check gtk-theme contains 'dark'
+    try:
+        proc = subprocess.run(
+            ["gsettings", "get", "org.gnome.desktop.interface", "gtk-theme"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        if proc.returncode == 0:
+            theme = proc.stdout.strip().strip("'").lower()
+            if "dark" in theme:
+                return True
+    except Exception:
+        pass
+
+    # KDE: ~/.config/kdeglobals [General] ColorScheme, often contains 'Dark'
+    try:
+        import os
+        kdeglobals = os.path.expanduser("~/.config/kdeglobals")
+        if os.path.isfile(kdeglobals):
+            cp = configparser.ConfigParser()
+            cp.read(kdeglobals)
+            scheme = cp.get("General", "ColorScheme", fallback="")
+            if "dark" in scheme.lower():
+                return True
+    except Exception:
+        pass
+
+    return False
+
+def choose_default_theme() -> str:
+    """
+    Choose litera for light or darkly for dark; if unavailable, pick a close modern alternative.
+    Ensures the theme exists in this ttkbootstrap installation.
+    """
+    try:
+        tmp_style = tb.Style()
+        available = set(tmp_style.theme_names())
+    except Exception:
+        # Fallback: assume all popular themes may be available
+        available = set(POPULAR_THEMES_RANKED)
+
+    system_dark = is_system_dark_mode()
+    preferred = "darkly" if system_dark else "litera"
+
+    if preferred not in available:
+        fallbacks = (
+            ["morph", "vapor", "cyborg", "superhero", "flatly"] if system_dark
+            else ["flatly", "cosmo", "minty", "yeti", "sandstone", "journal"]
+        )
+        for t in fallbacks:
+            if t in available:
+                preferred = t
+                break
+        else:
+            # Last-resort: pick first available known theme or the style's default
+            preferred = next(iter(available)) if available else "flatly"
+
+    return preferred
 
 def parse_float_list(text: str) -> List[float]:
     text = text.strip()
@@ -134,8 +246,34 @@ class PlotApp:
         theme_frame = tb.Frame(header, bootstyle="secondary")
         theme_frame.pack(side=RIGHT)
         tb.Label(theme_frame, text="Theme:", font=("Arial", 10, "bold")).pack(side=LEFT, padx=(0, 6))
-        self.theme_var = tk.StringVar(value=self.style.theme_use())
-        combo = tb.Combobox(theme_frame, values=THEMES, textvariable=self.theme_var, state="readonly", width=10)
+
+        # Detect available themes and keep only the popular ones (preserving our popularity order)
+        try:
+            available_set = set(self.style.theme_names())
+        except Exception:
+            available_set = set(POPULAR_THEMES_RANKED)
+        themes_available = [t for t in POPULAR_THEMES_RANKED if t in available_set]
+
+        # Default intelligently: keep current, otherwise best popular theme available
+        current_theme = self.style.theme_use()
+        if current_theme not in themes_available and themes_available:
+            # Prefer a modern dark default if present, else the first light theme
+            preferred_defaults = ["darkly", "morph", "flatly", "litera"]
+            for pd in preferred_defaults:
+                if pd in themes_available:
+                    current_theme = pd
+                    break
+            else:
+                current_theme = themes_available[0]
+
+        self.theme_var = tk.StringVar(value=current_theme)
+        combo = tb.Combobox(
+            theme_frame,
+            values=themes_available,
+            textvariable=self.theme_var,
+            state="readonly",
+            width=14
+        )
         combo.pack(side=LEFT)
         combo.bind("<<ComboboxSelected>>", self._on_theme_change)
 
@@ -144,7 +282,6 @@ class PlotApp:
         self.status_label = tb.Label(bar, text="Status: Ready", anchor=W)
         self.status_label.pack(side=LEFT, padx=8, pady=4)
 
-        # Always-visible Plot button (top-right)
         tb.Button(bar, text="Plot", bootstyle="success", command=self._plot).pack(side=RIGHT, padx=8, pady=4)
 
     def _on_theme_change(self, event=None):
@@ -1386,7 +1523,11 @@ def main():
         root.tk.call('package', 'require', 'msgcat')
     except tk.TclError:
         pass
-    app = PlotApp(root, themename="darkly")
+
+    # Detect system light/dark and choose a suitable default theme
+    default_theme = choose_default_theme()
+    app = PlotApp(root, themename=default_theme)
+
     root.mainloop()
 
 
