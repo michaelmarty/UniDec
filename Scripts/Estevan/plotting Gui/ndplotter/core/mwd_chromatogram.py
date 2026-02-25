@@ -1,6 +1,5 @@
-# mwd_chromatogram_utils.py
 from __future__ import annotations
-from typing import Sequence, Optional, Tuple
+from typing import Sequence, Tuple, Optional
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -11,8 +10,7 @@ def load_chrom_file(path: str, signal_keywords: Sequence[str]) -> Optional[pd.Da
     """
     try:
         df = pd.read_excel(path, header=None, engine="openpyxl")
-    except Exception as e:
-        print(f"Could not read {path}: {e}")
+    except Exception:
         return None
 
     header_row = None
@@ -63,7 +61,6 @@ def plot_mwd_chromatograms(
 ):
     """
     Dual-axis chromatograms: mAU (left) + mV (right), normalized and combined legend.
-    Returns (fig, (ax1, ax2)).
     """
     if colors is None:
         colors = ["#0F0C08", "#3CAEA3"]
@@ -99,10 +96,9 @@ def plot_mwd_chromatograms(
     ax1.set_xlim(*xlim)
     ax1.set_ylim(0, 1 if normalize else max(1, df_mau["signal"].max() if df_mau is not None else 1))
     ax2.set_ylim(0, 1 if normalize else max(1, df_mv["signal"].max() if df_mv is not None else 1))
-    ax1.set_xlabel("Retention Volume (mL)")
+    ax1.set_xlabel("Retention Time (mL)")
     ax1.set_ylabel("Normalized Absorbance (mAU)" if normalize else "Absorbance (mAU)")
     ax2.set_ylabel("Normalized Voltage (mV)" if normalize else "Voltage (mV)")
-
     ax1.spines["top"].set_visible(False)
     ax1.spines["right"].set_visible(False)
     ax1.spines["left"].set_position(("data", 0))

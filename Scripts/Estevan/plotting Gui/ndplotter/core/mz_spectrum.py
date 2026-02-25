@@ -1,4 +1,3 @@
-# mz_spectrum_plot_utils.py
 from __future__ import annotations
 from typing import Sequence, Tuple, Optional, Union, List
 import numpy as np
@@ -7,16 +6,11 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
 def _detect_columns(df: pd.DataFrame) -> Tuple[str, str]:
-    """
-    Detect m/z and intensity columns (case-insensitive). Fallback: first two columns.
-    """
     cols_lower = {str(c).lower(): c for c in df.columns}
     mz_candidates = ["mz", "m_z", "m/z"]
     y_candidates = ["intensity", "y", "signal"]
-
     mz_col = next((cols_lower[k] for k in mz_candidates if k in cols_lower), None)
     y_col = next((cols_lower[k] for k in y_candidates if k in cols_lower), None)
-
     if mz_col is None or y_col is None:
         ordered = list(df.columns)
         if len(ordered) < 2:
@@ -25,9 +19,6 @@ def _detect_columns(df: pd.DataFrame) -> Tuple[str, str]:
     return mz_col, y_col
 
 def _load_spectrum(source: Union[str, pd.DataFrame]) -> pd.DataFrame:
-    """
-    Load spectrum: returns DataFrame with ['mz', 'Intensity'] sorted by m/z.
-    """
     if isinstance(source, str):
         df = pd.read_csv(source, sep=r"\s+", header=None, comment="#", engine="python")
         if df.shape[1] < 2:
@@ -41,7 +32,6 @@ def _load_spectrum(source: Union[str, pd.DataFrame]) -> pd.DataFrame:
         df.columns = ["mz", "Intensity"]
     else:
         raise TypeError("source must be a file path (str) or a pandas DataFrame.")
-
     df["mz"] = pd.to_numeric(df["mz"], errors="coerce")
     df["Intensity"] = pd.to_numeric(df["Intensity"], errors="coerce")
     df = df.dropna().sort_values("mz").reset_index(drop=True)
@@ -71,10 +61,6 @@ def plot_single_mz_spectrum(
     save: Optional[str] = None,
     show: bool = False,
 ):
-    """
-    Plot a single normalized/un-normalized m/z spectrum with optional second legend near the peak.
-    Returns (fig, ax).
-    """
     plt.rcParams.update({"font.family": font_name, "font.size": font_size})
     fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi)
 
@@ -82,7 +68,6 @@ def plot_single_mz_spectrum(
     y, y_label = _y_values(df, normalize)
     ax.plot(df["mz"], y, color=color, linewidth=1.8, label=label)
 
-    # X-range
     if x_range is not None:
         ax.set_xlim(*x_range)
     else:
@@ -90,7 +75,6 @@ def plot_single_mz_spectrum(
         xr = xmax - xmin if xmax > xmin else 1.0
         ax.set_xlim(xmin - 0.02 * xr, xmax + 0.02 * xr)
 
-    # Y-range
     if normalize:
         ax.set_ylim(0, 100)
     else:
@@ -135,10 +119,6 @@ def plot_mz_spectrum_offset_stack(
     save: Optional[str] = None,
     show: bool = False,
 ):
-    """
-    Plot multiple m/z spectra with vertical offsets (Percent or Intensity + offset),
-    optional second legend near each peak. Returns (fig, axes).
-    """
     n = len(datasets)
     if len(labels) != n:
         raise ValueError("labels length must match datasets length.")
@@ -162,7 +142,7 @@ def plot_mz_spectrum_offset_stack(
     if n == 1:
         axes = [axes]
 
-    spectra = [ _load_spectrum(src) for src in datasets ]
+    spectra = [_load_spectrum(src) for src in datasets]
 
     if x_range is None:
         xmin = min(float(df["mz"].min()) for df in spectra if len(df))
@@ -189,7 +169,6 @@ def plot_mz_spectrum_offset_stack(
             ax.set_yticks([offset, offset + ymax / 2, offset + ymax])
 
         ax.set_yticklabels(list(y_tick_labels))
-
         leg1 = ax.legend([ax.lines[-1]], [label], loc="upper left", frameon=False, fontsize=font_size)
         ax.add_artist(leg1)
 
@@ -197,10 +176,8 @@ def plot_mz_spectrum_offset_stack(
             peak_idx = int(np.argmax(y))
             peak_x = float(df["mz"].iloc[peak_idx])
             peak_y = float(y[peak_idx] + offset)
-            x0, x1 = ax.get_xlim()
-            y0, y1 = ax.get_ylim()
-            xr = max(x1 - x0, 1e-9)
-            yr = max(y1 - y0, 1e-9)
+            x0, x1 = ax.get_xlim(); y0, y1 = ax.get_ylim()
+            xr = max(x1 - x0, 1e-9); yr = max(y1 - y0, 1e-9)
             xf = float(np.clip((peak_x - x0) / xr + 0.05, 0.02, 0.98))
             yf = float(np.clip((peak_y - y0) / yr, 0.02, 0.98))
             handle = Line2D([0], [0], color=color, lw=1.5)
@@ -215,8 +192,6 @@ def plot_mz_spectrum_offset_stack(
     fig.text(0.05, 0.5, y_label, va="center", rotation="vertical", fontsize=font_size)
     plt.subplots_adjust(left=0.15, right=0.95, bottom=0.15, top=0.95, hspace=0.6)
 
-    if save:
-        fig.savefig(save, dpi=dpi, bbox_inches="tight")
-    if show:
-        plt.show()
+    if save: fig.savefig(save, dpi=dpi, bbox_inches="tight")
+    if show: plt.show()
     return fig, axes

@@ -4,7 +4,41 @@ from typing import Sequence, Tuple, Optional, Union, List
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
+import matplotlib as mpl
+
+def read_cdms_mass_file(file_path: str) -> pd.DataFrame:
+    """
+    Read a CD-MS mass distribution file and return a DataFrame with columns:
+      ['mass_kDa', 'intensity'].
+    The function is resilient to whitespace- or comma-separated files, with or without header.
+    Falls back to numpy.loadtxt if CSV parsing fails.
+    """
+    # Try pandas with common separators and header options
+    for sep, header in [(None, None), (r"\s+", None), (",", None), (",", 0), (r"\s+", 0)]:
+        try:
+            df = pd.read_csv(file_path, sep=sep, header=header, engine="python")
+            # Reduce to first two numeric columns
+            num_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
+            if len(num_cols) >= 2:
+                df = df[num_cols[:2]].copy()
+            else:
+                df = df.iloc[:, :2].copy()
+            df.columns = ["mass_kDa", "intensity"]
+            # Ensure numeric, drop NaNs
+            df["mass_kDa"] = pd.to_numeric(df["mass_kDa"], errors="coerce")
+            df["intensity"] = pd.to_numeric(df["intensity"], errors="coerce")
+            df = df.dropna()
+            if len(df) > 2:
+                return df
+        except Exception:
+            continue
+
+    # Final fallback: numpy loadtxt
+    arr = np.loadtxt(file_path)
+    if arr.ndim == 1:
+        # If file has a single column, fabricate an index for mass_kDa
+        arr = np.column_stack([np.arange(len(arr)), arr])
+    return pd.DataFrame(arr[:, :2], columns=["mass_kDa", "intensity"]).dropna()
 
 def _load_mass(source: Union[str, pd.DataFrame]) -> pd.DataFrame:
     """
