@@ -174,26 +174,69 @@ class PlotApp:
         inner = tb.Frame(canvas, padding=10, bootstyle="secondary")
         window_id = canvas.create_window((0, 0), window=inner, anchor="nw")
 
+        # Helpers to keep scrollregion tight to content and width synced to viewport
+        def _update_scrollregion():
+            # Requested content size
+            content_w = inner.winfo_reqwidth()
+            content_h = inner.winfo_reqheight()
+            # Viewport size
+            viewport_w = canvas.winfo_width()
+            viewport_h = canvas.winfo_height()
+
+            # Make inner window width track the canvas width (no horizontal scrolling)
+            canvas.itemconfigure(window_id, width=viewport_w)
+
+            # Clamp scrollregion to the exact content height (no phantom top/bottom)
+            canvas.configure(scrollregion=(0, 0, content_w, content_h))
+
+            # If content fits vertically, reset view to top and effectively disable scrolling
+            if content_h <= viewport_h:
+                try:
+                    canvas.yview_moveto(0.0)
+                except Exception:
+                    pass
+
         # Keep scrollregion synced to inner contents
-        def _on_inner_configure(event):
-            canvas.configure(scrollregion=canvas.bbox("all"))
-        inner.bind("<Configure>", _on_inner_configure)
+        inner.bind("<Configure>", lambda e: _update_scrollregion())
 
-        # Make inner frame width match the container width so layout looks normal
-        def _on_container_configure(event):
-            canvas.itemconfigure(window_id, width=event.width)
-        container.bind("<Configure>", _on_container_configure)
+        # Make inner frame width match the container width and update scrollregion on viewport resize
+        def _on_canvas_configure(event):
+            _update_scrollregion()
 
-        # Mouse wheel scrolling (Windows/macOS)
+        canvas.bind("<Configure>", _on_canvas_configure)
+
+        # Mouse wheel scrolling only when pointer is over the canvas
         def _on_mousewheel(event):
+            # If content fits, ignore scroll
+            if inner.winfo_reqheight() <= canvas.winfo_height():
+                return
             delta = event.delta if event.delta else 0
             if delta:
+                # Windows/macOS standard scaling
                 canvas.yview_scroll(-int(delta / 120) if abs(delta) > 1 else -delta, "units")
-        container.bind_all("<MouseWheel>", _on_mousewheel)   # Windows/macOS
 
-        # Linux (X11) support
-        container.bind_all("<Button-4>", lambda e: canvas.yview_scroll(-3, "units"))
-        container.bind_all("<Button-5>", lambda e: canvas.yview_scroll(+3, "units"))
+        def _bind_mousewheel(_):
+            # Bind when entering canvas
+            canvas.bind_all("<MouseWheel>", _on_mousewheel)
+
+        def _unbind_mousewheel(_):
+            # Unbind when leaving canvas
+            canvas.unbind_all("<MouseWheel>")
+
+        canvas.bind("<Enter>", _bind_mousewheel)
+        canvas.bind("<Leave>", _unbind_mousewheel)
+
+        # Linux (X11) support: bind only to canvas, and only scroll if content exceeds viewport
+        def _on_linux_scroll_up(event):
+            if inner.winfo_reqheight() > canvas.winfo_height():
+                canvas.yview_scroll(-3, "units")
+
+        def _on_linux_scroll_down(event):
+            if inner.winfo_reqheight() > canvas.winfo_height():
+                canvas.yview_scroll(+3, "units")
+
+        canvas.bind("<Button-4>", _on_linux_scroll_up)
+        canvas.bind("<Button-5>", _on_linux_scroll_down)
 
         return container, inner
 
@@ -201,7 +244,8 @@ class PlotApp:
     def _build_body(self, parent):
         # Split: left control panel (scrollable) + right plot area
         paned = tb.Panedwindow(parent, orient=HORIZONTAL, bootstyle="secondary")
-        paned.pack(fill=BOTH, expand=YES, padx=10, pady=6)
+        # Before: paned.pack(fill=BOTH, expand=YES, padx=10, pady=6)
+        paned.pack(fill=BOTH, expand=YES, padx=10, pady=0)  # remove vertical gap
 
         # Scrollable left
         left_container, left = self._build_scrollable_left(paned)
@@ -232,7 +276,8 @@ class PlotApp:
     # ---------- Persistent footer ----------
     def _build_footer(self, parent):
         frame = tb.Frame(parent, bootstyle="secondary")
-        frame.pack(fill=X, pady=6)
+        # Before: frame.pack(fill=X, pady=6)
+        frame.pack(fill=X)  # remove extra gap below body
         self.progress = tb.Progressbar(frame, mode="indeterminate", bootstyle="info")
         self.progress.pack(side=LEFT, fill=X, expand=YES, padx=6)
 
