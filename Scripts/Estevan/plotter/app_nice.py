@@ -103,19 +103,12 @@ class PlotApp:
 
         self.header = tb.Frame(self.root, bootstyle="secondary")
         self.header.pack(fill=X)
-        self.centerer = tb.Frame(self.root, bootstyle="secondary")
-        self.centerer.pack(fill=BOTH, expand=YES)
+
+        self.body = tb.Frame(self.root, bootstyle="secondary")
+        self.body.pack(fill=BOTH, expand=YES)
+
         self.footer = tb.Frame(self.root, bootstyle="secondary")
         self.footer.pack(fill=X, side=BOTTOM)
-
-        self.centerer.grid_columnconfigure(0, weight=0)
-        self.centerer.grid_columnconfigure(1, weight=1)
-        self.centerer.grid_columnconfigure(2, weight=0)
-        self.centerer.grid_rowconfigure(0, weight=1)
-
-        self.body = tb.Frame(self.centerer, bootstyle="secondary")
-        # Fill the available area
-        self.body.grid(row=0, column=1, sticky="nsew")
 
         self._build_header(self.header)
         self._build_body(self.body)
