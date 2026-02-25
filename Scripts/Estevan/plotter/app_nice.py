@@ -156,8 +156,9 @@ class PlotApp:
         self.status_label = tb.Label(bar, text="Status: Ready", anchor=W)
         self.status_label.pack(side=LEFT, padx=8, pady=4)
 
-        # Always-visible Plot button (top-right) — keep a reference so we can disable during conversion
+        # Plot button: create, then apply theme-aware sizing
         self.plot_btn = tb.Button(bar, text="Plot", bootstyle="success", command=self._plot)
+        self._apply_plot_button_sizing()
         self.plot_btn.pack(side=RIGHT, padx=8, pady=4)
 
     def _on_theme_change(self, event=None):
@@ -165,6 +166,41 @@ class PlotApp:
         try:
             self.root.configure(bg=self.style.colors.bg)
         except Exception:
+            pass
+        # Re-apply plot button sizing because a theme change can adjust widget metrics
+        self._apply_plot_button_sizing()
+
+    def _apply_plot_button_sizing(self):
+        """
+        Make the Plot button bigger in a theme-aware, DPI-aware way without
+        affecting other buttons or losing the 'success' bootstyle colors.
+        """
+        if not hasattr(self, "plot_btn") or self.plot_btn is None:
+            return
+
+        # Tk scaling accounts for DPI / OS scaling; ensures consistent physical size
+        try:
+            scale = float(self.root.tk.call("tk", "scaling"))
+        except Exception:
+            scale = 1.0
+
+        # Character width ensures a consistent minimum width across themes
+        # (ttk Button 'width' is in characters, not pixels)
+        self.plot_btn.configure(width=12)
+
+        # Padding enlarges the clickable area; scale it to match theme density
+        # Adjust these bases if you’d like it even bigger/smaller
+        base_pad_x = 14
+        base_pad_y = 10
+
+        pad_x = int(base_pad_x * scale)
+        pad_y = int(base_pad_y * scale)
+
+        # Per-widget padding avoids modifying global styles or other success buttons
+        try:
+            self.plot_btn.configure(padding=(pad_x, pad_y))
+        except Exception:
+            # Very old Tk builds may not accept widget padding; gracefully ignore
             pass
 
     # ---------- Scrollable left helper ----------
