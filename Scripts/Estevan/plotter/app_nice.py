@@ -1,4 +1,3 @@
-# app_nice.py (Chunk 1 of 2)
 from __future__ import annotations
 import os
 import numpy as np
@@ -15,25 +14,28 @@ try:
 except Exception:
     DND_AVAILABLE = False
 
+import threading
+from functools import partial
+
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
 from ttkbootstrap.dialogs import Messagebox
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
-# Preview DPI (moderate size on-screen); export uses CommonConfig.dpi
-DISPLAY_DPI = 110
-
 # Plotting utilities (ensure these files exist in the same folder)
 from chromatogram_plot_utils import plot_chrom_stack, read_chrom_file
 from cdms_mass_plot_utils import (
     plot_cdms_mass_offset_stack, plot_single_cdms_mass, read_cdms_mass_file
 )
-from mwd_chromatogram_utils import plot_mwd_chromatograms
+from mwd_chromatogram_utils import plot_mwd_chromatograms, load_chrom_file as load_mwd_chrom_file
 from mz_spectrum_plot_utils import (
     plot_single_mz_spectrum, plot_mz_spectrum_offset_stack, read_mz_spectrum_file
 )
-from thermo_raw_utils import plot_raw_chrom_and_spectrum
+from thermo_raw_utils import (
+    plot_raw_chrom_and_spectrum, _convert_raw_to_mzml, load_raw_scans, read_mzml_scans_stream,
+    pick_spectrum_from_stream
+)
 
 # Defaults
 DEFAULT_CHROM_COLORS = ["#333333", "#00A9A5", "#C76BA0", "#2C7FB8", "#7A7A7A", "#00A9A5"]
@@ -41,119 +43,10 @@ DEFAULT_CDMS_COLORS  = ["#CC79A7", "#2C7FB8", "#7A7A7A", "#00A9A5"]
 DEFAULT_CHROM_STANDARDS = "13.81, 16.82, 18.09, 19.05, 20.79"
 DEFAULT_MWD_COLORS   = ["#0F0C08", "#3CAEA3"]
 DEFAULT_MZ_COLORS    = ["#2C7FB8", "#CC79A7", "#00A9A5", "#7A7A7A", "#F0E442"]
+THEMES = ["flatly", "cosmo", "lumen", "minty", "sandstone", "superhero", "cyborg", "darkly", "morph"]
 
-import subprocess
-import configparser
-
-# Popular themes used for fallback selection
-POPULAR_THEMES_RANKED = [
-    # Light
-    "litera", "flatly", "cosmo", "minty", "yeti", "sandstone", "journal", "united",
-    "cerulean", "lux", "quartz", "zephyr",
-    # Dark
-    "darkly", "morph", "vapor", "cyborg", "superhero",
-]
-
-def is_system_dark_mode() -> bool:
-    """
-    Best-effort cross-platform detection of user dark mode preference.
-    Returns True for dark mode, False for light/unknown.
-    """
-    # Windows 10/11: HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize\AppsUseLightTheme
-    try:
-        import winreg
-        with winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER,
-            r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
-        ) as key:
-            val, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
-            return int(val) == 0  # 0 = dark, 1 = light
-    except Exception:
-        pass
-
-    # macOS: 'defaults read -g AppleInterfaceStyle' returns 'Dark' when dark mode is active
-    try:
-        proc = subprocess.run(
-            ["defaults", "read", "-g", "AppleInterfaceStyle"],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-        )
-        if proc.returncode == 0:
-            return proc.stdout.strip().lower() == "dark" or proc.stdout.strip() != ""
-    except Exception:
-        pass
-
-    # GNOME: org.gnome.desktop.interface color-scheme: 'prefer-dark' or 'prefer-light'
-    try:
-        proc = subprocess.run(
-            ["gsettings", "get", "org.gnome.desktop.interface", "color-scheme"],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-        )
-        if proc.returncode == 0:
-            val = proc.stdout.strip().strip("'").lower()
-            if "prefer-dark" in val:
-                return True
-            if "prefer-light" in val:
-                return False
-    except Exception:
-        pass
-
-    # GNOME fallback: check gtk-theme contains 'dark'
-    try:
-        proc = subprocess.run(
-            ["gsettings", "get", "org.gnome.desktop.interface", "gtk-theme"],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-        )
-        if proc.returncode == 0:
-            theme = proc.stdout.strip().strip("'").lower()
-            if "dark" in theme:
-                return True
-    except Exception:
-        pass
-
-    # KDE: ~/.config/kdeglobals [General] ColorScheme, often contains 'Dark'
-    try:
-        import os
-        kdeglobals = os.path.expanduser("~/.config/kdeglobals")
-        if os.path.isfile(kdeglobals):
-            cp = configparser.ConfigParser()
-            cp.read(kdeglobals)
-            scheme = cp.get("General", "ColorScheme", fallback="")
-            if "dark" in scheme.lower():
-                return True
-    except Exception:
-        pass
-
-    return False
-
-def choose_default_theme() -> str:
-    """
-    Choose litera for light or darkly for dark; if unavailable, pick a close modern alternative.
-    Ensures the theme exists in this ttkbootstrap installation.
-    """
-    try:
-        tmp_style = tb.Style()
-        available = set(tmp_style.theme_names())
-    except Exception:
-        # Fallback: assume all popular themes may be available
-        available = set(POPULAR_THEMES_RANKED)
-
-    system_dark = is_system_dark_mode()
-    preferred = "darkly" if system_dark else "litera"
-
-    if preferred not in available:
-        fallbacks = (
-            ["morph", "vapor", "cyborg", "superhero", "flatly"] if system_dark
-            else ["flatly", "cosmo", "minty", "yeti", "sandstone", "journal"]
-        )
-        for t in fallbacks:
-            if t in available:
-                preferred = t
-                break
-        else:
-            # Last-resort: pick first available known theme or the style's default
-            preferred = next(iter(available)) if available else "flatly"
-
-    return preferred
+# Preview DPI (moderate size on-screen); export uses CommonConfig.dpi
+DISPLAY_DPI = 110
 
 def parse_float_list(text: str) -> List[float]:
     text = text.strip()
@@ -215,12 +108,19 @@ class PlotApp:
 
         self.header = tb.Frame(self.root, bootstyle="secondary")
         self.header.pack(fill=X)
-
-        self.body = tb.Frame(self.root, bootstyle="secondary")
-        self.body.pack(fill=BOTH, expand=YES)
-
+        self.centerer = tb.Frame(self.root, bootstyle="secondary")
+        self.centerer.pack(fill=BOTH, expand=YES)
         self.footer = tb.Frame(self.root, bootstyle="secondary")
         self.footer.pack(fill=X, side=BOTTOM)
+
+        self.centerer.grid_columnconfigure(0, weight=0)
+        self.centerer.grid_columnconfigure(1, weight=1)
+        self.centerer.grid_columnconfigure(2, weight=0)
+        self.centerer.grid_rowconfigure(0, weight=1)
+
+        self.body = tb.Frame(self.centerer, bootstyle="secondary")
+        # Fill the available area
+        self.body.grid(row=0, column=1, sticky="nsew")
 
         self._build_header(self.header)
         self._build_body(self.body)
@@ -246,34 +146,8 @@ class PlotApp:
         theme_frame = tb.Frame(header, bootstyle="secondary")
         theme_frame.pack(side=RIGHT)
         tb.Label(theme_frame, text="Theme:", font=("Arial", 10, "bold")).pack(side=LEFT, padx=(0, 6))
-
-        # Detect available themes and keep only the popular ones (preserving our popularity order)
-        try:
-            available_set = set(self.style.theme_names())
-        except Exception:
-            available_set = set(POPULAR_THEMES_RANKED)
-        themes_available = [t for t in POPULAR_THEMES_RANKED if t in available_set]
-
-        # Default intelligently: keep current, otherwise best popular theme available
-        current_theme = self.style.theme_use()
-        if current_theme not in themes_available and themes_available:
-            # Prefer a modern dark default if present, else the first light theme
-            preferred_defaults = ["darkly", "morph", "flatly", "litera"]
-            for pd in preferred_defaults:
-                if pd in themes_available:
-                    current_theme = pd
-                    break
-            else:
-                current_theme = themes_available[0]
-
-        self.theme_var = tk.StringVar(value=current_theme)
-        combo = tb.Combobox(
-            theme_frame,
-            values=themes_available,
-            textvariable=self.theme_var,
-            state="readonly",
-            width=14
-        )
+        self.theme_var = tk.StringVar(value=self.style.theme_use())
+        combo = tb.Combobox(theme_frame, values=THEMES, textvariable=self.theme_var, state="readonly", width=10)
         combo.pack(side=LEFT)
         combo.bind("<<ComboboxSelected>>", self._on_theme_change)
 
@@ -282,9 +156,8 @@ class PlotApp:
         self.status_label = tb.Label(bar, text="Status: Ready", anchor=W)
         self.status_label.pack(side=LEFT, padx=8, pady=4)
 
-        # Plot button: create, then apply theme-aware sizing
+        # Always-visible Plot button (top-right) — keep a reference so we can disable during conversion
         self.plot_btn = tb.Button(bar, text="Plot", bootstyle="success", command=self._plot)
-        self._apply_plot_button_sizing()
         self.plot_btn.pack(side=RIGHT, padx=8, pady=4)
 
     def _on_theme_change(self, event=None):
@@ -292,41 +165,6 @@ class PlotApp:
         try:
             self.root.configure(bg=self.style.colors.bg)
         except Exception:
-            pass
-        # Re-apply plot button sizing because a theme change can adjust widget metrics
-        self._apply_plot_button_sizing()
-
-    def _apply_plot_button_sizing(self):
-        """
-        Make the Plot button bigger in a theme-aware, DPI-aware way without
-        affecting other buttons or losing the 'success' bootstyle colors.
-        """
-        if not hasattr(self, "plot_btn") or self.plot_btn is None:
-            return
-
-        # Tk scaling accounts for DPI / OS scaling; ensures consistent physical size
-        try:
-            scale = float(self.root.tk.call("tk", "scaling"))
-        except Exception:
-            scale = 1.0
-
-        # Character width ensures a consistent minimum width across themes
-        # (ttk Button 'width' is in characters, not pixels)
-        self.plot_btn.configure(width=12)
-
-        # Padding enlarges the clickable area; scale it to match theme density
-        # Adjust these bases if you’d like it even bigger/smaller
-        base_pad_x = 14
-        base_pad_y = 10
-
-        pad_x = int(base_pad_x * scale)
-        pad_y = int(base_pad_y * scale)
-
-        # Per-widget padding avoids modifying global styles or other success buttons
-        try:
-            self.plot_btn.configure(padding=(pad_x, pad_y))
-        except Exception:
-            # Very old Tk builds may not accept widget padding; gracefully ignore
             pass
 
     # ---------- Scrollable left helper ----------
@@ -349,69 +187,26 @@ class PlotApp:
         inner = tb.Frame(canvas, padding=10, bootstyle="secondary")
         window_id = canvas.create_window((0, 0), window=inner, anchor="nw")
 
-        # Helpers to keep scrollregion tight to content and width synced to viewport
-        def _update_scrollregion():
-            # Requested content size
-            content_w = inner.winfo_reqwidth()
-            content_h = inner.winfo_reqheight()
-            # Viewport size
-            viewport_w = canvas.winfo_width()
-            viewport_h = canvas.winfo_height()
-
-            # Make inner window width track the canvas width (no horizontal scrolling)
-            canvas.itemconfigure(window_id, width=viewport_w)
-
-            # Clamp scrollregion to the exact content height (no phantom top/bottom)
-            canvas.configure(scrollregion=(0, 0, content_w, content_h))
-
-            # If content fits vertically, reset view to top and effectively disable scrolling
-            if content_h <= viewport_h:
-                try:
-                    canvas.yview_moveto(0.0)
-                except Exception:
-                    pass
-
         # Keep scrollregion synced to inner contents
-        inner.bind("<Configure>", lambda e: _update_scrollregion())
+        def _on_inner_configure(event):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+        inner.bind("<Configure>", _on_inner_configure)
 
-        # Make inner frame width match the container width and update scrollregion on viewport resize
-        def _on_canvas_configure(event):
-            _update_scrollregion()
+        # Make inner frame width match the container width so layout looks normal
+        def _on_container_configure(event):
+            canvas.itemconfigure(window_id, width=event.width)
+        container.bind("<Configure>", _on_container_configure)
 
-        canvas.bind("<Configure>", _on_canvas_configure)
-
-        # Mouse wheel scrolling only when pointer is over the canvas
+        # Mouse wheel scrolling (Windows/macOS)
         def _on_mousewheel(event):
-            # If content fits, ignore scroll
-            if inner.winfo_reqheight() <= canvas.winfo_height():
-                return
             delta = event.delta if event.delta else 0
             if delta:
-                # Windows/macOS standard scaling
                 canvas.yview_scroll(-int(delta / 120) if abs(delta) > 1 else -delta, "units")
+        container.bind_all("<MouseWheel>", _on_mousewheel)   # Windows/macOS
 
-        def _bind_mousewheel(_):
-            # Bind when entering canvas
-            canvas.bind_all("<MouseWheel>", _on_mousewheel)
-
-        def _unbind_mousewheel(_):
-            # Unbind when leaving canvas
-            canvas.unbind_all("<MouseWheel>")
-
-        canvas.bind("<Enter>", _bind_mousewheel)
-        canvas.bind("<Leave>", _unbind_mousewheel)
-
-        # Linux (X11) support: bind only to canvas, and only scroll if content exceeds viewport
-        def _on_linux_scroll_up(event):
-            if inner.winfo_reqheight() > canvas.winfo_height():
-                canvas.yview_scroll(-3, "units")
-
-        def _on_linux_scroll_down(event):
-            if inner.winfo_reqheight() > canvas.winfo_height():
-                canvas.yview_scroll(+3, "units")
-
-        canvas.bind("<Button-4>", _on_linux_scroll_up)
-        canvas.bind("<Button-5>", _on_linux_scroll_down)
+        # Linux (X11) support
+        container.bind_all("<Button-4>", lambda e: canvas.yview_scroll(-3, "units"))
+        container.bind_all("<Button-5>", lambda e: canvas.yview_scroll(+3, "units"))
 
         return container, inner
 
@@ -419,8 +214,7 @@ class PlotApp:
     def _build_body(self, parent):
         # Split: left control panel (scrollable) + right plot area
         paned = tb.Panedwindow(parent, orient=HORIZONTAL, bootstyle="secondary")
-        # Before: paned.pack(fill=BOTH, expand=YES, padx=10, pady=6)
-        paned.pack(fill=BOTH, expand=YES, padx=10, pady=0)  # remove vertical gap
+        paned.pack(fill=BOTH, expand=YES, padx=10, pady=6)
 
         # Scrollable left
         left_container, left = self._build_scrollable_left(paned)
@@ -451,8 +245,7 @@ class PlotApp:
     # ---------- Persistent footer ----------
     def _build_footer(self, parent):
         frame = tb.Frame(parent, bootstyle="secondary")
-        # Before: frame.pack(fill=X, pady=6)
-        frame.pack(fill=X)  # remove extra gap below body
+        frame.pack(fill=X, pady=6)
         self.progress = tb.Progressbar(frame, mode="indeterminate", bootstyle="info")
         self.progress.pack(side=LEFT, fill=X, expand=YES, padx=6)
 
@@ -854,6 +647,14 @@ class PlotApp:
         self.msconvert_entry.pack(side=LEFT, fill=X, expand=YES, padx=6)
         tb.Button(row2, text="Browse", bootstyle="secondary", command=self._browse_msconvert).pack(side=LEFT)
 
+        # New msconvert options: peakpick, compress, auto-convert
+        self.msconvert_peakpick = tk.BooleanVar(value=True)
+        tb.Checkbutton(lf_ms, text="Centroid (peak-pick) on convert", variable=self.msconvert_peakpick).pack(anchor=W, pady=2)
+        self.msconvert_compress = tk.BooleanVar(value=True)
+        tb.Checkbutton(lf_ms, text="Compress mzML (zlib)", variable=self.msconvert_compress).pack(anchor=W, pady=2)
+        self.auto_convert_raw = tk.BooleanVar(value=True)
+        tb.Checkbutton(lf_ms, text="Auto-convert RAW → mzML on open", variable=self.auto_convert_raw).pack(anchor=W, pady=2)
+
         self.raw_prefer_native = tk.BooleanVar(value=True)
         tb.Checkbutton(lf_ms, text="Prefer native Thermo MSFileReader on Windows (fallback to msconvert)",
                        variable=self.raw_prefer_native).pack(anchor=W, pady=4)
@@ -965,8 +766,26 @@ class PlotApp:
             paths = list(self.root.splitlist(event.data))
         except Exception:
             paths = event.data.split()
-        if paths:
-            target_var.set(paths[0])
+        if not paths:
+            return
+        p = paths[0]
+        ext = os.path.splitext(p)[1].lower()
+        if ext == ".raw" and bool(self.auto_convert_raw.get()):
+            def worker():
+                result = self.convert_raw_to_mzml(p)
+                if isinstance(result, str) and result.startswith("__CONVERT_ERROR__:"):
+                    exc_text = result.split(":", 1)[1]
+                    self.root.after(0, lambda: Messagebox.show_error(f"RAW→mzML conversion failed:\n{exc_text}",
+                                                                     title="Conversion error"))
+                    self.root.after(0, lambda: target_var.set(p))
+                elif result:
+                    self.root.after(0, lambda: target_var.set(result))
+                else:
+                    self.root.after(0, lambda: target_var.set(p))
+
+            threading.Thread(target=worker, daemon=True).start()
+        else:
+            target_var.set(p)
             self._set_status("Set file via drag-and-drop.")
 
     # ---------- Color pickers ----------
@@ -1063,7 +882,30 @@ class PlotApp:
             title="Select Thermo RAW or mzML",
             filetypes=[("RAW/mzML", "*.raw *.mzML"), ("All files", "*.*")]
         )
-        if path:
+        if not path:
+            return
+        ext = os.path.splitext(path)[1].lower()
+        if ext == ".raw" and bool(self.auto_convert_raw.get()):
+            # background convert
+            def worker():
+                result = self.convert_raw_to_mzml(path)
+                # if result is a special error string, schedule error dialog
+                if isinstance(result, str) and result.startswith("__CONVERT_ERROR__:"):
+                    exc_text = result.split(":", 1)[1]
+                    # schedule the messagebox on the main thread
+                    self.root.after(0, lambda: Messagebox.show_error(f"RAW→mzML conversion failed:\n{exc_text}",
+                                                                     title="Conversion error"))
+                    # also set the raw_path back to original path on main thread
+                    self.root.after(0, lambda: self.raw_path.set(path))
+                elif result:
+                    # success: set mzml path on main thread
+                    self.root.after(0, lambda: self.raw_path.set(result))
+                else:
+                    # result is None: conversion failed silently — set original path
+                    self.root.after(0, lambda: self.raw_path.set(path))
+
+            threading.Thread(target=worker, daemon=True).start()
+        else:
             self.raw_path.set(path)
             self._set_status("RAW/mzML file selected.")
 
@@ -1511,6 +1353,16 @@ class PlotApp:
                 if not raw_path:
                     Messagebox.show_error("Please pick a RAW or mzML file.", title="RAW file missing")
                     return
+
+                # If auto-convert enabled and path is.raw, ensure mzML first (synchronous here;
+                # consider converting on selection instead for responsiveness)
+                if raw_path.lower().endswith(".raw") and bool(self.auto_convert_raw.get()):
+                    mz = self.convert_raw_to_mzml(raw_path)
+                    if mz:
+                        raw_path = mz
+                    else:
+                        return  # conversion failed, abort
+
                 fig, (ax1, ax2) = plot_raw_chrom_and_spectrum(
                     raw_path=raw_path,
                     ms_level=int(self.raw_ms_level.get()),
@@ -1523,6 +1375,8 @@ class PlotApp:
                     save=None, show=cfg.show,
                     prefer_native=bool(self.raw_prefer_native.get()),
                     msconvert_path=(self.msconvert_path.get().strip() or None),
+                    peakpick_on_convert=bool(self.msconvert_peakpick.get()),
+                    compress_mzml=bool(self.msconvert_compress.get()),
                 )
                 self._apply_overrides(fig, (ax1, ax2), tab_name="Thermo RAW", normalize=bool(self.raw_norm.get()))
                 self._render_figure(fig)
@@ -1555,17 +1409,49 @@ class PlotApp:
         except Exception as e:
             Messagebox.show_error(f"Failed to save figure:\n{e}", title="Export error")
 
+    # ---------- New helper: convert RAW -> mzML using msconvert and GUI options ----------
+    def convert_raw_to_mzml(self, raw_path: str) -> Optional[str]:
+        """
+        Synchronous conversion helper that calls thermo_raw_utils._convert_raw_to_mzml
+        with GUI options. Returns mzML path or None on failure.
+        Note: does not call Messagebox directly (caller should schedule UI dialogs on main thread).
+        """
+        try:
+            # Disable Plot button while converting (UI update via after to be thread-safe if called from thread)
+            try:
+                self.root.after(0, lambda: self.plot_btn.configure(state="disabled"))
+            except Exception:
+                pass
+
+            self._set_status("Converting RAW → mzML (msconvert)...")
+            mzml = _convert_raw_to_mzml(
+                raw_path,
+                msconvert_path=(self.msconvert_path.get().strip() or None),
+                ms_level_filter=str(int(self.raw_ms_level.get())) if hasattr(self, "raw_ms_level") else None,
+                peakpick=bool(self.msconvert_peakpick.get()),
+                compress=bool(self.msconvert_compress.get()),
+            )
+            self._set_status(f"Conversion complete: {os.path.basename(mzml)}")
+            return mzml
+        except Exception as exc:
+            # conversion failed — return None and caller (main thread) should show the dialog
+            # also log status
+            self._set_status("Conversion failed")
+            # return the exception text so caller can show it on main thread
+            return f"__CONVERT_ERROR__:{exc}"
+        finally:
+            try:
+                self.root.after(0, lambda: self.plot_btn.configure(state="normal"))
+            except Exception:
+                pass
+
 def main():
     root = TkinterDnD.Tk() if DND_AVAILABLE else tk.Tk()
     try:
         root.tk.call('package', 'require', 'msgcat')
     except tk.TclError:
         pass
-
-    # Detect system light/dark and choose a suitable default theme
-    default_theme = choose_default_theme()
-    app = PlotApp(root, themename=default_theme)
-
+    app = PlotApp(root, themename="darkly")
     root.mainloop()
 
 
