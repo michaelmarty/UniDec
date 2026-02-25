@@ -1,4 +1,3 @@
-# thermo_raw_utils.py
 from __future__ import annotations
 import os
 import shutil
@@ -8,29 +7,28 @@ from typing import List, Tuple, Optional, Dict
 
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib as mpl
 
-# Optional imports
 try:
-    from pymsfilereader import MSFileReader  # Windows + Thermo MSFileReader
+    from pymsfilereader import MSFileReader
     PYMS_AVAILABLE = True
 except Exception:
     PYMS_AVAILABLE = False
 
 try:
-    import pymzml  # for reading mzML after conversion
+    import pymzml
     PYMZML_AVAILABLE = True
 except Exception:
     PYMZML_AVAILABLE = False
 
-# Consistent sizing
+from plot_helpers import style_context, compute_target_height
+
 DEFAULT_WIDTH_IN = 10.0
-ROW_HEIGHT_IN     = 1.35   # per subplot
-MIN_HEIGHT_IN     = 3.8    # minimum total height
+ROW_HEIGHT_IN     = 1.35
+MIN_HEIGHT_IN     = 3.8
 
 
-def _apply_style(font_name: str, font_size: int, tick_length: float = 5.0, tick_width: float = 1.0):
-    mpl.rcParams.update({
+def _style_rc(font_name: str, font_size: int, tick_length: float = 5.0, tick_width: float = 1.0):
+    return {
         "font.family": font_name,
         "font.size": font_size,
         "axes.labelsize": font_size,
@@ -46,17 +44,10 @@ def _apply_style(font_name: str, font_size: int, tick_length: float = 5.0, tick_
         "legend.borderpad": 0.2,
         "legend.handlelength": 2.0,
         "legend.handletextpad": 0.6,
-    })
+    }
 
 
 def _find_msconvert(env_path: Optional[str] = None) -> Optional[str]:
-    """
-    Locate msconvert in this priority:
-      1) Provided msconvert path (env_path)
-      2) Environment variable PROTEOWIZARD_MSCONVERT
-      3) PATH via shutil.which
-      4) Common Windows install locations
-    """
     candidates = []
     if env_path:
         candidates.append(env_path)
@@ -171,12 +162,6 @@ def load_raw_scans(
     prefer_native: bool = True,
     msconvert_path: Optional[str] = None,
 ) -> List[Dict[str, np.ndarray]]:
-    """
-    Load scans from Thermo.raw or.mzML file.
-    prefer_native=True: on Windows, try native MSFileReader first; otherwise fallback to msconvert + pymzml.
-    msconvert_path: optional explicit path to msconvert.exe (overrides PATH/env).
-    Returns a list of dicts: {"rt": float array (minutes), "mz": array, "int": array}
-    """
     ext = os.path.splitext(raw_path)[1].lower()
     if ext == ".mzml":
         return _read_mzml_scans(raw_path, ms_level=ms_level, max_scans=max_scans)
@@ -186,9 +171,7 @@ def load_raw_scans(
                 try:
                     return _read_raw_windows_scans(raw_path, ms_level=ms_level, max_scans=max_scans)
                 except Exception:
-                    # If native fails, fall back to msconvert
                     pass
-        # Fallback: convert to mzML, then read
         mzml_path = _convert_raw_to_mzml(raw_path, msconvert_path=msconvert_path)
         return _read_mzml_scans(mzml_path, ms_level=ms_level, max_scans=max_scans)
     raise ValueError(f"Unsupported file extension: {ext}. Use.raw (Thermo) or.mzML.")
@@ -236,18 +219,11 @@ def plot_raw_chrom_and_spectrum(
     prefer_native: bool = True,
     msconvert_path: Optional[str] = None,
 ):
-    """
-    Load Thermo RAW or mzML, compute TIC, pick a representative spectrum, and plot both.
+    rc = _style_rc = _style_rc if False else None  # placeholder no-op to keep lint happy
 
-    Styling and consistency:
-      - Unified fonts and tick styling.
-      - Spectrum normalization to percent (optional) with y-ticks $$[0, \%, 100]$$.
-      - Fixed width; comfortable height for 2-row layout.
-      - Clean spines.
-
-    Returns (fig, (ax_chrom, ax_spec)).
-    """
-    _apply_style(font_name, font_size, tick_length=tick_length, tick_width=tick_width)
+    # Build rc dict and use style_context from plot_helpers for consistency
+    from plot_helpers import rc_for_style  # local import to avoid circular at module import time
+    rc = rc_for_style(font_name, font_size, tick_length=tick_length, tick_width=tick_width)
 
     scans = load_raw_scans(
         raw_path,
@@ -259,59 +235,58 @@ def plot_raw_chrom_and_spectrum(
     rt, tic = compute_tic(scans)
     spec = pick_spectrum(scans, mode=spectrum_mode, index=spectrum_index)
 
-    # Respect provided width; ensure comfortable height for 2 rows
     width_in = figsize[0] if figsize and len(figsize) > 0 else DEFAULT_WIDTH_IN
-    target_h = max(MIN_HEIGHT_IN, (ROW_HEIGHT_IN * 2) + 0.8)
+    target_h = compute_target_height(n_rows=2)
 
-    fig = plt.figure(figsize=(width_in, target_h), dpi=dpi)
-    gs = fig.add_gridspec(2, 1, height_ratios=[1.2, 1], hspace=0.45)
+    with plt.rc_context(rc):
+        fig = plt.figure(figsize=(width_in, target_h), dpi=dpi)
+        gs = fig.add_gridspec(2, 1, height_ratios=[1.2, 1], hspace=0.45)
 
-    # Chromatogram (TIC)
-    ax1 = fig.add_subplot(gs[0, 0])
-    ax1.plot(rt, tic, color="#2C7FB8", lw=1.8)
-    ax1.set_xlabel("Time (min)")
-    ax1.set_ylabel("Total Ion Current (a.u.)")
-    ax1.spines["top"].set_visible(False)
-    ax1.spines["right"].set_visible(False)
-    ax1.margins(y=0)
+        ax1 = fig.add_subplot(gs[0, 0])
+        if rt.size and tic.size:
+            ax1.plot(rt, tic, color="#2C7FB8", lw=1.8)
+        ax1.set_xlabel("Time (min)")
+        ax1.set_ylabel("Total Ion Current (a.u.)")
+        ax1.spines["top"].set_visible(False)
+        ax1.spines["right"].set_visible(False)
+        ax1.margins(y=0)
 
-    # m/z spectrum
-    ax2 = fig.add_subplot(gs[1, 0])
-    mz = spec.get("mz", np.array([]))
-    intens = spec.get("int", np.array([]))
+        ax2 = fig.add_subplot(gs[1, 0])
+        mz = spec.get("mz", np.array([]))
+        intens = spec.get("int", np.array([]))
 
-    if normalize_spectrum and intens.size:
-        m = float(np.nanmax(intens))
-        y = (intens / m) * 100.0 if m > 0 else intens
-        ax2.set_ylim(0, 100)
-        ax2.set_yticks([0, 50, 100])
-        ax2.set_yticklabels(["0", "%", "100"])
-        ax2.set_ylabel("Relative Intensity (%)")
-    else:
-        y = intens
-        if y.size:
-            ymin, ymax = float(np.nanmin(y)), float(np.nanmax(y))
-            ax2.set_ylim(max(0.0, ymin), max(1.0, ymax))
-        ax2.set_ylabel("Intensity (a.u.)")
+        if normalize_spectrum and intens.size:
+            m = float(np.nanmax(intens)) if intens.size else 0.0
+            y = (intens / m) * 100.0 if m > 0 else (intens if intens.size else np.array([]))
+            ax2.set_ylim(0, 100)
+            ax2.set_yticks([0, 50, 100])
+            ax2.set_yticklabels(["0", "%", "100"])
+            ax2.set_ylabel("Relative Intensity (%)")
+        else:
+            y = intens
+            if y.size:
+                ymin, ymax = float(np.nanmin(y)), float(np.nanmax(y))
+                ax2.set_ylim(max(0.0, ymin), max(1.0, ymax))
+            ax2.set_ylabel("Intensity (a.u.)")
 
-    ax2.plot(mz, y, color="#CC79A7", lw=1.8)
-    ax2.set_xlabel("m/z")
-    ax2.spines["top"].set_visible(False)
-    ax2.spines["right"].set_visible(False)
-    ax2.margins(y=0)
+        if mz.size and getattr(y, "size", None):
+            ax2.plot(mz, y, color="#CC79A7", lw=1.8)
+        ax2.set_xlabel("m/z")
+        ax2.spines["top"].set_visible(False)
+        ax2.spines["right"].set_visible(False)
+        ax2.margins(y=0)
 
-    # Optional, minimal title (kept; remove if you prefer no title)
-    base = os.path.basename(raw_path)
-    where = "apex" if spectrum_mode == "apex" else f"index {spectrum_index}"
-    rt_val = float(spec["rt"]) if np.size(spec.get("rt", np.array(np.nan))) else np.nan
-    fig.suptitle(f"{base} — TIC and m/z (scan: {where}, rt≈{rt_val:.2f} min)", fontsize=font_size + 2)
+        base = os.path.basename(raw_path)
+        where = "apex" if spectrum_mode == "apex" else f"index {spectrum_index}"
+        rt_val = float(spec.get("rt", np.nan)) if np.size(spec.get("rt", np.array([]))) else np.nan
+        fig.text(0.5, 0.98, f"{base} — TIC and m/z (scan: {where}, rt≈{rt_val:.2f} min)",
+                 ha="center", va="top", fontsize=font_size + 2)
 
-    # Layout
-    plt.tight_layout(rect=(0.08, 0.08, 0.98, 0.96))
+        plt.tight_layout(rect=(0.08, 0.08, 0.98, 0.96))
 
-    if save:
-        fig.savefig(save, dpi=dpi, bbox_inches="tight")
-    if show:
-        plt.show()
+        if save:
+            fig.savefig(save, dpi=dpi, bbox_inches="tight")
+        if show:
+            plt.show()
 
     return fig, (ax1, ax2)
