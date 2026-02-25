@@ -1,3 +1,4 @@
+# thermo_raw_utils.py (updated to use pymzml for mzML reading)
 from __future__ import annotations
 import os
 import shutil
@@ -8,43 +9,25 @@ from typing import List, Tuple, Optional, Dict
 import numpy as np
 import matplotlib.pyplot as plt
 
+# Optional imports (unchanged)
 try:
-    from pymsfilereader import MSFileReader
+    from pymsfilereader import MSFileReader  # Windows + Thermo MSFileReader (optional)
     PYMS_AVAILABLE = True
 except Exception:
     PYMS_AVAILABLE = False
 
 try:
-    import pymzml
+    import pymzml  # for reading mzML after conversion
     PYMZML_AVAILABLE = True
 except Exception:
     PYMZML_AVAILABLE = False
 
-from plot_helpers import style_context, compute_target_height
+from plot_helpers import style_context, compute_target_height, rc_for_style
 
+# Consistent sizing
 DEFAULT_WIDTH_IN = 10.0
-ROW_HEIGHT_IN     = 1.35
-MIN_HEIGHT_IN     = 3.8
-
-
-def _style_rc(font_name: str, font_size: int, tick_length: float = 5.0, tick_width: float = 1.0):
-    return {
-        "font.family": font_name,
-        "font.size": font_size,
-        "axes.labelsize": font_size,
-        "xtick.labelsize": font_size,
-        "ytick.labelsize": font_size,
-        "legend.fontsize": font_size,
-        "axes.linewidth": 1.2,
-        "xtick.major.size": tick_length,
-        "ytick.major.size": tick_length,
-        "xtick.major.width": tick_width,
-        "ytick.major.width": tick_width,
-        "legend.frameon": False,
-        "legend.borderpad": 0.2,
-        "legend.handlelength": 2.0,
-        "legend.handletextpad": 0.6,
-    }
+ROW_HEIGHT_IN = 1.35   # per subplot
+MIN_HEIGHT_IN = 3.8    # minimum total height
 
 
 def _find_msconvert(env_path: Optional[str] = None) -> Optional[str]:
@@ -72,7 +55,14 @@ def _find_msconvert(env_path: Optional[str] = None) -> Optional[str]:
     return None
 
 
-def _convert_raw_to_mzml(raw_path: str, out_dir: Optional[str] = None, msconvert_path: Optional[str] = None) -> str:
+def _convert_raw_to_mzml(
+    raw_path: str,
+    out_dir: Optional[str] = None,
+    msconvert_path: Optional[str] = None,
+    ms_level_filter: Optional[str] = None,
+    peakpick: bool = True,
+    compress: bool = True,
+) -> str:
     msconvert = _find_msconvert(msconvert_path)
     if not msconvert:
         raise RuntimeError(
@@ -81,13 +71,36 @@ def _convert_raw_to_mzml(raw_path: str, out_dir: Optional[str] = None, msconvert
             "- set PROTEOWIZARD_MSCONVERT env var,\n"
             "- or specify msconvert path in the GUI."
         )
+
     if out_dir is None:
         out_dir = os.path.dirname(raw_path)
     os.makedirs(out_dir, exist_ok=True)
     base = os.path.splitext(os.path.basename(raw_path))[0]
     out_file = f"{base}.mzML"
+
+    # Build msconvert command
     cmd = [msconvert, raw_path, "--mzML", "--outfile", out_file, "--outdir", out_dir]
-    subprocess.run(cmd, check=True)
+
+    if compress:
+        cmd.append("--zlib")
+
+    if peakpick:
+        mslevel_arg = ms_level_filter if ms_level_filter is not None else "1-"
+        cmd.extend(["--filter", f"peakPicking true {mslevel_arg}"])
+
+    if ms_level_filter:
+        cmd.extend(["--filter", f"msLevel {ms_level_filter}"])
+
+    try:
+        proc = subprocess.run(cmd, check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as exc:
+        stderr = exc.stderr.strip() if exc.stderr else ""
+        stdout = exc.stdout.strip() if exc.stdout else ""
+        msg = f"msconvert failed (exit {exc.returncode}).\nstdout:\n{stdout}\nstderr:\n{stderr}"
+        raise RuntimeError(msg) from exc
+    except Exception as exc:
+        raise RuntimeError(f"Failed to run msconvert: {exc}") from exc
+
     mzml_path = os.path.join(out_dir, out_file)
     if not os.path.isfile(mzml_path):
         raise RuntimeError("msconvert finished but mzML file not found.")
@@ -95,26 +108,60 @@ def _convert_raw_to_mzml(raw_path: str, out_dir: Optional[str] = None, msconvert
 
 
 def _read_mzml_scans(mzml_path: str, ms_level: int = 1, max_scans: Optional[int] = None) -> List[Dict[str, np.ndarray]]:
+    """
+    Read mzML using pymzml and return a list of dicts:
+      {"rt": float, "mz": np.ndarray, "int": np.ndarray}
+
+    - ms_level: integer MS level to filter (1 for MS1)
+    - max_scans: optional cap on number of scans to return
+    """
     if not PYMZML_AVAILABLE:
-        raise RuntimeError("pymzml not installed. pip install pymzml")
-    run = pymzml.run.Reader(mzml_path)
+        raise RuntimeError("pymzml not installed. Install with: pip install pymzml")
+
+    reader = pymzml.run.Reader(mzml_path)
     scans: List[Dict[str, np.ndarray]] = []
-    for spec in run:
-        if getattr(spec, "ms_level", None) != ms_level:
+    count = 0
+
+    for spec in reader:
+        # Determine MS level
+        spec_ms = getattr(spec, "ms_level", None)
+        if spec_ms is None:
+            # try access via cv params or keys
+            try:
+                spec_ms = int(spec['ms level']) if 'ms level' in spec else None
+            except Exception:
+                spec_ms = None
+        if spec_ms is None:
+            # assume ms1 if not available
+            spec_ms = 1
+
+        if int(spec_ms) != int(ms_level):
             continue
+
+        # retention time in minutes
         rt = getattr(spec, "scan_time_in_minutes", None)
         if rt is None:
+            # try common cv param names
             try:
-                st = spec.get("scan start time")
-                rt = float(st) if st is not None else np.nan
+                rt_val = spec.get("scan start time") if hasattr(spec, "get") else None
+                rt = float(rt_val) if rt_val is not None else np.nan
             except Exception:
                 rt = np.nan
-        mzs = np.asarray(spec.mz, dtype=float)
-        ints = np.asarray(spec.i, dtype=float)
-        if mzs.size and ints.size:
-            scans.append({"rt": np.array(rt, dtype=float), "mz": mzs, "int": ints})
-        if max_scans and len(scans) >= max_scans:
-            break
+
+        # mz and intensity arrays
+        try:
+            mz_array = np.asarray(spec.mz, dtype=float)
+            int_array = np.asarray(spec.i, dtype=float)
+        except Exception:
+            # skip if arrays not available
+            continue
+
+        if mz_array.size and int_array.size:
+            scans.append({"rt": np.array(rt, dtype=float), "mz": mz_array, "int": int_array})
+            count += 1
+            if max_scans and count >= max_scans:
+                break
+
     return scans
 
 
@@ -161,7 +208,16 @@ def load_raw_scans(
     max_scans: Optional[int] = 200,
     prefer_native: bool = True,
     msconvert_path: Optional[str] = None,
+    peakpick_on_convert: bool = True,
+    compress_mzml: bool = True,
 ) -> List[Dict[str, np.ndarray]]:
+    """
+    Load scans from Thermo.raw or.mzML.
+
+    New params:
+      - peakpick_on_convert: when converting.raw ->.mzML, apply peakPicking (centroid).
+      - compress_mzml: when converting, use zlib compression.
+    """
     ext = os.path.splitext(raw_path)[1].lower()
     if ext == ".mzml":
         return _read_mzml_scans(raw_path, ms_level=ms_level, max_scans=max_scans)
@@ -171,8 +227,15 @@ def load_raw_scans(
                 try:
                     return _read_raw_windows_scans(raw_path, ms_level=ms_level, max_scans=max_scans)
                 except Exception:
+                    # fallback to msconvert
                     pass
-        mzml_path = _convert_raw_to_mzml(raw_path, msconvert_path=msconvert_path)
+        mzml_path = _convert_raw_to_mzml(
+            raw_path,
+            msconvert_path=msconvert_path,
+            ms_level_filter=str(ms_level) if ms_level is not None else None,
+            peakpick=bool(peakpick_on_convert),
+            compress=bool(compress_mzml),
+        )
         return _read_mzml_scans(mzml_path, ms_level=ms_level, max_scans=max_scans)
     raise ValueError(f"Unsupported file extension: {ext}. Use.raw (Thermo) or.mzML.")
 
@@ -218,11 +281,9 @@ def plot_raw_chrom_and_spectrum(
     show: bool = False,
     prefer_native: bool = True,
     msconvert_path: Optional[str] = None,
+    peakpick_on_convert: bool = True,
+    compress_mzml: bool = True,
 ):
-    rc = _style_rc = _style_rc if False else None  # placeholder no-op to keep lint happy
-
-    # Build rc dict and use style_context from plot_helpers for consistency
-    from plot_helpers import rc_for_style  # local import to avoid circular at module import time
     rc = rc_for_style(font_name, font_size, tick_length=tick_length, tick_width=tick_width)
 
     scans = load_raw_scans(
@@ -231,17 +292,20 @@ def plot_raw_chrom_and_spectrum(
         max_scans=max_scans,
         prefer_native=prefer_native,
         msconvert_path=msconvert_path,
+        peakpick_on_convert=peakpick_on_convert,
+        compress_mzml=compress_mzml,
     )
     rt, tic = compute_tic(scans)
     spec = pick_spectrum(scans, mode=spectrum_mode, index=spectrum_index)
 
     width_in = figsize[0] if figsize and len(figsize) > 0 else DEFAULT_WIDTH_IN
-    target_h = compute_target_height(n_rows=2)
+    target_h = max(MIN_HEIGHT_IN, (ROW_HEIGHT_IN * 2) + 0.8)
 
     with plt.rc_context(rc):
         fig = plt.figure(figsize=(width_in, target_h), dpi=dpi)
         gs = fig.add_gridspec(2, 1, height_ratios=[1.2, 1], hspace=0.45)
 
+        # Chromatogram (TIC)
         ax1 = fig.add_subplot(gs[0, 0])
         if rt.size and tic.size:
             ax1.plot(rt, tic, color="#2C7FB8", lw=1.8)
@@ -251,6 +315,7 @@ def plot_raw_chrom_and_spectrum(
         ax1.spines["right"].set_visible(False)
         ax1.margins(y=0)
 
+        # m/z spectrum
         ax2 = fig.add_subplot(gs[1, 0])
         mz = spec.get("mz", np.array([]))
         intens = spec.get("int", np.array([]))
