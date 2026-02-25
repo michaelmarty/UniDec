@@ -1,8 +1,5 @@
 import os
 import pandas as pd
-import numpy as np
-from scipy.interpolate import CubicSpline
-import matplotlib.pyplot as plt
 import matplotlib as mpl
 
 def full_name_assignment(df, rttol=0.1, rtcol="Average Rt(min)"):

@@ -5,6 +5,7 @@ import matplotlib as mpl
 import numpy as np
 from PublicScripts.Lipids.LipidOutlierAnalysis import dataset_split_rf_data, random_forest, plot_rf_results, \
     prep_for_rf, plsr, random_split_rf_data, apply_rf_prediction
+from PublicScripts.Lipids.LipidFunctions import smiles_analysis
 import joblib
 
 mpl.use("WxAgg")
@@ -17,6 +18,7 @@ filepath = r"Combined_DDA_OutlierAnalysis.xlsx"
 df = pd.read_excel(filepath)
 # Drop any with "AqX" in the dataset name, since those are all not annotated and will just add noise to the model
 # df = df[~df["Dataset"].str.contains("AqX", case=False, na=False)]
+df = smiles_analysis(df, simtype="tanimoto", cutoff=0.1, fingerprinttype="rdkit")
 
 drop_columns = ["Post curation result", "MS/MS assigned", "Annotation tag (VS1.0)", "INCHIKEY", "m/z matched",
                 "MS/MS matched", "Manually modified for quantification", "Manually modified for annotation",
@@ -48,7 +50,7 @@ for col in columns:
         if ("Class_z_" not in col):
             features.append(col)
 
-features = ["Simple dot product", "Matched peaks count", "Class_strength"]
+features = ["Simple dot product", "Matched peaks count", "Class_strength", "SMILES_strength"]
 
 df, features = prep_for_rf(df, features, one_hot_encode=False)
 
@@ -74,8 +76,8 @@ for dataset in df["Dataset"].unique():
     plsrmodel, feature_importance2, y_pred2, report2 = plsr(x_train, x_test, y_train, y_test, features)
     clf, feature_importance, y_pred, report = random_forest(x_train, x_test, y_train, y_test, features, n_estimators=25)
 
-    if dataset == "OTOT":
-        savemodel = clf
+    # if dataset == "OTOT":
+    #     savemodel = clf
     accuracies.append(report["accuracy"])
     print(f"Accuracy for {dataset}: {report['accuracy']:.3f}")
     # print("Feature Importances:")
