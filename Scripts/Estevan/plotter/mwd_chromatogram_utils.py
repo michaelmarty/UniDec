@@ -124,8 +124,8 @@ def plot_mwd_chromatograms(
             ax2.set_yticks([0, 50, 100])
             ax1.set_yticklabels(["0", "%", "100"])
             ax2.set_yticklabels(["0", "%", "100"])
-            ax1.set_ylabel("Relative Absorbance (%)")
-            ax2.set_ylabel("Relative Voltage (%)")
+            ax1.set_ylabel("Normalized Absorbance (%)")
+            ax2.set_ylabel("Normalized Voltage (%)")
         else:
             if df_mau is not None and len(df_mau):
                 ax1.set_ylim(0, max(1.0, float(df_mau["signal"].max())))
@@ -134,7 +134,7 @@ def plot_mwd_chromatograms(
             ax1.set_ylabel("Absorbance (mAU)")
             ax2.set_ylabel("Voltage (mV)")
 
-        ax1.set_xlabel("Volume (mL)")
+        ax1.set_xlabel("Retention Volume (mL)")
 
         ax1.tick_params(axis="x", length=tick_length, width=tick_width)
         ax1.tick_params(axis="y", length=tick_length, width=tick_width)
