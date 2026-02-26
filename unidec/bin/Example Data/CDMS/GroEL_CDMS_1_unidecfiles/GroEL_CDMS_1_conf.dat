@@ -1,4 +1,4 @@
-version 8.1.1
+version 8.1.2
 imflag 0
 cdmsflag 1
 input C:\Python\UniDecDev\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1_input.dat
@@ -62,8 +62,8 @@ doubledec False
 CDslope 0.2074
 CDzbins 1
 CDres 0.0
-CDScanStart -1
-CDScanEnd -1
+CDScanStart -1.0
+CDScanEnd -1.0
 CDprethresh 0.0
 HTksmooth 0.0
 CDScanCompress 0

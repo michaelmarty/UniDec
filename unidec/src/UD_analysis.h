@@ -21,6 +21,7 @@
 #include "UD_dataproc.h"
 #include "udio.h"
 #include "UD_score.h"
+#include "udtools.h"
 
 void interpolate_merge(const float *massaxis, float *outint, const float *tempaxis, const float *tempint, int mlen, int templen);
 
