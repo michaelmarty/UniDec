@@ -263,6 +263,7 @@ int is_peak(const float *dataMZ, const float *dataInt, const int lengthmz, const
 	return 1;
 }
 
+
 int peak_detect(const float *dataMZ, const float *dataInt, const int lengthmz, const float window, const float thresh,
 	const int normthresh, float * peakx, float *peaky)
 {
@@ -270,9 +271,34 @@ int peak_detect(const float *dataMZ, const float *dataInt, const int lengthmz, c
 	int plen = 0;
 	const float max = Max(dataInt, lengthmz);
 	// Normalize threshold if flagged that way (default)
-	float threshval;
-	if (normthresh ==1) { threshval = thresh * max; }
+	float threshval = 0;
+	if (normthresh ==1) {
+		if (thresh <= 1){
+			threshval = thresh * max;
+		}
+		else {
+			// Sort the dataInt values from low to high
+			float *sorted = malloc(lengthmz * sizeof(float));
+			memcpy(sorted, dataInt, lengthmz * sizeof(float));
+			qsort(sorted, lengthmz, sizeof(float), compare_function);
+			// Determine the index corresponding to the threshold percentage, ignoring zeros
+			const float percentage = 0.9f; // 90% threshold
+			int threshold_index = 0;
+			for (int i = 0; i < lengthmz; i++) {
+				if (sorted[i] > 0) {
+					threshold_index = i + (int)((lengthmz - i) * percentage);
+					break;
+				}
+			}
+			// Get intensity at the threshold index
+			if (threshold_index < lengthmz) {
+				threshval = sorted[threshold_index] * thresh;
+			}
+		}
+	}
 	else { threshval = thresh; }
+
+
 
 	for (int i = 0; i < lengthmz; i++)
 	{
