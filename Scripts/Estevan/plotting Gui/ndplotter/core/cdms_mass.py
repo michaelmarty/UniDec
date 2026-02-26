@@ -1,4 +1,3 @@
-# cdms_mass_plot_utils.py
 from __future__ import annotations
 from typing import Sequence, Tuple, Optional, Union, List
 import numpy as np
@@ -8,8 +7,8 @@ from matplotlib.lines import Line2D
 
 def _load_mass(source: Union[str, pd.DataFrame]) -> pd.DataFrame:
     """
-    Load or validate mass distribution data with columns: Mass_Da, Intensity.
-    Returns DataFrame with ['Mass_kDa', 'Intensity'] sorted by mass.
+    Load mass distribution data with columns: Mass_Da, Intensity (file) or DataFrame.
+    Returns DataFrame with columns ['Mass_kDa', 'Intensity'] sorted.
     """
     if isinstance(source, str):
         df = pd.read_csv(source, sep=r"\s+", header=None)
@@ -20,17 +19,11 @@ def _load_mass(source: Union[str, pd.DataFrame]) -> pd.DataFrame:
             raise ValueError("DataFrame must have 'Mass_Da' and 'Intensity'")
     else:
         raise TypeError("source must be str or pd.DataFrame.")
-
     df["Mass_kDa"] = df["Mass_Da"] / 1000.0
-    df["Mass_kDa"] = pd.to_numeric(df["Mass_kDa"], errors="coerce")
-    df["Intensity"] = pd.to_numeric(df["Intensity"], errors="coerce")
     df = df.dropna().sort_values("Mass_kDa").reset_index(drop=True)
     return df
 
 def _y_values(df: pd.DataFrame, normalize: bool) -> Tuple[np.ndarray, str]:
-    """
-    Compute y-values and y-axis label based on normalize flag.
-    """
     if normalize:
         max_i = df["Intensity"].max()
         y = (df["Intensity"] / max_i) * 100.0 if max_i > 0 else np.zeros_like(df["Intensity"].values, dtype=float)
@@ -54,10 +47,6 @@ def plot_single_cdms_mass(
     save: Optional[str] = None,
     show: bool = False
 ):
-    """
-    Plot a single mass distribution with optional normalization and second legend near the peak.
-    Returns (fig, ax).
-    """
     plt.rcParams.update({"font.family": font_name, "font.size": font_size})
     fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi)
 
@@ -65,7 +54,6 @@ def plot_single_cdms_mass(
     y, y_label = _y_values(df, normalize)
     ax.plot(df["Mass_kDa"], y, color=color, linewidth=1.8, label=label)
     ax.set_xlim(*x_range)
-    # y-range
     if normalize:
         ax.set_ylim(0, 100)
     else:
@@ -110,32 +98,30 @@ def plot_cdms_mass_offset_stack(
     save: Optional[str] = None,
     show: bool = False
 ):
-    """
-    Stacked mass distributions with vertical offsets and optional normalization + second legend near peaks.
-    """
     n = len(datasets)
     if len(labels) != n:
         raise ValueError("labels length must match datasets length.")
-    if second_labels is None: second_labels = [None] * n
+    if second_labels is None:
+        second_labels = [None] * n
     if len(second_labels) != n:
         raise ValueError("second_labels length must match datasets length (or None).")
 
     if colors is None or len(colors) < n:
-        base = ["#CC79A7", "#CC79A7", "#2C7FB8", "#7A7A7A", "#00A9A5", "#F0E442"]
+        base = ["#CC79A7", "#2C7FB8", "#7A7A7A", "#00A9A5", "#F0E442"]
         k = (n + len(base) - 1) // len(base)
         colors = (base * k)[:n]
     else:
         colors = list(colors)[:n]
 
-    # Default y tick labels
     if y_tick_labels is None:
         y_tick_labels = ("0", "%", "100") if normalize else ("", "", "")
 
     plt.rcParams.update({"font.family": font_name, "font.size": font_size})
     fig, axes = plt.subplots(n, 1, sharex=True, figsize=figsize, dpi=dpi)
-    if n == 1: axes = [axes]
+    if n == 1:
+        axes = [axes]
 
-    dfs = [ _load_mass(src) for src in datasets ]
+    dfs = [_load_mass(src) for src in datasets]
 
     for i, (df, label, second, color) in enumerate(zip(dfs, labels, second_labels, colors)):
         ax = axes[i]; offset = i * y_offset_step
@@ -144,19 +130,12 @@ def plot_cdms_mass_offset_stack(
         ax.plot(df["Mass_kDa"], y + offset, color=color, linewidth=1.5, label=label)
         ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
         ax.set_xlim(*x_range)
-        # y-limit
         if normalize:
             ax.set_ylim(offset, offset + 101.5)
+            ax.set_yticks([offset, offset + 50, offset + 100])
         else:
             ymax = float(np.nanmax(y)) if y.size else 1.0
             ax.set_ylim(offset, offset + ymax * 1.05)
-
-        # ticks/labels
-        if normalize:
-            ax.set_yticks([offset, offset + 50, offset + 100])
-        else:
-            # place three ticks at offset + 0, offset + mid, offset + max
-            ymax = float(np.nanmax(y)) if y.size else 1.0
             ax.set_yticks([offset, offset + ymax / 2, offset + ymax])
         ax.set_yticklabels(list(y_tick_labels))
 
@@ -174,8 +153,10 @@ def plot_cdms_mass_offset_stack(
             leg2 = ax.legend([handle], [second], loc="center", bbox_to_anchor=(xf, yf), frameon=False, fontsize=font_size)
             ax.add_artist(leg2)
 
-        if i < n - 1: ax.tick_params(labelbottom=False)
-        else: ax.set_xlabel("Mass (kDa)")
+        if i < n - 1:
+            ax.tick_params(labelbottom=False)
+        else:
+            ax.set_xlabel("Mass (kDa)")
 
     fig.text(0.05, 0.5, y_label, va="center", rotation="vertical", fontsize=font_size)
     plt.subplots_adjust(left=0.15, right=0.95, bottom=0.15, top=0.95, hspace=0.6)

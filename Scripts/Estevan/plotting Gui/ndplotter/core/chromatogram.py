@@ -1,18 +1,11 @@
-# chromatogram_plot_utils.py
 from __future__ import annotations
-from typing import Sequence, Tuple, Optional, List, Union
-import numpy as np
+from typing import Sequence, Tuple, Optional, List
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def read_chrom_file(
-    file_path: str,
-    skiprows: int = 3,
-    usecols: str = "A:B",
-    sheet_name: Union[int, str] = 0
-) -> pd.DataFrame:
+def read_sec_file(file_path: str, skiprows: int = 3, usecols: str = "A:B", sheet_name: int | str = 0) -> pd.DataFrame:
     """
-    Read an Excel chromatogram (A:B, starting at row 4).
+    Read chromatogram from Excel starting at row 4 (skiprows=3), columns A:B.
     Returns DataFrame with columns ['ml', 'mAU'] and drops NaNs.
     """
     df = pd.read_excel(file_path, skiprows=skiprows, header=None, usecols=usecols, sheet_name=sheet_name, engine="openpyxl")
@@ -43,7 +36,6 @@ def plot_chrom_stack(
 ):
     """
     Stacked chromatograms with shared x-axis and optional top ticks for standards.
-    Normalizes each trace to its max if normalize=True.
     """
     n = len(files)
     if len(sample_labels) != n:
@@ -63,7 +55,7 @@ def plot_chrom_stack(
         axes = [axes]
 
     for i, (file, label) in enumerate(zip(files, sample_labels)):
-        df = read_chrom_file(file)
+        df = read_sec_file(file)
         if normalize:
             max_val = df["mAU"].max()
             if max_val > 0:
@@ -101,5 +93,4 @@ def plot_chrom_stack(
         fig.savefig(save, dpi=dpi, bbox_inches="tight")
     if show:
         plt.show()
-
     return fig, axes
