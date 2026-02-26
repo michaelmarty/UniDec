@@ -15,11 +15,7 @@ def plot_smiles(smiles):
     plt.axis("off")
     plt.show()
 
-path = r"C:\Data\ChemDrawStds\700041.cdx"
-rdkit_mol = Chem.MolsFromCDXMLFile(path)
-rdkit_smiles = Chem.MolToSmiles(rdkit_mol)
-print(rdkit_smiles)
-plot_smiles(rdkit_smiles)
+plot_smiles(r"CCCCCCCCCCCCCCCCC(=O)O*C(OC(=O)CCCCCCCC=CCCCCCCCC)*OP(=O)(OCC[N+](C)(C)C)[O+255]")
 exit()
 
 os.chdir(r"C:\Data\ChemDrawStds")

@@ -1797,8 +1797,9 @@ def network_analysis(df, mz_tol=0.01, title="", header="", add_all_cols=False):
     return outdf, G
 
 def get_fingerprint(mols, fingerprinttype="morgan"):
+    mols = [Chem.RemoveAllHs(mol) for mol in mols]
     if fingerprinttype == "morgan":
-        fps = [AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=1024) for mol in mols]
+        fps = [AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=1024, useChirality=False, useFeatures=True) for mol in mols]
     elif fingerprinttype == "rdkit":
         fps = [Chem.RDKFingerprint(mol) for mol in mols]
     elif fingerprinttype == "sparse":
@@ -1855,12 +1856,10 @@ def gen_smiles_similarity_matrix(smiles_list, smiles_list2=None, simtype="tanimo
         mols2 = [Chem.MolFromSmiles(s) for s in smiles_list2]
         # Loop over mol and set isotope to 0
         for mol in mols:
-            Chem.AddHs(mol)
             for atom in mol.GetAtoms():
                 atom.SetIsotope(0)
             # AllChem.MMFFOptimizeMolecule(mol)
         for mol in mols2:
-            Chem.AddHs(mol)
             for atom in mol.GetAtoms():
                 atom.SetIsotope(0)
             # AllChem.MMFFOptimizeMolecule(mol)
