@@ -294,6 +294,7 @@ int peak_detect(const float *dataMZ, const float *dataInt, const int lengthmz, c
 			if (threshold_index < lengthmz) {
 				threshval = sorted[threshold_index] * thresh;
 			}
+			free(sorted);
 		}
 	}
 	else { threshval = thresh; }
