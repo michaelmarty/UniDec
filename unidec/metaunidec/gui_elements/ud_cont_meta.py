@@ -380,6 +380,7 @@ class main_controls(wx.Panel):
         sizercontrol3.Add(wx.StaticText(panel3, label="Picking Threshold: "), (i, 0),
                           flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
+
         sizercontrol3.Add(self.ctlnorm, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
         sizercontrol3.Add(wx.StaticText(panel3, label="How to Extract Peaks: "), (i, 0),
@@ -452,6 +453,10 @@ class main_controls(wx.Panel):
         i += 1
         self.ctlrawflag = wx.RadioBox(panel3b, label="", choices=["Reconvolved/Profile", "Raw/Centroid", "Fast Profile", "Fast Centroid"], majorDimension=2)
         gbox3b.Add(self.ctlrawflag, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
+
+        self.ctlnormpeakthresh = wx.CheckBox(panel3b, label="Normalize Peak Picking Threshold")
+        gbox3b.Add(self.ctlnormpeakthresh, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
         self.ctlthresh2 = wx.TextCtrl(panel3b, value="", size=size1)
@@ -609,6 +614,7 @@ class main_controls(wx.Panel):
             self.ctlextractwindow.SetValue(str(self.config.exwindow))
             self.ctlextractthresh.SetValue(str(self.config.exthresh))
             self.ctlextract.SetSelection(self.config.exchoice)
+            self.ctlnormpeakthresh.SetValue(bool(self.config.normthresh))
 
             if self.config.adductmass < 0:
                 self.ctlnegmode.SetValue(1)
@@ -739,6 +745,7 @@ class main_controls(wx.Panel):
 
         self.config.exnorm = self.ctlnorm2.GetSelection()
         self.config.exchoice = self.ctlextract.GetSelection()
+        self.config.normthresh = int(self.ctlnormpeakthresh.GetValue())
 
         if self.ctlnegmode.GetValue() == 1:
             # print("Negative Ion Mode")

@@ -1,0 +1,44 @@
+cff-version: 1.2.0
+message: "If you use UniDec in your work, please cite it as follows.
+Note, there are other citations to consider for specific features and modules listed here: https://github.com/michaelmarty/UniDec/wiki"
+authors:
+  - family-names: "Marty"
+    given-names: "Michael T."
+  - family-names: "Baldwin"
+    given-names: "Andrew J."
+  - family-names: "Marklund"
+    given-names: "Erik G."
+  - family-names: "Hochberg"
+    given-names: "Georg K. A."
+  - family-names: "Benesch"
+    given-names: "Justin L. P."
+  - family-names: "Robinson"
+    given-names: "Carol V."
+title: "UniDec: Universal Deconvolution"
+doi: "10.1021/acs.analchem.5b00140"
+date-released: 2015-04-21
+url: "https://github.com/MartyLab/UniDec"
+preferred-citation:
+  type: article
+  authors:
+    - family-names: "Marty"
+      given-names: "Michael T."
+    - family-names: "Baldwin"
+      given-names: "Andrew J."
+    - family-names: "Marklund"
+      given-names: "Erik G."
+    - family-names: "Hochberg"
+      given-names: "Georg K. A."
+    - family-names: "Benesch"
+      given-names: "Justin L. P."
+    - family-names: "Robinson"
+      given-names: "Carol V."
+  doi: "10.1021/acs.analchem.5b00140"
+  journal: "Analytical Chemistry"
+  month: 4
+  start: 4370
+  end: 4376
+  title: "Bayesian deconvolution of mass and ion mobility spectra: from binary interactions to polydisperse ensembles"
+  issue: 8
+  volume: 87
+  year: 2015

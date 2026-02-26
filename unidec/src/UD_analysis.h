@@ -28,7 +28,7 @@ Config get_global_min_max(int argc, char* argv[], Config config, const char* dty
 void make_grid(int argc, char *argv[], Config config, const char *dtype, const char *out1, const char *out2, const char *out3);
 
 int is_peak(const float *dataMZ, const float *dataInt, int lengthmz, float window, float thresh, int index);
-int peak_detect(const float *dataMZ, const float *dataInt, int lengthmz, float window, float thresh, float *peakx, float *peaky);
+int peak_detect(const float *dataMZ, const float *dataInt, int lengthmz, float window, float thresh, int normthresh, float *peakx, float *peaky);
 void peak_norm(float *peaky, int plen, int peaknorm);
 
 float extract_height(Config config, float peak, const float *xvals, const float *yvals, int length);

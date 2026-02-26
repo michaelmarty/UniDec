@@ -263,14 +263,20 @@ int is_peak(const float *dataMZ, const float *dataInt, const int lengthmz, const
 	return 1;
 }
 
-int peak_detect(const float *dataMZ, const float *dataInt, const int lengthmz, const float window, const float thresh, float * peakx, float *peaky)
+int peak_detect(const float *dataMZ, const float *dataInt, const int lengthmz, const float window, const float thresh,
+	const int normthresh, float * peakx, float *peaky)
 {
 	//printf("Detecting Peaks %d %f %f\n", lengthmz, window, thresh);
 	int plen = 0;
 	const float max = Max(dataInt, lengthmz);
+	// Normalize threshold if flagged that way (default)
+	float threshval;
+	if (normthresh ==1) { threshval = thresh * max; }
+	else { threshval = thresh; }
+
 	for (int i = 0; i < lengthmz; i++)
 	{
-		if (is_peak(dataMZ, dataInt, lengthmz, window, thresh*max, i) == 1)
+		if (is_peak(dataMZ, dataInt, lengthmz, window, threshval, i) == 1)
 		{
 			//printf("Peak %d: %f %f\n", plen, dataMZ[i], dataInt[i]);//
 			peakx[plen] = dataMZ[i];
@@ -651,7 +657,8 @@ void get_all_peaks(int argc, char *argv[], Config config)
 			exit(11);
 		}
 
-		int plen = peak_detect(massaxis, masssum, mlen, config.peakwin, config.peakthresh, peakx, peaky);
+		int plen = peak_detect(massaxis, masssum, mlen, config.peakwin,
+			config.peakthresh, config.normthresh, peakx, peaky);
 
 		float * px = realloc(peakx, plen * sizeof(float));
 		float * py = realloc(peaky, plen * sizeof(float));
@@ -720,7 +727,8 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 		float* numerators = NULL;
 		float* denominators = NULL;
 
-		int plen = peak_detect(massaxis, masssum, mlen, config.peakwin, config.peakthresh, peakx, peaky);
+		int plen = peak_detect(massaxis, masssum, mlen, config.peakwin,
+			config.peakthresh, config.normthresh, peakx, peaky);
 
 		float *px = realloc(peakx, plen*sizeof(float));
 		float *py = realloc(peaky, plen*sizeof(float));

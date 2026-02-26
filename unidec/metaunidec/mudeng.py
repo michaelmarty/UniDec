@@ -373,7 +373,6 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
             self.config.config_export(self.config.outfname + "_conf.dat")
 
     def export_peaks_2d_apex(self, e=None):
-        self.peaks_eic_integrate()
         if len(self.pks.peaks) == 0:
             print("No peaks to export. Try picking peaks first.")
             return

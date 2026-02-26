@@ -168,6 +168,7 @@ void SetDefaultConfig(Config *config) {
     config->cdmsflag = 0;
     config->variablepw = 0;
     config->minratio = 0.0f;
+    config->normthresh = 1;
 }
 
 void PostImport(Config *config) {
@@ -402,7 +403,7 @@ void PrintHelp() {
     printf("\t\t\t\t\t\"tcal3\"=Calibration paramter 3 (P3)\n");
     printf("\t\t\t\t5=SLIM T-Wave 3rd Order Polynomial Calibration\n");
     printf("\t\t\t\t\t\"tcal4\"=Calibration parmater 4 (P4)\n");
-    printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@utexas.edu) commit date 11/25/2025\n");
+    printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@utexas.edu) commit date 2/26/2026\n");
     //printf("\nsize of: %d",sizeof(char));
 
     /*
@@ -522,6 +523,7 @@ void PrintConfig(Config config) {
     printf("\texthresh: %f \n", config.exthresh);
     printf("\texnorm: %d \n", config.exnorm);
     printf("\texnormz: %d \n", config.exnormz);
+    printf("\tnormthresh: %d \n", config.normthresh);
     printf("\texwindow: %f \n", config.exwindow);
     printf("\tdatanorm: %d \n", config.datanorm);
     printf("\tsilent: %d \n", config.silent);

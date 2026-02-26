@@ -510,7 +510,8 @@ int peaks_no_score(Config config, Decon* decon, Input inp, const float threshold
 	decon->peakx = calloc(decon->mlen, sizeof(float));
 	decon->peaky = calloc(decon->mlen, sizeof(float));
 
-	int plen = peak_detect(decon->massaxis, decon->massaxisval, decon->mlen, config.peakwin, config.peakthresh, decon->peakx, decon->peaky);
+	int plen = peak_detect(decon->massaxis, decon->massaxisval, decon->mlen, config.peakwin,
+		config.peakthresh, config.normthresh, decon->peakx, decon->peaky);
 	decon->plen = plen;
 
 	decon->peakx = realloc(decon->peakx, plen * sizeof(float));
@@ -532,18 +533,6 @@ float score(Config config, Decon *decon, Input inp, const float threshold, const
 {
 	//printf("Starting Score %f %f\n", config.peakwin, config.peakthresh);
 	int plen = peaks_no_score(config, decon, inp, threshold, silent);
-	/*
-	decon->peakx = calloc(decon->mlen, sizeof(float));
-	decon->peaky = calloc(decon->mlen, sizeof(float));
-
-	int plen = peak_detect(decon->massaxis, decon->massaxisval, decon->mlen, config.peakwin, config.peakthresh, decon->peakx, decon->peaky);
-	decon->plen = plen;
-
-	decon->peakx = realloc(decon->peakx, plen * sizeof(float));
-	decon->peaky = realloc(decon->peaky, plen * sizeof(float));
-	decon->dscores = calloc(plen, sizeof(float));
-
-	peak_norm(decon->peaky, plen, config.peaknorm);*/
 
 	float uniscore = score_from_peaks(plen, decon->peakx, decon->peaky, decon->dscores, config, decon, inp, threshold);
 	if (silent == 0) { printf("Average Peaks Score (UniScore): %f\n", uniscore); }

@@ -10,6 +10,11 @@ import matchms as mms
 import matplotlib as mpl
 import mplcursors
 from unidec.tools import center_of_mass
+from rdkit import Chem
+from rdkit import DataStructs
+from rdkit.Chem import AllChem
+import rdkit.Chem.MACCSkeys as MACCSkeys
+import time
 
 # import warnings
 # warnings.filterwarnings("error")
@@ -1791,6 +1796,143 @@ def network_analysis(df, mz_tol=0.01, title="", header="", add_all_cols=False):
     G.graph['Title'] = title
     return outdf, G
 
+def get_fingerprint(mols, fingerprinttype="morgan"):
+    mols = [Chem.RemoveAllHs(mol) for mol in mols]
+    if fingerprinttype == "morgan":
+        fps = [AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=1024, useChirality=False, useFeatures=True) for mol in mols]
+    elif fingerprinttype == "rdkit":
+        fps = [Chem.RDKFingerprint(mol) for mol in mols]
+    elif fingerprinttype == "sparse":
+        fpgen = AllChem.GetRDKitFPGenerator()
+        fps = [fpgen.GetSparseFingerprint(mol) for mol in mols]
+    elif fingerprinttype == "pattern":
+        fps = [Chem.PatternFingerprint(mol) for mol in mols]
+    elif fingerprinttype == "atompair":
+        fpgen = AllChem.GetAtomPairGenerator()
+        fps = [fpgen.GetSparseFingerprint(mol) for mol in mols]
+    elif fingerprinttype == "torsion":
+        fpgen = AllChem.GetTopologicalTorsionGenerator()
+        fps = [fpgen.GetSparseFingerprint(mol) for mol in mols]
+    elif fingerprinttype == "maccs":
+        fps = [MACCSkeys.GenMACCSKeys(mol) for mol in mols]
+    else:
+        raise ValueError(f"Unknown fingerprint type: {fingerprinttype}")
+    return fps
+
+def get_similarity(fp1, fp2, simtype="tanimoto"):
+    if simtype == "tanimoto":
+        sim = DataStructs.TanimotoSimilarity(fp1, fp2)
+    elif simtype == "dice":
+        sim = DataStructs.DiceSimilarity(fp1, fp2)
+    elif simtype == "cosine":
+        sim = DataStructs.CosineSimilarity(fp1, fp2)
+    elif simtype == "kulczynski":
+        sim = DataStructs.KulczynskiSimilarity(fp1, fp2)
+    elif simtype == "mcconnaughey":
+        sim = DataStructs.McConnaugheySimilarity(fp1, fp2)
+    elif simtype == "rogotgoldberg":
+        sim = DataStructs.RogotGoldbergSimilarity(fp1, fp2)
+    else:
+        raise ValueError(f"Unknown similarity type: {simtype}")
+    return sim
+
+def gen_smiles_similarity_matrix(smiles_list, smiles_list2=None, simtype="tanimoto", fingerprinttype="morgan"):
+    # Convert to mols
+    mols = [Chem.MolFromSmiles(s) for s in smiles_list]
+
+    # Convert to fingerprints
+    fps = get_fingerprint(mols, fingerprinttype=fingerprinttype)
+
+    # Get similarity matrix
+    if smiles_list2 is None:
+        similarity_matrix = np.zeros((len(fps), len(fps)))
+        for i in range(len(fps)):
+            similarity_matrix[i, i] = 1.0
+            for j in range(i + 1, len(fps)):
+                sim = get_similarity(fps[i], fps[j], simtype=simtype)
+                similarity_matrix[i, j] = sim
+                similarity_matrix[j, i] = sim
+    else:
+        mols2 = [Chem.MolFromSmiles(s) for s in smiles_list2]
+        # Loop over mol and set isotope to 0
+        for mol in mols:
+            for atom in mol.GetAtoms():
+                atom.SetIsotope(0)
+            # AllChem.MMFFOptimizeMolecule(mol)
+        for mol in mols2:
+            for atom in mol.GetAtoms():
+                atom.SetIsotope(0)
+            # AllChem.MMFFOptimizeMolecule(mol)
+
+
+        fps2 = get_fingerprint(mols2, fingerprinttype=fingerprinttype)
+        similarity_matrix = np.zeros((len(fps), len(fps2)))
+        for i in range(len(fps)):
+            for j in range(len(fps2)):
+                sim = get_similarity(fps[i], fps2[j], simtype=simtype)
+                similarity_matrix[i, j] = sim
+    return similarity_matrix
+
+
+def smiles_analysis(df, plot=False, cutoff=0.7, simtype="tanimoto", fingerprinttype="morgan"):
+    outdf = df.copy()
+
+    starttime = time.perf_counter()
+    # Create network graph from SMILES
+    smiles = df["SMILES"].dropna().unique()
+    similarity_matrix = gen_smiles_similarity_matrix(smiles, simtype=simtype, fingerprinttype=fingerprinttype)
+
+    print(f"Calculated similarity matrix, Time taken: {time.perf_counter() - starttime:.2f} seconds")
+    # Convert to network graph using a similarity threshold of 0.1
+    G = nx.Graph()
+    G.add_weighted_edges_from(
+        [(i, j, similarity_matrix[i, j]) for i in range(similarity_matrix.shape[0]) for j in
+         range(i, similarity_matrix.shape[1]) if
+         similarity_matrix[i, j] > cutoff])
+
+    # Add node labels
+    # Loop through df and find the index of each SMILES in the original df, then use that index to get the Metabolite name and add it to the label
+    labels = {i: smiles[i] for i in range(len(smiles))}
+    nx.relabel_nodes(G, labels, copy=False)
+
+    # Drop self-loops
+    G.remove_edges_from(nx.selfloop_edges(G))
+
+    # Measure a strength for each in the graph
+    strength = dict(G.degree(weight='weight'))
+
+    mapping = {}
+    # Set these as columns in df
+    for i, row in df.iterrows():
+        sval = row['SMILES']
+        if pd.isna(sval):
+            continue
+        mapping[sval] = "0~"+row['Metabolite name']
+
+        # Apply to outdf
+        outdf.at[i, "SMILES_strength"] = float(strength.get(sval, 0.0))
+
+        if sval in G:
+            # Apply to nodes in G
+            attrs = {}
+            attrs['Strength'] = strength.get(sval, 0.0)
+            attrs['Adduct type'] = row['Adduct type']
+            attrs['Class'] = row['Ontology']
+            attrs['Name'] = row['Metabolite name']
+            G.nodes[sval].update(attrs)
+    # G.graph['Title'] = title
+
+    # Adjust node names to be the Metabolite name instead of the SMILES
+    nx.relabel_nodes(G, mapping, copy=False)
+
+    print(f"Created SMILES network graph, Time taken: {time.perf_counter() - starttime:.2f} seconds")
+
+    if plot:
+        # Plot the network graph
+        network_plot(G, colortarget="Class")
+        plt.show()
+    return outdf
+
 def network_plot(G, axis=None, colortarget="z_Anomaly_Score"):
     if axis is None:
         fig, ax = plt.subplots(figsize=(8, 6))
@@ -1829,11 +1971,14 @@ def network_plot(G, axis=None, colortarget="z_Anomaly_Score"):
     else:
         cmap = mpl.cm.viridis
         # prepare label mapping
-        labels_text = {node: (
-            f"{node.split('~')[1]}\n"
-            f"{colortarget}: {G.nodes[node].get(colortarget, 0.0):.2f}\n"
-            f"Adduct: {G.nodes[node].get('Adduct type', 'N/A')}\n"
-        ) for node in node_list}
+        try:
+            labels_text = {node: (
+                f"{node.split('~')[1]}\n"
+                f"{colortarget}: {G.nodes[node].get(colortarget, 0.0):.2f}\n"
+                f"Adduct: {G.nodes[node].get('Adduct type', 'N/A')}\n"
+            ) for node in node_list}
+        except:
+            labels_text = {node: str(i) for i, node in enumerate(node_list)}
 
     norm = mpl.colors.Normalize(vmin=np.amin(colorvals), vmax=np.amax(colorvals))
 

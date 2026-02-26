@@ -257,6 +257,7 @@ Config mh5LoadConfig(Config config, hid_t file_id)
 	config.exnormz = int_attr(file_id, "/config", "exnormz", config.exnormz);
 	config.peaknorm = int_attr(file_id, "/config", "peaknorm", config.peaknorm);
 	config.datanorm = int_attr(file_id, "/config", "datanorm", config.datanorm);
+	config.normthresh = int_attr(file_id, "/config", "normthresh", config.normthresh);
 
 	//Experimental
 	config.filterwidth = int_attr(file_id, "/config", "filterwidth", config.filterwidth);
