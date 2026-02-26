@@ -1,5 +1,6 @@
 cff-version: 1.2.0
-message: "If you use UniDec in your work, please cite it as follows."
+message: "If you use UniDec in your work, please cite it as follows.
+Note, there are other citations to consider for specific features and modules listed here: https://github.com/michaelmarty/UniDec/wiki"
 authors:
   - family-names: "Marty"
     given-names: "Michael T."
