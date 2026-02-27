@@ -24,7 +24,7 @@ from ttkbootstrap.dialogs import Messagebox
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
 # Plotting utilities (ensure these files exist in the same folder)
-from chromatogram_plot_utils import plot_chrom_stack, read_chrom_file
+from chromatogram_plot_utils import plot_chrom_stack, plot_chrom_offset_stack, read_chrom_file
 from cdms_mass_plot_utils import (
     plot_cdms_mass_offset_stack, plot_single_cdms_mass, read_cdms_mass_file
 )
@@ -373,18 +373,29 @@ class PlotApp:
 
         lf_axes = tb.Labelframe(self.chrom_tab, text="Chromatogram Axes & Standards", padding=8, bootstyle="secondary")
         lf_axes.pack(fill=X, pady=6)
+
         grid = tb.Frame(lf_axes, bootstyle="secondary")
         grid.pack(fill=X)
+
+        # X limits
         tb.Label(grid, text="X-lim (mL):").grid(row=0, column=0, sticky=W)
         self.chrom_xmin = tk.DoubleVar(value=10.0)
         tb.Entry(grid, textvariable=self.chrom_xmin, width=8).grid(row=0, column=1, padx=4)
         self.chrom_xmax = tk.DoubleVar(value=20.0)
         tb.Entry(grid, textvariable=self.chrom_xmax, width=8).grid(row=0, column=2, padx=4)
+
+        # Y limits (for non-offset or single mode; still used for overrides)
         tb.Label(grid, text="Y-lim:").grid(row=0, column=3, sticky=W)
         self.chrom_ymin = tk.DoubleVar(value=0.0)
         tb.Entry(grid, textvariable=self.chrom_ymin, width=8).grid(row=0, column=4, padx=4)
         self.chrom_ymax = tk.DoubleVar(value=1.0)
         tb.Entry(grid, textvariable=self.chrom_ymax, width=8).grid(row=0, column=5, padx=4)
+
+        # NEW: Y-offset step for stacked chromatograms (offset view)
+        tb.Label(grid, text="Y-offset step:").grid(row=1, column=0, sticky=W, pady=(4, 0))
+        self.chrom_y_offset = tk.DoubleVar(value=1.0)
+        tb.Entry(grid, textvariable=self.chrom_y_offset, width=8).grid(row=1, column=1, padx=4, pady=(4, 0))
+
         self.chrom_normalize = tk.BooleanVar(value=True)
         tb.Checkbutton(lf_axes, text="Normalize traces to max", variable=self.chrom_normalize).pack(anchor=W, pady=4)
 
@@ -452,18 +463,33 @@ class PlotApp:
 
         lf_axes = tb.Labelframe(self.cdms_tab, text="CD-MS Mass Axes & Layout", padding=8, bootstyle="secondary")
         lf_axes.pack(fill=X, pady=6)
+
         grid = tb.Frame(lf_axes, bootstyle="secondary")
         grid.pack(fill=X)
+
+        # X range
         tb.Label(grid, text="X-range (kDa):").grid(row=0, column=0, sticky=W)
         self.cdms_xmin = tk.DoubleVar(value=0.0)
         tb.Entry(grid, textvariable=self.cdms_xmin, width=8).grid(row=0, column=1, padx=4)
         self.cdms_xmax = tk.DoubleVar(value=500.0)
         tb.Entry(grid, textvariable=self.cdms_xmax, width=8).grid(row=0, column=2, padx=4)
+
+        # Y max for normalized plots
         tb.Label(grid, text="Y-max (%):").grid(row=0, column=3, sticky=W)
         self.cdms_ymax_pct = tk.DoubleVar(value=100.0)
         tb.Entry(grid, textvariable=self.cdms_ymax_pct, width=8).grid(row=0, column=4, padx=4)
+
+        # NEW: Y-offset step for stacked plots
+        tb.Label(grid, text="Y-offset step:").grid(row=1, column=0, sticky=W, pady=(4, 0))
+        self.cdms_y_offset = tk.DoubleVar(value=120.0)
+        tb.Entry(grid, textvariable=self.cdms_y_offset, width=8).grid(row=1, column=1, padx=4, pady=(4, 0))
+
         self.cdms_normalize = tk.BooleanVar(value=True)
-        tb.Checkbutton(lf_axes, text="Normalize to max (percent)", variable=self.cdms_normalize).pack(anchor=W, pady=4)
+        tb.Checkbutton(
+            lf_axes,
+            text="Normalize to max (percent)",
+            variable=self.cdms_normalize
+        ).pack(anchor=W, pady=4)
 
         # Replicates panel
         lf_rep = tb.Labelframe(self.cdms_tab, text="Replicates (optional)", padding=8, bootstyle="secondary")
@@ -585,18 +611,33 @@ class PlotApp:
 
         lf_axes = tb.Labelframe(self.mz_tab, text="m/z Axes & Layout", padding=8, bootstyle="secondary")
         lf_axes.pack(fill=X, pady=6)
+
         grid = tb.Frame(lf_axes, bootstyle="secondary")
         grid.pack(fill=X)
+
+        # X range
         tb.Label(grid, text="X-range (m/z):").grid(row=0, column=0, sticky=W)
         self.mz_xmin = tk.DoubleVar(value=100.0)
         tb.Entry(grid, textvariable=self.mz_xmin, width=8).grid(row=0, column=1, padx=4)
         self.mz_xmax = tk.DoubleVar(value=2000.0)
         tb.Entry(grid, textvariable=self.mz_xmax, width=8).grid(row=0, column=2, padx=4)
+
+        # Y max (for normalized plots)
         tb.Label(grid, text="Y-max (%):").grid(row=0, column=3, sticky=W)
         self.mz_ymax_pct = tk.DoubleVar(value=100.0)
         tb.Entry(grid, textvariable=self.mz_ymax_pct, width=8).grid(row=0, column=4, padx=4)
+
+        # NEW: Y-offset step for stacked plots
+        tb.Label(grid, text="Y-offset step:").grid(row=1, column=0, sticky=W, pady=(4, 0))
+        self.mz_y_offset = tk.DoubleVar(value=120.0)
+        tb.Entry(grid, textvariable=self.mz_y_offset, width=8).grid(row=1, column=1, padx=4, pady=(4, 0))
+
         self.mz_normalize = tk.BooleanVar(value=True)
-        tb.Checkbutton(lf_axes, text="Normalize to max (percent)", variable=self.mz_normalize).pack(anchor=W, pady=4)
+        tb.Checkbutton(
+            lf_axes,
+            text="Normalize to max (percent)",
+            variable=self.mz_normalize
+        ).pack(anchor=W, pady=4)
 
         # Replicates panel
         lf_rep = tb.Labelframe(self.mz_tab, text="Replicates (optional)", padding=8, bootstyle="secondary")
