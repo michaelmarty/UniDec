@@ -1,4 +1,4 @@
-version 8.1.0
+version 8.1.2
 imflag 0
 cdmsflag 1
 input C:\Python\UniDecDev\unidec\bin\Example Data\CDMS\BgalGroEL_unidecfiles\BgalGroEL_input.dat
@@ -62,8 +62,8 @@ doubledec False
 CDslope 110750.0
 CDzbins 1
 CDres 0.0
-CDScanStart -1
-CDScanEnd -1
+CDScanStart -1.0
+CDScanEnd -1.0
 CDprethresh 0.0
 HTksmooth 0.0
 CDScanCompress 10
@@ -112,6 +112,8 @@ tcal2 6.3597
 tcal3 0.0
 tcal4 0.0
 edc 1.57
+variablepw 0
+minratio 0.0
 iso_meanpeakspacing_thresh 0.01
 iso_background_subtraction 0.0
 iso_adductmass 1.007276467

@@ -48,7 +48,7 @@
 UNIDECLIB_EXPORTS Decon ExitToBlank(const Config config, Decon decon);
 UNIDECLIB_EXPORTS Decon MainDeconvolution(const Config config, const Input inp, const int silent, const int verbose);
 UNIDECLIB_EXPORTS void RunAutotune(Config *config, const Input *inp, Decon *decon);
-UNIDECLIB_EXPORTS int run_unidec_core(Config config, Input inp, Decon *decon, const int verbose, const int autotune);
+UNIDECLIB_EXPORTS int run_unidec_core(Config config, Input inp, Decon *decon, const int verbose);
 UNIDECLIB_EXPORTS int run_unidec(int argc, char *argv[], Config config);
 
 #endif //UDMAIN_H

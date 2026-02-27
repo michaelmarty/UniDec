@@ -32,7 +32,7 @@ float fscore(Config config, const int plen, const int mlen, const float* massaxi
 
 float score_from_peaks(const int plen, const float *peakx, const float *peaky, float *dscores, const Config config, Decon *decon, const Input inp, const float threshold);
 
-int peaks_no_score(Config config, Decon* decon, Input inp, const float threshold, const int silent);
+int peaks_no_score(Config config, Decon* decon, int silent);
 float score(Config config, Decon *decon, Input inp, const float threshold, const int silent);
 
 int ReadDecon(const Config* config, const Input inp, Decon* decon);

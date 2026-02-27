@@ -297,7 +297,10 @@ int peak_detect(const float *dataMZ, const float *dataInt, const int lengthmz, c
 			free(sorted);
 		}
 	}
-	else { threshval = thresh; }
+	else {
+		threshval = thresh;
+		// printf("Threshval %f max %f\n", threshval, max);
+	}
 
 
 

@@ -512,76 +512,9 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent, 
 	return decon;
 }
 
-void RunAutotune(Config *config, const Input *inp, Decon *decon) {
-	printf("Starting Autotune...\n");
-	const float start_peakwindow = config->peakwin;
-	const float start_peakthresh = config->peakthresh;
-	config->peakwin = 3 * config->massbins;
-	config->peakthresh = 0.01f;
 
-	const int start_numit = config->numit;
-	config->numit = 10;
-	*decon = MainDeconvolution(*config, *inp, 1, 0);
-	float bestscore = decon->uniscore;
 
-	float start_mzsig = config->mzsig;
-	float start_zsig = config->zsig;
-	float start_beta = config->beta;
-	float start_psig = config->psig;
-
-	//float mz_sigs[5] = { 0, 0.1, 1, 10, 100};
-	const float mz_sigs[2] = { 0, config->mzsig };
-	//float z_sigs[2] = { -1, 1 };
-	const float z_sigs[1] = { config->zsig };
-	const float betas[3] = { 0, 50, 500 };
-	const float psigs[3] = { 0, 1, 10 };
-
-	//int n_mzsigs = 5;
-	const int n_mzsigs = 2;
-	//int n_zsigs = 2;
-	const int n_zsigs = 1;
-	const int n_betas = 3;
-	const int n_psigs = 3;
-
-	for (int i = 0; i < n_mzsigs; i++)
-	{
-		for (int j = 0; j < n_zsigs; j++)
-		{
-			for (int k = 0; k < n_betas; k++)
-			{
-				for (int h = 0; h < n_psigs; h++)
-				{
-					config->mzsig = mz_sigs[i];
-					config->zsig = z_sigs[j];
-					config->beta = betas[k];
-					config->psig = psigs[h];
-
-					*decon = MainDeconvolution(*config, *inp, 1, 0);
-					float newscore = decon->uniscore;
-					if (newscore > bestscore) {
-						start_mzsig = config->mzsig;
-						start_zsig = config->zsig;
-						start_beta = config->beta;
-						start_psig = config->psig;
-						bestscore = newscore;
-					}
-				}
-			}
-		}
-	}
-
-	config->numit = start_numit;
-	config->mzsig = start_mzsig;
-	config->zsig = start_zsig;
-	config->beta = start_beta;
-	config->psig = start_psig;
-	config->peakthresh = start_peakthresh;
-	config->peakwin = start_peakwindow;
-	printf("Best mzsig: %f zsig: %f beta: %f psig: %f Score:%f\n", start_mzsig, start_zsig, start_beta, start_psig, bestscore);
-	*decon = MainDeconvolution(*config, *inp, 0, 0);
-}
-
-int run_unidec_core(Config config, Input inp, Decon *decon, const int verbose, const int autotune) {
+int run_unidec_core(Config config, Input inp, Decon *decon, const int verbose) {
 	//.............................................................
 	//
 	//          Set the Mass Values to Exclude
@@ -617,13 +550,8 @@ int run_unidec_core(Config config, Input inp, Decon *decon, const int verbose, c
 	//
 	//...................................................................
 
-	//Autotuning
-	if (autotune == 1) {
-		RunAutotune(&config, &inp, decon);
-	}
-	else{
-		//Run the main Deconvolution
-		*decon = MainDeconvolution(config, inp, config.silent, verbose); }
+	//Run the main Deconvolution
+	*decon = MainDeconvolution(config, inp, config.silent, verbose);
 
 	// Run DoubleDec if it's checked
 	if (config.doubledec) { // Use Python to confirm kernel file is selected
@@ -640,11 +568,9 @@ int run_unidec(int argc, char *argv[], Config config) {
 	clock_t starttime;
 	starttime = clock();
 
-	bool autotune = 0;
 	int verbose = 0;
 	if (argc>2)
 	{
-		if (strcmp(argv[2], "-autotune") == 0){autotune = 1;}
 		if (strcmp(argv[2], "-verbose") == 0) { verbose = 1; }
 	}
 
@@ -672,7 +598,7 @@ int run_unidec(int argc, char *argv[], Config config) {
 	//
 	//........................................................
 
-	run_unidec_core(config, inp, &decon, verbose, autotune);
+	run_unidec_core(config, inp, &decon, verbose);
 
 	//................................................................
 	//
