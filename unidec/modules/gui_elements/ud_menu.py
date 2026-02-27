@@ -227,10 +227,10 @@ class main_menu(wx.Menu):
 
         self.advancedmenu.AppendSeparator()
 
-        self.advancedmenu.Append(4001, "Autotune", "Let UniDec find the best parameters", wx.ITEM_CHECK)
-        self.parent.Bind(wx.EVT_MENU, self.menu_4001, id=4001)
-
-        self.advancedmenu.AppendSeparator()
+        # self.advancedmenu.Append(4001, "Autotune", "Let UniDec find the best parameters", wx.ITEM_CHECK)
+        # self.parent.Bind(wx.EVT_MENU, self.menu_4001, id=4001)
+        #
+        # self.advancedmenu.AppendSeparator()
 
         self.scalemenu = wx.Menu()
 
@@ -535,8 +535,8 @@ class main_menu(wx.Menu):
             self.config.intscale = "Square Root"
         print(self.config.intscale)
 
-    def menu_4001(self, event):
-        self.config.autotune = self.advancedmenu.IsChecked(4001)
+    # def menu_4001(self, event):
+    #     self.config.autotune = self.advancedmenu.IsChecked(4001)
 
     def on_custom_defaults(self, e):
         # print("Clicked", e)
