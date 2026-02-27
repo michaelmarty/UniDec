@@ -121,6 +121,7 @@ void MakePeakShape2D(const Config config, Decon *decon, const Input *inp, int ma
 void MakePeakShape1D(const Config config, Decon * decon, const float *dataMZ, int makereverse, const int inflateflag);
 int SetStartsEnds(const Config config, const Input *inp, int *starttab, int *endtab);
 int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, const int verbose);
+void SetUpBlur(Config config, Input inp, IntraDecon *intra, const int silent);
 float Reconvolve(const Config config, Decon *decon, const char *barr);
 void charge_scaling(float *blur, const int *nztab, const int lengthmz, const int numz);
 

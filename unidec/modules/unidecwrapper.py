@@ -433,8 +433,8 @@ if __name__ == "__main__":
     eng = UniDec()
     testfile = os.path.join(os.path.join(os.path.dirname(default_dll_path), "Example Data"), "ADH.txt")
     eng.open_file(testfile)
-    # eng.config.normthresh = 0
-    # eng.config.peakthresh = 0.1
+    eng.config.normthresh = 1
+    eng.config.peakthresh = 0.1
 
     run_unidec_core(eng)
 

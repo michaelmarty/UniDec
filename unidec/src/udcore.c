@@ -1061,6 +1061,75 @@ int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, con
     return maxlength;
 }
 
+
+void SetUpBlur(Config config, Input inp, IntraDecon *intra, const int silent) {
+    //sets some parameters regarding the neighborhood blur function
+	if (config.zsig >= 0 && config.msig >= 0) {
+		intra->zlength = 1 + 2 * (int)config.zsig;
+		intra->mlength = 1 + 2 * (int)config.msig;
+	}
+	else {
+		if (config.zsig != 0) { intra->zlength = 1 + 2 * (int)(3 * fabsf(config.zsig) + 0.5); }
+		else { intra->zlength = 1; }
+		if (config.msig != 0) { intra->mlength = 1 + 2 * (int)(3 * fabsf(config.msig) + 0.5); }
+		else { intra->mlength = 1; }
+	}
+	intra->numclose = intra->mlength * intra->zlength;
+
+	//Sets up the blur function in oligomer mass and charge
+	intra->mind = calloc(intra->mlength, sizeof(int));
+	intra->mdist = calloc(intra->mlength, sizeof(float));
+
+	for (int i = 0; i < intra->mlength; i++)
+	{
+		intra->mind[i] = i - (intra->mlength - 1) / 2;
+		if (config.msig != 0) { intra->mdist[i] = expf(-(powf(((float) i - ((float) intra->mlength - 1) / 2.f), 2.f)) / (2.0f * config.msig * config.msig)); }
+		else { intra->mdist[i] = 1; }
+	}
+
+	intra->zind = calloc(intra->zlength, sizeof(int));
+	intra->zdist = calloc(intra->zlength, sizeof(float));
+	for (int i = 0; i < intra->zlength; i++)
+	{
+		intra->zind[i] = i - (intra->zlength - 1) / 2;
+		if (config.zsig != 0) { intra->zdist[i] = expf(-(powf(((float) i - ((float) intra->zlength - 1) / 2.f), 2.f)) / (2.0f * config.zsig * config.zsig)); }
+		else { intra->zdist[i] = 1; }
+		//printf("%f\n", zdist[i]);
+	}
+
+	//Initializing memory
+	intra->closemind = calloc(intra->numclose, sizeof(int));
+	intra->closezind = calloc(intra->numclose, sizeof(int));
+	intra->closeval = calloc(intra->numclose, sizeof(float));
+	int newlen = intra->numclose * config.lengthmz * config.numz;
+	intra->closeind = calloc(newlen, sizeof(int));
+	intra->closearray = calloc(newlen, sizeof(float));
+
+	//Determines the indexes of things that are close as well as the values used in the neighborhood convolution
+	for (int k = 0; k < intra->numclose; k++)
+	{
+		intra->closemind[k] = intra->mind[k % intra->mlength];
+		intra->closezind[k] = intra->zind[(int)k / intra->mlength];
+		intra->closeval[k] = intra->zdist[(int)k / intra->mlength] * intra->mdist[k % intra->mlength];
+	}
+	NormSum(intra->mdist, intra->mlength);
+	NormSum(intra->zdist, intra->zlength);
+	NormSum(intra->closeval, intra->numclose);
+
+	int badness1 = 1;
+	for (int i = 0; i < config.lengthmz * config.numz; i++)
+	{
+		if (intra->barr[i] == 1) { badness1 = 0; }
+	}
+	if (badness1 == 1) { printf("ERROR: No points are allowed. Setup is bad\n"); exit(10); }
+
+	//Set up blur
+	MakeSparseBlur(intra->numclose, intra->barr, intra->closezind, intra->closemind, intra->closeind, intra->closeval, intra->closearray, config, &inp);
+
+	if (silent == 0) { printf("Charges blurred: %d  Masses blurred: %d\n", intra->zlength, intra->mlength); }
+}
+
+
 float Reconvolve(const Config config, Decon *decon, const char *barr) {
     float newblurmax = 0;
     int maxlength = decon->maxlength;

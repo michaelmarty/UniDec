@@ -74,6 +74,40 @@ void FreeDecon(const Decon decon) {
     free(decon.endtab);
 }
 
+IntraDecon SetupIntraDecon() {
+    IntraDecon intradecon;
+    intradecon.mlength = 0;
+    intradecon.zlength = 0;
+    intradecon.numclose = 0;
+    intradecon.ln = 0;
+    intradecon.barr = NULL;
+    intradecon.mind = NULL;
+    intradecon.zind = NULL;
+    intradecon.closemind = NULL;
+    intradecon.closezind = NULL;
+    intradecon.closeind = NULL;
+    intradecon.mdist = NULL;
+    intradecon.zdist = NULL;
+    intradecon.oldblur = NULL;
+    intradecon.closeval = NULL;
+    intradecon.closearray = NULL;
+    return intradecon;
+}
+
+void FreeIntraDecon(const IntraDecon intradecon) {
+    free(intradecon.barr);
+    free(intradecon.mind);
+    free(intradecon.zind);
+    free(intradecon.closemind);
+    free(intradecon.closezind);
+    free(intradecon.closeind);
+    free(intradecon.mdist);
+    free(intradecon.zdist);
+    free(intradecon.oldblur);
+    free(intradecon.closeval);
+    free(intradecon.closearray);
+}
+
 
 void SetDefaultConfig(Config *config) {
     strcpy(config->infile, "default_data.txt");
