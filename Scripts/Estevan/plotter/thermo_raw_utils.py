@@ -305,6 +305,7 @@ def plot_raw_chrom_and_spectrum(
     spectrum_mode: str = "apex",
     spectrum_index: Optional[int] = None,
     normalize_spectrum: bool = True,
+    norm_mode: str = "percent",  # "percent" or "unit"
     figsize: Tuple[float, float] = (10, 6),
     dpi: int = 300,
     font_name: str = "Arial",
@@ -380,11 +381,22 @@ def plot_raw_chrom_and_spectrum(
 
             if normalize_spectrum and intens.size:
                 m = float(np.nanmax(intens)) if intens.size else 0.0
-                y = (intens / m) * 100.0 if m > 0 else (intens if intens.size else np.array([]))
-                ax2.set_ylim(0, 100)
-                ax2.set_yticks([0, 50, 100])
-                ax2.set_yticklabels(["0", "%", "100"])
-                ax2.set_ylabel("Relative Intensity (%)")
+                if m > 0:
+                    if norm_mode == "percent":
+                        y = (intens / m) * 100.0
+                    else:
+                        y = intens / m
+                else:
+                    y = intens if intens.size else np.array([])
+                if norm_mode == "percent":
+                    ax2.set_ylim(0, 100)
+                    ax2.set_yticks([0, 50, 100])
+                    ax2.set_yticklabels(["0", "%", "100"])
+                else:
+                    ax2.set_ylim(0, 1.0)
+                    ax2.set_yticks([0.0, 0.5, 1.0])
+                    ax2.set_yticklabels(["0", "0.5", "1.0"])
+                ax2.set_ylabel("Normalized Intensity")
             else:
                 y = intens
                 if y.size:
@@ -439,11 +451,22 @@ def plot_raw_chrom_and_spectrum(
 
         if normalize_spectrum and intens.size:
             m = float(np.nanmax(intens)) if intens.size else 0.0
-            y = (intens / m) * 100.0 if m > 0 else (intens if intens.size else np.array([]))
-            ax2.set_ylim(0, 100)
-            ax2.set_yticks([0, 50, 100])
-            ax2.set_yticklabels(["0", "%", "100"])
-            ax2.set_ylabel("Relative Intensity (%)")
+            if m > 0:
+                if norm_mode == "percent":
+                    y = (intens / m) * 100.0
+                else:
+                    y = intens / m
+            else:
+                y = intens if intens.size else np.array([])
+            if norm_mode == "percent":
+                ax2.set_ylim(0, 100)
+                ax2.set_yticks([0, 50, 100])
+                ax2.set_yticklabels(["0", "%", "100"])
+            else:
+                ax2.set_ylim(0, 1.0)
+                ax2.set_yticks([0.0, 0.5, 1.0])
+                ax2.set_yticklabels(["0", "0.5", "1.0"])
+            ax2.set_ylabel("Normalized Intensity")
         else:
             y = intens
             if y.size:

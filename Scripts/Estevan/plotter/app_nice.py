@@ -613,11 +613,37 @@ class PlotApp:
         tb.Entry(grid, textvariable=self.mwd_xmin, width=8).grid(row=0, column=1, padx=4)
         self.mwd_xmax = tk.DoubleVar(value=26.0)
         tb.Entry(grid, textvariable=self.mwd_xmax, width=8).grid(row=0, column=2, padx=4)
+
+        # Y-max for normalized plots (percent mode)
         tb.Label(grid, text="Y-max (%):").grid(row=0, column=3, sticky=W)
         self.mwd_ymax_pct = tk.DoubleVar(value=100.0)
         tb.Entry(grid, textvariable=self.mwd_ymax_pct, width=8).grid(row=0, column=4, padx=4)
+
         self.mwd_normalize = tk.BooleanVar(value=True)
-        tb.Checkbutton(lf_axes, text="Normalize each trace to max", variable=self.mwd_normalize).pack(anchor=W, pady=4)
+        tb.Checkbutton(
+            lf_axes,
+            text="Normalize each trace to max",
+            variable=self.mwd_normalize
+        ).pack(anchor=W, pady=4)
+
+        # NEW: normalization scale
+        mwd_norm_frame = tb.Frame(lf_axes, bootstyle="secondary")
+        mwd_norm_frame.pack(fill=X, pady=2)
+        tb.Label(mwd_norm_frame, text="Normalization scale:").pack(side=LEFT)
+
+        self.mwd_norm_mode = tk.StringVar(value="percent")  # "percent" or "unit"
+        tb.Radiobutton(
+            mwd_norm_frame,
+            text="0–100%",
+            variable=self.mwd_norm_mode,
+            value="percent"
+        ).pack(side=LEFT, padx=4)
+        tb.Radiobutton(
+            mwd_norm_frame,
+            text="0–1",
+            variable=self.mwd_norm_mode,
+            value="unit"
+        ).pack(side=LEFT, padx=4)
 
     # ---------- m/z tab ----------
     def _build_mz_tab(self, nb):
@@ -769,7 +795,26 @@ class PlotApp:
         _toggle_raw_index()
 
         self.raw_norm = tk.BooleanVar(value=True)
-        tb.Checkbutton(lf_opts, text="Normalize spectrum to max (percent)", variable=self.raw_norm).pack(anchor=W, pady=4)
+        tb.Checkbutton(lf_opts, text="Normalize spectrum to max", variable=self.raw_norm).pack(anchor=W, pady=4)
+
+        # NEW: normalization scale for RAW spectrum
+        raw_norm_frame = tb.Frame(lf_opts, bootstyle="secondary")
+        raw_norm_frame.pack(fill=X, pady=2)
+        tb.Label(raw_norm_frame, text="Spectrum normalization scale:").pack(side=LEFT)
+
+        self.raw_norm_mode = tk.StringVar(value="percent")  # "percent" or "unit"
+        tb.Radiobutton(
+            raw_norm_frame,
+            text="0–100%",
+            variable=self.raw_norm_mode,
+            value="percent"
+        ).pack(side=LEFT, padx=4)
+        tb.Radiobutton(
+            raw_norm_frame,
+            text="0–1",
+            variable=self.raw_norm_mode,
+            value="unit"
+        ).pack(side=LEFT, padx=4)
 
         tb.Label(grid, text="Spec Y-max (%):").grid(row=2, column=0, sticky=W, pady=(6, 0))
         self.raw_ymax_pct = tk.DoubleVar(value=100.0)
@@ -1466,12 +1511,23 @@ class PlotApp:
                     return
                 xlim = (float(self.mwd_xmin.get()), float(self.mwd_xmax.get()))
                 normalize = bool(self.mwd_normalize.get())
+                norm_mode = self.mwd_norm_mode.get()  # "percent" or "unit"
+
                 fig, (ax1, ax2) = plot_mwd_chromatograms(
-                    mau_file=path_mau, mv_file=path_mv,
-                    mau_label=self.mwd_mau_label.get(), mv_label=self.mwd_mv_label.get(),
-                    colors=colors[:2], xlim=xlim, normalize=normalize,
-                    font_name=cfg.font_name, font_size=cfg.font_size,
-                    figsize=cfg.figsize, dpi=DISPLAY_DPI, save=None, show=cfg.show,
+                    mau_file=path_mau,
+                    mv_file=path_mv,
+                    mau_label=self.mwd_mau_label.get(),
+                    mv_label=self.mwd_mv_label.get(),
+                    colors=colors[:2],
+                    xlim=xlim,
+                    normalize=normalize,
+                    norm_mode=norm_mode,
+                    font_name=cfg.font_name,
+                    font_size=cfg.font_size,
+                    figsize=cfg.figsize,
+                    dpi=DISPLAY_DPI,
+                    save=None,
+                    show=cfg.show,
                 )
                 self._apply_overrides(fig, (ax1, ax2), tab_name="MWD Chromatograms", normalize=normalize)
                 self._render_figure(fig)
@@ -1580,6 +1636,8 @@ class PlotApp:
                     else:
                         return  # conversion failed, abort
 
+                norm_mode = self.raw_norm_mode.get() if hasattr(self, "raw_norm_mode") else "percent"
+
                 fig, (ax1, ax2) = plot_raw_chrom_and_spectrum(
                     raw_path=raw_path,
                     ms_level=int(self.raw_ms_level.get()),
@@ -1587,9 +1645,13 @@ class PlotApp:
                     spectrum_mode=self.raw_mode.get(),
                     spectrum_index=(int(self.raw_index.get()) if self.raw_mode.get() == "index" else None),
                     normalize_spectrum=bool(self.raw_norm.get()),
-                    figsize=cfg.figsize, dpi=DISPLAY_DPI,
-                    font_name=cfg.font_name, font_size=cfg.font_size,
-                    save=None, show=cfg.show,
+                    norm_mode=norm_mode,
+                    figsize=cfg.figsize,
+                    dpi=DISPLAY_DPI,
+                    font_name=cfg.font_name,
+                    font_size=cfg.font_size,
+                    save=None,
+                    show=cfg.show,
                     prefer_native=bool(self.raw_prefer_native.get()),
                     msconvert_path=(self.msconvert_path.get().strip() or None),
                     peakpick_on_convert=bool(self.msconvert_peakpick.get()),
