@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 from plot_helpers import style_context, place_second_label, ensure_colors, compute_target_height, DEFAULT_MZ_COLORS
 
 DEFAULT_WIDTH_IN = 10.0
-ROW_HEIGHT_IN     = 1.35
-MIN_HEIGHT_IN     = 3.8
+ROW_HEIGHT_IN = 1.35
+MIN_HEIGHT_IN = 3.8
 
 
 def read_mz_spectrum_file(file_path: str) -> pd.DataFrame:
@@ -64,6 +64,7 @@ def plot_single_mz_spectrum(
     x_range: Tuple[float, float] = (100.0, 2000.0),
     color: str = "#2C7FB8",
     normalize: bool = True,
+    norm_mode: str = "percent",  # "percent" or "unit"
     font_name: str = "Arial",
     font_size: int = 10,
     figsize: Tuple[float, float] = (10, 4),
@@ -89,7 +90,10 @@ def plot_single_mz_spectrum(
     if normalize:
         m = float(np.nanmax(y)) if y.size else 0.0
         if m > 0:
-            y = (y / m) * 100.0
+            if norm_mode == "percent":
+                y = (y / m) * 100.0
+            else:
+                y = y / m
 
     with plt.rc_context(rc):
         fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi)
@@ -103,10 +107,15 @@ def plot_single_mz_spectrum(
         ax.spines["right"].set_visible(False)
 
         if normalize:
-            ax.set_ylim(0, 100)
-            ax.set_yticks([0, 50, 100])
-            ax.set_yticklabels(["0", "%", "100"])
-            ax.set_ylabel("Relative Intensity (%)")
+            if norm_mode == "percent":
+                ax.set_ylim(0, 100)
+                ax.set_yticks([0, 50, 100])
+                ax.set_yticklabels(["0", "%", "100"])
+            else:
+                ax.set_ylim(0, 1.0)
+                ax.set_yticks([0.0, 0.5, 1.0])
+                ax.set_yticklabels(["0", "0.5", "1.0"])
+            ax.set_ylabel("Normalized Intensity")
         else:
             ax.set_ylabel("Intensity (a.u.)")
 
@@ -134,6 +143,7 @@ def plot_mz_spectrum_offset_stack(
     y_offset_step: float = 120.0,
     y_tick_labels: Tuple[str, str, str] = ("0", "%", "100"),
     normalize: bool = True,
+    norm_mode: str = "percent",  # "percent" or "unit"
     font_name: str = "Arial",
     font_size: int = 10,
     figsize: Tuple[float, float] = (10, 8),
@@ -171,46 +181,61 @@ def plot_mz_spectrum_offset_stack(
                 df = read_mz_spectrum_file(path)
 
             x = df["mz"].astype(float).values
-            y = df["intensity"].astype(float).values
+            y_raw = df["intensity"].astype(float).values
 
             if normalize:
-                m = float(np.nanmax(y)) if y.size else 0.0
+                m = float(np.nanmax(y_raw)) if y_raw.size else 0.0
                 if m > 0:
-                    y = (y / m) * 100.0
+                    if norm_mode == "percent":
+                        y = (y_raw / m) * 100.0
+                    else:
+                        y = y_raw / m
+                else:
+                    y = np.zeros_like(y_raw)
+            else:
+                y = y_raw
 
             ax = axes[i]
-            ax.plot(x, y, color=color, linewidth=2.0, label=lab)
+            offset = i * y_offset_step
+
+            ax.plot(x, y + offset, color=color, linewidth=2.0, label=lab)
 
             ax.set_xlim(*x_range)
             if normalize:
-                ax.set_ylim(0, 100)
-            ax.margins(y=0)
-
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
-
-            if normalize:
-                ax.set_yticks([0, 50, 100])
-                if y_tick_labels and len(y_tick_labels) == 3:
-                    ax.set_yticklabels(list(y_tick_labels))
+                if norm_mode == "percent":
+                    ax.set_ylim(offset, offset + 101.0)
+                    ax.set_yticks([offset, offset + 50, offset + 100])
+                    ax.set_yticklabels(["0", "%", "100"])
+                else:
+                    ax.set_ylim(offset, offset + 1.05)
+                    ax.set_yticks([offset, offset + 0.5, offset + 1.0])
+                    ax.set_yticklabels(["0", "0.5", "1.0"])
             else:
                 if y.size:
                     ymin = float(np.nanmin(y))
                     ymax = float(np.nanmax(y))
-                    ax.set_yticks([ymin, ymax])
+                    ax.set_ylim(offset + ymin, offset + ymax)
+                    ax.set_yticks([offset + ymin, offset + ymax])
+
+            ax.margins(y=0)
+            ax.spines["top"].set_visible(False)
+            ax.spines["right"].set_visible(False)
 
             ax.tick_params(axis="y", length=tick_length, width=tick_width)
             ax.tick_params(axis="x", length=tick_length, width=tick_width)
 
             ax.legend(loc="center left", bbox_to_anchor=(0.02, 0.5))
 
-            place_second_label(ax, x, y, sec_lab, color, x_range, font_size)
+            place_second_label(ax, x, y + offset, sec_lab, color, x_range, font_size)
 
             if i < n - 1:
                 ax.tick_params(labelbottom=False)
 
         fig.supxlabel("m/z")
-        fig.supylabel("Relative Intensity (%)" if normalize else "Intensity (a.u.)")
+        if normalize:
+            fig.supylabel("Normalized Intensity")
+        else:
+            fig.supylabel("Intensity (a.u.)")
 
         plt.tight_layout(rect=(0.08, 0.08, 0.98, 0.96), h_pad=0.6)
         plt.subplots_adjust(hspace=0.55)

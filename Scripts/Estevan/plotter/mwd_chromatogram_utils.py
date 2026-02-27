@@ -71,6 +71,7 @@ def plot_mwd_chromatograms(
     colors: Optional[Sequence[str]] = None,
     xlim: Tuple[float, float] = (0.0, 26.0),
     normalize: bool = True,
+    norm_mode: str = "percent",  # "percent" or "unit"
     alpha_mv: float = 0.9,
     font_name: str = "Arial",
     font_size: int = 12,
@@ -95,7 +96,10 @@ def plot_mwd_chromatograms(
             if normalize:
                 max_val = float(df_mau_local["signal"].max()) if not df_mau_local["signal"].empty else 0.0
                 if max_val > 0:
-                    df_mau_local["signal"] = (df_mau_local["signal"] / max_val) * 100.0
+                    if norm_mode == "percent":
+                        df_mau_local["signal"] = (df_mau_local["signal"] / max_val) * 100.0
+                    else:
+                        df_mau_local["signal"] = df_mau_local["signal"] / max_val
             ax1.plot(df_mau_local["ml"], df_mau_local["signal"], color=colors[0], label=mau_label, linewidth=1.8)
 
         ax2 = ax1.twinx()
@@ -105,7 +109,10 @@ def plot_mwd_chromatograms(
             if normalize:
                 max_val = float(df_mv_local["signal"].max()) if not df_mv_local["signal"].empty else 0.0
                 if max_val > 0:
-                    df_mv_local["signal"] = (df_mv_local["signal"] / max_val) * 100.0
+                    if norm_mode == "percent":
+                        df_mv_local["signal"] = (df_mv_local["signal"] / max_val) * 100.0
+                    else:
+                        df_mv_local["signal"] = df_mv_local["signal"] / max_val
             ax2.plot(df_mv_local["ml"], df_mv_local["signal"], color=colors[1], label=mv_label, linewidth=1.8, alpha=alpha_mv)
 
         ax1.set_xlim(*xlim)
@@ -118,14 +125,22 @@ def plot_mwd_chromatograms(
         ax2.spines["left"].set_visible(False)
 
         if normalize:
-            ax1.set_ylim(0, 100)
-            ax2.set_ylim(0, 100)
-            ax1.set_yticks([0, 50, 100])
-            ax2.set_yticks([0, 50, 100])
-            ax1.set_yticklabels(["0", "%", "100"])
-            ax2.set_yticklabels(["0", "%", "100"])
-            ax1.set_ylabel("Relative Absorbance (%)")
-            ax2.set_ylabel("Relative Voltage (%)")
+            if norm_mode == "percent":
+                ax1.set_ylim(0, 100)
+                ax2.set_ylim(0, 100)
+                ax1.set_yticks([0, 50, 100])
+                ax2.set_yticks([0, 50, 100])
+                ax1.set_yticklabels(["0", "%", "100"])
+                ax2.set_yticklabels(["0", "%", "100"])
+            else:
+                ax1.set_ylim(0, 1.0)
+                ax2.set_ylim(0, 1.0)
+                ax1.set_yticks([0.0, 0.5, 1.0])
+                ax2.set_yticks([0.0, 0.5, 1.0])
+                ax1.set_yticklabels(["0", "0.5", "1.0"])
+                ax2.set_yticklabels(["0", "0.5", "1.0"])
+            ax1.set_ylabel("Normalized Absorbance")
+            ax2.set_ylabel("Normalized Voltage")
         else:
             if df_mau is not None and len(df_mau):
                 ax1.set_ylim(0, max(1.0, float(df_mau["signal"].max())))
@@ -134,7 +149,7 @@ def plot_mwd_chromatograms(
             ax1.set_ylabel("Absorbance (mAU)")
             ax2.set_ylabel("Voltage (mV)")
 
-        ax1.set_xlabel("Volume (mL)")
+        ax1.set_xlabel("Retention Volume (mL)")
 
         ax1.tick_params(axis="x", length=tick_length, width=tick_width)
         ax1.tick_params(axis="y", length=tick_length, width=tick_width)

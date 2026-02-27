@@ -1778,9 +1778,9 @@ def unidec_call(config, silent=False, conv=False, **kwargs):
     """
 
     call = [config.UniDecPath, str(config.confname)]
-
-    if config.autotune:
-        call.append("-autotune")
+    #
+    # if config.autotune:
+    #     call.append("-autotune")
 
     if conv:
         call.append("-conv")
@@ -1811,6 +1811,16 @@ def peakdetect(data, config=None, window=10, threshold=0, ppm=None, norm=True):
         window = config.peakwindow / config.massbins
         threshold = config.peakthresh
         norm = config.normthresh
+
+    if norm == 1 and threshold > 1:
+        # Get noise level by averaging lowest 90% of the data and multiplying by threshold
+        nonzerodata = data[data[:, 1] > 0][:, 1]
+        l1 = len(nonzerodata)
+        sdat = np.sort(np.ravel(nonzerodata))
+        index = round(l1 * 90 / 100.)
+        noise_level = sdat[index]
+        print("Noise Level:", noise_level, l1, index, np.amax(sdat))
+        threshold = noise_level * threshold / np.amax(sdat)
 
     peaks = []
     length = len(data)
