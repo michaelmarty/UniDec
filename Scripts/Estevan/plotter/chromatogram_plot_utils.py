@@ -79,6 +79,7 @@ def plot_chrom_stack(
     colors: Optional[Sequence[str]] = None,
     standard_volumes: Optional[Sequence[float]] = None,
     normalize: bool = True,
+    norm_mode: str = "percent",  # "percent" or "unit"
     font_name: str = "Arial",
     font_size: int = 10,
     xlim: Tuple[float, float] = (10.0, 20.0),
@@ -115,14 +116,20 @@ def plot_chrom_stack(
             if normalize:
                 max_val = float(df_local["mAU"].max()) if not df_local["mAU"].empty else 0.0
                 if max_val > 0:
-                    df_local["mAU"] = df_local["mAU"] / max_val
+                    if norm_mode == "percent":
+                        df_local["mAU"] = (df_local["mAU"] / max_val) * 100.0
+                    else:  # "unit"
+                        df_local["mAU"] = df_local["mAU"] / max_val
 
             ax = axes[i]
             ax.plot(df_local["ml"], df_local["mAU"], color=colors[i], linewidth=1.8, label=label)
 
             ax.set_xlim(*xlim)
             if normalize:
-                ax.set_ylim(0.0, 1.0)
+                if norm_mode == "percent":
+                    ax.set_ylim(0.0, 100.0)
+                else:  # "unit"
+                    ax.set_ylim(0.0, 1.0)
             else:
                 if ylim == (0.0, 1.0):
                     ymax = float(df_local["mAU"].max()) if not df_local["mAU"].empty else 1.0
@@ -135,8 +142,12 @@ def plot_chrom_stack(
             ax.spines["right"].set_visible(False)
 
             if normalize:
-                ax.set_yticks([0.0, 0.5, 1.0])
-                ax.set_yticklabels(["0", "%", "100"])
+                if norm_mode == "percent":
+                    ax.set_yticks([0.0, 50.0, 100.0])
+                    ax.set_yticklabels(["0", "%", "100"])
+                else:  # "unit"
+                    ax.set_yticks([0.0, 0.5, 1.0])
+                    ax.set_yticklabels(["0", "0.5", "1.0"])
             else:
                 ymin, ymax = ax.get_ylim()
                 ax.set_yticks([ymin, ymax])
@@ -157,7 +168,13 @@ def plot_chrom_stack(
                 ax.tick_params(labelbottom=False)
 
         fig.supxlabel("Volume (mL)")
-        fig.supylabel("Normalized Absorbance (%)" if normalize else "Absorbance (mAU)")
+        if normalize:
+            if norm_mode == "percent":
+                fig.supylabel("Normalized Absorbance")
+            else:
+                fig.supylabel("Normalized Absorbance")
+        else:
+            fig.supylabel("Absorbance (mAU)")
 
         plt.tight_layout(rect=tight_rect, h_pad=h_pad)
         plt.subplots_adjust(hspace=hspace)

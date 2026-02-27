@@ -73,22 +73,6 @@ def _load_mass(source: Union[str, pd.DataFrame]) -> pd.DataFrame:
     return df
 
 
-def _y_values(df: pd.DataFrame, normalize: bool) -> Tuple[np.ndarray, str]:
-    if df is None or df.empty:
-        return np.array([], dtype=float), ("Relative Intensity (%)" if normalize else "Intensity")
-    if normalize:
-        max_i = float(np.nanmax(df["intensity"].values)) if df["intensity"].size else 0.0
-        if max_i > 0:
-            y = (df["intensity"].astype(float).values / max_i) * 100.0
-        else:
-            y = np.zeros_like(df["intensity"].astype(float).values)
-        y_label = "Relative Intensity (%)"
-    else:
-        y = df["intensity"].astype(float).values
-        y_label = "Intensity"
-    return y, y_label
-
-
 def plot_single_cdms_mass(
     dataset: Union[str, pd.DataFrame],
     label: str,
@@ -96,6 +80,7 @@ def plot_single_cdms_mass(
     x_range: Tuple[float, float] = (0, 500),
     color: str = "#2C7FB8",
     normalize: bool = True,
+    norm_mode: str = "percent",  # "percent" or "unit"
     font_name: str = "Arial",
     font_size: int = 10,
     figsize: Tuple[float, float] = (9, 5),
@@ -103,30 +88,61 @@ def plot_single_cdms_mass(
     save: Optional[str] = None,
     show: bool = False
 ):
+    """
+    Plot a single CD-MS mass distribution with optional normalization.
+    norm_mode:
+        - "percent": 0–100 with ticks at 0, 50, 100
+        - "unit":    0–1 with ticks at 0, 0.5, 1
+    """
     with style_context(font_name=font_name, font_size=font_size):
         fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi)
 
         df = _load_mass(dataset)
-        y, y_label = _y_values(df, normalize)
-        ax.plot(df["mass_kDa"], y, color=color, linewidth=1.8, label=label)
-        ax.set_xlim(*x_range)
+        x = df["mass_kDa"].values.astype(float)
+        y_raw = df["intensity"].values.astype(float)
+
         if normalize:
-            ax.set_ylim(0, 100)
+            max_i = float(np.nanmax(y_raw)) if y_raw.size else 0.0
+            if max_i > 0:
+                if norm_mode == "percent":
+                    y = (y_raw / max_i) * 100.0
+                else:
+                    y = y_raw / max_i
+            else:
+                y = np.zeros_like(y_raw)
+        else:
+            y = y_raw
+
+        ax.plot(x, y, color=color, linewidth=1.8, label=label)
+        ax.set_xlim(*x_range)
+
+        if normalize:
+            if norm_mode == "percent":
+                ax.set_ylim(0, 100)
+                ax.set_yticks([0, 50, 100])
+                ax.set_yticklabels(["0", "%", "100"])
+            else:
+                ax.set_ylim(0, 1.0)
+                ax.set_yticks([0.0, 0.5, 1.0])
+                ax.set_yticklabels(["0", "0.5", "1.0"])
+            ax.set_ylabel("Normalized Intensity")
         else:
             ymax = float(np.nanmax(y)) if y.size else 1.0
             ax.set_ylim(0, ymax * 1.05)
+            ax.set_ylabel("Intensity")
 
         ax.set_xlabel("Mass (kDa)")
-        ax.set_ylabel(y_label)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
         ax.legend(frameon=False, loc="upper left")
 
         if second_label:
-            place_second_label(ax, df["mass_kDa"].values, y, second_label, color, x_range, font_size)
+            place_second_label(ax, x, y, second_label, color, x_range, font_size)
 
-        if save: fig.savefig(save, dpi=dpi, bbox_inches="tight")
-        if show: plt.show()
+        if save:
+            fig.savefig(save, dpi=dpi, bbox_inches="tight")
+        if show:
+            plt.show()
 
     return fig, ax
 
@@ -138,8 +154,9 @@ def plot_cdms_mass_offset_stack(
     x_range: Tuple[float, float] = (0, 500),
     colors: Optional[Sequence[str]] = None,
     y_offset_step: float = 120.0,
-    y_tick_labels: Optional[Sequence[str]] = None,
+    y_tick_labels: Optional[Sequence[str]] = None,  # not heavily used now
     normalize: bool = True,
+    norm_mode: str = "percent",  # "percent" or "unit"
     font_name: str = "Arial",
     font_size: int = 10,
     figsize: Tuple[float, float] = (9, 5),
@@ -147,59 +164,90 @@ def plot_cdms_mass_offset_stack(
     save: Optional[str] = None,
     show: bool = False
 ):
+    """
+    Offset-stacked CD-MS mass plots.
+    norm_mode:
+        - "percent": each trace 0–100 over its offset
+        - "unit":    each trace 0–1 over its offset
+    """
     n = len(datasets)
     if len(labels) != n:
         raise ValueError("labels length must match datasets length.")
-    if second_labels is None: second_labels = [None] * n
+    if second_labels is None:
+        second_labels = [None] * n
     if len(second_labels) != n:
         raise ValueError("second_labels length must match datasets length (or None).")
 
     colors = ensure_colors(colors, n, DEFAULT_CDMS_COLORS)
 
-    if y_tick_labels is None:
-        y_tick_labels = ("0", "%", "100") if normalize else ("", "", "")
-
-    width_in = figsize[0] if figsize and len(figsize) > 0 else 9
+    width_in = figsize[0] if figsize and len(figsize) > 0 else figsize[0]
     target_h = compute_target_height(n_rows=n)
 
     with style_context(font_name=font_name, font_size=font_size):
         fig, axes = plt.subplots(n, 1, sharex=True, figsize=(width_in, target_h), dpi=dpi)
-        if n == 1: axes = [axes]
+        if n == 1:
+            axes = [axes]
 
-        dfs = [ _load_mass(src) for src in datasets ]
+        dfs = [_load_mass(src) for src in datasets]
 
         for i, (df, label, second, color) in enumerate(zip(dfs, labels, second_labels, colors)):
-            ax = axes[i]; offset = i * y_offset_step
-            y, y_label = _y_values(df, normalize)
+            ax = axes[i]
+            offset = i * y_offset_step
 
-            ax.plot(df["mass_kDa"], y + offset, color=color, linewidth=1.5, label=label)
-            ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
-            ax.set_xlim(*x_range)
+            x = df["mass_kDa"].values.astype(float)
+            y_raw = df["intensity"].values.astype(float)
+
             if normalize:
-                ax.set_ylim(offset, offset + 101.5)
+                max_i = float(np.nanmax(y_raw)) if y_raw.size else 0.0
+                if max_i > 0:
+                    if norm_mode == "percent":
+                        y = (y_raw / max_i) * 100.0
+                    else:
+                        y = y_raw / max_i
+                else:
+                    y = np.zeros_like(y_raw)
+            else:
+                y = y_raw
+
+            ax.plot(x, y + offset, color=color, linewidth=1.5, label=label)
+            ax.spines["top"].set_visible(False)
+            ax.spines["right"].set_visible(False)
+            ax.set_xlim(*x_range)
+
+            if normalize:
+                if norm_mode == "percent":
+                    ax.set_ylim(offset, offset + 101.5)
+                    ax.set_yticks([offset, offset + 50, offset + 100])
+                    ax.set_yticklabels(["0", "%", "100"])
+                else:
+                    ax.set_ylim(offset, offset + 1.05)
+                    ax.set_yticks([offset, offset + 0.5, offset + 1.0])
+                    ax.set_yticklabels(["0", "0.5", "1.0"])
             else:
                 ymax = float(np.nanmax(y)) if y.size else 1.0
                 ax.set_ylim(offset, offset + ymax * 1.05)
-
-            if normalize:
-                ax.set_yticks([offset, offset + 50, offset + 100])
-            else:
-                ymax = float(np.nanmax(y)) if y.size else 1.0
-                ax.set_yticks([offset, offset + ymax / 2, offset + ymax])
-            ax.set_yticklabels(list(y_tick_labels))
+                ax.set_yticks([offset, offset + ymax])
+                ax.set_yticklabels(["", ""])
 
             leg1 = ax.legend([ax.lines[-1]], [label], loc="upper left", frameon=False, fontsize=font_size)
             ax.add_artist(leg1)
 
             if second:
-                place_second_label(ax, df["mass_kDa"].values, y + offset, second, color, x_range, font_size)
+                place_second_label(ax, x, y + offset, second, color, x_range, font_size)
 
-            if i < n - 1: ax.tick_params(labelbottom=False)
-            else: ax.set_xlabel("Mass (kDa)")
+            if i < n - 1:
+                ax.tick_params(labelbottom=False)
+            else:
+                ax.set_xlabel("Mass (kDa)")
 
-        fig.text(0.05, 0.5, y_label, va="center", rotation="vertical", fontsize=font_size)
+        fig.text(0.05, 0.5,
+                 "Normalized Intensity" if normalize else "Intensity",
+                 va="center", rotation="vertical", fontsize=font_size)
         plt.subplots_adjust(left=0.15, right=0.95, bottom=0.15, top=0.95, hspace=0.6)
-        if save: fig.savefig(save, dpi=dpi, bbox_inches="tight")
-        if show: plt.show()
+
+        if save:
+            fig.savefig(save, dpi=dpi, bbox_inches="tight")
+        if show:
+            plt.show()
 
     return fig, axes

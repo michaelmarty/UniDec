@@ -397,7 +397,30 @@ class PlotApp:
         tb.Entry(grid, textvariable=self.chrom_y_offset, width=8).grid(row=1, column=1, padx=4, pady=(4, 0))
 
         self.chrom_normalize = tk.BooleanVar(value=True)
-        tb.Checkbutton(lf_axes, text="Normalize traces to max", variable=self.chrom_normalize).pack(anchor=W, pady=4)
+        tb.Checkbutton(
+            lf_axes,
+            text="Normalize traces to max",
+            variable=self.chrom_normalize
+        ).pack(anchor=W, pady=4)
+
+        # NEW: normalization mode (percent vs unit)
+        norm_mode_frame = tb.Frame(lf_axes, bootstyle="secondary")
+        norm_mode_frame.pack(fill=X, pady=2)
+        tb.Label(norm_mode_frame, text="Normalization scale:").pack(side=LEFT)
+
+        self.chrom_norm_mode = tk.StringVar(value="percent")  # "percent" or "unit"
+        tb.Radiobutton(
+            norm_mode_frame,
+            text="0–100%",
+            variable=self.chrom_norm_mode,
+            value="percent"
+        ).pack(side=LEFT, padx=4)
+        tb.Radiobutton(
+            norm_mode_frame,
+            text="0–1",
+            variable=self.chrom_norm_mode,
+            value="unit"
+        ).pack(side=LEFT, padx=4)
 
         std_row = tb.Frame(lf_axes, bootstyle="secondary")
         std_row.pack(fill=X, pady=4)
@@ -487,9 +510,28 @@ class PlotApp:
         self.cdms_normalize = tk.BooleanVar(value=True)
         tb.Checkbutton(
             lf_axes,
-            text="Normalize to max (percent)",
+            text="Normalize to max",
             variable=self.cdms_normalize
         ).pack(anchor=W, pady=4)
+
+        # NEW: normalization scale
+        cdms_norm_frame = tb.Frame(lf_axes, bootstyle="secondary")
+        cdms_norm_frame.pack(fill=X, pady=2)
+        tb.Label(cdms_norm_frame, text="Normalization scale:").pack(side=LEFT)
+
+        self.cdms_norm_mode = tk.StringVar(value="percent")  # "percent" or "unit"
+        tb.Radiobutton(
+            cdms_norm_frame,
+            text="0–100%",
+            variable=self.cdms_norm_mode,
+            value="percent"
+        ).pack(side=LEFT, padx=4)
+        tb.Radiobutton(
+            cdms_norm_frame,
+            text="0–1",
+            variable=self.cdms_norm_mode,
+            value="unit"
+        ).pack(side=LEFT, padx=4)
 
         # Replicates panel
         lf_rep = tb.Labelframe(self.cdms_tab, text="Replicates (optional)", padding=8, bootstyle="secondary")
@@ -635,9 +677,28 @@ class PlotApp:
         self.mz_normalize = tk.BooleanVar(value=True)
         tb.Checkbutton(
             lf_axes,
-            text="Normalize to max (percent)",
+            text="Normalize to max",
             variable=self.mz_normalize
         ).pack(anchor=W, pady=4)
+
+        # NEW: normalization scale
+        mz_norm_frame = tb.Frame(lf_axes, bootstyle="secondary")
+        mz_norm_frame.pack(fill=X, pady=2)
+        tb.Label(mz_norm_frame, text="Normalization scale:").pack(side=LEFT)
+
+        self.mz_norm_mode = tk.StringVar(value="percent")  # "percent" or "unit"
+        tb.Radiobutton(
+            mz_norm_frame,
+            text="0–100%",
+            variable=self.mz_norm_mode,
+            value="percent"
+        ).pack(side=LEFT, padx=4)
+        tb.Radiobutton(
+            mz_norm_frame,
+            text="0–1",
+            variable=self.mz_norm_mode,
+            value="unit"
+        ).pack(side=LEFT, padx=4)
 
         # Replicates panel
         lf_rep = tb.Labelframe(self.mz_tab, text="Replicates (optional)", padding=8, bootstyle="secondary")
@@ -1037,8 +1098,12 @@ class PlotApp:
         show_band = bool(self.chrom_rep_show_band.get())
         axes_list = axes if isinstance(axes, (list, tuple)) else [axes]
 
+        # Respect chrom_norm_mode if present
+        norm_mode = self.chrom_norm_mode.get() if hasattr(self, "chrom_norm_mode") else "percent"
+
         for i, ax in enumerate(axes_list):
-            if i >= len(groups): break
+            if i >= len(groups):
+                break
             gfiles = groups[i]
             traces = []
             for fp in gfiles:
@@ -1048,7 +1113,11 @@ class PlotApp:
                     y = df["mAU"].astype(float).values
                     if normalize:
                         m = float(np.nanmax(y))
-                        if m > 0: y = y / m
+                        if m > 0:
+                            if norm_mode == "percent":
+                                y = (y / m) * 100.0
+                            else:
+                                y = y / m
                     ygrid = self._interpolate_to_grid(x, y, xgrid)
                     traces.append(ygrid)
                     ax.plot(x, y, color=colors[i % len(colors)], alpha=0.35, lw=rep_lw)
@@ -1059,7 +1128,14 @@ class PlotApp:
                 mean = np.nanmean(arr, axis=0)
                 if show_band and arr.shape[0] > 1:
                     sem = np.nanstd(arr, axis=0) / np.sqrt(arr.shape[0])
-                    ax.fill_between(xgrid, mean - sem, mean + sem, color=colors[i % len(colors)], alpha=0.15, linewidth=0)
+                    ax.fill_between(
+                        xgrid,
+                        mean - sem,
+                        mean + sem,
+                        color=colors[i % len(colors)],
+                        alpha=0.15,
+                        linewidth=0
+                    )
                 ax.plot(xgrid, mean, color=colors[i % len(colors)], lw=mean_lw)
 
     def _overlay_cdms_replicates(self, axes, groups, colors, normalize: bool, x_range):
@@ -1082,7 +1158,12 @@ class PlotApp:
                     y = df["intensity"].astype(float).values
                     if normalize:
                         m = float(np.nanmax(y))
-                        if m > 0: y = (y / m) * 100.0
+                        if m > 0:
+                            norm_mode = self.cdms_norm_mode.get() if hasattr(self, "cdms_norm_mode") else "percent"
+                            if norm_mode == "percent":
+                                y = (y / m) * 100.0
+                            else:
+                                y = y / m
                     ygrid = self._interpolate_to_grid(x, y, xgrid)
                     traces.append(ygrid)
                     ax.plot(x, y, color=colors[i % len(colors)], alpha=0.35, lw=rep_lw)
@@ -1116,7 +1197,12 @@ class PlotApp:
                     y = df["intensity"].astype(float).values
                     if normalize:
                         m = float(np.nanmax(y))
-                        if m > 0: y = (y / m) * 100.0
+                        if m > 0:
+                            norm_mode = self.mz_norm_mode.get() if hasattr(self, "mz_norm_mode") else "percent"
+                            if norm_mode == "percent":
+                                y = (y / m) * 100.0
+                            else:
+                                y = y / m
                     ygrid = self._interpolate_to_grid(x, y, xgrid)
                     traces.append(ygrid)
                     ax.plot(x, y, color=colors[i % len(colors)], alpha=0.35, lw=rep_lw)
@@ -1187,11 +1273,28 @@ class PlotApp:
         # Clamp normalized Y
         try:
             if tab_name == "CD-MS Mass" and normalize:
-                ymax = min(float(self.cdms_ymax_pct.get()), 100.0)
-                for ax in ax_list: ax.set_ylim(0, ymax)
+                norm_mode = getattr(self, "cdms_norm_mode", None)
+                norm_mode = norm_mode.get() if norm_mode is not None else "percent"
+                if norm_mode == "percent":
+                    ymax = min(float(self.cdms_ymax_pct.get()), 100.0)
+                    ymin = 0.0
+                else:
+                    # for 0–1 mode, interpret cdms_ymax_pct field as a raw number, or just clamp to 1
+                    ymin = 0.0
+                    ymax = 1.0
+                for ax in ax_list:
+                    ax.set_ylim(ymin, ymax)
             elif tab_name == "m/z Spectra" and normalize:
-                ymax = min(float(self.mz_ymax_pct.get()), 100.0)
-                for ax in ax_list: ax.set_ylim(0, ymax)
+                norm_mode = getattr(self, "mz_norm_mode", None)
+                norm_mode = norm_mode.get() if norm_mode is not None else "percent"
+                if norm_mode == "percent":
+                    ymin = 0.0
+                    ymax = min(float(self.mz_ymax_pct.get()), 100.0)
+                else:
+                    ymin = 0.0
+                    ymax = 1.0
+                for ax in ax_list:
+                    ax.set_ylim(ymin, ymax)
             elif tab_name == "MWD Chromatograms" and normalize and len(ax_list) == 2:
                 ymax = min(float(self.mwd_ymax_pct.get()), 100.0)
                 ax_list[0].set_ylim(0, ymax)
@@ -1199,8 +1302,19 @@ class PlotApp:
             elif tab_name == "Chromatograms":
                 ymin = float(self.chrom_ymin.get())
                 ymax = float(self.chrom_ymax.get())
-                if normalize: ymax = min(ymax, 1.0)
-                for ax in ax_list: ax.set_ylim(ymin, ymax)
+                norm_mode = getattr(self, "chrom_norm_mode", None)
+                norm_mode = norm_mode.get() if norm_mode is not None else "percent"
+
+                if normalize:
+                    if norm_mode == "percent":
+                        # clamp between 0 and 100
+                        ymin = max(0.0, ymin)
+                        ymax = min(100.0, ymax)
+                    else:  # "unit"
+                        ymin = max(0.0, ymin)
+                        ymax = min(1.0, ymax)
+                for ax in ax_list:
+                    ax.set_ylim(ymin, ymax)
             elif tab_name == "Thermo RAW" and normalize and len(ax_list) == 2:
                 ymax = min(float(self.raw_ymax_pct.get()), 100.0)
                 ax_list[1].set_ylim(0, ymax)
@@ -1235,13 +1349,14 @@ class PlotApp:
                 colors = parse_str_list(self.chrom_colors.get()) or DEFAULT_CHROM_COLORS
                 std_vols = parse_float_list(self.chrom_standards.get()) if self.chrom_show_standards.get() else None
                 normalize = bool(self.chrom_normalize.get())
+                norm_mode = self.chrom_norm_mode.get()  # "percent" or "unit"
                 if self.chrom_mode.get() == "single":
                     if len(self.files) != 1:
                         Messagebox.show_error("Select exactly one Excel file for Single Chromatogram.", title="Selection error")
                         return
                     fig, axes = plot_chrom_stack(
                         files=self.files[:1], sample_labels=labels[:1], colors=colors[:1],
-                        standard_volumes=std_vols, normalize=normalize,
+                        standard_volumes=std_vols, normalize=normalize, norm_mode=norm_mode,
                         font_name=cfg.font_name, font_size=cfg.font_size,
                         xlim=(float(self.chrom_xmin.get()), float(self.chrom_xmax.get())),
                         ylim=(float(self.chrom_ymin.get()), float(self.chrom_ymax.get())),
@@ -1253,7 +1368,7 @@ class PlotApp:
                         return
                     fig, axes = plot_chrom_stack(
                         files=self.files, sample_labels=labels, colors=colors,
-                        standard_volumes=std_vols, normalize=normalize,
+                        standard_volumes=std_vols, normalize=normalize, norm_mode=norm_mode,
                         font_name=cfg.font_name, font_size=cfg.font_size,
                         xlim=(float(self.chrom_xmin.get()), float(self.chrom_xmax.get())),
                         ylim=(float(self.chrom_ymin.get()), float(self.chrom_ymax.get())),
@@ -1285,6 +1400,7 @@ class PlotApp:
                 colors = parse_str_list(self.cdms_colors.get()) or DEFAULT_CDMS_COLORS
                 x_range = (float(self.cdms_xmin.get()), float(self.cdms_xmax.get()))
                 normalize = bool(self.cdms_normalize.get())
+                norm_mode = self.cdms_norm_mode.get()
 
                 if self.cdms_mode.get() == "single":
                     if len(self.files) != 1:
@@ -1293,7 +1409,7 @@ class PlotApp:
                     second_label_single = second_labels[0] if use_second else None
                     fig, ax = plot_single_cdms_mass(
                         dataset=self.files[0], label=labels[0], second_label=second_label_single,
-                        x_range=x_range, color=colors[0], normalize=normalize,
+                        x_range=x_range, color=colors[0], normalize=normalize, norm_mode=norm_mode,
                         font_name=cfg.font_name, font_size=cfg.font_size,
                         figsize=cfg.figsize, dpi=DISPLAY_DPI, save=None, show=cfg.show,
                     )
@@ -1320,7 +1436,7 @@ class PlotApp:
                         datasets=self.files, labels=labels,
                         second_labels=second_labels if use_second else [None] * len(self.files),
                         x_range=x_range, colors=colors, y_offset_step=float(self.cdms_y_offset.get()),
-                        y_tick_labels=y_ticks, normalize=normalize,
+                        y_tick_labels=y_ticks, normalize=normalize, norm_mode=norm_mode,
                         font_name=cfg.font_name, font_size=cfg.font_size,
                         figsize=cfg.figsize, dpi=DISPLAY_DPI, save=None, show=cfg.show,
                     )
@@ -1372,17 +1488,28 @@ class PlotApp:
                 colors = parse_str_list(self.mz_colors.get()) or DEFAULT_MZ_COLORS
                 x_range = (float(self.mz_xmin.get()), float(self.mz_xmax.get()))
                 normalize = bool(self.mz_normalize.get())
+                norm_mode = self.mz_norm_mode.get()  # "percent" or "unit"
 
                 if self.mz_mode.get() == "single":
                     if len(self.files) != 1:
-                        Messagebox.show_error("Select exactly one text file for Single m/z Spectrum.", title="Selection error")
+                        Messagebox.show_error("Select exactly one text file for Single m/z Spectrum.",
+                                              title="Selection error")
                         return
                     second_label_single = second_labels[0] if use_second else None
                     fig, ax = plot_single_mz_spectrum(
-                        dataset=self.files[0], label=labels[0], second_label=second_label_single,
-                        x_range=x_range, color=colors[0], normalize=normalize,
-                        font_name=cfg.font_name, font_size=cfg.font_size,
-                        figsize=cfg.figsize, dpi=DISPLAY_DPI, save=None, show=cfg.show,
+                        dataset=self.files[0],
+                        label=labels[0],
+                        second_label=second_label_single,
+                        x_range=x_range,
+                        color=colors[0],
+                        normalize=normalize,
+                        norm_mode=norm_mode,
+                        font_name=cfg.font_name,
+                        font_size=cfg.font_size,
+                        figsize=cfg.figsize,
+                        dpi=DISPLAY_DPI,
+                        save=None,
+                        show=cfg.show,
                     )
                     if bool(self.mz_rep_enable.get()):
                         groups = self._parse_rep_groups(self.mz_rep_groups.get("1.0", "end"))[:1]
@@ -1402,21 +1529,34 @@ class PlotApp:
                             title="Second label mismatch"
                         )
                         return
-                    y_ticks = ("0", "%", "100") if normalize else ("", "", "")
+
+                    y_ticks = ("0", "%", "100") if normalize and norm_mode == "percent" else ("", "", "")
+
                     fig, axes = plot_mz_spectrum_offset_stack(
-                        datasets=self.files, labels=labels,
+                        datasets=self.files,
+                        labels=labels,
                         second_labels=second_labels if use_second else [None] * len(self.files),
-                        x_range=x_range, colors=colors, y_offset_step=float(self.mz_y_offset.get()),
-                        y_tick_labels=y_ticks, normalize=normalize,
-                        font_name=cfg.font_name, font_size=cfg.font_size,
-                        figsize=cfg.figsize, dpi=DISPLAY_DPI, save=None, show=cfg.show,
+                        x_range=x_range,
+                        colors=colors,
+                        y_offset_step=float(self.mz_y_offset.get()),
+                        y_tick_labels=y_ticks,
+                        normalize=normalize,
+                        norm_mode=norm_mode,
+                        font_name=cfg.font_name,
+                        font_size=cfg.font_size,
+                        figsize=cfg.figsize,
+                        dpi=DISPLAY_DPI,
+                        save=None,
+                        show=cfg.show,
                     )
                     if bool(self.mz_rep_enable.get()):
                         groups = self._parse_rep_groups(self.mz_rep_groups.get("1.0", "end"))
                         axes_list = axes if isinstance(axes, (list, tuple)) else [axes]
                         if len(groups) != len(axes_list):
-                            Messagebox.show_error("Replicate groups must have one line per axis (stacked).",
-                                                  title="Replicates mismatch")
+                            Messagebox.show_error(
+                                "Replicate groups must have one line per axis (stacked).",
+                                title="Replicates mismatch"
+                            )
                         else:
                             self._overlay_mz_replicates(axes_list, groups, colors, normalize, x_range)
                     self._apply_overrides(fig, axes, tab_name="m/z Spectra", normalize=normalize)
