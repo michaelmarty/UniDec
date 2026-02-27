@@ -384,11 +384,13 @@ class PlotApp:
         self.chrom_xmax = tk.DoubleVar(value=20.0)
         tb.Entry(grid, textvariable=self.chrom_xmax, width=8).grid(row=0, column=2, padx=4)
 
-        # Y limits (for non-offset or single mode; still used for overrides)
-        tb.Label(grid, text="Y-lim:").grid(row=0, column=3, sticky=W)
+        # Y limits (normalized; min and max)
+        self.chrom_ylim_label = tb.Label(grid, text="Y-lim (normalized):")
+        self.chrom_ylim_label.grid(row=0, column=3, sticky=W)
         self.chrom_ymin = tk.DoubleVar(value=0.0)
         tb.Entry(grid, textvariable=self.chrom_ymin, width=8).grid(row=0, column=4, padx=4)
-        self.chrom_ymax = tk.DoubleVar(value=1.0)
+        # Default to full 0–100% range since norm_mode starts as "percent"
+        self.chrom_ymax = tk.DoubleVar(value=100.0)
         tb.Entry(grid, textvariable=self.chrom_ymax, width=8).grid(row=0, column=5, padx=4)
 
         # NEW: Y-offset step for stacked chromatograms (offset view)
@@ -421,6 +423,66 @@ class PlotApp:
             variable=self.chrom_norm_mode,
             value="unit"
         ).pack(side=LEFT, padx=4)
+
+        # Keep Y-lim values consistent when changing normalization scale
+        def _update_chrom_ylim_on_mode_change(*args):
+            try:
+                mode = self.chrom_norm_mode.get()
+                ymin = float(self.chrom_ymin.get())
+                ymax = float(self.chrom_ymax.get())
+            except Exception:
+                return
+
+            if mode == "percent":
+                # If values look like unit scale (0–1), convert to percent
+                if ymax <= 1.0:
+                    ymin = ymin * 100.0
+                    ymax = ymax * 100.0
+            else:  # mode == "unit"
+                # If values look like percent (>1), convert to unit scale
+                if ymax > 1.0:
+                    ymin = ymin / 100.0
+                    ymax = ymax / 100.0
+
+            # Clamp in the new scale
+            if mode == "percent":
+                ymin = max(0.0, min(100.0, ymin))
+                ymax = max(0.0, min(100.0, ymax))
+            else:
+                ymin = max(0.0, min(1.0, ymin))
+                ymax = max(0.0, min(1.0, ymax))
+            if ymax < ymin:
+                ymin, ymax = ymax, ymin
+
+            self.chrom_ymin.set(round(ymin, 6))
+            self.chrom_ymax.set(round(ymax, 6))
+
+        self.chrom_norm_mode.trace_add("write", _update_chrom_ylim_on_mode_change)
+
+        # Also clamp when the user edits Y-lim directly
+        def _validate_chrom_ylim(*args):
+            try:
+                mode = self.chrom_norm_mode.get()
+                ymin = float(self.chrom_ymin.get())
+                ymax = float(self.chrom_ymax.get())
+            except Exception:
+                return
+
+            if mode == "percent":
+                ymin = max(0.0, min(100.0, ymin))
+                ymax = max(0.0, min(100.0, ymax))
+            else:  # "unit"
+                ymin = max(0.0, min(1.0, ymin))
+                ymax = max(0.0, min(1.0, ymax))
+
+            if ymax < ymin:
+                ymin, ymax = ymax, ymin
+
+            self.chrom_ymin.set(round(ymin, 6))
+            self.chrom_ymax.set(round(ymax, 6))
+
+        self.chrom_ymin.trace_add("write", _validate_chrom_ylim)
+        self.chrom_ymax.trace_add("write", _validate_chrom_ylim)
 
         std_row = tb.Frame(lf_axes, bootstyle="secondary")
         std_row.pack(fill=X, pady=4)
@@ -497,8 +559,9 @@ class PlotApp:
         self.cdms_xmax = tk.DoubleVar(value=500.0)
         tb.Entry(grid, textvariable=self.cdms_xmax, width=8).grid(row=0, column=2, padx=4)
 
-        # Y max for normalized plots
-        tb.Label(grid, text="Y-max (%):").grid(row=0, column=3, sticky=W)
+        # Y max for normalized plots (label updated based on norm_mode)
+        self.cdms_ymax_label = tb.Label(grid, text="Y max (normalized):")
+        self.cdms_ymax_label.grid(row=0, column=3, sticky=W)
         self.cdms_ymax_pct = tk.DoubleVar(value=100.0)
         tb.Entry(grid, textvariable=self.cdms_ymax_pct, width=8).grid(row=0, column=4, padx=4)
 
@@ -532,6 +595,41 @@ class PlotApp:
             variable=self.cdms_norm_mode,
             value="unit"
         ).pack(side=LEFT, padx=4)
+
+        def _update_cdms_ymax_on_mode_change(*args):
+            try:
+                mode = self.cdms_norm_mode.get()
+                val = float(self.cdms_ymax_pct.get())
+            except Exception:
+                return
+            if mode == "percent":
+                # 0–1 → 0–100 if needed
+                if val <= 1.0:
+                    val = val * 100.0
+                val = max(0.0, min(100.0, val))
+            else:  # "unit"
+                # 0–100 → 0–1 if needed
+                if val > 1.0:
+                    val = val / 100.0
+                val = max(0.0, min(1.0, val))
+            self.cdms_ymax_pct.set(round(val, 6))
+
+        self.cdms_norm_mode.trace_add("write", _update_cdms_ymax_on_mode_change)
+
+        # Clamp CD-MS Y max whenever the user edits it
+        def _validate_cdms_ymax(*args):
+            try:
+                mode = self.cdms_norm_mode.get()
+                val = float(self.cdms_ymax_pct.get())
+            except Exception:
+                return
+            if mode == "percent":
+                val = max(0.0, min(100.0, val))
+            else:
+                val = max(0.0, min(1.0, val))
+            self.cdms_ymax_pct.set(round(val, 6))
+
+        self.cdms_ymax_pct.trace_add("write", _validate_cdms_ymax)
 
         # Replicates panel
         lf_rep = tb.Labelframe(self.cdms_tab, text="Replicates (optional)", padding=8, bootstyle="secondary")
@@ -615,7 +713,8 @@ class PlotApp:
         tb.Entry(grid, textvariable=self.mwd_xmax, width=8).grid(row=0, column=2, padx=4)
 
         # Y-max for normalized plots (percent mode)
-        tb.Label(grid, text="Y-max (%):").grid(row=0, column=3, sticky=W)
+        self.mwd_ymax_label = tb.Label(grid, text="Y max (normalized):")
+        self.mwd_ymax_label.grid(row=0, column=3, sticky=W)
         self.mwd_ymax_pct = tk.DoubleVar(value=100.0)
         tb.Entry(grid, textvariable=self.mwd_ymax_pct, width=8).grid(row=0, column=4, padx=4)
 
@@ -644,6 +743,39 @@ class PlotApp:
             variable=self.mwd_norm_mode,
             value="unit"
         ).pack(side=LEFT, padx=4)
+
+        def _update_mwd_ymax_on_mode_change(*args):
+            try:
+                mode = self.mwd_norm_mode.get()
+                val = float(self.mwd_ymax_pct.get())
+            except Exception:
+                return
+            if mode == "percent":
+                if val <= 1.0:
+                    val = val * 100.0
+                val = max(0.0, min(100.0, val))
+            else:  # "unit"
+                if val > 1.0:
+                    val = val / 100.0
+                val = max(0.0, min(1.0, val))
+            self.mwd_ymax_pct.set(round(val, 6))
+
+        self.mwd_norm_mode.trace_add("write", _update_mwd_ymax_on_mode_change)
+
+        # Clamp MWD Y max whenever the user edits it
+        def _validate_mwd_ymax(*args):
+            try:
+                mode = self.mwd_norm_mode.get()
+                val = float(self.mwd_ymax_pct.get())
+            except Exception:
+                return
+            if mode == "percent":
+                val = max(0.0, min(100.0, val))
+            else:
+                val = max(0.0, min(1.0, val))
+            self.mwd_ymax_pct.set(round(val, 6))
+
+        self.mwd_ymax_pct.trace_add("write", _validate_mwd_ymax)
 
     # ---------- m/z tab ----------
     def _build_mz_tab(self, nb):
@@ -691,7 +823,8 @@ class PlotApp:
         tb.Entry(grid, textvariable=self.mz_xmax, width=8).grid(row=0, column=2, padx=4)
 
         # Y max (for normalized plots)
-        tb.Label(grid, text="Y-max (%):").grid(row=0, column=3, sticky=W)
+        self.mz_ymax_label = tb.Label(grid, text="Y max (normalized):")
+        self.mz_ymax_label.grid(row=0, column=3, sticky=W)
         self.mz_ymax_pct = tk.DoubleVar(value=100.0)
         tb.Entry(grid, textvariable=self.mz_ymax_pct, width=8).grid(row=0, column=4, padx=4)
 
@@ -725,6 +858,39 @@ class PlotApp:
             variable=self.mz_norm_mode,
             value="unit"
         ).pack(side=LEFT, padx=4)
+
+        def _update_mz_ymax_on_mode_change(*args):
+            try:
+                mode = self.mz_norm_mode.get()
+                val = float(self.mz_ymax_pct.get())
+            except Exception:
+                return
+            if mode == "percent":
+                if val <= 1.0:
+                    val = val * 100.0
+                val = max(0.0, min(100.0, val))
+            else:  # "unit"
+                if val > 1.0:
+                    val = val / 100.0
+                val = max(0.0, min(1.0, val))
+            self.mz_ymax_pct.set(round(val, 6))
+
+        self.mz_norm_mode.trace_add("write", _update_mz_ymax_on_mode_change)
+
+        # Clamp m/z Y max whenever the user edits it
+        def _validate_mz_ymax(*args):
+            try:
+                mode = self.mz_norm_mode.get()
+                val = float(self.mz_ymax_pct.get())
+            except Exception:
+                return
+            if mode == "percent":
+                val = max(0.0, min(100.0, val))
+            else:
+                val = max(0.0, min(1.0, val))
+            self.mz_ymax_pct.set(round(val, 6))
+
+        self.mz_ymax_pct.trace_add("write", _validate_mz_ymax)
 
         # Replicates panel
         lf_rep = tb.Labelframe(self.mz_tab, text="Replicates (optional)", padding=8, bootstyle="secondary")
@@ -816,9 +982,42 @@ class PlotApp:
             value="unit"
         ).pack(side=LEFT, padx=4)
 
-        tb.Label(grid, text="Spec Y-max (%):").grid(row=2, column=0, sticky=W, pady=(6, 0))
+        def _update_raw_ymax_on_mode_change(*args):
+            try:
+                mode = self.raw_norm_mode.get()
+                val = float(self.raw_ymax_pct.get())
+            except Exception:
+                return
+            if mode == "percent":
+                if val <= 1.0:
+                    val = val * 100.0
+                val = max(0.0, min(100.0, val))
+            else:  # "unit"
+                if val > 1.0:
+                    val = val / 100.0
+                val = max(0.0, min(1.0, val))
+            self.raw_ymax_pct.set(round(val, 6))
+
+        self.raw_norm_mode.trace_add("write", _update_raw_ymax_on_mode_change)
+        self.raw_ymax_label = tb.Label(grid, text="Spec Y max (normalized):")
+        self.raw_ymax_label.grid(row=2, column=0, sticky=W, pady=(6, 0))
         self.raw_ymax_pct = tk.DoubleVar(value=100.0)
         tb.Entry(grid, textvariable=self.raw_ymax_pct, width=8).grid(row=2, column=1, padx=6, pady=(6, 0))
+
+        # Clamp RAW Y max whenever the user edits it
+        def _validate_raw_ymax(*args):
+            try:
+                mode = self.raw_norm_mode.get()
+                val = float(self.raw_ymax_pct.get())
+            except Exception:
+                return
+            if mode == "percent":
+                val = max(0.0, min(100.0, val))
+            else:
+                val = max(0.0, min(1.0, val))
+            self.raw_ymax_pct.set(round(val, 6))
+
+        self.raw_ymax_pct.trace_add("write", _validate_raw_ymax)
 
         lf_ms = tb.Labelframe(self.raw_tab, text="msconvert (ProteoWizard)", padding=8, bootstyle="secondary")
         lf_ms.pack(fill=X, pady=4)
