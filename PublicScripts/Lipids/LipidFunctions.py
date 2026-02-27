@@ -457,6 +457,7 @@ def set_tails(df, columnname="Molecule Name"):
     return df
 
 def set_basic_tail_names(df, columnname="Molecule Name"):
+    df = df.copy()
     tnames = []
     t1s = []
     t2s = []

@@ -83,6 +83,26 @@ struct Decon {
     int maxlength;
 };
 
+typedef struct IntraDecon IntraDecon;
+
+struct IntraDecon {
+    int mlength;
+    int zlength;
+    int numclose;
+    int ln;
+    char *barr;
+    int * mind;
+    int * zind;
+    int * closemind;
+    int * closezind;
+    int * closeind;
+    float * mdist;
+    float * zdist;
+    float * oldblur;
+    float * closeval;
+    float * closearray;
+};
+
 
 typedef struct Config Config;
 
@@ -190,6 +210,8 @@ UDSTRUCT_EXPORTS Input SetupInputs();
 UDSTRUCT_EXPORTS void FreeInputs(Input inp);
 UDSTRUCT_EXPORTS Decon SetupDecon();
 UDSTRUCT_EXPORTS void FreeDecon(Decon decon);
+UDSTRUCT_EXPORTS IntraDecon SetupIntraDecon();
+UDSTRUCT_EXPORTS void FreeIntraDecon(IntraDecon intradecon);
 UDSTRUCT_EXPORTS void SetDefaultConfig(Config *config);
 UDSTRUCT_EXPORTS void PostImport(Config *config);
 UDSTRUCT_EXPORTS Config LoadConfig(Config config, const char *filename);

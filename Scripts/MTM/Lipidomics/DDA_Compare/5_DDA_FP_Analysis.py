@@ -5,7 +5,7 @@ from PublicScripts.Lipids.LipidFunctions import smiles_analysis
 
 
 topdir = r"Z:\Group Share\Shivam\DDA"
-topdir = r"Z:\Group Share\Shivam\IQX_Stellar_fixed"
+topdir = r"Z:\Group Share\Annika\IQX vs Stellar DDA"
 os.chdir(topdir)
 
 filepath = r"Combined_DDA_Full.xlsx"
@@ -17,7 +17,7 @@ posdf = df[df["Polarity"] == "Positive"]
 negdf = df[df["Polarity"] == "Negative"]
 
 outdf = ot.outlier_analysis(posdf, negdf, tol=0.3, contribs=False, add_all_cols_heads=True,
-                            add_all_cols_tails=False, drop_cols=False)
+                            add_all_cols_tails=False, drop_cols=False, do_tails=False)
 
 # Write out combined dataframe for reference
 outdf.to_excel("Combined_DDA_OutlierAnalysis.xlsx", index=False)
