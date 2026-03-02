@@ -5,7 +5,7 @@
 #include "udstruct.h"
 
 
-Input SetupInputs() {
+Input InitInputs() {
     Input inp;
     inp.dataMZ = NULL;
     inp.dataInt = NULL;
@@ -27,7 +27,7 @@ void FreeInputs(const Input inp) {
     free(inp.fwhmlist);
 }
 
-Decon SetupDecon() {
+Decon InitDecon() {
     Decon decon;
     decon.fitdat = NULL;
     decon.baseline = NULL;
@@ -75,7 +75,7 @@ void FreeDecon(const Decon decon) {
     free(decon.endtab);
 }
 
-IntraDecon SetupIntraDecon() {
+IntraDecon InitIntraDecon() {
     IntraDecon intradecon;
     intradecon.mlength = 0;
     intradecon.zlength = 0;

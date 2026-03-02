@@ -209,11 +209,11 @@ struct Config {
     int normthresh;
 };
 
-UDSTRUCT_EXPORTS Input SetupInputs();
+UDSTRUCT_EXPORTS Input InitInputs();
 UDSTRUCT_EXPORTS void FreeInputs(Input inp);
-UDSTRUCT_EXPORTS Decon SetupDecon();
+UDSTRUCT_EXPORTS Decon InitDecon();
 UDSTRUCT_EXPORTS void FreeDecon(Decon decon);
-UDSTRUCT_EXPORTS IntraDecon SetupIntraDecon();
+UDSTRUCT_EXPORTS IntraDecon InitIntraDecon();
 UDSTRUCT_EXPORTS void FreeIntraDecon(IntraDecon intradecon);
 UDSTRUCT_EXPORTS void SetDefaultConfig(Config *config);
 UDSTRUCT_EXPORTS void PostImport(Config *config);

@@ -786,8 +786,8 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 
 			//Import everything
 			config.metamode = i;
-			Decon decon = SetupDecon();
-			Input inp = SetupInputs();
+			Decon decon = InitDecon();
+			Input inp = InitInputs();
 
 			ReadInputs(argc, argv, &config, &inp);
 

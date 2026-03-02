@@ -588,8 +588,8 @@ void get_scan_scores(int argc, char* argv[], Config config)
 	for (int i = 0; i < num; i++) {
 		config.metamode = i;
 
-		Decon decon = SetupDecon();
-		Input inp = SetupInputs();
+		Decon decon = InitDecon();
+		Input inp = InitInputs();
 		ReadInputs(argc, argv, &config, &inp);
 		int status = ReadDecon(&config, inp, &decon);
 

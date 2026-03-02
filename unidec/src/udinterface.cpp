@@ -48,7 +48,7 @@ extern "C" int run_unidec_core(Config config, Input inp, Decon *decon, const int
 
 // Main interface function to run deconvolution
 DeconVec RunDeconvolution(Config * config, InputVec * inputVec, int verbose) {
-    Input inputC = SetupInputs();
+    Input inputC = InitInputs();
     ConvertToCInput(inputVec, &inputC);
     PostImport(config);
     Decon deconC;
