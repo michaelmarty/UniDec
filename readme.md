@@ -153,11 +153,23 @@ However, if you want to look at chromatography data directly, we now recommend U
 Most users will likely just want to run the compiled version. For those advanced users who have experience with Python,
 we have provided the source code for the GUI and API. For more information, check out this [walkthrough](https://github.com/michaelmarty/UniDec/wiki/Installing-the-UniDec-Source-Code). Specific package requirements are outlined in the setup.py file.
 
-However, an experimental distribution is provide on PyPI. Using:
+You can also install it off PyPI using:
 
     pip install unidec
 
-should install UniDec on your computer and install any required dependencies. Try this out first and see if it works.
+It may not be the most updated version, so let me know if it is out of date.
+
+If you would like to try to run experimental features from the v3 branch, this set of commands will pull and install it:
+
+    virtualenv env
+    .\env\Scripts\activate
+    git clone https://github.com/michaelmarty/UniDec.git -b v3
+    cd UniDec
+    pip install -r requirements.txt
+    pip install pythonnet # IF ON WINDOWS
+    python -m unidec.Launcher
+
+
 
 ### The UniDec Binaries
 

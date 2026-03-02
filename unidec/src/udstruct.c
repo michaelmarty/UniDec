@@ -53,6 +53,7 @@ Decon SetupDecon() {
     decon.mlen = 0;
     decon.plen = 0;
     decon.scanindex = 0;
+    decon.maxlength = 0;
     return decon;
 }
 
@@ -80,6 +81,8 @@ IntraDecon SetupIntraDecon() {
     intradecon.zlength = 0;
     intradecon.numclose = 0;
     intradecon.ln = 0;
+    intradecon.betafactor = 1.0f;
+    intradecon.off = 0;
     intradecon.barr = NULL;
     intradecon.mind = NULL;
     intradecon.zind = NULL;
@@ -91,6 +94,7 @@ IntraDecon SetupIntraDecon() {
     intradecon.oldblur = NULL;
     intradecon.closeval = NULL;
     intradecon.closearray = NULL;
+    intradecon.dataInt2 = NULL;
     return intradecon;
 }
 
@@ -106,6 +110,7 @@ void FreeIntraDecon(const IntraDecon intradecon) {
     free(intradecon.oldblur);
     free(intradecon.closeval);
     free(intradecon.closearray);
+    free(intradecon.dataInt2);
 }
 
 

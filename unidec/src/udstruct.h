@@ -90,6 +90,8 @@ struct IntraDecon {
     int zlength;
     int numclose;
     int ln;
+    float betafactor;
+    int off;
     char *barr;
     int * mind;
     int * zind;
@@ -101,6 +103,7 @@ struct IntraDecon {
     float * oldblur;
     float * closeval;
     float * closearray;
+    float * dataInt2;
 };
 
 

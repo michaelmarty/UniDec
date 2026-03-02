@@ -25,19 +25,12 @@ Decon ExitToBlank(const Config config, Decon decon)
 	return decon;
 }
 
-Decon MainDeconvolution(const Config config, const Input inp, const int silent)
+int SetupDeconvolution(const Config config, const Input inp, Decon *decon, IntraDecon *intra, const int silent)
 {
-	//Insert time
-	time_t starttime;
-	starttime = clock();
-
-	Decon decon = SetupDecon();
-	IntraDecon intra = SetupIntraDecon();
-
 	// Set up memory and copy in binary array
-	intra.ln = config.lengthmz * config.numz;
-	intra.barr = calloc(intra.ln, sizeof(char));
-	memcpy(intra.barr, inp.barr, (size_t)intra.ln * sizeof(char));
+	intra->ln = config.lengthmz * config.numz;
+	intra->barr = calloc(intra->ln, sizeof(char));
+	memcpy(intra->barr, inp.barr, (size_t)intra->ln * sizeof(char));
 
 	//...................................................................
 	//
@@ -45,7 +38,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 	//
 	//....................................................................
 
-	SetUpPeakShape(config, inp, &decon, silent, 1);
+	SetUpPeakShape(config, inp, decon, silent, 1);
 
 	//....................................................
 	//
@@ -53,12 +46,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 	//
 	//......................................................
 
-	SetUpBlur(config, inp, &intra, silent);
-
-	//Determine the maximum intensity in the data
-	float dmax = Max(inp.dataInt, config.lengthmz);
-	float betafactor = 1;
-	if (dmax > 1) { betafactor=dmax; }
+	SetUpBlur(config, inp, intra, silent);
 
 	//...................................................
 	//
@@ -66,20 +54,18 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 	//
 	//.........................................................
 
-
 	//Applies the intensity threshold to kill peaks
-	if (config.intthresh != -1) { KillB(inp.dataInt, intra.barr, config.intthresh, config.lengthmz, config.numz); }
+	if (config.intthresh != -1) { KillB(inp.dataInt, intra->barr, config.intthresh, config.lengthmz, config.numz); }
 
-
-	//Creates an intial probability matrix, decon.blur, of 1 for each element
-	decon.blur = calloc(intra.ln, sizeof(float));
-	decon.newblur = calloc(intra.ln, sizeof(float));
-	intra.oldblur = calloc(intra.ln, sizeof(float));
+	//Creates an intial probability matrix, decon->blur, of 1 for each element
+	decon->blur = calloc(intra->ln, sizeof(float));
+	decon->newblur = calloc(intra->ln, sizeof(float));
+	intra->oldblur = calloc(intra->ln, sizeof(float));
 
 	if (config.baselineflag == 1) {
 		printf("Auto Baseline Mode On: %d\n", config.aggressiveflag);
-		decon.baseline = calloc(config.lengthmz, sizeof(float));
-		decon.noise = calloc(config.lengthmz, sizeof(float));
+		decon->baseline = calloc(config.lengthmz, sizeof(float));
+		decon->noise = calloc(config.lengthmz, sizeof(float));
 	}
 
 	//#pragma omp parallel for private (i,j), schedule(auto)
@@ -87,48 +73,49 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 	{
 		float val = inp.dataInt[i] / ((float)(config.numz + 2));
 		if (config.baselineflag == 1) {
-
-			decon.baseline[i] = val;
-			decon.noise[i] = val;
+			decon->baseline[i] = val;
+			decon->noise[i] = val;
 		}
 
 		for (int j = 0; j < config.numz; j++)
 		{
-			if (intra.barr[index2D(config.numz, i, j)] == 1) {
-				if (config.isotopemode == 0) {
-					decon.blur[index2D(config.numz, i, j)] = val;
-				}
-				else { decon.blur[index2D(config.numz, i, j)] = 1; }
+			if (intra->barr[index2D(config.numz, i, j)] == 1) {
+				decon->blur[index2D(config.numz, i, j)] = val;
 			}
 			else
 			{
-				decon.blur[index2D(config.numz, i, j)] = 0;
+				decon->blur[index2D(config.numz, i, j)] = 0;
 			}
 		}
 	}
-	memcpy(intra.oldblur, decon.blur, sizeof(float) * config.lengthmz * config.numz);
-	memcpy(decon.newblur, decon.blur, sizeof(float) * config.lengthmz * config.numz);
+	memcpy(intra->oldblur, decon->blur, sizeof(float) * config.lengthmz * config.numz);
+	memcpy(decon->newblur, decon->blur, sizeof(float) * config.lengthmz * config.numz);
 
 
+	// ............
+	//
+	// Run Baseline Subtraction if needed, otherwise just copy data over
+	//
+	// ..................
 
-	float* dataInt2 = NULL;
-	dataInt2 = calloc(config.lengthmz, sizeof(float));
-	memcpy(dataInt2, inp.dataInt, sizeof(float) * config.lengthmz);
+	intra->dataInt2 = calloc(config.lengthmz, sizeof(float));
+	memcpy(intra->dataInt2, inp.dataInt, sizeof(float) * config.lengthmz);
+
 	if (config.baselineflag == 1)
 	{
 		if (config.mzsig != 0)
 		{
-			deconvolve_baseline(config.lengthmz, inp.dataMZ, inp.dataInt, decon.baseline, fabsf(config.mzsig));
+			deconvolve_baseline(config.lengthmz, inp.dataMZ, inp.dataInt, decon->baseline, fabsf(config.mzsig));
 			if (config.aggressiveflag == 2)
 			{
 				for (int i = 0; i < 10; i++)
 				{
-					deconvolve_baseline(config.lengthmz, inp.dataMZ, inp.dataInt, decon.baseline, fabsf(config.mzsig));
+					deconvolve_baseline(config.lengthmz, inp.dataMZ, inp.dataInt, decon->baseline, fabsf(config.mzsig));
 				}
 				for (int i = 0; i < config.lengthmz; i++)
 				{
-					if (decon.baseline[i] > 0) {
-						dataInt2[i] -= decon.baseline[i];
+					if (decon->baseline[i] > 0) {
+						intra->dataInt2[i] -= decon->baseline[i];
 					}
 				}
 				//memcpy(decon.baseline, dataInt2, sizeof(float)*config.lengthmz);
@@ -138,15 +125,61 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 		{
 			printf("Ignoring baseline subtraction because peak width is 0\n");
 		}
-
 	}
 
-	// Final check that there are are actually possible data in the set
+	//Determine the maximum intensity in the data for the betafactor
+	float dmax = Max(intra->dataInt2, config.lengthmz);
+	if (dmax > 1) { intra->betafactor=dmax; }
+
+	// Final check that there are actually possible data in the set
 	int badness = 1;
 	for (int i = 0; i < config.lengthmz * config.numz; i++)
 	{
-		if (intra.barr[i] == 1) { badness = 0; }
+		if (intra->barr[i] == 1) { badness = 0; break;}
 	}
+	return badness;
+}
+
+int CheckConvergence(const Config config, Decon * decon, IntraDecon *intra, int iterations, const int silent) {
+	float diff = 0;
+	float tot = 0;
+	for (int i = 0; i < config.lengthmz * config.numz; i++)
+	{
+		if (intra->barr[i] == 1)
+		{
+			diff += powf((decon->blur[i] - intra->oldblur[i]), 2);
+			tot += decon->blur[i];
+		}
+	}
+	if (tot != 0) { decon->conv = (diff / tot); }
+	else {
+		if (decon->conv == 12345678) { printf("m/z vs. charge grid is zero. Iteration: %d\n", iterations); return 1; }
+	}
+
+	//printf("Iteration: %d Convergence: %f\n", iterations, decon.conv);
+	if (decon->conv < 0.000001) {
+		if (intra->off == 1 && config.numit > 0) {
+			if (silent == 0) { printf("Converged in %d iterations.\n", iterations); }
+			return 1;
+		}
+		intra->off = 1;
+	}
+	memcpy(intra->oldblur, decon->blur, (size_t) intra->ln * sizeof(float));
+	return 0;
+}
+
+Decon MainDeconvolution(const Config config, const Input inp, const int silent)
+{
+	//Insert time
+	time_t starttime;
+	starttime = clock();
+
+	Decon decon = SetupDecon();
+	IntraDecon intra = SetupIntraDecon();
+
+	int badness = SetupDeconvolution(config, inp, &decon, &intra, silent);
+
+	// If badness found, abort
 	if (badness == 1) {
 		if (silent == 0) { printf("ERROR: Setup is bad. No points are allowed.\n Check that either mass smoothing, charge smoothing, manual assignment, or isotope mode are on.\n"); };
 		decon = ExitToBlank(config, decon);
@@ -155,12 +188,9 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 	}
 
 	//Run the iteration
-	float blurmax = 0;
-	decon.conv = 0;
-	int off = 0;
 
 	// if (config.minratio > 0 && config.variablepw > 0){
-	// 	check_ratios(config, inp, barr, intra.numclose, closeind, decon.blur);
+	// 	check_ratios(config, inp, barr, intra->numclose, closeind, decon.blur);
 	// }
 
 	if (silent == 0) { printf("Iterating..."); }
@@ -174,7 +204,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 
 		if (config.beta > 0 && iterations > 0)
 		{
-			softargmax(decon.blur, config.lengthmz, config.numz, config.beta/betafactor);
+			softargmax(decon.blur, config.lengthmz, config.numz, config.beta/intra.betafactor);
 			//printf("Beta %f\n", beta);
 			// softmax_peakwidth(config, decon, decon.blur, barr, config.beta/betafactor);
 		}
@@ -187,65 +217,36 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 
 		//Run Blurs
 		if (config.zsig >= 0 && config.msig >= 0) {
-			blur_it_mean(config.lengthmz, config.numz, intra.numclose, intra.closeind, decon.newblur, decon.blur, intra.barr, intra.closearray, config.zerolog);
+			blur_it_mean(intra, decon.newblur, decon.blur, config.zerolog);
 		}
 		else if (config.zsig > 0 && config.msig < 0)
 		{
-			blur_it_hybrid1(config.lengthmz, config.numz, intra.zlength, intra.mlength, intra.closeind, intra.closemind, intra.closezind,
-				intra.mdist, intra.zdist, decon.newblur, decon.blur, intra.barr, intra.closearray, config.zerolog);
+			blur_it_hybrid1(intra, config.lengthmz, config.numz, decon.newblur, decon.blur, config.zerolog);
 		}
 		else if (config.zsig < 0 && config.msig > 0)
 		{
-			blur_it_hybrid2(config.lengthmz, config.numz, intra.zlength, intra.mlength, intra.closeind, intra.closemind, intra.closezind,
-				intra.mdist, intra.zdist, decon.newblur, decon.blur, intra.barr, intra.closearray, config.zerolog);
+			blur_it_hybrid2(intra, config.lengthmz, config.numz, decon.newblur, decon.blur, config.zerolog);
 		}
 		else {
-			blur_it(config.lengthmz, config.numz, intra.numclose, intra.closeind, intra.closearray, decon.newblur, decon.blur, intra.barr);
+			blur_it(intra, decon.newblur, decon.blur);
 		}
 
 		//Run Richardson-Lucy Deconvolution
-		deconvolve_iteration_speedy(config, &decon,decon.newblur, decon.blur, intra.barr, dataInt2, decon.baseline, inp.dataMZ);
+		deconvolve_iteration_speedy(config, &decon, intra, inp.dataMZ);
 
 		//Determine the metrics for conversion. Only do this every 10% to speed up.
 		if ((config.numit < 10 || iterations % 10 == 0 || iterations % 10 == 1 || iterations>0.9 * config.numit)) {
-			float diff = 0;
-			float tot = 0;
-			for (int i = 0; i < config.lengthmz * config.numz; i++)
-			{
-				if (intra.barr[i] == 1)
-				{
-					diff += powf((decon.blur[i] - intra.oldblur[i]), 2);
-					tot += decon.blur[i];
-				}
-			}
-			if (tot != 0) { decon.conv = (diff / tot); }
-			else {
-				if (decon.conv == 12345678) { printf("m/z vs. charge grid is zero. Iteration: %d\n", iterations); break; }
-				else{decon.conv = 12345678;}
-			}
-
-			//printf("Iteration: %d Convergence: %f\n", iterations, decon.conv);
-			if (decon.conv < 0.000001) {
-				if (off == 1 && config.numit > 0) {
-					if (silent == 0) { printf("Converged in %d iterations.\n", iterations); }
-					break;
-				}
-				off = 1;
-			}
-			memcpy(intra.oldblur, decon.blur, (size_t)intra.ln * sizeof(float));
+			int converged = CheckConvergence(config, &decon, &intra, iterations, silent);
+			if (converged == 1) { break; }
 		}
 
 	}
-
-	free(dataInt2);
 
 	//................................................................
 	//
 	//     Setting up the outputs
 	//
 	//...............................................................
-
-
 
 	//Reset the peak shape if it was inflated
 	if (config.peakshapeinflate != 1 && config.mzsig != 0) {
@@ -262,7 +263,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 
 
 	//Determine the maximum intensity in the blur matrix
-	blurmax = Max(decon.blur, config.lengthmz * config.numz);
+	float blurmax = Max(decon.blur, config.lengthmz * config.numz);
 	float cutoff = 0;
 	if (blurmax != 0) { cutoff = 0.000001f; }
 
