@@ -27,8 +27,8 @@ void create_sim_spec(Config config, Input inp, const float* blur, const float ma
 int conv_main(int argc, char* argv[], Config config)
 {
 	printf("Running Convolution\n");
-	Input inp = SetupInputs();
-	ReadInputs(argc, argv, &config, &inp);
+	Input inp = InitInputs();
+	ReadInputs(&config, &inp);
 	CalcMasses(&config, &inp);
 
 	char pfile[510];
@@ -66,7 +66,7 @@ int conv_main(int argc, char* argv[], Config config)
 	//
 	//....................................................................
 
-	Decon decon = SetupDecon();
+	Decon decon = InitDecon();
 	float* outarray = calloc(config.lengthmz * config.numz, sizeof(float));
 	if (outarray == NULL) {
 		printf("Error allocating memory for output array.\n");
