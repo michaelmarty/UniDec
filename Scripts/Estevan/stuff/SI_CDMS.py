@@ -10,11 +10,11 @@ x_range = (0, 500)  # x-axis limits
 
 # === FILES TO PLOT ===
 files = [
-r"Z:\Group Share\Estevan\Aiden\Replicates\FluroND\sfCherry - done\Long - done\20251208_EC_D1cherryLong_1to90_DMPC_CDMS_2025-12-08-11-04-12_unidecfiles\20251208_EC_D1cherryLong_1to90_DMPC_CDMS_2025-12-08-11-04-12_mass.txt",
-    r"Z:\Group Share\Estevan\Aiden\Replicates\FluroND\mCherry - done\20251202_EC_D1mCherryREDOcdms_2025-12-02-11-15-03_unidecfiles\20251202_EC_D1mCherryREDOcdms_2025-12-02-11-15-03_mass.txt",
-    r"Z:\Group Share\Estevan\Aiden\Replicates\FluroND\mBlueberry - done\20251107_EC_D1blueberry_1to80_DMPC_CDMS_2025-11-07-12-07-14_unidecfiles\20251107_EC_D1blueberry_1to80_DMPC_CDMS_2025-11-07-12-07-14_mass.txt",
-    r"Z:\Group Share\Estevan\Aiden\Replicates\FluroND\Halo-Tag - done\20251204_EC_D1Halo_1to80_DMPC_rep3cdms_2025-12-04-11-13-01_unidecfiles\20251204_EC_D1Halo_1to80_DMPC_rep3cdms_2025-12-04-11-13-01_mass.txt",
-    r"Z:\Group Share\Estevan\Aiden\Replicates\FluroND\sfGFP - done\E3T0\20251209_EC_E3sfGFP_1to160_DMPC_run_twoCDMS_2025-12-09-01-33-49_unidecfiles\20251209_EC_E3sfGFP_1to160_DMPC_run_twoCDMS_2025-12-09-01-33-49_mass.txt"
+r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\Mass txt files\20251208_EC_D1cherryLong_1to90_DMPC_rep2_cdms_2025-12-08-12-09-32_mass.txt",
+    r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\Mass txt files\20251202_EC_D1mCherryREDOcdms_2025-12-02-11-15-03_mass.txt",
+    r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\Mass txt files\20251107_EC_D1blueberry_1to80_DMPC_CDMS_2025-11-07-12-07-14_mass.txt",
+    r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\Mass txt files\20251204_EC_D1Halo_1to80_DMPC_rep2cdms_2025-12-04-09-52-12_mass.txt",
+    r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\Mass txt files\20251205_EC_E3sfGFP_1to150DMPC_cdms_2025-12-05-09-33-47_mass.txt"
     # Add your file paths here
 ]
 
@@ -30,11 +30,11 @@ labels = [
 
 # === SECOND LEGEND LABELS (one per file) ===
 second_labels = [
-"185 ± 16 DMPC per Nanodisc",
-    "154 ± 9 DMPC per Nanodisc",
-    "156 ± 7 DMPC per Nanodisc",
-    "146 ± 14 DMPC per Nanodisc",
-    "360 ± 20 DMPC per Nanodisc",
+"185 ± 20 DMPC per Nanodisc",
+    "151 ± 9 DMPC per Nanodisc",
+    "155 ± 10 DMPC per Nanodisc",
+    "151 ± 11 DMPC per Nanodisc",
+    "370 ± 15 DMPC per Nanodisc",
     # Add your second legend labels here, e.g. "FWHM", "Peak"
 ]
 
