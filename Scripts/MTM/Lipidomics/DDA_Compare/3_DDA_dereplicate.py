@@ -58,7 +58,7 @@ def split_dfs(df):
 mpl.use("WxAgg")
 
 topdir = r"Z:\Group Share\Shivam\DDA"
-topdir = r"Z:\Group Share\Annika\IQX vs Stellar DDA"
+topdir = r"Z:\Group Share\Annika\IQ-X\Feb 2026 UntDDA\MSDial\Marked Low Score\RTP2"
 os.chdir(topdir)
 
 df = pd.read_csv("Combined_DDA_RT_Corrected.csv")

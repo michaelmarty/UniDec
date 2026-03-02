@@ -3,7 +3,7 @@ import pandas as pd
 from PublicScripts.Lipids.RT_Correction import correct_dataset_rts
 
 topdir = r"Z:\Group Share\Shivam\DDA"
-topdir = r"Z:\Group Share\Annika\IQX vs Stellar DDA"
+topdir = r"Z:\Group Share\Annika\IQ-X\Feb 2026 UntDDA\MSDial\Marked Low Score\RTP2"
 os.chdir(topdir)
 
 df = pd.read_csv("Combined_DDA.csv")

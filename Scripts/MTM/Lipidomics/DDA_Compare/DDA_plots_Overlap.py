@@ -82,7 +82,7 @@ def bar_chart_of_classes(df, dataset_col="Dataset", class_col="Ontology", name_c
 
 
 topdir = r"Z:\Group Share\Shivam\DDA"
-topdir = r"Z:\Group Share\Shivam\IQX_Stellar_fixed"
+topdir = r"Z:\Group Share\Annika\IQ-X\Feb 2026 UntDDA\MSDial\Marked Low Score\RTP2"
 os.chdir(topdir)
 
 df = pd.read_excel("Combined_DDA_Full.xlsx", sheet_name="Full Data")

@@ -11,11 +11,13 @@ import joblib
 mpl.use("WxAgg")
 
 topdir = r"Z:\Group Share\Shivam\DDA"
-topdir = r"Z:\Group Share\Annika\IQX vs Stellar DDA"
+topdir = r"Z:\Group Share\Annika\IQ-X\Feb 2026 UntDDA\MSDial\Marked Low Score\RTP2"
 os.chdir(topdir)
 
 filepath = r"Combined_DDA_OutlierAnalysis.xlsx"
 df = pd.read_excel(filepath)
+print("Columns in df:")
+print(df.columns.tolist())
 # Drop any with "AqX" in the dataset name, since those are all not annotated and will just add noise to the model
 # df = df[~df["Dataset"].str.contains("AqX", case=False, na=False)]
 df = smiles_analysis(df, simtype="tanimoto", cutoff=0.1, fingerprinttype="rdkit")
