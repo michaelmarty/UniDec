@@ -46,7 +46,7 @@ def basic_class_network_analysis(df, tol=0.3):
 
 
 def outlier_analysis(posdf, negdf, tol=0.05, rttol=0.1, contribs=False, add_all_cols_heads=False,
-                     add_all_cols_tails=False, drop_cols=True):
+                     add_all_cols_tails=False, drop_cols=True, do_tails=True):
     if drop_cols:
         # Drop unnecessary columns if present
         for col in drop_columns:
@@ -64,10 +64,11 @@ def outlier_analysis(posdf, negdf, tol=0.05, rttol=0.1, contribs=False, add_all_
     posdf, posgraphs = class_network_analysis(posdf, tol=tol, add_all_cols=add_all_cols_heads)
     negdf, neggraphs = class_network_analysis(negdf, tol=tol, add_all_cols=add_all_cols_heads)
     # headgraphs = posgraphs + neggraphs
-    #
-    posdf, posgraphs = tail_network_analysis(posdf, min_count=5, mz_tol=tol, add_all_cols=add_all_cols_tails)
-    negdf, neggraphs = tail_network_analysis(negdf, min_count=5, mz_tol=tol, add_all_cols=add_all_cols_tails)
-    # tailgraphs = posgraphs + neggraphs
+
+    if do_tails:
+        posdf, posgraphs = tail_network_analysis(posdf, min_count=5, mz_tol=tol, add_all_cols=add_all_cols_tails)
+        negdf, neggraphs = tail_network_analysis(negdf, min_count=5, mz_tol=tol, add_all_cols=add_all_cols_tails)
+        # tailgraphs = posgraphs + neggraphs
 
     # Merge DFs
     posdf, negdf = merge_pos_neg(posdf, negdf, rttol)
@@ -82,6 +83,10 @@ def outlier_analysis(posdf, negdf, tol=0.05, rttol=0.1, contribs=False, add_all_
 
     features = ['RTdiff', 'Total score', 'LogSN', 'Headgroup_Match', 'Tail_Match_Fraction',
                 "Class_z_Anomaly_Score", "Tail_z_Anomaly_Score"]
+
+    # If any features are missing, remove them from the list
+    features = [f for f in features if f in combined_df.columns]
+
     combined_df = detect_outliers_class(combined_df, features, separate_adducts=True, contribs=contribs)
 
     if not add_all_cols_tails:

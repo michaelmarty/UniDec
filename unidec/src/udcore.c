@@ -81,25 +81,18 @@ void adjust_ratios(const Config config, char * barr, const int numclose,
 
 
 //Convolution of neighborhood function with gaussian filter.
-void blur_it(const int lengthmz,
-             const int numz,
-             const int numclose,
-             const int *__restrict closeind,
-             const float *__restrict closearray,
-             float *__restrict newblur,
-             const float *__restrict blur,
-             const char *__restrict barr) {
-    if (numclose == 1) {
-        const size_t len = (size_t) lengthmz * numz * sizeof(float);
+void blur_it(const IntraDecon intra, float * newblur, const float * blur) {
+    if (intra.numclose == 1) {
+        const size_t len = (size_t) intra.ln * sizeof(float);
         memcpy(newblur, blur, len);
     } else {
         #pragma omp parallel for schedule(auto)
-        for (int i = 0; i < lengthmz * numz; i++) {
+        for (int i = 0; i < intra.ln; i++) {
             float temp = 0;
-            if (barr[i] == 1) {
-                for (int k = 0; k < numclose; k++) {
-                    if (closeind[index2D(numclose, i, k)] != -1) {
-                        temp += closearray[index2D(numclose, i, k)] * blur[closeind[index2D(numclose, i, k)]];
+            if (intra.barr[i] == 1) {
+                for (int k = 0; k < intra.numclose; k++) {
+                    if (intra.closeind[index2D(intra.numclose, i, k)] != -1) {
+                        temp += intra.closearray[index2D(intra.numclose, i, k)] * blur[intra.closeind[index2D(intra.numclose, i, k)]];
                     }
                 }
             }
@@ -109,31 +102,23 @@ void blur_it(const int lengthmz,
 }
 
 //Charge state smooth using a mean filter of the log
-void blur_it_mean(const int lengthmz,
-                  const int numz,
-                  const int numclose,
-                  const int *__restrict closeind,
-                  float *__restrict newblur,
-                  const float *__restrict blur,
-                  const char *__restrict barr,
-                  const float *__restrict closearray,
-                  const float zerolog) {
-    if (numclose == 1) {
-        const size_t len = (size_t) lengthmz * numz * sizeof(float);
+void blur_it_mean(const IntraDecon intra, float * newblur, const float * blur, const float zerolog) {
+    if (intra.numclose == 1) {
+        const size_t len = (size_t) intra.ln * sizeof(float);
         memcpy(newblur, blur, len);
     } else {
         #pragma omp parallel for schedule(auto)
-        for (int i = 0; i < lengthmz * numz; i++) {
+        for (int i = 0; i < intra.ln; i++) {
             float temp = 0;
-            if (barr[i] == 1) {
-                for (int k = 0; k < numclose; k++) {
+            if (intra.barr[i] == 1) {
+                for (int k = 0; k < intra.numclose; k++) {
                     float temp2 = 0;
-                    if (closeind[index2D(numclose, i, k)] != -1) {
-                        temp2 = blur[closeind[index2D(numclose, i, k)]] * closearray[index2D(numclose, i, k)];
+                    if (intra.closeind[index2D(intra.numclose, i, k)] != -1) {
+                        temp2 = blur[intra.closeind[index2D(intra.numclose, i, k)]] * intra.closearray[index2D(intra.numclose, i, k)];
                     }
                     if (temp2 > 0) { temp += logf(temp2); } else { temp += zerolog; }
                 }
-                temp = expf(temp / (float) numclose);
+                temp = expf(temp / (float) intra.numclose);
             }
             newblur[i] = temp;
         }
@@ -142,23 +127,9 @@ void blur_it_mean(const int lengthmz,
 
 
 //Convolution of neighborhood function with gaussian filter.
-void blur_it_hybrid1(const int lengthmz,
-                     const int numz,
-                     const int zlength,
-                     const int mlength,
-                     const int *__restrict closeind,
-                     const int *__restrict closemind,
-                     const int *__restrict closezind,
-                     const float *__restrict mdist,
-                     const float *__restrict zdist,
-                     float *__restrict newblur,
-                     const float *__restrict blur,
-                     const char *__restrict barr,
-                     const float *__restrict closearray,
+void blur_it_hybrid1(const IntraDecon intra, const int lengthmz, const int numz, float * newblur, const float * blur,
                      const float zerolog) {
-
-    const int numclose = zlength * mlength;
-    if (numclose == 1) {
+    if (intra.numclose == 1) {
         const size_t len = (size_t) lengthmz * numz * sizeof(float);
         memcpy(newblur, blur, len);
     } else {
@@ -166,19 +137,19 @@ void blur_it_hybrid1(const int lengthmz,
         for (int i = 0; i < lengthmz; i++) {
             for (int j = 0; j < numz; j++) {
                 float temp = 0;
-                if (barr[index2D(numz, i, j)] == 1) {
-                    for (int n = 0; n < mlength; n++) {
+                if (intra.barr[index2D(numz, i, j)] == 1) {
+                    for (int n = 0; n < intra.mlength; n++) {
                         float temp2 = 0;
-                        for (int k = 0; k < zlength; k++) {
-                            const int m = index2D(mlength, k, n);
+                        for (int k = 0; k < intra.zlength; k++) {
+                            const int m = index2D(intra.mlength, k, n);
                             float temp3 = 0;
-                            if (closeind[index3D(numz, numclose, i, j, m)] != -1) {
-                                temp3 = blur[closeind[index3D(numz, numclose, i, j, m)]] * closearray[index3D(
-                                            numz, numclose, i, j, m)];
+                            if (intra.closeind[index3D(numz, intra.numclose, i, j, m)] != -1) {
+                                temp3 = blur[intra.closeind[index3D(numz, intra.numclose, i, j, m)]] * intra.closearray[index3D(
+                                            numz, intra.numclose, i, j, m)];
                             }
                             if (temp3 > 0) { temp2 += logf(temp3); } else { temp2 += zerolog; }
                         }
-                        temp += expf(temp2 / (float) zlength) * mdist[n];
+                        temp += expf(temp2 / (float) intra.zlength) * intra.mdist[n];
                     }
                 }
                 newblur[index2D(numz, i, j)] = temp;
@@ -189,23 +160,10 @@ void blur_it_hybrid1(const int lengthmz,
 
 
 //Convolution of neighborhood function with gaussian filter.
-void blur_it_hybrid2(const int lengthmz,
-                     const int numz,
-                     const int zlength,
-                     const int mlength,
-                     const int *__restrict closeind,
-                     const int *__restrict closemind,
-                     const int *__restrict closezind,
-                     const float *__restrict mdist,
-                     const float *__restrict zdist,
-                     float *__restrict newblur,
-                     const float *__restrict blur,
-                     const char *__restrict barr,
-                     const float *__restrict closearray,
+void blur_it_hybrid2(const IntraDecon intra, const int lengthmz, const int numz, float * newblur, const float * blur,
                      const float zerolog) {
 
-    const int numclose = zlength * mlength;
-    if (numclose == 1) {
+    if (intra.numclose == 1) {
         const size_t len = (size_t) lengthmz * numz * sizeof(float);
         memcpy(newblur, blur, len);
     } else {
@@ -213,20 +171,20 @@ void blur_it_hybrid2(const int lengthmz,
         for (int i = 0; i < lengthmz; i++) {
             for (int j = 0; j < numz; j++) {
                 float temp = 0;
-                if (barr[index2D(numz, i, j)] == 1) {
-                    for (int n = 0; n < mlength; n++) {
+                if (intra.barr[index2D(numz, i, j)] == 1) {
+                    for (int n = 0; n < intra.mlength; n++) {
                         float temp2 = 0;
-                        for (int k = 0; k < zlength; k++) {
-                            const int m = index2D(mlength, k, n);
-                            if (closeind[index3D(numz, numclose, i, j, m)] != -1) {
-                                temp2 += blur[closeind[index3D(numz, numclose, i, j, m)]] * zdist[k] * closearray[
-                                    index3D(numz, numclose, i, j, m)];
+                        for (int k = 0; k < intra.zlength; k++) {
+                            const int m = index2D(intra.mlength, k, n);
+                            if (intra.closeind[index3D(numz, intra.numclose, i, j, m)] != -1) {
+                                temp2 += blur[intra.closeind[index3D(numz, intra.numclose, i, j, m)]] * intra.zdist[k] * intra.closearray[
+                                    index3D(numz, intra.numclose, i, j, m)];
                             }
                         }
                         if (temp2 > 0) { temp += logf(temp2); } // / (float)mlength);}
                         else { temp += zerolog; }
                     }
-                    temp = expf(temp / (float) mlength);
+                    temp = expf(temp / (float) intra.mlength);
                 }
                 newblur[index2D(numz, i, j)] = temp;
             }
@@ -430,11 +388,8 @@ void deconvolve_baseline(const int lengthmz, const float *dataMZ, const float *d
 }
 
 
-float deconvolve_iteration_speedy(const Config config, Decon *decon, const float *__restrict blur,
-                                  float *__restrict blur2,
-                                  const char *__restrict barr,
-                                  const float *__restrict dataInt,
-                                  float *baseline, const float *dataMZ) {
+float deconvolve_iteration_speedy(const Config config, Decon *decon, const IntraDecon intra,
+                                  const float *dataMZ) {
 
     const int lengthmz = config.lengthmz;
     const int numz = config.numz;
@@ -454,11 +409,11 @@ float deconvolve_iteration_speedy(const Config config, Decon *decon, const float
     }
 
     if (aggressiveflag == 1 && mzsig != 0) {
-        blur_baseline(baseline, lengthmz, dataMZ, fabsf(mzsig), 0, filterwidth);
+        blur_baseline(decon->baseline, lengthmz, dataMZ, fabsf(mzsig), 0, filterwidth);
     }
     //printf("1\n");
     //Sum deltas
-    sum_deltas(lengthmz, numz, blur, barr, deltas);
+    sum_deltas(lengthmz, numz, decon->newblur, intra.barr, deltas);
     //printf("2\n");
     if (mzsig != 0 && psig >= 0) {
         //Convolve with peak shape
@@ -468,16 +423,16 @@ float deconvolve_iteration_speedy(const Config config, Decon *decon, const float
     }
     //printf("3\n");
     if (aggressiveflag == 1) {
-#pragma omp parallel for schedule(auto)
+        #pragma omp parallel for schedule(auto)
         for (int i = 0; i < lengthmz; i++) {
-            denom[i] += baseline[i]; // +noise[i]);
+            denom[i] += decon->baseline[i]; // +noise[i]);
         }
     }
     //printf("4\n");
     //Calculate Ratio
 #pragma omp parallel for schedule(auto)
     for (int i = 0; i < lengthmz; i++) {
-        if (denom[i] != 0 && dataInt[i] >= 0) { denom[i] = dataInt[i] / denom[i]; }
+        if (denom[i] != 0 && intra.dataInt2[i] >= 0) { denom[i] = intra.dataInt2[i] / denom[i]; }
     }
     //printf("5\n");
     if (mzsig < 0) {
@@ -499,7 +454,7 @@ float deconvolve_iteration_speedy(const Config config, Decon *decon, const float
 
     //printf("6\n");
     //Multiply Ratio by prior
-    apply_ratios(lengthmz, numz, blur, barr, denom, blur2);
+    apply_ratios(lengthmz, numz, decon->newblur, intra.barr, denom, decon->blur);
 
     //printf("7\n");
     if (aggressiveflag == 1) {
@@ -507,7 +462,7 @@ float deconvolve_iteration_speedy(const Config config, Decon *decon, const float
         blur_baseline(denom, lengthmz, dataMZ, fabsf(mzsig), 0, filterwidth);
         #pragma omp parallel for schedule(auto)
         for (int i = 0; i < lengthmz; i++) {
-            baseline[i] = baseline[i] * (denom[i]);
+            decon->baseline[i] = decon->baseline[i] * (denom[i]);
             //noise[i] = noise[i]*(deltas[i]);
         }
     }
@@ -1060,6 +1015,81 @@ int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, con
 
     return maxlength;
 }
+
+
+void SetUpBlur(Config config, Input inp, IntraDecon *intra, const int silent) {
+    //sets some parameters regarding the neighborhood blur function
+	if (config.zsig >= 0 && config.msig >= 0) {
+		intra->zlength = 1 + 2 * (int)config.zsig;
+		intra->mlength = 1 + 2 * (int)config.msig;
+	}
+	else {
+		if (config.zsig != 0) { intra->zlength = 1 + 2 * (int)(3 * fabsf(config.zsig) + 0.5); }
+		else { intra->zlength = 1; }
+		if (config.msig != 0) { intra->mlength = 1 + 2 * (int)(3 * fabsf(config.msig) + 0.5); }
+		else { intra->mlength = 1; }
+	}
+	intra->numclose = intra->mlength * intra->zlength;
+
+	//Sets up the blur function in oligomer mass and charge
+	intra->mind = calloc(intra->mlength, sizeof(int));
+	intra->mdist = calloc(intra->mlength, sizeof(float));
+
+	for (int i = 0; i < intra->mlength; i++)
+	{
+		intra->mind[i] = i - (intra->mlength - 1) / 2;
+		if (config.msig != 0) {
+		    // intra->mdist[i] = expf(-(powf(((float) i - ((float) intra->mlength - 1) / 2.f), 2.f)) / (2.0f * config.msig * config.msig));
+		    intra->mdist[i] = Gaus((float) i, ((float) intra->mlength - 1) / 2.f, config.msig);
+		}
+		else { intra->mdist[i] = 1; }
+	}
+
+	intra->zind = calloc(intra->zlength, sizeof(int));
+	intra->zdist = calloc(intra->zlength, sizeof(float));
+	for (int i = 0; i < intra->zlength; i++)
+	{
+		intra->zind[i] = i - (intra->zlength - 1) / 2;
+		if (config.zsig != 0) {
+		    // intra->zdist[i] = expf(-(powf(((float) i - ((float) intra->zlength - 1) / 2.f), 2.f)) / (2.0f * config.zsig * config.zsig));
+		    intra->zdist[i] = Gaus((float) i, ((float) intra->zlength - 1) / 2.f, config.zsig);
+		}
+		else { intra->zdist[i] = 1; }
+		//printf("%f\n", zdist[i]);
+	}
+
+	//Initializing memory
+	intra->closemind = calloc(intra->numclose, sizeof(int));
+	intra->closezind = calloc(intra->numclose, sizeof(int));
+	intra->closeval = calloc(intra->numclose, sizeof(float));
+	int newlen = intra->numclose * config.lengthmz * config.numz;
+	intra->closeind = calloc(newlen, sizeof(int));
+	intra->closearray = calloc(newlen, sizeof(float));
+
+	//Determines the indexes of things that are close as well as the values used in the neighborhood convolution
+	for (int k = 0; k < intra->numclose; k++)
+	{
+		intra->closemind[k] = intra->mind[k % intra->mlength];
+		intra->closezind[k] = intra->zind[(int)k / intra->mlength];
+		intra->closeval[k] = intra->zdist[(int)k / intra->mlength] * intra->mdist[k % intra->mlength];
+	}
+	NormSum(intra->mdist, intra->mlength);
+	NormSum(intra->zdist, intra->zlength);
+	NormSum(intra->closeval, intra->numclose);
+
+	int badness1 = 1;
+	for (int i = 0; i < config.lengthmz * config.numz; i++)
+	{
+		if (intra->barr[i] == 1) { badness1 = 0; }
+	}
+	if (badness1 == 1) { printf("ERROR: No points are allowed. Setup is bad\n"); exit(10); }
+
+	//Set up blur
+	MakeSparseBlur(intra->numclose, intra->barr, intra->closezind, intra->closemind, intra->closeind, intra->closeval, intra->closearray, config, &inp);
+
+	if (silent == 0) { printf("Charges blurred: %d  Masses blurred: %d\n", intra->zlength, intra->mlength); }
+}
+
 
 float Reconvolve(const Config config, Decon *decon, const char *barr) {
     float newblurmax = 0;

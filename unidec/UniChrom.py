@@ -50,7 +50,8 @@ class ChromApp(MetaUniDecBase):
         if False and platform.node() == 'CHEM-A90237':
             self.open_most_recent()
             self.on_pick_peaks()
-            self.eng.export_peaks_2d_apex()
+            # self.eng.export_peaks_2d_apex()
+            self.on_eic_integrate()
 
     def on_open(self, e=None):
         """

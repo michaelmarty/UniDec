@@ -368,6 +368,8 @@ class main_controls(wx.Panel):
         self.plotbutton2 = wx.Button(panel3, -1, "Plot 2D Grids")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.make2dplots, self.plotbutton2)
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_pick_peaks, self.plotbutton)
+        self.integratebutton = wx.Button(panel3, -1, "Integrate Across Var1")
+        self.parent.Bind(wx.EVT_BUTTON, self.pres.on_eic_integrate, self.integratebutton)
 
         i = 0
         sizercontrol3.Add(self.ctlwindow, (i, 1))
@@ -378,6 +380,7 @@ class main_controls(wx.Panel):
         sizercontrol3.Add(wx.StaticText(panel3, label="Picking Threshold: "), (i, 0),
                           flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
+
         sizercontrol3.Add(self.ctlnorm, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
         sizercontrol3.Add(wx.StaticText(panel3, label="How to Extract Peaks: "), (i, 0),
@@ -399,6 +402,9 @@ class main_controls(wx.Panel):
         sizercontrol3.Add(self.plotbutton, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
         sizercontrol3.Add(self.plotbutton2, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
+        sizercontrol3.Add(self.integratebutton, (i, 0), span=(1, 2), flag=wx.EXPAND)
+
 
         panel3.SetSizer(sizercontrol3)
         sizercontrol3.Fit(panel3)
@@ -447,6 +453,10 @@ class main_controls(wx.Panel):
         i += 1
         self.ctlrawflag = wx.RadioBox(panel3b, label="", choices=["Reconvolved/Profile", "Raw/Centroid", "Fast Profile", "Fast Centroid"], majorDimension=2)
         gbox3b.Add(self.ctlrawflag, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
+
+        self.ctlnormpeakthresh = wx.CheckBox(panel3b, label="Normalize Peak Picking Threshold")
+        gbox3b.Add(self.ctlnormpeakthresh, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
         self.ctlthresh2 = wx.TextCtrl(panel3b, value="", size=size1)
@@ -604,6 +614,7 @@ class main_controls(wx.Panel):
             self.ctlextractwindow.SetValue(str(self.config.exwindow))
             self.ctlextractthresh.SetValue(str(self.config.exthresh))
             self.ctlextract.SetSelection(self.config.exchoice)
+            self.ctlnormpeakthresh.SetValue(bool(self.config.normthresh))
 
             if self.config.adductmass < 0:
                 self.ctlnegmode.SetValue(1)
@@ -734,6 +745,7 @@ class main_controls(wx.Panel):
 
         self.config.exnorm = self.ctlnorm2.GetSelection()
         self.config.exchoice = self.ctlextract.GetSelection()
+        self.config.normthresh = int(self.ctlnormpeakthresh.GetValue())
 
         if self.ctlnegmode.GetValue() == 1:
             # print("Negative Ion Mode")

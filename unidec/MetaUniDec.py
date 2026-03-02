@@ -482,6 +482,11 @@ class MetaUniDecBase(UniDecPres):
         self.eng.data.v2name = dlg.value
         self.export_vars()
 
+    def on_eic_integrate(self, e=None):
+        self.eng.peaks_eic_integrate()
+        self.view.peakpanel.clear_list()
+        self.view.peakpanel.add_data(self.eng.pks, show="area", show2="apexvar1")
+
     def on_charge_states_mud(self, e=None):
         self.on_charge_states(plot=self.view.plot1)
 

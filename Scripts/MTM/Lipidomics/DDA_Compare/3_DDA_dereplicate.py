@@ -1,8 +1,5 @@
 import os
 import pandas as pd
-import numpy as np
-from scipy.interpolate import CubicSpline
-import matplotlib.pyplot as plt
 import matplotlib as mpl
 
 def full_name_assignment(df, rttol=0.1, rtcol="Average Rt(min)"):
@@ -61,6 +58,7 @@ def split_dfs(df):
 mpl.use("WxAgg")
 
 topdir = r"Z:\Group Share\Shivam\DDA"
+topdir = r"Z:\Group Share\Annika\IQX vs Stellar DDA"
 os.chdir(topdir)
 
 df = pd.read_csv("Combined_DDA_RT_Corrected.csv")
