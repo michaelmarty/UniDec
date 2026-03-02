@@ -479,9 +479,12 @@ class PlotApp:
         tb.Entry(grid, textvariable=self.chrom_xmax, width=8).grid(row=0, column=2, padx=4)
 
         # Y limits
+        self.chrom_ymin_entry = tb.Entry(grid, textvariable=self.chrom_ymin, width=8)
+        self.chrom_ymax_entry = tb.Entry(grid, textvariable=self.chrom_ymax, width=8)
+
         tb.Label(grid, text="Y-lim (normalized):").grid(row=0, column=3, sticky=W)
-        tb.Entry(grid, textvariable=self.chrom_ymin, width=8).grid(row=0, column=4, padx=4)
-        tb.Entry(grid, textvariable=self.chrom_ymax, width=8).grid(row=0, column=5, padx=4)
+        self.chrom_ymin_entry.grid(row=0, column=4, padx=4)
+        self.chrom_ymax_entry.grid(row=0, column=5, padx=4)
 
         tb.Label(grid, text="Y-offset step:").grid(row=1, column=0, sticky=W, pady=(4, 0))
         tb.Entry(grid, textvariable=self.chrom_y_offset, width=8).grid(row=1, column=1, padx=4, pady=(4, 0))
@@ -497,6 +500,26 @@ class PlotApp:
             percent_range=(0.0, 100.0),
             unit_range=(0.0, 1.0),
         )
+
+        # Clamp chrom Y-limits on focus-out (no live rewriting)
+        def _clamp_chrom_y(event=None):
+            try:
+                mode = self.chrom_norm_mode.get()
+                ymin = float(self.chrom_ymin.get())
+                ymax = float(self.chrom_ymax.get())
+            except Exception:
+                return
+
+            if mode == "percent":
+                ymin, ymax = clamp_range(ymin, ymax, 0.0, 100.0)
+            else:
+                ymin, ymax = clamp_range(ymin, ymax, 0.0, 1.0)
+
+            self.chrom_ymin.set(self._format_number_for_entry(ymin))
+            self.chrom_ymax.set(self._format_number_for_entry(ymax))
+
+        self.chrom_ymin_entry.bind("<FocusOut>", _clamp_chrom_y)
+        self.chrom_ymax_entry.bind("<FocusOut>", _clamp_chrom_y)
 
         # Standards
         std_row = tb.Frame(lf_axes, bootstyle="secondary")
@@ -569,8 +592,9 @@ class PlotApp:
         tb.Entry(grid, textvariable=self.cdms_xmin, width=8).grid(row=0, column=1, padx=4)
         tb.Entry(grid, textvariable=self.cdms_xmax, width=8).grid(row=0, column=2, padx=4)
 
+        self.cdms_ymax_entry = tb.Entry(grid, textvariable=self.cdms_ymax_pct, width=8)
         tb.Label(grid, text="Y max (normalized):").grid(row=0, column=3, sticky=W)
-        tb.Entry(grid, textvariable=self.cdms_ymax_pct, width=8).grid(row=0, column=4, padx=4)
+        self.cdms_ymax_entry.grid(row=0, column=4, padx=4)
 
         tb.Label(grid, text="Y-offset step:").grid(row=1, column=0, sticky=W, pady=(4, 0))
         tb.Entry(grid, textvariable=self.cdms_y_offset, width=8).grid(row=1, column=1, padx=4, pady=(4, 0))
@@ -586,6 +610,23 @@ class PlotApp:
             percent_range=(0.0, 100.0),
             unit_range=(0.0, 1.0),
         )
+
+        # Clamp CD-MS Y max on focus-out
+        def _clamp_cdms_ymax(event=None):
+            try:
+                mode = self.cdms_norm_mode.get()
+                ymax = float(self.cdms_ymax_pct.get())
+            except Exception:
+                return
+
+            if mode == "percent":
+                ymax = max(0.0, min(100.0, ymax))
+            else:
+                ymax = max(0.0, min(1.0, ymax))
+
+            self.cdms_ymax_pct.set(self._format_number_for_entry(ymax))
+
+        self.cdms_ymax_entry.bind("<FocusOut>", _clamp_cdms_ymax)
 
         self._build_replicates_panel(
             parent=self.cdms_tab,
@@ -667,8 +708,10 @@ class PlotApp:
         tb.Label(grid, text="X-lim (mL):").grid(row=0, column=0, sticky=W)
         tb.Entry(grid, textvariable=self.mwd_xmin, width=8).grid(row=0, column=1, padx=4)
         tb.Entry(grid, textvariable=self.mwd_xmax, width=8).grid(row=0, column=2, padx=4)
+
+        self.mwd_ymax_entry = tb.Entry(grid, textvariable=self.mwd_ymax_pct, width=8)
         tb.Label(grid, text="Y max (normalized):").grid(row=0, column=3, sticky=W)
-        tb.Entry(grid, textvariable=self.mwd_ymax_pct, width=8).grid(row=0, column=4, padx=4)
+        self.mwd_ymax_entry.grid(row=0, column=4, padx=4)
 
         tb.Checkbutton(
             lf_axes, text="Normalize each trace to max", variable=self.mwd_normalize
@@ -683,6 +726,23 @@ class PlotApp:
             percent_range=(0.0, 100.0),
             unit_range=(0.0, 1.0),
         )
+
+        # Clamp MWD Y max on focus-out
+        def _clamp_mwd_ymax(event=None):
+            try:
+                mode = self.mwd_norm_mode.get()
+                ymax = float(self.mwd_ymax_pct.get())
+            except Exception:
+                return
+
+            if mode == "percent":
+                ymax = max(0.0, min(100.0, ymax))
+            else:
+                ymax = max(0.0, min(1.0, ymax))
+
+            self.mwd_ymax_pct.set(self._format_number_for_entry(ymax))
+
+        self.mwd_ymax_entry.bind("<FocusOut>", _clamp_mwd_ymax)
 
     # ---- m/z ----
 
@@ -731,8 +791,9 @@ class PlotApp:
         tb.Entry(grid, textvariable=self.mz_xmin, width=8).grid(row=0, column=1, padx=4)
         tb.Entry(grid, textvariable=self.mz_xmax, width=8).grid(row=0, column=2, padx=4)
 
+        self.mz_ymax_entry = tb.Entry(grid, textvariable=self.mz_ymax_pct, width=8)
         tb.Label(grid, text="Y max (normalized):").grid(row=0, column=3, sticky=W)
-        tb.Entry(grid, textvariable=self.mz_ymax_pct, width=8).grid(row=0, column=4, padx=4)
+        self.mz_ymax_entry.grid(row=0, column=4, padx=4)
 
         tb.Label(grid, text="Y-offset step:").grid(row=1, column=0, sticky=W, pady=(4, 0))
         tb.Entry(grid, textvariable=self.mz_y_offset, width=8).grid(row=1, column=1, padx=4, pady=(4, 0))
@@ -748,6 +809,23 @@ class PlotApp:
             percent_range=(0.0, 100.0),
             unit_range=(0.0, 1.0),
         )
+
+        # Clamp m/z Y max on focus-out
+        def _clamp_mz_ymax(event=None):
+            try:
+                mode = self.mz_norm_mode.get()
+                ymax = float(self.mz_ymax_pct.get())
+            except Exception:
+                return
+
+            if mode == "percent":
+                ymax = max(0.0, min(100.0, ymax))
+            else:
+                ymax = max(0.0, min(1.0, ymax))
+
+            self.mz_ymax_pct.set(self._format_number_for_entry(ymax))
+
+        self.mz_ymax_entry.bind("<FocusOut>", _clamp_mz_ymax)
 
         self._build_replicates_panel(
             parent=self.mz_tab,
@@ -826,8 +904,9 @@ class PlotApp:
             side=LEFT, padx=4
         )
 
+        self.raw_ymax_entry = tb.Entry(grid, textvariable=self.raw_ymax_pct, width=8)
         tb.Label(grid, text="Spec Y max (normalized):").grid(row=2, column=0, sticky=W, pady=(6, 0))
-        tb.Entry(grid, textvariable=self.raw_ymax_pct, width=8).grid(row=2, column=1, padx=6, pady=(6, 0))
+        self.raw_ymax_entry.grid(row=2, column=1, padx=6, pady=(6, 0))
 
         self._track_norm_mode(
             mode_var=self.raw_norm_mode,
@@ -836,6 +915,23 @@ class PlotApp:
             percent_range=(0.0, 100.0),
             unit_range=(0.0, 1.0),
         )
+
+        # Clamp RAW spectrum Y max on focus-out
+        def _clamp_raw_ymax(event=None):
+            try:
+                mode = self.raw_norm_mode.get()
+                ymax = float(self.raw_ymax_pct.get())
+            except Exception:
+                return
+
+            if mode == "percent":
+                ymax = max(0.0, min(100.0, ymax))
+            else:
+                ymax = max(0.0, min(1.0, ymax))
+
+            self.raw_ymax_pct.set(self._format_number_for_entry(ymax))
+
+        self.raw_ymax_entry.bind("<FocusOut>", _clamp_raw_ymax)
 
         # msconvert options
         lf_ms = tb.Labelframe(self.raw_tab, text="msconvert (ProteoWizard)", padding=8, bootstyle="secondary")
@@ -1008,6 +1104,17 @@ class PlotApp:
         tb.Label(row2, text="Mean LW:").pack(side=LEFT, padx=(12, 2))
         tb.Entry(row2, textvariable=mean_lw_var, width=6).pack(side=LEFT)
 
+    @staticmethod
+    def _format_number_for_entry(value: float) -> str:
+        """
+        Format float for entry display:
+        - Integers as '55'
+        - Others as '55.5', '0.75', etc. (up to 6 decimals, trimmed).
+        """
+        if abs(value - round(value)) < 1e-9:
+            return str(int(round(value)))
+        return f"{value:.6f}".rstrip("0").rstrip(".")
+
     def _build_norm_mode_toggle(
         self,
         parent: tk.Widget,
@@ -1039,6 +1146,14 @@ class PlotApp:
         percent_range: Tuple[float, float],
         unit_range: Tuple[float, float],
     ):
+        """
+        Track normalization mode (percent vs unit).
+
+        This version:
+        - Only adjusts values when the mode changes,
+        - Does NOT validate/format on every keystroke,
+        - Leaves clamping to focus-out handlers on the actual entries.
+        """
         def _update_on_mode_change(*_):
             try:
                 mode = mode_var.get()
@@ -1051,6 +1166,7 @@ class PlotApp:
             u_lo, u_hi = unit_range
 
             if mode == "percent":
+                # Convert 0–1 → 0–100 if they were unit-like
                 if vmax <= 1.0:
                     vmax *= 100.0
                 if vmin is not None and vmin <= 1.0:
@@ -1059,6 +1175,7 @@ class PlotApp:
                 if vmin is not None:
                     vmin = max(p_lo, min(p_hi, vmin))
             else:
+                # Convert 0–100 → 0–1 if they were percent-like
                 if vmax > 1.0:
                     vmax /= 100.0
                 if vmin is not None and vmin > 1.0:
@@ -1068,30 +1185,15 @@ class PlotApp:
                     vmin = max(u_lo, min(u_hi, vmin))
 
             if vmin is not None:
-                vmin, vmax = clamp_range(vmin, vmax, *(percent_range if mode == "percent" else unit_range))
-                min_var.set(round(vmin, 6))
-            max_var.set(round(vmax, 6))
+                vmin, vmax = clamp_range(
+                    vmin, vmax,
+                    *(percent_range if mode == "percent" else unit_range)
+                )
+                min_var.set(self._format_number_for_entry(vmin))
+            max_var.set(self._format_number_for_entry(vmax))
 
-        def _validate(*_):
-            try:
-                mode = mode_var.get()
-                vmax = float(max_var.get())
-                vmin = float(min_var.get()) if min_var is not None else None
-            except Exception:
-                return
-            lo, hi = (percent_range if mode == "percent" else unit_range)
-            if vmin is not None:
-                vmin, vmax_clamped = clamp_range(vmin, vmax, lo, hi)
-                min_var.set(round(vmin, 6))
-                max_var.set(round(vmax_clamped, 6))
-            else:
-                vmax = max(lo, min(hi, vmax))
-                max_var.set(round(vmax, 6))
-
+        # Only respond when the user switches between "percent" and "unit"
         mode_var.trace_add("write", _update_on_mode_change)
-        max_var.trace_add("write", _validate)
-        if min_var is not None:
-            min_var.trace_add("write", _validate)
 
     def _toggle_text_state(self, text_widget: tk.Text, flag_var: tk.BooleanVar):
         state = tk.NORMAL if flag_var.get() else tk.DISABLED
