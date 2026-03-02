@@ -789,7 +789,7 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 			Decon decon = InitDecon();
 			Input inp = InitInputs();
 
-			ReadInputs(argc, argv, &config, &inp);
+			ReadInputs(&config, &inp);
 
 			int status = ReadDecon(&config, inp, &decon);
 

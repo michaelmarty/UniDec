@@ -50,10 +50,11 @@ void readmfile(const char *infile, int mfilelen, float *testmasses);
 int getfilelength(const char *infile);
 int getfilelengthbin(const char *infile, int size, int width);
 
-void ReadInputs(int argc, char* argv[], Config* config, Input* inp);
-UDIO_EXPORTS void SetupZtab(const Config config, Input *inp);
-void WritePeaks(const Config config, const Decon* decon);
-void WriteDecon(const Config config, const Decon* decon, const Input* inp);
+void ReadInputs(Config* config, Input* inp);
+UDIO_EXPORTS void SetupZtab(Config config, Input *inp);
+void WritePeaks(Config config, const Decon* decon);
+void WriteDecon(Config config, const Decon* decon, const Input* inp);
+void WriteGlobalOutputs(Config config, Decon decon, float totaltime);
 void ManualAssign(const float* dataMZ, char* barr, const int* nztab, Config config);
 
 #endif //UDIO_H

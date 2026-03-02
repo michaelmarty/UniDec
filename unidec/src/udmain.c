@@ -500,67 +500,24 @@ int run_unidec(int argc, char *argv[], Config config) {
 
 	if (argc >= 2)
 	{
-		ReadInputs(argc, argv, &config, &inp);
+		ReadInputs(&config, &inp);
 	}
 	else{ exit(88); }
 	if (verbose == 1) { printf("Read Inputs\n"); }
 
-	//Setup the Deconvolution
+	// Setup the Deconvolution
 	Decon decon=InitDecon();
 
-	// ........................................................
-	//
 	//  Run the Deconvolution
-	//
-	//........................................................
-
 	run_unidec_core(config, inp, &decon, verbose);
-
-	//................................................................
-	//
-	//  Wrapping up
-	//
-	//...................................................................
 
 	//Write Everything
 	WriteDecon(config, &decon, &inp);
 	if (verbose == 1) { printf("Write Done\n"); }
 
-	//Writes a file with a number of key parameters such as error and number of significant parameters.
 	clock_t end = clock();
 	float totaltime = (float)(end - starttime) / CLOCKS_PER_SEC;
-	if (config.filetype == 0) {
-		FILE* out_ptr = NULL;
-		char outstring3[1024];
-		sprintf(outstring3, "%s_error.txt", config.outfile);
-		out_ptr = fopen(outstring3, "w");
-		if (out_ptr == 0) { printf("Error Opening %s\n", outstring3); exit(1); }
-		fprintf(out_ptr, "error = %f\n", decon.error);
-		fprintf(out_ptr, "time = %f\n", totaltime);
-		fprintf(out_ptr, "iterations = %d\n", decon.iterations);
-		fprintf(out_ptr, "uniscore = %f\n", decon.uniscore);
-		fprintf(out_ptr, "mzsig = %f\n", config.mzsig);
-		fprintf(out_ptr, "zzsig = %f\n", config.zsig);
-		fprintf(out_ptr, "beta = %f\n", config.beta);
-		fprintf(out_ptr, "psig = %f\n", config.psig);
-		fclose(out_ptr);
-		//printf("Stats and Error written to: %s\n", outstring3);
-	}
-	else {
-		write_attr_float(config.file_id, config.dataset, "error", decon.error);
-		write_attr_int(config.file_id, config.dataset, "iterations", decon.iterations);
-		write_attr_float(config.file_id, config.dataset, "time", totaltime);
-		write_attr_int(config.file_id, config.dataset, "length_mz", config.lengthmz);
-		write_attr_int(config.file_id, config.dataset, "length_mass", decon.mlen);
-		write_attr_float(config.file_id, config.dataset, "uniscore", decon.uniscore);
-		write_attr_float(config.file_id, config.dataset, "rsquared", decon.rsquared);
-		write_attr_float(config.file_id, config.dataset, "mzsig", config.mzsig);
-		write_attr_float(config.file_id, config.dataset, "zsig", config.zsig);
-		write_attr_float(config.file_id, config.dataset, "psig", config.psig);
-		write_attr_float(config.file_id, config.dataset, "beta", config.beta);
-		set_needs_grids(config.file_id);
-		//H5Fclose(config.file_id);
-	}
+	WriteGlobalOutputs(config, decon, totaltime);
 
 	//Free memory
 	FreeInputs(inp);
