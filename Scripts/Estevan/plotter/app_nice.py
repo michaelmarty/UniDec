@@ -291,17 +291,23 @@ class PlotApp:
         paned.add(right, weight=3)
         self.plot_area = right
 
-        nb = tb.Notebook(left, bootstyle="primary")
-        nb.pack(fill=BOTH, expand=YES)
+        # Notebook (tabs)
+        self.nb = tb.Notebook(left, bootstyle="primary")
+        self.nb.pack(fill=BOTH, expand=YES)
 
         self._build_common_options(left)
-        self._build_chrom_tab(nb)
-        self._build_cdms_tab(nb)
-        self._build_mwd_tab(nb)
-        self._build_mz_tab(nb)
-        self._build_raw_tab(nb)
+        self._build_chrom_tab(self.nb)
+        self._build_cdms_tab(self.nb)
+        self._build_mwd_tab(self.nb)
+        self._build_mz_tab(self.nb)
+        self._build_raw_tab(self.nb)
 
+        # Rebuild file panel after tabs
         self._build_file_panel(left)
+
+        # Bind tab change to update per-tab default ranges
+        self.nb.bind("<<NotebookTabChanged>>", self._on_tab_changed)
+        return  # ensure no extra calls below
 
     # --------------------------- Footer ---------------------------
 
@@ -1102,6 +1108,43 @@ class PlotApp:
         if self.mz_tab.winfo_ismapped():
             return "m/z Spectra"
         return "Thermo RAW"
+
+    def _on_tab_changed(self, event=None):
+        """
+        Per-tab default ranges for the global X-lim.
+
+        Chromatograms: 0–20 mL
+        CD-MS Mass:    0–500 kDa
+        MWD:           0–20 mL
+        m/z Spectra:   0–20000 m/z
+        Thermo RAW:    leave global X-lim unchanged (RAW uses RT/m/z from data).
+        """
+        try:
+            tab_text = self.nb.tab(self.nb.select(), "text")
+        except Exception:
+            tab_text = ""
+
+        # Defaults per tab
+        if tab_text == "Chromatograms":
+            xmin, xmax = 0.0, 20.0
+        elif tab_text == "CD-MS Mass":
+            xmin, xmax = 0.0, 500.0
+        elif tab_text == "MWD Chromatograms":
+            xmin, xmax = 0.0, 20.0
+        elif tab_text == "m/z Spectra":
+            xmin, xmax = 0.0, 20000.0
+        else:
+            # Thermo RAW or unknown: don't change global X-lim
+            return
+
+        # Set global X limits to the tab defaults
+        self.global_xmin.set(xmin)
+        self.global_xmax.set(xmax)
+
+        # Optionally, you can also reset global Y-lim when switching tabs.
+        # Commented out here; uncomment if desired:
+        # self.global_ymin.set(0.0)
+        # self.global_ymax.set(100.0)
 
     def _on_files_drop(self, event):
         try:
