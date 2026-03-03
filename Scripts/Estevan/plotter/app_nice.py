@@ -163,6 +163,10 @@ class PlotApp:
         self._build_body(self.body)
         self._build_footer(self.footer)
 
+        # Bind automatic clamping for global Y-limits (after tabs are built
+        # so that chrom_norm_mode exists)
+        self._bind_global_y_clamping()
+
         self._center_on_screen()
 
         self.files: List[str] = []
@@ -378,9 +382,11 @@ class PlotApp:
         tb.Entry(axes_frame, textvariable=self.global_xmax, width=8).pack(side=LEFT, padx=4)
 
         tb.Label(axes_frame, text="Y-lim min:").pack(side=LEFT, padx=(12, 0))
-        tb.Entry(axes_frame, textvariable=self.global_ymin, width=8).pack(side=LEFT, padx=4)
+        self.global_ymin_entry = tb.Entry(axes_frame, textvariable=self.global_ymin, width=8)
+        self.global_ymin_entry.pack(side=LEFT, padx=4)
         tb.Label(axes_frame, text="Y-lim max:").pack(side=LEFT)
-        tb.Entry(axes_frame, textvariable=self.global_ymax, width=8).pack(side=LEFT, padx=4)
+        self.global_ymax_entry = tb.Entry(axes_frame, textvariable=self.global_ymax, width=8)
+        self.global_ymax_entry.pack(side=LEFT, padx=4)
 
         tb.Label(axes_frame, text="Subplot spacing:").pack(side=LEFT, padx=(12, 0))
         tb.Entry(axes_frame, textvariable=self.global_subplot_spacing, width=8).pack(side=LEFT, padx=4)
@@ -412,6 +418,36 @@ class PlotApp:
             text="Transparent export background",
             variable=self.transparent_export,
         ).pack(anchor=W, pady=2)
+
+    def _bind_global_y_clamping(self):
+        """
+        Bind focus-out clamping for global Y-lim entries, using the chrom
+        normalization mode as the reference (0–100% vs 0–1). This ensures
+        that out-of-range values are corrected automatically.
+        """
+        if not hasattr(self, "global_ymin_entry") or not hasattr(self, "global_ymax_entry"):
+            return
+        if not hasattr(self, "chrom_norm_mode"):
+            return
+
+        def _on_ymin_focus_out(event=None):
+            self._clamp_y_entry(
+                entry_var=self.global_ymin,
+                mode_var=self.chrom_norm_mode,
+                percent_range=(0.0, 100.0),
+                unit_range=(0.0, 1.0),
+            )
+
+        def _on_ymax_focus_out(event=None):
+            self._clamp_y_entry(
+                entry_var=self.global_ymax,
+                mode_var=self.chrom_norm_mode,
+                percent_range=(0.0, 100.0),
+                unit_range=(0.0, 1.0),
+            )
+
+        self.global_ymin_entry.bind("<FocusOut>", _on_ymin_focus_out)
+        self.global_ymax_entry.bind("<FocusOut>", _on_ymax_focus_out)
 
     # --------------------------- Tab Builders ---------------------------
 
@@ -926,6 +962,28 @@ class PlotApp:
             return str(int(round(value)))
         return f"{value:.6f}".rstrip("0").rstrip(".")
 
+    def _clamp_y_entry(self, entry_var: tk.DoubleVar, mode_var: tk.StringVar,
+                       percent_range=(0.0, 100.0), unit_range=(0.0, 1.0)):
+        """
+        Clamp a Y-limit entry according to the current normalization mode.
+
+        percent_range: bounds when mode == 'percent'
+        unit_range:    bounds when mode == 'unit'
+        """
+        try:
+            mode = mode_var.get()
+            val = float(entry_var.get())
+        except Exception:
+            return
+
+        if mode == "percent":
+            lo, hi = percent_range
+        else:
+            lo, hi = unit_range
+
+        val = max(lo, min(hi, val))
+        entry_var.set(self._format_number_for_entry(val))
+
     def _build_norm_mode_toggle(
         self,
         parent: tk.Widget,
@@ -986,12 +1044,31 @@ class PlotApp:
                     vmin = max(u_lo, min(u_hi, vmin))
 
             if vmin is not None:
-                vmin, vmax = clamp_range(
+                vmin, vmax2 = clamp_range(
                     vmin, vmax,
                     *(percent_range if mode == "percent" else unit_range)
                 )
                 min_var.set(self._format_number_for_entry(vmin))
-            max_var.set(self._format_number_for_entry(vmax))
+                max_var.set(self._format_number_for_entry(vmax2))
+            else:
+                max_var.set(self._format_number_for_entry(vmax))
+
+            # If this mode_var is the chrom normalization mode, also
+            # clamp the global Y-limits to 0–100 or 0–1.
+            if hasattr(self, "chrom_norm_mode") and mode_var is self.chrom_norm_mode:
+                if hasattr(self, "global_ymin") and hasattr(self, "global_ymax"):
+                    self._clamp_y_entry(
+                        entry_var=self.global_ymin,
+                        mode_var=self.chrom_norm_mode,
+                        percent_range=(0.0, 100.0),
+                        unit_range=(0.0, 1.0),
+                    )
+                    self._clamp_y_entry(
+                        entry_var=self.global_ymax,
+                        mode_var=self.chrom_norm_mode,
+                        percent_range=(0.0, 100.0),
+                        unit_range=(0.0, 1.0),
+                    )
 
         mode_var.trace_add("write", _update_on_mode_change)
 
