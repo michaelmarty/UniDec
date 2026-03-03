@@ -27,7 +27,7 @@ try:
 except Exception:
     DND_AVAILABLE = False
 
-# Plotting utilities (ensure these files exist in the same folder)
+# Plotting utilities
 from chromatogram_plot_utils import plot_chrom_stack, read_chrom_file
 from cdms_mass_plot_utils import (
     plot_cdms_mass_stack,
@@ -53,8 +53,7 @@ DEFAULT_MWD_COLORS   = ["#0F0C08", "#3CAEA3"]
 DEFAULT_MZ_COLORS    = ["#2C7FB8", "#CC79A7", "#00A9A5", "#7A7A7A", "#F0E442"]
 THEMES = ["flatly", "cosmo", "lumen", "minty", "sandstone", "superhero", "cyborg", "darkly", "morph"]
 
-# Preview DPI (moderate size on-screen); export uses CommonConfig.dpi
-DISPLAY_DPI = 110
+DISPLAY_DPI = 110  # preview DPI
 
 
 def parse_float_list(text: str) -> List[float]:
@@ -85,7 +84,6 @@ def filenames_to_labels(paths: Sequence[str]) -> List[str]:
 
 
 def clamp_range(val_min: float, val_max: float, lo: float, hi: float) -> Tuple[float, float]:
-    """Clamp and order a numeric range."""
     vmin = max(lo, min(hi, val_min))
     vmax = max(lo, min(hi, val_max))
     if vmax < vmin:
@@ -98,10 +96,6 @@ def normalize_y_values(
     normalize: bool,
     mode: str
 ) -> np.ndarray:
-    """
-    Normalize a y-array to 0–100 or 0–1 depending on mode.
-    mode: "percent" or "unit"
-    """
     if not normalize:
         return y
     m = float(np.nanmax(y))
@@ -133,7 +127,6 @@ class PlotApp:
         except tk.TclError:
             pass
 
-        # Style / theme
         try:
             self.style = tb.Style(master=self.root, theme=themename)
         except TypeError:
@@ -151,7 +144,6 @@ class PlotApp:
         except Exception:
             pass
 
-        # Basic layout frames
         self.header = tb.Frame(self.root, bootstyle="secondary")
         self.header.pack(fill=X)
         self.centerer = tb.Frame(self.root, bootstyle="secondary")
@@ -176,7 +168,6 @@ class PlotApp:
         self.files: List[str] = []
         self._set_status("Ready. Drag files into the list or use the pickers, then click Plot.")
 
-        # Keyboard shortcuts
         for seq in ("<F5>", "<Control-Return>", "<Control-KP_Enter>"):
             self.root.bind(seq, lambda e: self._plot())
 
@@ -223,7 +214,6 @@ class PlotApp:
         self._apply_plot_button_sizing()
 
     def _apply_plot_button_sizing(self):
-        """Make the Plot button bigger in a theme-aware, DPI-aware way."""
         if not hasattr(self, "plot_btn") or self.plot_btn is None:
             return
         try:
@@ -232,7 +222,6 @@ class PlotApp:
             scale = 1.0
 
         self.plot_btn.configure(width=12)
-
         base_pad_x, base_pad_y = 14, 10
         pad_x, pad_y = int(base_pad_x * scale), int(base_pad_y * scale)
         try:
@@ -243,10 +232,6 @@ class PlotApp:
     # --------------------------- Scrollable Left ---------------------------
 
     def _build_scrollable_left(self, paned: tb.Panedwindow):
-        """
-        Create a scrollable left pane and return (container_frame, inner_content_frame).
-        Build all left-side controls inside 'inner_content_frame'.
-        """
         container = tb.Frame(paned, bootstyle="secondary")
 
         sf = ScrolledFrame(
@@ -372,14 +357,14 @@ class PlotApp:
 
         style_frame = tb.Frame(lf, bootstyle="secondary")
         style_frame.pack(fill=X, pady=6)
-        self.x_label_override = tk.StringVar()
-        self.y_label_override = tk.StringVar()
+        self.x_label = tk.StringVar()
+        self.y_label = tk.StringVar()
         self.line_width = tk.DoubleVar(value=2.0)
 
-        tb.Label(style_frame, text="X label override:").pack(side=LEFT)
-        tb.Entry(style_frame, textvariable=self.x_label_override, width=22).pack(side=LEFT, padx=6)
-        tb.Label(style_frame, text="Y label override:").pack(side=LEFT)
-        tb.Entry(style_frame, textvariable=self.y_label_override, width=22).pack(side=LEFT, padx=6)
+        tb.Label(style_frame, text="X label:").pack(side=LEFT)
+        tb.Entry(style_frame, textvariable=self.x_label, width=22).pack(side=LEFT, padx=6)
+        tb.Label(style_frame, text="Y label:").pack(side=LEFT)
+        tb.Entry(style_frame, textvariable=self.y_label, width=22).pack(side=LEFT, padx=6)
         tb.Label(style_frame, text="Line width:").pack(side=LEFT, padx=(10, 0))
         tb.Entry(style_frame, textvariable=self.line_width, width=6).pack(side=LEFT, padx=6)
 
@@ -399,8 +384,6 @@ class PlotApp:
         ).pack(anchor=W, pady=2)
 
     # --------------------------- Tab Builders ---------------------------
-
-    # ---- Chrom ----
 
     def _build_chrom_tab(self, nb: tb.Notebook):
         self.chrom_tab = tb.Frame(nb, padding=8, bootstyle="secondary")
@@ -505,8 +488,6 @@ class PlotApp:
             mean_lw_attr="chrom_rep_mean_lw",
         )
 
-    # ---- CD-MS ----
-
     def _build_cdms_tab(self, nb: tb.Notebook):
         self.cdms_tab = tb.Frame(nb, padding=8, bootstyle="secondary")
         nb.add(self.cdms_tab, text="CD-MS Mass")
@@ -597,8 +578,6 @@ class PlotApp:
             mean_lw_attr="cdms_rep_mean_lw",
         )
 
-    # ---- MWD ----
-
     def _build_mwd_tab(self, nb: tb.Notebook):
         self.mwd_tab = tb.Frame(nb, padding=8, bootstyle="secondary")
         nb.add(self.mwd_tab, text="MWD Chromatograms")
@@ -630,8 +609,8 @@ class PlotApp:
         row3 = tb.Frame(lf_labels, bootstyle="secondary")
         row3.pack(fill=X, pady=2)
 
-        self.mwd_mau_label = tk.StringVar(value="AqpZ (mAU)")
-        self.mwd_mv_label = tk.StringVar(value="AqpZ (mV)")
+        self.mwd_mau_label = tk.StringVar(value="mAU")
+        self.mwd_mv_label = tk.StringVar(value="mV")
         tb.Label(row3, text="mAU label:").pack(side=LEFT)
         tb.Entry(row3, textvariable=self.mwd_mau_label, width=24).pack(side=LEFT, padx=6)
         tb.Label(row3, text="mV label:").pack(side=LEFT)
@@ -697,8 +676,6 @@ class PlotApp:
             self.mwd_ymax_pct.set(self._format_number_for_entry(ymax))
 
         self.mwd_ymax_entry.bind("<FocusOut>", _clamp_mwd_ymax)
-
-    # ---- m/z ----
 
     def _build_mz_tab(self, nb: tb.Notebook):
         self.mz_tab = tb.Frame(nb, padding=8, bootstyle="secondary")
@@ -789,8 +766,6 @@ class PlotApp:
             lw_attr="mz_rep_lw",
             mean_lw_attr="mz_rep_mean_lw",
         )
-
-    # ---- RAW ----
 
     def _build_raw_tab(self, nb: tb.Notebook):
         self.raw_tab = tb.Frame(nb, padding=8, bootstyle="secondary")
@@ -1571,64 +1546,6 @@ class PlotApp:
             show_band=bool(self.mz_rep_show_band.get()),
         )
 
-    # --------------------------- Post-process Overrides ---------------------------
-
-    def _apply_overrides(self, fig, axes_obj, tab_name: str, normalize: bool):
-        if axes_obj is None:
-            ax_list: List = []
-        elif isinstance(axes_obj, (list, tuple)):
-            ax_list = list(axes_obj)
-        else:
-            ax_list = [axes_obj]
-
-        try:
-            lw = float(self.line_width.get())
-            for ax in ax_list:
-                for ln in ax.get_lines():
-                    ln.set_linewidth(lw)
-        except Exception:
-            pass
-
-        xlab = self.x_label_override.get().strip()
-        ylab = self.y_label_override.get().strip()
-
-        if xlab:
-            applied = False
-            try:
-                fig.supxlabel(xlab)
-                applied = True
-            except Exception:
-                pass
-            if not applied:
-                try:
-                    (ax_list[-1] if ax_list else fig).set_xlabel(xlab)
-                except Exception:
-                    fig.text(0.5, 0.02, xlab, ha="center")
-
-        if ylab:
-            applied = False
-            try:
-                fig.supylabel(ylab)
-                applied = True
-            except Exception:
-                pass
-            if not applied:
-                try:
-                    if tab_name in ("MWD Chromatograms", "Thermo RAW") and len(ax_list) >= 2:
-                        ax_list[0].set_ylabel(ylab)
-                        ax_list[1].set_ylabel(ylab)
-                    elif ax_list:
-                        ax_list[0].set_ylabel(ylab)
-                    else:
-                        fig.text(0.02, 0.5, ylab, va="center", rotation="vertical")
-                except Exception:
-                    pass
-
-        try:
-            fig.canvas.draw_idle()
-        except Exception:
-            pass
-
     # --------------------------- Plot Dispatcher ---------------------------
 
     def _plot(self):
@@ -1663,7 +1580,7 @@ class PlotApp:
         finally:
             self.progress.stop()
 
-    # ---- Per-tab plot methods ----
+    # ---------------- Per-tab plot methods ----------------
 
     def _plot_chrom(self, cfg: CommonConfig):
         raw_labels = self.chrom_labels.get("1.0", "end").strip()
@@ -1678,6 +1595,10 @@ class PlotApp:
             chrom_hspace = float(self.chrom_subplot_spacing.get())
         except Exception:
             chrom_hspace = 0.55
+
+        lw = float(self.line_width.get())
+        x_lab = self.x_label.get().strip() or None
+        y_lab = self.y_label.get().strip() or None
 
         mode = self.chrom_mode.get()
         if mode == "single":
@@ -1699,6 +1620,9 @@ class PlotApp:
                 ylim=ylim,
                 figsize=cfg.figsize,
                 dpi=DISPLAY_DPI,
+                line_width=lw,
+                x_label=x_lab,
+                y_label=y_lab,
                 save=None,
                 show=cfg.show,
             )
@@ -1720,6 +1644,9 @@ class PlotApp:
                 figsize=cfg.figsize,
                 dpi=DISPLAY_DPI,
                 hspace=chrom_hspace,
+                line_width=lw,
+                x_label=x_lab,
+                y_label=y_lab,
                 save=None,
                 show=cfg.show,
             )
@@ -1737,7 +1664,6 @@ class PlotApp:
             else:
                 self._overlay_chrom_replicates(axes_list, groups, colors, normalize, xlim)
 
-        self._apply_overrides(fig, axes, tab_name="Chromatograms", normalize=normalize)
         self._render_figure(fig)
         self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
         self._set_status("Chromatogram plot complete.")
@@ -1757,6 +1683,10 @@ class PlotApp:
         except Exception:
             cdms_hspace = 0.6
         mode = self.cdms_mode.get()
+
+        lw = float(self.line_width.get())
+        x_lab = self.x_label.get().strip() or None
+        y_lab = self.y_label.get().strip() or None
 
         if mode == "single":
             if len(self.files) != 1:
@@ -1778,13 +1708,15 @@ class PlotApp:
                 font_size=cfg.font_size,
                 figsize=cfg.figsize,
                 dpi=DISPLAY_DPI,
+                line_width=lw,
+                x_label=x_lab,
+                y_label=y_lab,
                 save=None,
                 show=cfg.show,
             )
             if bool(self.cdms_rep_enable.get()):
                 groups = self._parse_rep_groups(self.cdms_rep_groups.get("1.0", "end"))[:1]
                 self._overlay_cdms_replicates([ax], groups, [colors[0]], normalize, x_range)
-            self._apply_overrides(fig, ax, tab_name="CD-MS Mass", normalize=normalize)
             self._render_figure(fig)
             self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
             self._set_status("CD-MS mass (single) plot complete.")
@@ -1814,6 +1746,9 @@ class PlotApp:
             figsize=cfg.figsize,
             dpi=DISPLAY_DPI,
             hspace=cdms_hspace,
+            line_width=lw,
+            x_label=x_lab,
+            y_label=y_lab,
             save=None,
             show=cfg.show,
         )
@@ -1828,7 +1763,6 @@ class PlotApp:
                 )
             else:
                 self._overlay_cdms_replicates(axes_list, groups, colors, normalize, x_range)
-        self._apply_overrides(fig, axes, tab_name="CD-MS Mass", normalize=normalize)
         self._render_figure(fig)
         self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
         self._set_status("CD-MS mass (stacked) plot complete.")
@@ -1847,6 +1781,10 @@ class PlotApp:
         normalize = bool(self.mwd_normalize.get())
         norm_mode = self.mwd_norm_mode.get()
 
+        lw = float(self.line_width.get())
+        x_lab = self.x_label.get().strip() or None
+        y_lab = self.y_label.get().strip() or None
+
         fig, (ax1, ax2) = plot_mwd_chromatograms(
             mau_file=path_mau,
             mv_file=path_mv,
@@ -1861,10 +1799,13 @@ class PlotApp:
             font_size=cfg.font_size,
             figsize=cfg.figsize,
             dpi=DISPLAY_DPI,
+            line_width=lw,
+            x_label=x_lab,
+            y_label_left=y_lab,
+            y_label_right=y_lab,
             save=None,
             show=cfg.show,
         )
-        self._apply_overrides(fig, (ax1, ax2), tab_name="MWD Chromatograms", normalize=normalize)
         self._render_figure(fig)
         self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
         self._set_status("MWD Chromatograms plot complete.")
@@ -1884,6 +1825,10 @@ class PlotApp:
             mz_hspace = float(self.mz_subplot_spacing.get())
         except Exception:
             mz_hspace = 0.6
+
+        lw = float(self.line_width.get())
+        x_lab = self.x_label.get().strip() or None
+        y_lab = self.y_label.get().strip() or None
 
         if mode == "single":
             if len(self.files) != 1:
@@ -1906,13 +1851,15 @@ class PlotApp:
                 font_size=cfg.font_size,
                 figsize=cfg.figsize,
                 dpi=DISPLAY_DPI,
+                line_width=lw,
+                x_label=x_lab,
+                y_label=y_lab,
                 save=None,
                 show=cfg.show,
             )
             if bool(self.mz_rep_enable.get()):
                 groups = self._parse_rep_groups(self.mz_rep_groups.get("1.0", "end"))[:1]
                 self._overlay_mz_replicates([ax], groups, [colors[0]], normalize, x_range)
-            self._apply_overrides(fig, ax, tab_name="m/z Spectra", normalize=normalize)
             self._render_figure(fig)
             self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
             self._set_status("m/z spectrum (single) plot complete.")
@@ -1942,6 +1889,9 @@ class PlotApp:
             figsize=cfg.figsize,
             dpi=DISPLAY_DPI,
             hspace=mz_hspace,
+            line_width=lw,
+            x_label=x_lab,
+            y_label=y_lab,
             save=None,
             show=cfg.show,
         )
@@ -1956,7 +1906,6 @@ class PlotApp:
                 )
             else:
                 self._overlay_mz_replicates(axes_list, groups, colors, normalize, x_range)
-        self._apply_overrides(fig, axes, tab_name="m/z Spectra", normalize=normalize)
         self._render_figure(fig)
         self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
         self._set_status("m/z spectra (stacked) plot complete.")
@@ -1975,6 +1924,11 @@ class PlotApp:
                 return
 
         norm_mode = self.raw_norm_mode.get()
+
+        lw = float(self.line_width.get())
+        x_lab = self.x_label.get().strip() or None
+        y_lab = self.y_label.get().strip() or None
+
         fig, (ax1, ax2) = plot_raw_chrom_and_spectrum(
             raw_path=raw_path,
             ms_level=int(self.raw_ms_level.get()),
@@ -1988,6 +1942,14 @@ class PlotApp:
             dpi=DISPLAY_DPI,
             font_name=cfg.font_name,
             font_size=cfg.font_size,
+            tick_length=5.0,
+            tick_width=1.0,
+            line_width_tic=lw,
+            line_width_spec=lw,
+            x_label_tic=x_lab,
+            y_label_tic=y_lab,
+            x_label_spec=x_lab,
+            y_label_spec=y_lab,
             save=None,
             show=cfg.show,
             prefer_native=bool(self.raw_prefer_native.get()),
@@ -1995,7 +1957,6 @@ class PlotApp:
             peakpick_on_convert=bool(self.msconvert_peakpick.get()),
             compress_mzml=bool(self.msconvert_compress.get()),
         )
-        self._apply_overrides(fig, (ax1, ax2), tab_name="Thermo RAW", normalize=bool(self.raw_norm.get()))
         self._render_figure(fig)
         self._export_figure(fig, cfg.save, cfg.dpi, cfg.transparent)
         self._set_status("Thermo RAW plot (TIC + m/z) complete.")

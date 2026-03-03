@@ -44,7 +44,7 @@ def plot_single_mz_spectrum(
     x_range: Tuple[float, float] = (100.0, 2000.0),
     color: str = "#2C7FB8",
     normalize: bool = True,
-    norm_mode: str = "percent",
+    norm_mode: str = "percent",  # "percent" or "unit"
     y_max: Optional[float] = None,
     font_name: str = "Arial",
     font_size: int = 10,
@@ -52,9 +52,15 @@ def plot_single_mz_spectrum(
     dpi: int = 300,
     tick_length: float = 5.0,
     tick_width: float = 1.0,
+    line_width: Optional[float] = None,
+    x_label: Optional[str] = None,
+    y_label: Optional[str] = None,
     save: Optional[str] = None,
     show: bool = False,
 ):
+    if line_width is None:
+        line_width = 2.0
+
     rc = {
         "font.family": font_name,
         "font.size": font_size,
@@ -95,7 +101,7 @@ def plot_single_mz_spectrum(
     with plt.rc_context(rc):
         fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi)
 
-        ax.plot(x, y, color=color, linewidth=2.0, label=label)
+        ax.plot(x, y, color=color, linewidth=line_width, label=label)
 
         ax.set_xlim(*x_range)
         ax.margins(y=0)
@@ -125,11 +131,11 @@ def plot_single_mz_spectrum(
             else:
                 ax.set_yticks([0.0, mid, ymax])
                 ax.set_yticklabels(["0", f"{mid:.2g}", f"{ymax:.2g}"])
-            ax.set_ylabel("Normalized Intensity")
+            ax.set_ylabel(y_label if y_label else "Normalized Intensity")
         else:
-            ax.set_ylabel("Intensity (a.u.)")
+            ax.set_ylabel(y_label if y_label else "Intensity (a.u.)")
 
-        ax.set_xlabel("m/z")
+        ax.set_xlabel(x_label if x_label else "m/z")
         ax.legend(loc="center left", bbox_to_anchor=(0.02, 0.5))
 
         place_second_label(ax, x, y, second_label, color, x_range, font_size)
@@ -152,7 +158,7 @@ def plot_mz_spectrum_stack(
     colors: Optional[Sequence[str]] = None,
     y_max: Optional[float] = None,
     normalize: bool = True,
-    norm_mode: str = "percent",
+    norm_mode: str = "percent",  # "percent" or "unit"
     font_name: str = "Arial",
     font_size: int = 10,
     figsize: Tuple[float, float] = (10, 8),
@@ -160,12 +166,14 @@ def plot_mz_spectrum_stack(
     hspace: float = 0.6,
     tick_length: float = 5.0,
     tick_width: float = 1.0,
+    line_width: Optional[float] = None,
+    x_label: Optional[str] = None,
+    y_label: Optional[str] = None,
     save: Optional[str] = None,
     show: bool = False,
 ):
     """
     Stacked m/z spectra: one panel per dataset, no vertical offsets.
-    'hspace' controls the spacing between subplots.
     """
     n = len(datasets)
     if len(labels) != n:
@@ -174,6 +182,8 @@ def plot_mz_spectrum_stack(
         second_labels = [None] * n
 
     colors = ensure_colors(colors, n, DEFAULT_MZ_COLORS)
+    if line_width is None:
+        line_width = 2.0
 
     rc = {
         "font.family": font_name,
@@ -243,14 +253,9 @@ def plot_mz_spectrum_stack(
 
             ax = axes[i]
 
-            ax.plot(x, y, color=color, linewidth=2.0, label=lab)
+            ax.plot(x, y, color=color, linewidth=line_width, label=lab)
 
             ax.set_xlim(*x_range)
-            ax.margins(y=0)
-
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
-
             if normalize:
                 ymax_local = norm_ymax
                 ax.set_ylim(0.0, ymax_local * 1.015)
@@ -272,6 +277,10 @@ def plot_mz_spectrum_stack(
                     ax.set_ylim(max(0.0, ymin), ymax * 1.05)
                     ax.set_yticks([0.0, ymax])
 
+            ax.margins(y=0)
+            ax.spines["top"].set_visible(False)
+            ax.spines["right"].set_visible(False)
+
             ax.tick_params(axis="y", length=tick_length, width=tick_width)
             ax.tick_params(axis="x", length=tick_length, width=tick_width)
 
@@ -282,13 +291,13 @@ def plot_mz_spectrum_stack(
             if i < n - 1:
                 ax.tick_params(labelbottom=False)
             else:
-                ax.set_xlabel("m/z")
+                ax.set_xlabel(x_label if x_label else "m/z")
 
-        fig.supxlabel("m/z")
+        fig.supxlabel(x_label if x_label else "m/z")
         if normalize:
-            fig.supylabel("Normalized Intensity")
+            fig.supylabel(y_label if y_label else "Normalized Intensity")
         else:
-            fig.supylabel("Intensity (a.u.)")
+            fig.supylabel(y_label if y_label else "Intensity (a.u.)")
 
         plt.tight_layout(rect=(0.08, 0.08, 0.98, 0.96), h_pad=hspace)
         plt.subplots_adjust(hspace=hspace)

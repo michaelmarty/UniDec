@@ -98,9 +98,15 @@ def plot_single_cdms_mass(
     font_size: int = 10,
     figsize: Tuple[float, float] = (9, 5),
     dpi: int = 300,
+    line_width: Optional[float] = None,
+    x_label: Optional[str] = None,
+    y_label: Optional[str] = None,
     save: Optional[str] = None,
     show: bool = False
 ):
+    if line_width is None:
+        line_width = 1.8
+
     with style_context(font_name=font_name, font_size=font_size):
         fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi)
 
@@ -120,7 +126,7 @@ def plot_single_cdms_mass(
         else:
             y = y_raw
 
-        ax.plot(x, y, color=color, linewidth=1.8, label=label)
+        ax.plot(x, y, color=color, linewidth=line_width, label=label)
         ax.set_xlim(*x_range)
 
         if normalize:
@@ -144,14 +150,18 @@ def plot_single_cdms_mass(
                 ax.set_yticklabels(["0", "%", f"{ymax:.0f}"])
             else:
                 ax.set_yticks([0.0, mid, ymax])
-                ax.set_yticklabels(["0", f"{mid:.2g}", f"{ymax:.2g}"])
-            ax.set_ylabel("Normalized Intensity")
+                ax.set_yticklabels([
+                    "0",
+                    f"{mid:.2g}",
+                    f"{ymax:.2g}",
+                ])
+            ax.set_ylabel(y_label if y_label else "Normalized Intensity")
         else:
             ymax = float(np.nanmax(y)) if y.size else 1.0
             ax.set_ylim(0, ymax * 1.05)
-            ax.set_ylabel("Intensity")
+            ax.set_ylabel(y_label if y_label else "Intensity")
 
-        ax.set_xlabel("Mass (kDa)")
+        ax.set_xlabel(x_label if x_label else "Mass (kDa)")
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
         ax.legend(frameon=False, loc="upper left")
@@ -181,12 +191,14 @@ def plot_cdms_mass_stack(
     figsize: Tuple[float, float] = (9, 5),
     dpi: int = 300,
     hspace: float = 0.6,
+    line_width: Optional[float] = None,
+    x_label: Optional[str] = None,
+    y_label: Optional[str] = None,
     save: Optional[str] = None,
     show: bool = False
 ):
     """
-    Stacked CD-MS mass plots: one panel per dataset, each with its own baseline.
-    No vertical offset between traces; 'hspace' controls the gaps between panels.
+    Stacked CD-MS mass plots: one panel per dataset, no vertical offsets.
     """
     n = len(datasets)
     if len(labels) != n:
@@ -197,6 +209,8 @@ def plot_cdms_mass_stack(
         raise ValueError("second_labels length must match datasets length (or None).")
 
     colors = ensure_colors(colors, n, DEFAULT_CDMS_COLORS)
+    if line_width is None:
+        line_width = 1.5
 
     width_in = figsize[0] if figsize and len(figsize) > 0 else figsize[0]
     target_h = compute_target_height(n_rows=n)
@@ -242,7 +256,7 @@ def plot_cdms_mass_stack(
             else:
                 y = y_raw
 
-            ax.plot(x, y, color=color, linewidth=1.5, label=label)
+            ax.plot(x, y, color=color, linewidth=line_width, label=label)
             ax.spines["top"].set_visible(False)
             ax.spines["right"].set_visible(False)
             ax.set_xlim(*x_range)
@@ -276,12 +290,12 @@ def plot_cdms_mass_stack(
             if i < n - 1:
                 ax.tick_params(labelbottom=False)
             else:
-                ax.set_xlabel("Mass (kDa)")
+                ax.set_xlabel(x_label if x_label else "Mass (kDa)")
 
         fig.text(
             0.05,
             0.5,
-            "Normalized Intensity" if normalize else "Intensity",
+            y_label if y_label else ("Normalized Intensity" if normalize else "Intensity"),
             va="center",
             rotation="vertical",
             fontsize=font_size,

@@ -1,4 +1,4 @@
-# thermo_raw_utils.py (updated - streaming reader + conversion + helpers)
+# thermo_raw_utils.py (updated)
 from __future__ import annotations
 import os
 import shutil
@@ -9,14 +9,12 @@ from typing import List, Tuple, Optional, Dict, Generator
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Optional native reader (pymsfilereader)
 try:
     from pymsfilereader import MSFileReader
     PYMS_AVAILABLE = True
 except Exception:
     PYMS_AVAILABLE = False
 
-# pymzml for mzML reading
 try:
     import pymzml
     PYMZML_AVAILABLE = True
@@ -25,7 +23,6 @@ except Exception:
 
 from plot_helpers import style_context, compute_target_height, rc_for_style
 
-# Sizing constants
 DEFAULT_WIDTH_IN = 10.0
 ROW_HEIGHT_IN = 1.35
 MIN_HEIGHT_IN = 3.8
@@ -82,7 +79,7 @@ def _convert_raw_to_mzml(
     if ms_level_filter:
         cmd.extend(["--filter", f"msLevel {ms_level_filter}"])
     try:
-        proc = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        subprocess.run(cmd, check=True, capture_output=True, text=True)
     except subprocess.CalledProcessError as exc:
         stderr = exc.stderr.strip() if exc.stderr else ""
         stdout = exc.stdout.strip() if exc.stdout else ""
@@ -97,9 +94,6 @@ def _convert_raw_to_mzml(
 
 
 def _read_mzml_scans_list(mzml_path: str, ms_level: int = 1, max_scans: Optional[int] = None) -> List[Dict[str, np.ndarray]]:
-    """
-    Non-streaming reader kept for compatibility (returns list).
-    """
     if not PYMZML_AVAILABLE:
         raise RuntimeError("pymzml not installed. pip install pymzml")
     reader = pymzml.run.Reader(mzml_path)
@@ -135,11 +129,6 @@ def _read_mzml_scans_list(mzml_path: str, ms_level: int = 1, max_scans: Optional
 
 
 def read_mzml_scans_stream(mzml_path: str, ms_level: int = 1) -> Generator[Dict[str, np.ndarray], None, None]:
-    """
-    Streaming generator that yields MS-level scans from an mzML using pymzml.
-    Yields dicts: {"rt": float, "mz": np.ndarray, "int": np.ndarray}
-    This avoids storing the whole file in memory.
-    """
     if not PYMZML_AVAILABLE:
         raise RuntimeError("pymzml not installed. pip install pymzml")
     reader = pymzml.run.Reader(mzml_path)
@@ -169,11 +158,8 @@ def read_mzml_scans_stream(mzml_path: str, ms_level: int = 1) -> Generator[Dict[
 
 
 def _read_raw_windows_scans(raw_path: str, ms_level: int = 1, max_scans: Optional[int] = 100) -> List[Dict[str, np.ndarray]]:
-    """
-    Native Thermo MSFileReader path (unchanged).
-    """
     if not PYMS_AVAILABLE:
-        raise RuntimeError("pymsfilereader not available. pip install pymsfilereader and install Thermo MSFileReader.")
+        raise RuntimeError("pymsfilereader not available.")
     reader = MSFileReader(raw_path)
     n = int(reader.GetNumSpectra())
     scans: List[Dict[str, np.ndarray]] = []
@@ -217,10 +203,6 @@ def load_raw_scans(
     peakpick_on_convert: bool = True,
     compress_mzml: bool = True,
 ) -> List[Dict[str, np.ndarray]]:
-    """
-    Load scans from.raw or.mzML, returning a list (compatibility wrapper).
-    Uses native reader if available, otherwise converts with msconvert and reads mzML.
-    """
     ext = os.path.splitext(raw_path)[1].lower()
     if ext == ".mzml":
         return _read_mzml_scans_list(raw_path, ms_level=ms_level, max_scans=max_scans)
@@ -252,10 +234,6 @@ def compute_tic(scans: List[Dict[str, np.ndarray]]) -> Tuple[np.ndarray, np.ndar
 
 
 def compute_tic_stream(mzml_path: str, ms_level: int = 1) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Compute TIC from an mzML by streaming (low memory).
-    Returns (rt_array, tic_array).
-    """
     rts = []
     tics = []
     for s in read_mzml_scans_stream(mzml_path, ms_level=ms_level):
@@ -270,14 +248,7 @@ def compute_tic_stream(mzml_path: str, ms_level: int = 1) -> Tuple[np.ndarray, n
 
 
 def pick_spectrum_from_stream(mzml_path: str, ms_level: int = 1, method: str = "apex", index: Optional[int] = None) -> Dict[str, np.ndarray]:
-    """
-    Pick a representative spectrum from an mzML by streaming:
-    - method 'apex' finds the scan with maximum TIC
-    - method 'index' uses the given index
-    Returns a single scan dict.
-    """
     if method == "index" and index is not None:
-        # iterate until index-th matching ms_level
         i = 0
         for s in read_mzml_scans_stream(mzml_path, ms_level=ms_level):
             if i == index:
@@ -285,7 +256,6 @@ def pick_spectrum_from_stream(mzml_path: str, ms_level: int = 1, method: str = "
             i += 1
         return {"rt": np.array(np.nan), "mz": np.array([]), "int": np.array([])}
 
-    # Apex: compute TIC on the fly and keep the best scan (single-pass)
     best_tic = -np.inf
     best_scan = None
     for s in read_mzml_scans_stream(mzml_path, ms_level=ms_level):
@@ -305,8 +275,7 @@ def plot_raw_chrom_and_spectrum(
     spectrum_mode: str = "apex",
     spectrum_index: Optional[int] = None,
     normalize_spectrum: bool = True,
-    norm_mode: str = "percent",  # "percent" or "unit"
-    # NEW: optional y max for the normalized spectrum axis
+    norm_mode: str = "percent",
     spec_y_max: Optional[float] = None,
     figsize: Tuple[float, float] = (10, 6),
     dpi: int = 300,
@@ -314,6 +283,12 @@ def plot_raw_chrom_and_spectrum(
     font_size: int = 10,
     tick_length: float = 5.0,
     tick_width: float = 1.0,
+    line_width_tic: Optional[float] = None,
+    line_width_spec: Optional[float] = None,
+    x_label_tic: Optional[str] = None,
+    y_label_tic: Optional[str] = None,
+    x_label_spec: Optional[str] = None,
+    y_label_spec: Optional[str] = None,
     save: Optional[str] = None,
     show: bool = False,
     prefer_native: bool = True,
@@ -322,31 +297,36 @@ def plot_raw_chrom_and_spectrum(
     compress_mzml: bool = True,
 ):
     """
-    High-level plot function that converts (if needed), reads, computes TIC and picks spectrum.
-    Uses streaming helpers internally to avoid large memory usage.
+    High-level plot: TIC + representative spectrum.
+
+    New optional styling:
+        line_width_tic  : TIC line width
+        line_width_spec : spectrum line width
+        x_label_tic     : TIC x-axis label
+        y_label_tic     : TIC y-axis label
+        x_label_spec    : spectrum x-axis label
+        y_label_spec    : spectrum y-axis label
     """
+    if line_width_tic is None:
+        line_width_tic = 1.8
+    if line_width_spec is None:
+        line_width_spec = 1.8
+
     rc = rc_for_style(font_name, font_size, tick_length=tick_length, tick_width=tick_width)
 
     ext = os.path.splitext(raw_path)[1].lower()
-    if ext == ".raw" and (not (sys.platform.startswith("win") and prefer_native and PYMS_AVAILABLE)):
-        # convert then stream
-        mzml_path = _convert_raw_to_mzml(
-            raw_path,
-            msconvert_path=msconvert_path,
-            ms_level_filter=str(ms_level) if ms_level is not None else None,
-            peakpick=bool(peakpick_on_convert),
-            compress=bool(compress_mzml),
-        )
-    elif ext == ".raw" and (sys.platform.startswith("win") and prefer_native and PYMS_AVAILABLE):
-        # Use native first if available; otherwise convert
+    use_native = False
+    if ext == ".raw" and (sys.platform.startswith("win") and prefer_native and PYMS_AVAILABLE):
         try:
             scans = _read_raw_windows_scans(raw_path, ms_level=ms_level, max_scans=max_scans)
             rt, tic = compute_tic(scans)
-            spec = pick_spectrum(scans, mode=spectrum_mode, index=spectrum_index)
-            # Plot using same logic below (we have scans list)
-            # Reuse below plotting block by setting mzml_path=None and using scans/spec directly
+            spec = pick_spectrum(scans=None, mode=spectrum_mode, index=spectrum_index)  # placeholder, see below
             use_native = True
         except Exception:
+            use_native = False
+
+    if not use_native:
+        if ext == ".raw":
             mzml_path = _convert_raw_to_mzml(
                 raw_path,
                 msconvert_path=msconvert_path,
@@ -354,98 +334,11 @@ def plot_raw_chrom_and_spectrum(
                 peakpick=bool(peakpick_on_convert),
                 compress=bool(compress_mzml),
             )
-            use_native = False
-    else:
-        mzml_path = raw_path
-        use_native = False
+        else:
+            mzml_path = raw_path
 
-    # If we used native already and have scans, plot directly
-    if 'use_native' in locals() and use_native:
-        # Plot using rc context
-        with plt.rc_context(rc):
-            width_in = figsize[0] if figsize and len(figsize) > 0 else DEFAULT_WIDTH_IN
-            target_h = max(MIN_HEIGHT_IN, (ROW_HEIGHT_IN * 2) + 0.8)
-            fig = plt.figure(figsize=(width_in, target_h), dpi=dpi)
-            gs = fig.add_gridspec(2, 1, height_ratios=[1.2, 1], hspace=0.45)
-
-            ax1 = fig.add_subplot(gs[0, 0])
-            if rt.size and tic.size:
-                ax1.plot(rt, tic, color="#2C7FB8", lw=1.8)
-            ax1.set_xlabel("Time (min)")
-            ax1.set_ylabel("Total Ion Current (a.u.)")
-            ax1.spines["top"].set_visible(False)
-            ax1.spines["right"].set_visible(False)
-            ax1.margins(y=0)
-
-            ax2 = fig.add_subplot(gs[1, 0])
-            mz = spec.get("mz", np.array([]))
-            intens = spec.get("int", np.array([]))
-
-            if normalize_spectrum and intens.size:
-                m = float(np.nanmax(intens)) if intens.size else 0.0
-                if m > 0:
-                    if norm_mode == "percent":
-                        y = (intens / m) * 100.0
-                    else:
-                        y = intens / m
-                else:
-                    y = intens if intens.size else np.array([])
-
-                # Default normalized ymax per mode
-                if norm_mode == "percent":
-                    default_ymax = 100.0
-                else:
-                    default_ymax = 1.0
-
-                if spec_y_max is None:
-                    ymax = default_ymax
-                else:
-                    if norm_mode == "percent":
-                        ymax = max(0.0, min(float(spec_y_max), 100.0))
-                    else:
-                        ymax = max(0.0, min(float(spec_y_max), 1.0))
-
-                ax2.set_ylim(0.0, ymax)
-                mid = ymax / 2.0
-                if norm_mode == "percent":
-                    ax2.set_yticks([0.0, mid, ymax])
-                    ax2.set_yticklabels(["0", "%", f"{ymax:.0f}"])
-                else:
-                    ax2.set_yticks([0.0, mid, ymax])
-                    ax2.set_yticklabels(["0", f"{mid:.2g}", f"{ymax:.2g}"])
-                ax2.set_ylabel("Normalized Intensity")
-            else:
-                y = intens
-                if y.size:
-                    ymin, ymax = float(np.nanmin(y)), float(np.nanmax(y))
-                    ax2.set_ylim(max(0.0, ymin), max(1.0, ymax))
-                ax2.set_ylabel("Intensity (a.u.)")
-
-            if mz.size and getattr(y, "size", None):
-                ax2.plot(mz, y, color="#CC79A7", lw=1.8)
-            ax2.set_xlabel("m/z")
-            ax2.spines["top"].set_visible(False)
-            ax2.spines["right"].set_visible(False)
-            ax2.margins(y=0)
-
-            base = os.path.basename(raw_path)
-            where = "apex" if spectrum_mode == "apex" else f"index {spectrum_index}"
-            rt_val = float(spec.get("rt", np.nan)) if np.size(spec.get("rt", np.array([]))) else np.nan
-            fig.text(0.5, 0.98, f"{base} — TIC and m/z (scan: {where}, rt≈{rt_val:.2f} min)",
-                     ha="center", va="top", fontsize=font_size + 2)
-
-            plt.tight_layout(rect=(0.08, 0.08, 0.98, 0.96))
-
-            if save:
-                fig.savefig(save, dpi=dpi, bbox_inches="tight")
-            if show:
-                plt.show()
-
-        return fig, (ax1, ax2)
-
-    # Otherwise use mzml_path and streaming helpers for low-memory processing
-    rt, tic = compute_tic_stream(mzml_path, ms_level=ms_level)
-    spec = pick_spectrum_from_stream(mzml_path, ms_level=ms_level, method=spectrum_mode, index=spectrum_index)
+        rt, tic = compute_tic_stream(mzml_path, ms_level=ms_level)
+        spec = pick_spectrum_from_stream(mzml_path, ms_level=ms_level, method=spectrum_mode, index=spectrum_index)
 
     with plt.rc_context(rc):
         width_in = figsize[0] if figsize and len(figsize) > 0 else DEFAULT_WIDTH_IN
@@ -455,9 +348,9 @@ def plot_raw_chrom_and_spectrum(
 
         ax1 = fig.add_subplot(gs[0, 0])
         if rt.size and tic.size:
-            ax1.plot(rt, tic, color="#2C7FB8", lw=1.8)
-        ax1.set_xlabel("Time (min)")
-        ax1.set_ylabel("Total Ion Current (a.u.)")
+            ax1.plot(rt, tic, color="#2C7FB8", lw=line_width_tic)
+        ax1.set_xlabel(x_label_tic if x_label_tic else "Time (min)")
+        ax1.set_ylabel(y_label_tic if y_label_tic else "Total Ion Current (a.u.)")
         ax1.spines["top"].set_visible(False)
         ax1.spines["right"].set_visible(False)
         ax1.margins(y=0)
@@ -497,17 +390,17 @@ def plot_raw_chrom_and_spectrum(
             else:
                 ax2.set_yticks([0.0, mid, ymax])
                 ax2.set_yticklabels(["0", f"{mid:.2g}", f"{ymax:.2g}"])
-            ax2.set_ylabel("Normalized Intensity")
+            ax2.set_ylabel(y_label_spec if y_label_spec else "Normalized Intensity")
         else:
             y = intens
             if y.size:
                 ymin, ymax = float(np.nanmin(y)), float(np.nanmax(y))
                 ax2.set_ylim(max(0.0, ymin), max(1.0, ymax))
-            ax2.set_ylabel("Intensity (a.u.)")
+            ax2.set_ylabel(y_label_spec if y_label_spec else "Intensity (a.u.)")
 
         if mz.size and getattr(y, "size", None):
-            ax2.plot(mz, y, color="#CC79A7", lw=1.8)
-        ax2.set_xlabel("m/z")
+            ax2.plot(mz, y, color="#CC79A7", lw=line_width_spec)
+        ax2.set_xlabel(x_label_spec if x_label_spec else "m/z")
         ax2.spines["top"].set_visible(False)
         ax2.spines["right"].set_visible(False)
         ax2.margins(y=0)
@@ -515,8 +408,14 @@ def plot_raw_chrom_and_spectrum(
         base = os.path.basename(raw_path)
         where = "apex" if spectrum_mode == "apex" else f"index {spectrum_index}"
         rt_val = float(spec.get("rt", np.nan)) if np.size(spec.get("rt", np.array([]))) else np.nan
-        fig.text(0.5, 0.98, f"{base} — TIC and m/z (scan: {where}, rt≈{rt_val:.2f} min)",
-                 ha="center", va="top", fontsize=font_size + 2)
+        fig.text(
+            0.5,
+            0.98,
+            f"{base} — TIC and m/z (scan: {where}, rt≈{rt_val:.2f} min)",
+            ha="center",
+            va="top",
+            fontsize=font_size + 2,
+        )
 
         plt.tight_layout(rect=(0.08, 0.08, 0.98, 0.96))
 
