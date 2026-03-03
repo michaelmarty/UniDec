@@ -31,7 +31,12 @@ except Exception:
 
 # Plotting utilities (ensure these files exist in the same folder)
 from chromatogram_plot_utils import plot_chrom_stack, plot_chrom_offset_stack, read_chrom_file
-from cdms_mass_plot_utils import plot_cdms_mass_offset_stack, plot_single_cdms_mass, read_cdms_mass_file
+from cdms_mass_plot_utils import (
+    plot_cdms_mass_offset_stack,
+    plot_single_cdms_mass,
+    read_cdms_mass_file,
+    _load_mass,
+)
 from mwd_chromatogram_utils import plot_mwd_chromatograms, load_chrom_file as load_mwd_chrom_file
 from mz_spectrum_plot_utils import plot_single_mz_spectrum, plot_mz_spectrum_offset_stack, read_mz_spectrum_file
 from thermo_raw_utils import (
@@ -1597,9 +1602,13 @@ class PlotApp:
 
     def _overlay_cdms_replicates(self, axes, groups, colors, normalize: bool, x_range):
         def selector(fp: str):
-            df = read_cdms_mass_file(fp)
+            # Use the same loader as main CD-MS plotting, which guarantees kDa
+            df = _load_mass(fp)
             df = df[(df["mass_kDa"] >= x_range[0]) & (df["mass_kDa"] <= x_range[1])].copy()
-            return df["mass_kDa"].astype(float).values, df["intensity"].astype(float).values
+            return (
+                df["mass_kDa"].astype(float).values,
+                df["intensity"].astype(float).values,
+            )
 
         xgrid = np.linspace(x_range[0], x_range[1], 2000)
         self._overlay_replicates_generic(
@@ -1691,53 +1700,6 @@ class PlotApp:
                         fig.text(0.02, 0.5, ylab, va="center", rotation="vertical")
                 except Exception:
                     pass
-
-        # Clamp normalized Y
-        try:
-            if tab_name == "CD-MS Mass" and normalize:
-                mode = self.cdms_norm_mode.get()
-                if mode == "percent":
-                    ymin, ymax = 0.0, min(float(self.cdms_ymax_pct.get()), 100.0)
-                else:
-                    ymin, ymax = 0.0, 1.0
-                for ax in ax_list:
-                    ax.set_ylim(ymin, ymax)
-
-            elif tab_name == "m/z Spectra" and normalize:
-                mode = self.mz_norm_mode.get()
-                if mode == "percent":
-                    ymin, ymax = 0.0, min(float(self.mz_ymax_pct.get()), 100.0)
-                else:
-                    ymin, ymax = 0.0, 1.0
-                for ax in ax_list:
-                    ax.set_ylim(ymin, ymax)
-
-            elif tab_name == "MWD Chromatograms" and normalize and len(ax_list) == 2:
-                ymax = min(float(self.mwd_ymax_pct.get()), 100.0)
-                ax_list[0].set_ylim(0, ymax)
-                ax_list[1].set_ylim(0, ymax)
-
-            elif tab_name == "Chromatograms":
-                ymin = float(self.chrom_ymin.get())
-                ymax = float(self.chrom_ymax.get())
-                mode = self.chrom_norm_mode.get()
-                if normalize:
-                    if mode == "percent":
-                        ymin, ymax = clamp_range(ymin, ymax, 0.0, 100.0)
-                    else:
-                        ymin, ymax = clamp_range(ymin, ymax, 0.0, 1.0)
-                for ax in ax_list:
-                    ax.set_ylim(ymin, ymax)
-
-            elif tab_name == "Thermo RAW" and normalize and len(ax_list) == 2:
-                mode = self.raw_norm_mode.get()
-                if mode == "percent":
-                    ymax = min(float(self.raw_ymax_pct.get()), 100.0)
-                else:
-                    ymax = min(float(self.raw_ymax_pct.get()), 1.0)
-                ax_list[1].set_ylim(0, ymax)
-        except Exception:
-            pass
 
         try:
             fig.canvas.draw_idle()
@@ -1880,6 +1842,8 @@ class PlotApp:
                 color=colors[0],
                 normalize=normalize,
                 norm_mode=norm_mode,
+                # pass GUI y max
+                y_max=(float(self.cdms_ymax_pct.get()) if normalize else None),
                 font_name=cfg.font_name,
                 font_size=cfg.font_size,
                 figsize=cfg.figsize,
@@ -1907,15 +1871,15 @@ class PlotApp:
             )
             return
 
-        y_ticks = ("0", "%", "100") if normalize and norm_mode == "percent" else ("", "", "")
         fig, axes = plot_cdms_mass_offset_stack(
             datasets=self.files,
             labels=labels,
             second_labels=second_labels if use_second else [None] * len(self.files),
             x_range=x_range,
             colors=colors,
+            # GUI y-offset and y-max
             y_offset_step=float(self.cdms_y_offset.get()),
-            y_tick_labels=y_ticks,
+            y_max=(float(self.cdms_ymax_pct.get()) if normalize else None),
             normalize=normalize,
             norm_mode=norm_mode,
             font_name=cfg.font_name,
@@ -1963,6 +1927,7 @@ class PlotApp:
             xlim=xlim,
             normalize=normalize,
             norm_mode=norm_mode,
+            y_max=(float(self.mwd_ymax_pct.get()) if normalize else None),
             font_name=cfg.font_name,
             font_size=cfg.font_size,
             figsize=cfg.figsize,
@@ -2003,6 +1968,7 @@ class PlotApp:
                 color=colors[0],
                 normalize=normalize,
                 norm_mode=norm_mode,
+                y_max=(float(self.mz_ymax_pct.get()) if normalize else None),
                 font_name=cfg.font_name,
                 font_size=cfg.font_size,
                 figsize=cfg.figsize,
@@ -2030,7 +1996,6 @@ class PlotApp:
             )
             return
 
-        y_ticks = ("0", "%", "100") if normalize and norm_mode == "percent" else ("", "", "")
         fig, axes = plot_mz_spectrum_offset_stack(
             datasets=self.files,
             labels=labels,
@@ -2038,7 +2003,7 @@ class PlotApp:
             x_range=x_range,
             colors=colors,
             y_offset_step=float(self.mz_y_offset.get()),
-            y_tick_labels=y_ticks,
+            y_max=(float(self.mz_ymax_pct.get()) if normalize else None),
             normalize=normalize,
             norm_mode=norm_mode,
             font_name=cfg.font_name,
@@ -2085,6 +2050,7 @@ class PlotApp:
             spectrum_index=(int(self.raw_index.get()) if self.raw_mode.get() == "index" else None),
             normalize_spectrum=bool(self.raw_norm.get()),
             norm_mode=norm_mode,
+            spec_y_max=(float(self.raw_ymax_pct.get()) if bool(self.raw_norm.get()) else None),
             figsize=cfg.figsize,
             dpi=DISPLAY_DPI,
             font_name=cfg.font_name,

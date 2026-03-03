@@ -31,47 +31,79 @@ def read_cdms_mass_file(file_path: str) -> pd.DataFrame:
     arr = np.loadtxt(file_path)
     if arr.ndim == 1:
         arr = np.column_stack([np.arange(len(arr)), arr])
-    return pd.DataFrame(arr[:, :2], columns=["mass_kDa", "intensity"]).dropna()
+    df = pd.DataFrame(arr[:, :2], columns=["mass_kDa", "intensity"]).dropna()
+
+    # Normalize to numeric
+    df["mass_kDa"] = pd.to_numeric(df["mass_kDa"], errors="coerce")
+    df["intensity"] = pd.to_numeric(df["intensity"], errors="coerce")
+    df = df.dropna()
+
+    # If the values look like Da (very large), convert to kDa
+    max_mass = float(df["mass_kDa"].max()) if not df.empty else 0.0
+    if max_mass > 5000:
+        df["mass_kDa"] = df["mass_kDa"] / 1000.0
+
+    return df
 
 
 def _load_mass(source: Union[str, pd.DataFrame]) -> pd.DataFrame:
+    """
+    Load CD-MS mass data and ensure that the 'mass_kDa' column is in kDa.
+
+    Rules:
+    - If a 'Mass_Da' column exists, convert to kDa by dividing by 1000.
+    - If a 'mass_kDa' or 'Mass_kDa' column exists, assume it is already kDa.
+    - If only generic numeric columns exist, assume:
+        * If the max value > 5000, treat as Da and divide by 1000.
+        * Otherwise, treat as kDa.
+    """
     if isinstance(source, str):
+        # Prefer the robust reader, then fall back to a simple whitespace reader
         try:
             df = read_cdms_mass_file(source)
-            return df.sort_values("mass_kDa").reset_index(drop=True)
         except Exception:
             df = pd.read_csv(source, sep=r"\s+", header=None)
             df = df.iloc[:, :2].copy()
             df.columns = ["mass_kDa", "intensity"]
     elif isinstance(source, pd.DataFrame):
         df = source.copy()
-        col_map = {}
+
+        # Explicit column recognition
         if {"mass_kDa", "intensity"}.issubset(df.columns):
-            pass
+            # Already in kDa (by contract of this function)
+            df = df[["mass_kDa", "intensity"]]
         elif {"Mass_kDa", "Intensity"}.issubset(df.columns):
-            col_map = {"Mass_kDa": "mass_kDa", "Intensity": "intensity"}
+            df = df.rename(columns={"Mass_kDa": "mass_kDa", "Intensity": "intensity"})
+            df = df[["mass_kDa", "intensity"]]
         elif {"Mass_Da", "Intensity"}.issubset(df.columns):
+            # Explicitly Da → kDa
             df["mass_kDa"] = pd.to_numeric(df["Mass_Da"], errors="coerce") / 1000.0
             df["intensity"] = pd.to_numeric(df["Intensity"], errors="coerce")
             df = df[["mass_kDa", "intensity"]]
-            return df.dropna().sort_values("mass_kDa").reset_index(drop=True)
         else:
+            # Generic numeric columns case
             num_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
             if len(num_cols) >= 2:
                 df = df[num_cols[:2]].copy()
                 df.columns = ["mass_kDa", "intensity"]
             else:
                 raise ValueError("DataFrame must contain numeric mass and intensity columns.")
-        if col_map:
-            df = df.rename(columns=col_map)
     else:
         raise TypeError("source must be str or pd.DataFrame.")
 
+    # Ensure numeric
     df["mass_kDa"] = pd.to_numeric(df["mass_kDa"], errors="coerce")
     df["intensity"] = pd.to_numeric(df["intensity"], errors="coerce")
-    df = df.dropna().sort_values("mass_kDa").reset_index(drop=True)
-    return df
+    df = df.dropna()
 
+    # Heuristic: if values look like Da (very large), convert to kDa
+    max_mass = float(df["mass_kDa"].max()) if not df.empty else 0.0
+    # Adjust threshold if your typical kDa range differs; 5000 here means 5000 Da.
+    if max_mass > 5000:
+        df["mass_kDa"] = df["mass_kDa"] / 1000.0
+
+    df = df.sort_values("mass_kDa").reset_index(drop=True)
+    return df
 
 def plot_single_cdms_mass(
     dataset: Union[str, pd.DataFrame],
@@ -81,6 +113,8 @@ def plot_single_cdms_mass(
     color: str = "#2C7FB8",
     normalize: bool = True,
     norm_mode: str = "percent",  # "percent" or "unit"
+    # NEW: optional y-axis control from caller (GUI)
+    y_max: Optional[float] = None,
     font_name: str = "Arial",
     font_size: int = 10,
     figsize: Tuple[float, float] = (9, 5),
@@ -90,9 +124,14 @@ def plot_single_cdms_mass(
 ):
     """
     Plot a single CD-MS mass distribution with optional normalization.
+
     norm_mode:
-        - "percent": 0–100 with ticks at 0, 50, 100
-        - "unit":    0–1 with ticks at 0, 0.5, 1
+        - "percent": 0–100 by default, or 0–y_max if y_max is provided.
+        - "unit":    0–1 by default, or 0–y_max if y_max is provided.
+
+    y_max:
+        - If None: use default (100 for percent, 1.0 for unit).
+        - If provided: clamp appropriately and use 0–y_max.
     """
     with style_context(font_name=font_name, font_size=font_size):
         fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi)
@@ -117,14 +156,35 @@ def plot_single_cdms_mass(
         ax.set_xlim(*x_range)
 
         if normalize:
+            # Default per mode
             if norm_mode == "percent":
-                ax.set_ylim(0, 100)
-                ax.set_yticks([0, 50, 100])
-                ax.set_yticklabels(["0", "%", "100"])
+                default_ymax = 100.0
             else:
-                ax.set_ylim(0, 1.0)
-                ax.set_yticks([0.0, 0.5, 1.0])
-                ax.set_yticklabels(["0", "0.5", "1.0"])
+                default_ymax = 1.0
+
+            # Use GUI-provided y_max if available
+            if y_max is None:
+                ymax = default_ymax
+            else:
+                if norm_mode == "percent":
+                    ymax = max(0.0, min(float(y_max), 100.0))
+                else:
+                    ymax = max(0.0, min(float(y_max), 1.0))
+
+            ax.set_ylim(0.0, ymax)
+
+            # 3 ticks: 0, mid, ymax
+            mid = ymax / 2.0
+            if norm_mode == "percent":
+                ax.set_yticks([0.0, mid, ymax])
+                ax.set_yticklabels(["0", "%", f"{ymax:.0f}"])
+            else:
+                ax.set_yticks([0.0, mid, ymax])
+                ax.set_yticklabels([
+                    "0",
+                    f"{mid:.2g}",
+                    f"{ymax:.2g}",
+                ])
             ax.set_ylabel("Normalized Intensity")
         else:
             ymax = float(np.nanmax(y)) if y.size else 1.0
@@ -153,8 +213,11 @@ def plot_cdms_mass_offset_stack(
     second_labels: Optional[Sequence[Optional[str]]] = None,
     x_range: Tuple[float, float] = (0, 500),
     colors: Optional[Sequence[str]] = None,
+    # y_offset_step is controlled externally (GUI)
     y_offset_step: float = 120.0,
-    y_tick_labels: Optional[Sequence[str]] = None,  # not heavily used now
+    # NEW: maximum normalized height for each trace (per axis)
+    y_max: Optional[float] = None,
+    y_tick_labels: Optional[Sequence[str]] = None,  # kept for compatibility; not heavily used
     normalize: bool = True,
     norm_mode: str = "percent",  # "percent" or "unit"
     font_name: str = "Arial",
@@ -166,9 +229,15 @@ def plot_cdms_mass_offset_stack(
 ):
     """
     Offset-stacked CD-MS mass plots.
+
     norm_mode:
-        - "percent": each trace 0–100 over its offset
-        - "unit":    each trace 0–1 over its offset
+        - "percent": each trace scaled 0–100 (or 0–y_max) over its offset.
+        - "unit":    each trace scaled 0–1 (or 0–y_max) over its offset.
+
+    y_max:
+        - If None: default is 100 (percent) or 1.0 (unit).
+        - If provided: used to define the height of each trace's normalized range
+          above its offset (with clamping).
     """
     n = len(datasets)
     if len(labels) != n:
@@ -182,6 +251,23 @@ def plot_cdms_mass_offset_stack(
 
     width_in = figsize[0] if figsize and len(figsize) > 0 else figsize[0]
     target_h = compute_target_height(n_rows=n)
+
+    # Determine normalized height per trace
+    if normalize:
+        if norm_mode == "percent":
+            default_ymax = 100.0
+        else:
+            default_ymax = 1.0
+
+        if y_max is None:
+            norm_ymax = default_ymax
+        else:
+            if norm_mode == "percent":
+                norm_ymax = max(0.0, min(float(y_max), 100.0))
+            else:
+                norm_ymax = max(0.0, min(float(y_max), 1.0))
+    else:
+        norm_ymax = None
 
     with style_context(font_name=font_name, font_size=font_size):
         fig, axes = plt.subplots(n, 1, sharex=True, figsize=(width_in, target_h), dpi=dpi)
@@ -215,14 +301,22 @@ def plot_cdms_mass_offset_stack(
             ax.set_xlim(*x_range)
 
             if normalize:
+                ymax_local = norm_ymax
+                # Panel covers offset → offset + ymax_local
+                ax.set_ylim(offset, offset + ymax_local * 1.015)
+
+                # 3 ticks per panel
+                mid = offset + ymax_local / 2.0
                 if norm_mode == "percent":
-                    ax.set_ylim(offset, offset + 101.5)
-                    ax.set_yticks([offset, offset + 50, offset + 100])
-                    ax.set_yticklabels(["0", "%", "100"])
+                    ax.set_yticks([offset, mid, offset + ymax_local])
+                    ax.set_yticklabels(["0", "%", f"{ymax_local:.0f}"])
                 else:
-                    ax.set_ylim(offset, offset + 1.05)
-                    ax.set_yticks([offset, offset + 0.5, offset + 1.0])
-                    ax.set_yticklabels(["0", "0.5", "1.0"])
+                    ax.set_yticks([offset, mid, offset + ymax_local])
+                    ax.set_yticklabels([
+                        "0",
+                        f"{(ymax_local / 2.0):.2g}",
+                        f"{ymax_local:.2g}",
+                    ])
             else:
                 ymax = float(np.nanmax(y)) if y.size else 1.0
                 ax.set_ylim(offset, offset + ymax * 1.05)
@@ -240,9 +334,14 @@ def plot_cdms_mass_offset_stack(
             else:
                 ax.set_xlabel("Mass (kDa)")
 
-        fig.text(0.05, 0.5,
-                 "Normalized Intensity" if normalize else "Intensity",
-                 va="center", rotation="vertical", fontsize=font_size)
+        fig.text(
+            0.05,
+            0.5,
+            "Normalized Intensity" if normalize else "Intensity",
+            va="center",
+            rotation="vertical",
+            fontsize=font_size,
+        )
         plt.subplots_adjust(left=0.15, right=0.95, bottom=0.15, top=0.95, hspace=0.6)
 
         if save:

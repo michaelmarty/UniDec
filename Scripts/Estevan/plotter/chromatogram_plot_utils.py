@@ -126,10 +126,23 @@ def plot_chrom_stack(
 
             ax.set_xlim(*xlim)
             if normalize:
+                # Use ylim from caller if provided; otherwise default by mode
                 if norm_mode == "percent":
-                    ax.set_ylim(0.0, 100.0)
+                    default_ymin, default_ymax = 0.0, 100.0
                 else:  # "unit"
-                    ax.set_ylim(0.0, 1.0)
+                    default_ymin, default_ymax = 0.0, 1.0
+
+                if ylim is not None:
+                    ymin, ymax = ylim
+                    # Clamp to valid range per mode
+                    if norm_mode == "percent":
+                        ymin, ymax = max(0.0, ymin), min(100.0, ymax)
+                    else:
+                        ymin, ymax = max(0.0, ymin), min(1.0, ymax)
+                else:
+                    ymin, ymax = default_ymin, default_ymax
+
+                ax.set_ylim(ymin, ymax)
             else:
                 if ylim == (0.0, 1.0):
                     ymax = float(df_local["mAU"].max()) if not df_local["mAU"].empty else 1.0

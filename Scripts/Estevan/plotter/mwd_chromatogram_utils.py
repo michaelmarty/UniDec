@@ -72,6 +72,8 @@ def plot_mwd_chromatograms(
     xlim: Tuple[float, float] = (0.0, 26.0),
     normalize: bool = True,
     norm_mode: str = "percent",  # "percent" or "unit"
+    # NEW: optional y max for normalized traces (applied to both axes)
+    y_max: Optional[float] = None,
     alpha_mv: float = 0.9,
     font_name: str = "Arial",
     font_size: int = 12,
@@ -125,20 +127,35 @@ def plot_mwd_chromatograms(
         ax2.spines["left"].set_visible(False)
 
         if normalize:
+            # defaults
             if norm_mode == "percent":
-                ax1.set_ylim(0, 100)
-                ax2.set_ylim(0, 100)
-                ax1.set_yticks([0, 50, 100])
-                ax2.set_yticks([0, 50, 100])
-                ax1.set_yticklabels(["0", "%", "100"])
-                ax2.set_yticklabels(["0", "%", "100"])
+                default_ymax = 100.0
             else:
-                ax1.set_ylim(0, 1.0)
-                ax2.set_ylim(0, 1.0)
-                ax1.set_yticks([0.0, 0.5, 1.0])
-                ax2.set_yticks([0.0, 0.5, 1.0])
-                ax1.set_yticklabels(["0", "0.5", "1.0"])
-                ax2.set_yticklabels(["0", "0.5", "1.0"])
+                default_ymax = 1.0
+
+            if y_max is None:
+                ymax = default_ymax
+            else:
+                if norm_mode == "percent":
+                    ymax = max(0.0, min(float(y_max), 100.0))
+                else:
+                    ymax = max(0.0, min(float(y_max), 1.0))
+
+            ax1.set_ylim(0, ymax)
+            ax2.set_ylim(0, ymax)
+
+            mid = ymax / 2.0
+            if norm_mode == "percent":
+                ax1.set_yticks([0, mid, ymax])
+                ax2.set_yticks([0, mid, ymax])
+                ax1.set_yticklabels(["0", "%", f"{ymax:.0f}"])
+                ax2.set_yticklabels(["0", "%", f"{ymax:.0f}"])
+            else:
+                ax1.set_yticks([0, mid, ymax])
+                ax2.set_yticks([0, mid, ymax])
+                ax1.set_yticklabels(["0", f"{mid:.2g}", f"{ymax:.2g}"])
+                ax2.set_yticklabels(["0", f"{mid:.2g}", f"{ymax:.2g}"])
+
             ax1.set_ylabel("Normalized Absorbance")
             ax2.set_ylabel("Normalized Voltage")
         else:

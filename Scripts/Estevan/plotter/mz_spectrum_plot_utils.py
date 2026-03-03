@@ -65,6 +65,8 @@ def plot_single_mz_spectrum(
     color: str = "#2C7FB8",
     normalize: bool = True,
     norm_mode: str = "percent",  # "percent" or "unit"
+    # NEW: optional y-axis control
+    y_max: Optional[float] = None,
     font_name: str = "Arial",
     font_size: int = 10,
     figsize: Tuple[float, float] = (10, 4),
@@ -107,14 +109,28 @@ def plot_single_mz_spectrum(
         ax.spines["right"].set_visible(False)
 
         if normalize:
+            # default ymax per mode
             if norm_mode == "percent":
-                ax.set_ylim(0, 100)
-                ax.set_yticks([0, 50, 100])
-                ax.set_yticklabels(["0", "%", "100"])
+                default_ymax = 100.0
             else:
-                ax.set_ylim(0, 1.0)
-                ax.set_yticks([0.0, 0.5, 1.0])
-                ax.set_yticklabels(["0", "0.5", "1.0"])
+                default_ymax = 1.0
+
+            if y_max is None:
+                ymax = default_ymax
+            else:
+                if norm_mode == "percent":
+                    ymax = max(0.0, min(float(y_max), 100.0))
+                else:
+                    ymax = max(0.0, min(float(y_max), 1.0))
+
+            ax.set_ylim(0.0, ymax)
+            mid = ymax / 2.0
+            if norm_mode == "percent":
+                ax.set_yticks([0.0, mid, ymax])
+                ax.set_yticklabels(["0", "%", f"{ymax:.0f}"])
+            else:
+                ax.set_yticks([0.0, mid, ymax])
+                ax.set_yticklabels(["0", f"{mid:.2g}", f"{ymax:.2g}"])
             ax.set_ylabel("Normalized Intensity")
         else:
             ax.set_ylabel("Intensity (a.u.)")
@@ -141,6 +157,8 @@ def plot_mz_spectrum_offset_stack(
     x_range: Tuple[float, float] = (100.0, 2000.0),
     colors: Optional[Sequence[str]] = None,
     y_offset_step: float = 120.0,
+    # NEW: maximum normalized height per panel
+    y_max: Optional[float] = None,
     y_tick_labels: Tuple[str, str, str] = ("0", "%", "100"),
     normalize: bool = True,
     norm_mode: str = "percent",  # "percent" or "unit"
@@ -165,6 +183,23 @@ def plot_mz_spectrum_offset_stack(
 
     width_in = figsize[0] if figsize and len(figsize) > 0 else DEFAULT_WIDTH_IN
     target_h = compute_target_height(n_rows=n)
+
+    # normalized height per panel
+    if normalize:
+        if norm_mode == "percent":
+            default_ymax = 100.0
+        else:
+            default_ymax = 1.0
+
+        if y_max is None:
+            norm_ymax = default_ymax
+        else:
+            if norm_mode == "percent":
+                norm_ymax = max(0.0, min(float(y_max), 100.0))
+            else:
+                norm_ymax = max(0.0, min(float(y_max), 1.0))
+    else:
+        norm_ymax = None
 
     with plt.rc_context(rc):
         fig, axes = plt.subplots(n, 1, figsize=(width_in, target_h), sharex=True, dpi=dpi)
@@ -202,14 +237,19 @@ def plot_mz_spectrum_offset_stack(
 
             ax.set_xlim(*x_range)
             if normalize:
+                ymax_local = norm_ymax
+                ax.set_ylim(offset, offset + ymax_local * 1.015)
+                mid = offset + ymax_local / 2.0
                 if norm_mode == "percent":
-                    ax.set_ylim(offset, offset + 101.0)
-                    ax.set_yticks([offset, offset + 50, offset + 100])
-                    ax.set_yticklabels(["0", "%", "100"])
+                    ax.set_yticks([offset, mid, offset + ymax_local])
+                    ax.set_yticklabels(["0", "%", f"{ymax_local:.0f}"])
                 else:
-                    ax.set_ylim(offset, offset + 1.05)
-                    ax.set_yticks([offset, offset + 0.5, offset + 1.0])
-                    ax.set_yticklabels(["0", "0.5", "1.0"])
+                    ax.set_yticks([offset, mid, offset + ymax_local])
+                    ax.set_yticklabels([
+                        "0",
+                        f"{(ymax_local / 2.0):.2g}",
+                        f"{ymax_local:.2g}",
+                    ])
             else:
                 if y.size:
                     ymin = float(np.nanmin(y))

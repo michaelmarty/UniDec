@@ -306,6 +306,8 @@ def plot_raw_chrom_and_spectrum(
     spectrum_index: Optional[int] = None,
     normalize_spectrum: bool = True,
     norm_mode: str = "percent",  # "percent" or "unit"
+    # NEW: optional y max for the normalized spectrum axis
+    spec_y_max: Optional[float] = None,
     figsize: Tuple[float, float] = (10, 6),
     dpi: int = 300,
     font_name: str = "Arial",
@@ -388,14 +390,29 @@ def plot_raw_chrom_and_spectrum(
                         y = intens / m
                 else:
                     y = intens if intens.size else np.array([])
+
+                # Default normalized ymax per mode
                 if norm_mode == "percent":
-                    ax2.set_ylim(0, 100)
-                    ax2.set_yticks([0, 50, 100])
-                    ax2.set_yticklabels(["0", "%", "100"])
+                    default_ymax = 100.0
                 else:
-                    ax2.set_ylim(0, 1.0)
-                    ax2.set_yticks([0.0, 0.5, 1.0])
-                    ax2.set_yticklabels(["0", "0.5", "1.0"])
+                    default_ymax = 1.0
+
+                if spec_y_max is None:
+                    ymax = default_ymax
+                else:
+                    if norm_mode == "percent":
+                        ymax = max(0.0, min(float(spec_y_max), 100.0))
+                    else:
+                        ymax = max(0.0, min(float(spec_y_max), 1.0))
+
+                ax2.set_ylim(0.0, ymax)
+                mid = ymax / 2.0
+                if norm_mode == "percent":
+                    ax2.set_yticks([0.0, mid, ymax])
+                    ax2.set_yticklabels(["0", "%", f"{ymax:.0f}"])
+                else:
+                    ax2.set_yticks([0.0, mid, ymax])
+                    ax2.set_yticklabels(["0", f"{mid:.2g}", f"{ymax:.2g}"])
                 ax2.set_ylabel("Normalized Intensity")
             else:
                 y = intens
@@ -458,14 +475,28 @@ def plot_raw_chrom_and_spectrum(
                     y = intens / m
             else:
                 y = intens if intens.size else np.array([])
+
             if norm_mode == "percent":
-                ax2.set_ylim(0, 100)
-                ax2.set_yticks([0, 50, 100])
-                ax2.set_yticklabels(["0", "%", "100"])
+                default_ymax = 100.0
             else:
-                ax2.set_ylim(0, 1.0)
-                ax2.set_yticks([0.0, 0.5, 1.0])
-                ax2.set_yticklabels(["0", "0.5", "1.0"])
+                default_ymax = 1.0
+
+            if spec_y_max is None:
+                ymax = default_ymax
+            else:
+                if norm_mode == "percent":
+                    ymax = max(0.0, min(float(spec_y_max), 100.0))
+                else:
+                    ymax = max(0.0, min(float(spec_y_max), 1.0))
+
+            ax2.set_ylim(0.0, ymax)
+            mid = ymax / 2.0
+            if norm_mode == "percent":
+                ax2.set_yticks([0.0, mid, ymax])
+                ax2.set_yticklabels(["0", "%", f"{ymax:.0f}"])
+            else:
+                ax2.set_yticks([0.0, mid, ymax])
+                ax2.set_yticklabels(["0", f"{mid:.2g}", f"{ymax:.2g}"])
             ax2.set_ylabel("Normalized Intensity")
         else:
             y = intens
