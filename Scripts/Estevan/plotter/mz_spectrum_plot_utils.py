@@ -45,6 +45,7 @@ def plot_single_mz_spectrum(
     color: str = "#2C7FB8",
     normalize: bool = True,
     norm_mode: str = "percent",  # "percent" or "unit"
+    y_min: Optional[float] = None,
     y_max: Optional[float] = None,
     font_name: str = "Arial",
     font_size: int = 10,
@@ -111,26 +112,31 @@ def plot_single_mz_spectrum(
 
         if normalize:
             if norm_mode == "percent":
-                default_ymax = 100.0
+                clamp_lo, clamp_hi = 0.0, 100.0
             else:
-                default_ymax = 1.0
+                clamp_lo, clamp_hi = 0.0, 1.0
 
-            if y_max is None:
-                ymax = default_ymax
-            else:
-                if norm_mode == "percent":
-                    ymax = max(0.0, min(float(y_max), 100.0))
-                else:
-                    ymax = max(0.0, min(float(y_max), 1.0))
+            ymin = clamp_lo if y_min is None else max(clamp_lo, float(y_min))
+            ymax = clamp_hi if y_max is None else min(clamp_hi, float(y_max))
+            if ymax <= ymin:
+                ymin, ymax = clamp_lo, clamp_hi
 
-            ax.set_ylim(0.0, ymax)
-            mid = ymax / 2.0
+            ax.set_ylim(ymin, ymax)
+            mid = ymin + 0.5 * (ymax - ymin)
             if norm_mode == "percent":
-                ax.set_yticks([0.0, mid, ymax])
-                ax.set_yticklabels(["0", "%", f"{ymax:.0f}"])
+                ax.set_yticks([ymin, mid, ymax])
+                ax.set_yticklabels([
+                    f"{ymin:.0f}",
+                    "%",
+                    f"{ymax:.0f}",
+                ])
             else:
-                ax.set_yticks([0.0, mid, ymax])
-                ax.set_yticklabels(["0", f"{mid:.2g}", f"{ymax:.2g}"])
+                ax.set_yticks([ymin, mid, ymax])
+                ax.set_yticklabels([
+                    f"{ymin:.2g}",
+                    f"{mid:.2g}",
+                    f"{ymax:.2g}",
+                ])
             ax.set_ylabel(y_label if y_label else "Normalized Intensity")
         else:
             ax.set_ylabel(y_label if y_label else "Intensity (a.u.)")
@@ -156,6 +162,7 @@ def plot_mz_spectrum_stack(
     second_labels: Sequence[Optional[str]],
     x_range: Tuple[float, float] = (100.0, 2000.0),
     colors: Optional[Sequence[str]] = None,
+    y_min: Optional[float] = None,
     y_max: Optional[float] = None,
     normalize: bool = True,
     norm_mode: str = "percent",  # "percent" or "unit"
@@ -208,19 +215,16 @@ def plot_mz_spectrum_stack(
 
     if normalize:
         if norm_mode == "percent":
-            default_ymax = 100.0
+            clamp_lo, clamp_hi = 0.0, 100.0
         else:
-            default_ymax = 1.0
+            clamp_lo, clamp_hi = 0.0, 1.0
 
-        if y_max is None:
-            norm_ymax = default_ymax
-        else:
-            if norm_mode == "percent":
-                norm_ymax = max(0.0, min(float(y_max), 100.0))
-            else:
-                norm_ymax = max(0.0, min(float(y_max), 1.0))
+        ymin = clamp_lo if y_min is None else max(clamp_lo, float(y_min))
+        ymax = clamp_hi if y_max is None else min(clamp_hi, float(y_max))
+        if ymax <= ymin:
+            ymin, ymax = clamp_lo, clamp_hi
     else:
-        norm_ymax = None
+        ymin = ymax = None
 
     with plt.rc_context(rc):
         fig, axes = plt.subplots(n, 1, figsize=(width_in, target_h), sharex=True, dpi=dpi)
@@ -257,25 +261,28 @@ def plot_mz_spectrum_stack(
 
             ax.set_xlim(*x_range)
             if normalize:
-                ymax_local = norm_ymax
-                ax.set_ylim(0.0, ymax_local * 1.015)
-                mid = ymax_local / 2.0
+                ax.set_ylim(ymin, ymax)
+                mid = ymin + 0.5 * (ymax - ymin)
                 if norm_mode == "percent":
-                    ax.set_yticks([0.0, mid, ymax_local])
-                    ax.set_yticklabels(["0", "%", f"{ymax_local:.0f}"])
-                else:
-                    ax.set_yticks([0.0, mid, ymax_local])
+                    ax.set_yticks([ymin, mid, ymax])
                     ax.set_yticklabels([
-                        "0",
-                        f"{(ymax_local / 2.0):.2g}",
-                        f"{ymax_local:.2g}",
+                        f"{ymin:.0f}",
+                        "%",
+                        f"{ymax:.0f}",
+                    ])
+                else:
+                    ax.set_yticks([ymin, mid, ymax])
+                    ax.set_yticklabels([
+                        f"{ymin:.2g}",
+                        f"{mid:.2g}",
+                        f"{ymax:.2g}",
                     ])
             else:
                 if y.size:
-                    ymin = float(np.nanmin(y))
-                    ymax = float(np.nanmax(y))
-                    ax.set_ylim(max(0.0, ymin), ymax * 1.05)
-                    ax.set_yticks([0.0, ymax])
+                    ymin_auto = float(np.nanmin(y))
+                    ymax_auto = float(np.nanmax(y))
+                    ax.set_ylim(max(0.0, ymin_auto), ymax_auto * 1.05)
+                    ax.set_yticks([0.0, ymax_auto])
 
             ax.margins(y=0)
             ax.spines["top"].set_visible(False)

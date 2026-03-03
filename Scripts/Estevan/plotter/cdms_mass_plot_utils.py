@@ -93,6 +93,7 @@ def plot_single_cdms_mass(
     color: str = "#2C7FB8",
     normalize: bool = True,
     norm_mode: str = "percent",
+    y_min: Optional[float] = None,
     y_max: Optional[float] = None,
     font_name: str = "Arial",
     font_size: int = 10,
@@ -131,27 +132,29 @@ def plot_single_cdms_mass(
 
         if normalize:
             if norm_mode == "percent":
-                default_ymax = 100.0
+                clamp_lo, clamp_hi = 0.0, 100.0
             else:
-                default_ymax = 1.0
+                clamp_lo, clamp_hi = 0.0, 1.0
 
-            if y_max is None:
-                ymax = default_ymax
-            else:
-                if norm_mode == "percent":
-                    ymax = max(0.0, min(float(y_max), 100.0))
-                else:
-                    ymax = max(0.0, min(float(y_max), 1.0))
+            # defaults
+            ymin = clamp_lo if y_min is None else max(clamp_lo, float(y_min))
+            ymax = clamp_hi if y_max is None else min(clamp_hi, float(y_max))
+            if ymax <= ymin:
+                ymin, ymax = clamp_lo, clamp_hi
 
-            ax.set_ylim(0.0, ymax)
-            mid = ymax / 2.0
+            ax.set_ylim(ymin, ymax)
+            mid = ymin + 0.5 * (ymax - ymin)
             if norm_mode == "percent":
-                ax.set_yticks([0.0, mid, ymax])
-                ax.set_yticklabels(["0", "%", f"{ymax:.0f}"])
-            else:
-                ax.set_yticks([0.0, mid, ymax])
+                ax.set_yticks([ymin, mid, ymax])
                 ax.set_yticklabels([
-                    "0",
+                    f"{ymin:.0f}",
+                    "%",
+                    f"{ymax:.0f}",
+                ])
+            else:
+                ax.set_yticks([ymin, mid, ymax])
+                ax.set_yticklabels([
+                    f"{ymin:.2g}",
                     f"{mid:.2g}",
                     f"{ymax:.2g}",
                 ])
@@ -183,6 +186,7 @@ def plot_cdms_mass_stack(
     second_labels: Optional[Sequence[Optional[str]]] = None,
     x_range: Tuple[float, float] = (0, 500),
     colors: Optional[Sequence[str]] = None,
+    y_min: Optional[float] = None,
     y_max: Optional[float] = None,
     normalize: bool = True,
     norm_mode: str = "percent",
@@ -199,6 +203,7 @@ def plot_cdms_mass_stack(
 ):
     """
     Stacked CD-MS mass plots: one panel per dataset, no vertical offsets.
+    y_min / y_max control the normalized axis if normalize=True.
     """
     n = len(datasets)
     if len(labels) != n:
@@ -217,19 +222,16 @@ def plot_cdms_mass_stack(
 
     if normalize:
         if norm_mode == "percent":
-            default_ymax = 100.0
+            clamp_lo, clamp_hi = 0.0, 100.0
         else:
-            default_ymax = 1.0
+            clamp_lo, clamp_hi = 0.0, 1.0
 
-        if y_max is None:
-            norm_ymax = default_ymax
-        else:
-            if norm_mode == "percent":
-                norm_ymax = max(0.0, min(float(y_max), 100.0))
-            else:
-                norm_ymax = max(0.0, min(float(y_max), 1.0))
+        ymin = clamp_lo if y_min is None else max(clamp_lo, float(y_min))
+        ymax = clamp_hi if y_max is None else min(clamp_hi, float(y_max))
+        if ymax <= ymin:
+            ymin, ymax = clamp_lo, clamp_hi
     else:
-        norm_ymax = None
+        ymin = ymax = None
 
     with style_context(font_name=font_name, font_size=font_size):
         fig, axes = plt.subplots(n, 1, sharex=True, figsize=(width_in, target_h), dpi=dpi)
@@ -262,24 +264,26 @@ def plot_cdms_mass_stack(
             ax.set_xlim(*x_range)
 
             if normalize:
-                ymax_local = norm_ymax
-                ax.set_ylim(0.0, ymax_local * 1.015)
-
-                mid = ymax_local / 2.0
+                ax.set_ylim(ymin, ymax)
+                mid = ymin + 0.5 * (ymax - ymin)
                 if norm_mode == "percent":
-                    ax.set_yticks([0.0, mid, ymax_local])
-                    ax.set_yticklabels(["0", "%", f"{ymax_local:.0f}"])
-                else:
-                    ax.set_yticks([0.0, mid, ymax_local])
+                    ax.set_yticks([ymin, mid, ymax])
                     ax.set_yticklabels([
-                        "0",
-                        f"{(ymax_local / 2.0):.2g}",
-                        f"{ymax_local:.2g}",
+                        f"{ymin:.0f}",
+                        "%",
+                        f"{ymax:.0f}",
+                    ])
+                else:
+                    ax.set_yticks([ymin, mid, ymax])
+                    ax.set_yticklabels([
+                        f"{ymin:.2g}",
+                        f"{mid:.2g}",
+                        f"{ymax:.2g}",
                     ])
             else:
-                ymax = float(np.nanmax(y)) if y.size else 1.0
-                ax.set_ylim(0.0, ymax * 1.05)
-                ax.set_yticks([0.0, ymax])
+                ymax_data = float(np.nanmax(y)) if y.size else 1.0
+                ax.set_ylim(0.0, ymax_data * 1.05)
+                ax.set_yticks([0.0, ymax_data])
 
             leg1 = ax.legend([ax.lines[-1]], [label], loc="upper left", frameon=False, fontsize=font_size)
             ax.add_artist(leg1)

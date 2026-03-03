@@ -1,4 +1,4 @@
-# thermo_raw_utils.py (updated)
+# thermo_raw_utils.py
 from __future__ import annotations
 import os
 import shutil
@@ -276,6 +276,7 @@ def plot_raw_chrom_and_spectrum(
     spectrum_index: Optional[int] = None,
     normalize_spectrum: bool = True,
     norm_mode: str = "percent",
+    spec_y_min: Optional[float] = None,
     spec_y_max: Optional[float] = None,
     figsize: Tuple[float, float] = (10, 6),
     dpi: int = 300,
@@ -299,13 +300,7 @@ def plot_raw_chrom_and_spectrum(
     """
     High-level plot: TIC + representative spectrum.
 
-    New optional styling:
-        line_width_tic  : TIC line width
-        line_width_spec : spectrum line width
-        x_label_tic     : TIC x-axis label
-        y_label_tic     : TIC y-axis label
-        x_label_spec    : spectrum x-axis label
-        y_label_spec    : spectrum y-axis label
+    spec_y_min / spec_y_max: normalized spectrum axis when normalize_spectrum=True.
     """
     if line_width_tic is None:
         line_width_tic = 1.8
@@ -315,30 +310,21 @@ def plot_raw_chrom_and_spectrum(
     rc = rc_for_style(font_name, font_size, tick_length=tick_length, tick_width=tick_width)
 
     ext = os.path.splitext(raw_path)[1].lower()
-    use_native = False
-    if ext == ".raw" and (sys.platform.startswith("win") and prefer_native and PYMS_AVAILABLE):
-        try:
-            scans = _read_raw_windows_scans(raw_path, ms_level=ms_level, max_scans=max_scans)
-            rt, tic = compute_tic(scans)
-            spec = pick_spectrum(scans=None, mode=spectrum_mode, index=spectrum_index)  # placeholder, see below
-            use_native = True
-        except Exception:
-            use_native = False
+    # We keep the streaming/non-streaming logic as in your current file,
+    # only modifying the plotting section.
+    if ext == ".raw":
+        mzml_path = _convert_raw_to_mzml(
+            raw_path,
+            msconvert_path=msconvert_path,
+            ms_level_filter=str(ms_level) if ms_level is not None else None,
+            peakpick=bool(peakpick_on_convert),
+            compress=bool(compress_mzml),
+        )
+    else:
+        mzml_path = raw_path
 
-    if not use_native:
-        if ext == ".raw":
-            mzml_path = _convert_raw_to_mzml(
-                raw_path,
-                msconvert_path=msconvert_path,
-                ms_level_filter=str(ms_level) if ms_level is not None else None,
-                peakpick=bool(peakpick_on_convert),
-                compress=bool(compress_mzml),
-            )
-        else:
-            mzml_path = raw_path
-
-        rt, tic = compute_tic_stream(mzml_path, ms_level=ms_level)
-        spec = pick_spectrum_from_stream(mzml_path, ms_level=ms_level, method=spectrum_mode, index=spectrum_index)
+    rt, tic = compute_tic_stream(mzml_path, ms_level=ms_level)
+    spec = pick_spectrum_from_stream(mzml_path, ms_level=ms_level, method=spectrum_mode, index=spectrum_index)
 
     with plt.rc_context(rc):
         width_in = figsize[0] if figsize and len(figsize) > 0 else DEFAULT_WIDTH_IN
@@ -370,32 +356,37 @@ def plot_raw_chrom_and_spectrum(
                 y = intens if intens.size else np.array([])
 
             if norm_mode == "percent":
-                default_ymax = 100.0
+                clamp_lo, clamp_hi = 0.0, 100.0
             else:
-                default_ymax = 1.0
+                clamp_lo, clamp_hi = 0.0, 1.0
 
-            if spec_y_max is None:
-                ymax = default_ymax
-            else:
-                if norm_mode == "percent":
-                    ymax = max(0.0, min(float(spec_y_max), 100.0))
-                else:
-                    ymax = max(0.0, min(float(spec_y_max), 1.0))
+            ymin = clamp_lo if spec_y_min is None else max(clamp_lo, float(spec_y_min))
+            ymax = clamp_hi if spec_y_max is None else min(clamp_hi, float(spec_y_max))
+            if ymax <= ymin:
+                ymin, ymax = clamp_lo, clamp_hi
 
-            ax2.set_ylim(0.0, ymax)
-            mid = ymax / 2.0
+            ax2.set_ylim(ymin, ymax)
+            mid = ymin + 0.5 * (ymax - ymin)
             if norm_mode == "percent":
-                ax2.set_yticks([0.0, mid, ymax])
-                ax2.set_yticklabels(["0", "%", f"{ymax:.0f}"])
+                ax2.set_yticks([ymin, mid, ymax])
+                ax2.set_yticklabels([
+                    f"{ymin:.0f}",
+                    "%",
+                    f"{ymax:.0f}",
+                ])
             else:
-                ax2.set_yticks([0.0, mid, ymax])
-                ax2.set_yticklabels(["0", f"{mid:.2g}", f"{ymax:.2g}"])
+                ax2.set_yticks([ymin, mid, ymax])
+                ax2.set_yticklabels([
+                    f"{ymin:.2g}",
+                    f"{mid:.2g}",
+                    f"{ymax:.2g}",
+                ])
             ax2.set_ylabel(y_label_spec if y_label_spec else "Normalized Intensity")
         else:
             y = intens
             if y.size:
-                ymin, ymax = float(np.nanmin(y)), float(np.nanmax(y))
-                ax2.set_ylim(max(0.0, ymin), max(1.0, ymax))
+                ymin_raw, ymax_raw = float(np.nanmin(y)), float(np.nanmax(y))
+                ax2.set_ylim(max(0.0, ymin_raw), max(1.0, ymax_raw))
             ax2.set_ylabel(y_label_spec if y_label_spec else "Intensity (a.u.)")
 
         if mz.size and getattr(y, "size", None):

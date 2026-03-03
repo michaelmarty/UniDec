@@ -72,6 +72,7 @@ def plot_mwd_chromatograms(
     xlim: Tuple[float, float] = (0.0, 26.0),
     normalize: bool = True,
     norm_mode: str = "percent",  # "percent" or "unit"
+    y_min: Optional[float] = None,
     y_max: Optional[float] = None,
     alpha_mv: float = 0.9,
     font_name: str = "Arial",
@@ -90,11 +91,7 @@ def plot_mwd_chromatograms(
     """
     Dual-axis MWD chromatograms (mAU & mV).
 
-    New optional arguments:
-        line_width    : trace line width (both axes).
-        x_label       : overrides default "Retention Volume (mL)".
-        y_label_left  : overrides left y-label.
-        y_label_right : overrides right y-label.
+    y_min / y_max control the normalized range when normalize=True.
     """
     colors = ensure_colors(colors, 2, DEFAULT_MWD_COLORS)
     if line_width is None:
@@ -149,36 +146,30 @@ def plot_mwd_chromatograms(
 
         if normalize:
             if norm_mode == "percent":
-                default_ymax = 100.0
+                clamp_lo, clamp_hi = 0.0, 100.0
             else:
-                default_ymax = 1.0
+                clamp_lo, clamp_hi = 0.0, 1.0
 
-            if y_max is None:
-                ymax = default_ymax
-            else:
-                if norm_mode == "percent":
-                    ymax = max(0.0, min(float(y_max), 100.0))
-                else:
-                    ymax = max(0.0, min(float(y_max), 1.0))
+            ymin = clamp_lo if y_min is None else max(clamp_lo, float(y_min))
+            ymax = clamp_hi if y_max is None else min(clamp_hi, float(y_max))
+            if ymax <= ymin:
+                ymin, ymax = clamp_lo, clamp_hi
 
-            ax1.set_ylim(0, ymax)
-            ax2.set_ylim(0, ymax)
+            ax1.set_ylim(ymin, ymax)
+            ax2.set_ylim(ymin, ymax)
 
-            mid = ymax / 2.0
+            mid = ymin + 0.5 * (ymax - ymin)
             if norm_mode == "percent":
-                ticks = [0, mid, ymax]
-                ax1.set_yticks(ticks)
-                ax2.set_yticks(ticks)
-                labels = ["0", "%", f"{ymax:.0f}"]
-                ax1.set_yticklabels(labels)
-                ax2.set_yticklabels(labels)
+                ticks = [ymin, mid, ymax]
+                labels = [f"{ymin:.0f}", "%", f"{ymax:.0f}"]
             else:
-                ticks = [0, mid, ymax]
-                ax1.set_yticks(ticks)
-                ax2.set_yticks(ticks)
-                labels = ["0", f"{mid:.2g}", f"{ymax:.2g}"]
-                ax1.set_yticklabels(labels)
-                ax2.set_yticklabels(labels)
+                ticks = [ymin, mid, ymax]
+                labels = [f"{ymin:.2g}", f"{mid:.2g}", f"{ymax:.2g}"]
+
+            ax1.set_yticks(ticks)
+            ax2.set_yticks(ticks)
+            ax1.set_yticklabels(labels)
+            ax2.set_yticklabels(labels)
 
             ax1.set_ylabel(y_label_left if y_label_left else "Normalized Absorbance")
             ax2.set_ylabel(y_label_right if y_label_right else "Normalized Voltage")

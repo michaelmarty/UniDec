@@ -328,6 +328,7 @@ class PlotApp:
         lf = tb.Labelframe(parent, text="Common Options", padding=10, bootstyle="secondary")
         lf.pack(fill=X, pady=6)
 
+        # Save path
         sp = tb.Frame(lf, bootstyle="secondary")
         sp.pack(fill=X, pady=4)
         tb.Label(sp, text="Save as:", width=12).pack(side=LEFT)
@@ -354,6 +355,29 @@ class PlotApp:
         tb.Label(grid, text="Figsize (W,H):").grid(row=0, column=6, sticky=W)
         tb.Entry(grid, textvariable=self.fig_w, width=6).grid(row=0, column=7, sticky=W, padx=2)
         tb.Entry(grid, textvariable=self.fig_h, width=6).grid(row=0, column=8, sticky=W, padx=2)
+
+        # Global axis / style controls
+        axes_frame = tb.Frame(lf, bootstyle="secondary")
+        axes_frame.pack(fill=X, pady=4)
+
+        self.global_xmin = tk.DoubleVar(value=0.0)
+        self.global_xmax = tk.DoubleVar(value=20.0)
+        self.global_ymin = tk.DoubleVar(value=0.0)
+        self.global_ymax = tk.DoubleVar(value=100.0)
+        self.global_subplot_spacing = tk.DoubleVar(value=0.6)
+
+        tb.Label(axes_frame, text="X-lim min:").pack(side=LEFT)
+        tb.Entry(axes_frame, textvariable=self.global_xmin, width=8).pack(side=LEFT, padx=4)
+        tb.Label(axes_frame, text="X-lim max:").pack(side=LEFT)
+        tb.Entry(axes_frame, textvariable=self.global_xmax, width=8).pack(side=LEFT, padx=4)
+
+        tb.Label(axes_frame, text="Y-lim min:").pack(side=LEFT, padx=(12, 0))
+        tb.Entry(axes_frame, textvariable=self.global_ymin, width=8).pack(side=LEFT, padx=4)
+        tb.Label(axes_frame, text="Y-lim max:").pack(side=LEFT)
+        tb.Entry(axes_frame, textvariable=self.global_ymax, width=8).pack(side=LEFT, padx=4)
+
+        tb.Label(axes_frame, text="Subplot spacing:").pack(side=LEFT, padx=(12, 0))
+        tb.Entry(axes_frame, textvariable=self.global_subplot_spacing, width=8).pack(side=LEFT, padx=4)
 
         style_frame = tb.Frame(lf, bootstyle="secondary")
         style_frame.pack(fill=X, pady=6)
@@ -406,66 +430,25 @@ class PlotApp:
             palette_title="Chromatogram Colors",
         )
 
-        lf_axes = tb.Labelframe(self.chrom_tab, text="Chromatogram Axes & Standards", padding=8, bootstyle="secondary")
+        lf_axes = tb.Labelframe(self.chrom_tab, text="Chromatogram Normalization & Standards", padding=8, bootstyle="secondary")
         lf_axes.pack(fill=X, pady=6)
 
-        grid = tb.Frame(lf_axes, bootstyle="secondary")
-        grid.pack(fill=X)
-
-        self.chrom_xmin = tk.DoubleVar(value=10.0)
-        self.chrom_xmax = tk.DoubleVar(value=20.0)
-        self.chrom_ymin = tk.DoubleVar(value=0.0)
-        self.chrom_ymax = tk.DoubleVar(value=100.0)
-        self.chrom_subplot_spacing = tk.DoubleVar(value=0.6)
         self.chrom_normalize = tk.BooleanVar(value=True)
         self.chrom_norm_mode = tk.StringVar(value="percent")
         self.chrom_show_standards = tk.BooleanVar(value=True)
         self.chrom_standards = tk.StringVar(value=DEFAULT_CHROM_STANDARDS)
 
-        tb.Label(grid, text="X-lim (mL):").grid(row=0, column=0, sticky=W)
-        tb.Entry(grid, textvariable=self.chrom_xmin, width=8).grid(row=0, column=1, padx=4)
-        tb.Entry(grid, textvariable=self.chrom_xmax, width=8).grid(row=0, column=2, padx=4)
-
-        self.chrom_ymin_entry = tb.Entry(grid, textvariable=self.chrom_ymin, width=8)
-        self.chrom_ymax_entry = tb.Entry(grid, textvariable=self.chrom_ymax, width=8)
-
-        tb.Label(grid, text="Y-lim (normalized):").grid(row=0, column=3, sticky=W)
-        self.chrom_ymin_entry.grid(row=0, column=4, padx=4)
-        self.chrom_ymax_entry.grid(row=0, column=5, padx=4)
-
-        tb.Label(grid, text="Subplot spacing:").grid(row=1, column=0, sticky=W, pady=(4, 0))
-        tb.Entry(grid, textvariable=self.chrom_subplot_spacing, width=8).grid(row=1, column=1, padx=4, pady=(4, 0))
-
         tb.Checkbutton(lf_axes, text="Normalize traces to max", variable=self.chrom_normalize).pack(anchor=W, pady=4)
 
         self._build_norm_mode_toggle(
             parent=lf_axes,
-            label="Normalization scale:",
+            label="Normalization scale (for Chromatograms):",
             mode_var=self.chrom_norm_mode,
-            ymin_var=self.chrom_ymin,
-            ymax_var=self.chrom_ymax,
+            ymin_var=self.global_ymin,
+            ymax_var=self.global_ymax,
             percent_range=(0.0, 100.0),
             unit_range=(0.0, 1.0),
         )
-
-        def _clamp_chrom_y(event=None):
-            try:
-                mode = self.chrom_norm_mode.get()
-                ymin = float(self.chrom_ymin.get())
-                ymax = float(self.chrom_ymax.get())
-            except Exception:
-                return
-
-            if mode == "percent":
-                ymin, ymax = clamp_range(ymin, ymax, 0.0, 100.0)
-            else:
-                ymin, ymax = clamp_range(ymin, ymax, 0.0, 1.0)
-
-            self.chrom_ymin.set(self._format_number_for_entry(ymin))
-            self.chrom_ymax.set(self._format_number_for_entry(ymax))
-
-        self.chrom_ymin_entry.bind("<FocusOut>", _clamp_chrom_y)
-        self.chrom_ymax_entry.bind("<FocusOut>", _clamp_chrom_y)
 
         std_row = tb.Frame(lf_axes, bootstyle="secondary")
         std_row.pack(fill=X, pady=4)
@@ -516,56 +499,23 @@ class PlotApp:
             ),
         )
 
-        lf_axes = tb.Labelframe(self.cdms_tab, text="CD-MS Mass Axes & Layout", padding=8, bootstyle="secondary")
+        lf_axes = tb.Labelframe(self.cdms_tab, text="CD-MS Normalization", padding=8, bootstyle="secondary")
         lf_axes.pack(fill=X, pady=6)
-        grid = tb.Frame(lf_axes, bootstyle="secondary")
-        grid.pack(fill=X)
 
-        self.cdms_xmin = tk.DoubleVar(value=0.0)
-        self.cdms_xmax = tk.DoubleVar(value=500.0)
-        self.cdms_ymax_pct = tk.DoubleVar(value=100.0)
-        self.cdms_subplot_spacing = tk.DoubleVar(value=0.6)
         self.cdms_normalize = tk.BooleanVar(value=True)
         self.cdms_norm_mode = tk.StringVar(value="percent")
-
-        tb.Label(grid, text="X-range (kDa):").grid(row=0, column=0, sticky=W)
-        tb.Entry(grid, textvariable=self.cdms_xmin, width=8).grid(row=0, column=1, padx=4)
-        tb.Entry(grid, textvariable=self.cdms_xmax, width=8).grid(row=0, column=2, padx=4)
-
-        self.cdms_ymax_entry = tb.Entry(grid, textvariable=self.cdms_ymax_pct, width=8)
-        tb.Label(grid, text="Y max (normalized):").grid(row=0, column=3, sticky=W)
-        self.cdms_ymax_entry.grid(row=0, column=4, padx=4)
-
-        tb.Label(grid, text="Subplot spacing:").grid(row=1, column=0, sticky=W, pady=(4, 0))
-        tb.Entry(grid, textvariable=self.cdms_subplot_spacing, width=8).grid(row=1, column=1, padx=4, pady=(4, 0))
 
         tb.Checkbutton(lf_axes, text="Normalize to max", variable=self.cdms_normalize).pack(anchor=W, pady=4)
 
         self._build_norm_mode_toggle(
             parent=lf_axes,
-            label="Normalization scale:",
+            label="Normalization scale (for CD-MS):",
             mode_var=self.cdms_norm_mode,
-            ymin_var=None,
-            ymax_var=self.cdms_ymax_pct,
+            ymin_var=self.global_ymin,
+            ymax_var=self.global_ymax,
             percent_range=(0.0, 100.0),
             unit_range=(0.0, 1.0),
         )
-
-        def _clamp_cdms_ymax(event=None):
-            try:
-                mode = self.cdms_norm_mode.get()
-                ymax = float(self.cdms_ymax_pct.get())
-            except Exception:
-                return
-
-            if mode == "percent":
-                ymax = max(0.0, min(100.0, ymax))
-            else:
-                ymax = max(0.0, min(1.0, ymax))
-
-            self.cdms_ymax_pct.set(self._format_number_for_entry(ymax))
-
-        self.cdms_ymax_entry.bind("<FocusOut>", _clamp_cdms_ymax)
 
         self._build_replicates_panel(
             parent=self.cdms_tab,
@@ -628,24 +578,11 @@ class PlotApp:
             side=LEFT, padx=4
         )
 
-        lf_axes = tb.Labelframe(self.mwd_tab, text="Axes & Options", padding=8, bootstyle="secondary")
+        lf_axes = tb.Labelframe(self.mwd_tab, text="MWD Normalization", padding=8, bootstyle="secondary")
         lf_axes.pack(fill=X, pady=4)
-        grid = tb.Frame(lf_axes, bootstyle="secondary")
-        grid.pack(fill=X)
 
-        self.mwd_xmin = tk.DoubleVar(value=0.0)
-        self.mwd_xmax = tk.DoubleVar(value=26.0)
-        self.mwd_ymax_pct = tk.DoubleVar(value=100.0)
         self.mwd_normalize = tk.BooleanVar(value=True)
         self.mwd_norm_mode = tk.StringVar(value="percent")
-
-        tb.Label(grid, text="X-lim (mL):").grid(row=0, column=0, sticky=W)
-        tb.Entry(grid, textvariable=self.mwd_xmin, width=8).grid(row=0, column=1, padx=4)
-        tb.Entry(grid, textvariable=self.mwd_xmax, width=8).grid(row=0, column=2, padx=4)
-
-        self.mwd_ymax_entry = tb.Entry(grid, textvariable=self.mwd_ymax_pct, width=8)
-        tb.Label(grid, text="Y max (normalized):").grid(row=0, column=3, sticky=W)
-        self.mwd_ymax_entry.grid(row=0, column=4, padx=4)
 
         tb.Checkbutton(
             lf_axes, text="Normalize each trace to max", variable=self.mwd_normalize
@@ -653,29 +590,13 @@ class PlotApp:
 
         self._build_norm_mode_toggle(
             parent=lf_axes,
-            label="Normalization scale:",
+            label="Normalization scale (for MWD):",
             mode_var=self.mwd_norm_mode,
-            ymin_var=None,
-            ymax_var=self.mwd_ymax_pct,
+            ymin_var=self.global_ymin,
+            ymax_var=self.global_ymax,
             percent_range=(0.0, 100.0),
             unit_range=(0.0, 1.0),
         )
-
-        def _clamp_mwd_ymax(event=None):
-            try:
-                mode = self.mwd_norm_mode.get()
-                ymax = float(self.mwd_ymax_pct.get())
-            except Exception:
-                return
-
-            if mode == "percent":
-                ymax = max(0.0, min(100.0, ymax))
-            else:
-                ymax = max(0.0, min(1.0, ymax))
-
-            self.mwd_ymax_pct.set(self._format_number_for_entry(ymax))
-
-        self.mwd_ymax_entry.bind("<FocusOut>", _clamp_mwd_ymax)
 
     def _build_mz_tab(self, nb: tb.Notebook):
         self.mz_tab = tb.Frame(nb, padding=8, bootstyle="secondary")
@@ -705,56 +626,23 @@ class PlotApp:
             ),
         )
 
-        lf_axes = tb.Labelframe(self.mz_tab, text="m/z Axes & Layout", padding=8, bootstyle="secondary")
+        lf_axes = tb.Labelframe(self.mz_tab, text="m/z Normalization", padding=8, bootstyle="secondary")
         lf_axes.pack(fill=X, pady=6)
-        grid = tb.Frame(lf_axes, bootstyle="secondary")
-        grid.pack(fill=X)
 
-        self.mz_xmin = tk.DoubleVar(value=100.0)
-        self.mz_xmax = tk.DoubleVar(value=2000.0)
-        self.mz_ymax_pct = tk.DoubleVar(value=100.0)
-        self.mz_subplot_spacing = tk.DoubleVar(value=0.6)
         self.mz_normalize = tk.BooleanVar(value=True)
         self.mz_norm_mode = tk.StringVar(value="percent")
-
-        tb.Label(grid, text="X-range (m/z):").grid(row=0, column=0, sticky=W)
-        tb.Entry(grid, textvariable=self.mz_xmin, width=8).grid(row=0, column=1, padx=4)
-        tb.Entry(grid, textvariable=self.mz_xmax, width=8).grid(row=0, column=2, padx=4)
-
-        self.mz_ymax_entry = tb.Entry(grid, textvariable=self.mz_ymax_pct, width=8)
-        tb.Label(grid, text="Y max (normalized):").grid(row=0, column=3, sticky=W)
-        self.mz_ymax_entry.grid(row=0, column=4, padx=4)
-
-        tb.Label(grid, text="Subplot spacing:").grid(row=1, column=0, sticky=W, pady=(4, 0))
-        tb.Entry(grid, textvariable=self.mz_subplot_spacing, width=8).grid(row=1, column=1, padx=4, pady=(4, 0))
 
         tb.Checkbutton(lf_axes, text="Normalize to max", variable=self.mz_normalize).pack(anchor=W, pady=4)
 
         self._build_norm_mode_toggle(
             parent=lf_axes,
-            label="Normalization scale:",
+            label="Normalization scale (for m/z):",
             mode_var=self.mz_norm_mode,
-            ymin_var=None,
-            ymax_var=self.mz_ymax_pct,
+            ymin_var=self.global_ymin,
+            ymax_var=self.global_ymax,
             percent_range=(0.0, 100.0),
             unit_range=(0.0, 1.0),
         )
-
-        def _clamp_mz_ymax(event=None):
-            try:
-                mode = self.mz_norm_mode.get()
-                ymax = float(self.mz_ymax_pct.get())
-            except Exception:
-                return
-
-            if mode == "percent":
-                ymax = max(0.0, min(100.0, ymax))
-            else:
-                ymax = max(0.0, min(1.0, ymax))
-
-            self.mz_ymax_pct.set(self._format_number_for_entry(ymax))
-
-        self.mz_ymax_entry.bind("<FocusOut>", _clamp_mz_ymax)
 
         self._build_replicates_panel(
             parent=self.mz_tab,
@@ -1589,12 +1477,13 @@ class PlotApp:
         std_vols = parse_float_list(self.chrom_standards.get()) if self.chrom_show_standards.get() else None
         normalize = bool(self.chrom_normalize.get())
         norm_mode = self.chrom_norm_mode.get()
-        xlim = (float(self.chrom_xmin.get()), float(self.chrom_xmax.get()))
-        ylim = (float(self.chrom_ymin.get()), float(self.chrom_ymax.get()))
+
+        xlim = (float(self.global_xmin.get()), float(self.global_xmax.get()))
+        ylim = (float(self.global_ymin.get()), float(self.global_ymax.get()))
         try:
-            chrom_hspace = float(self.chrom_subplot_spacing.get())
+            hspace = float(self.global_subplot_spacing.get())
         except Exception:
-            chrom_hspace = 0.55
+            hspace = 0.55
 
         lw = float(self.line_width.get())
         x_lab = self.x_label.get().strip() or None
@@ -1643,7 +1532,7 @@ class PlotApp:
                 ylim=ylim,
                 figsize=cfg.figsize,
                 dpi=DISPLAY_DPI,
-                hspace=chrom_hspace,
+                hspace=hspace,
                 line_width=lw,
                 x_label=x_lab,
                 y_label=y_lab,
@@ -1675,18 +1564,23 @@ class PlotApp:
         second_raw = self.cdms_second_labels.get("1.0", "end").strip()
         second_labels = parse_str_list(second_raw) if (use_second and second_raw) else [None] * len(self.files)
         colors = parse_str_list(self.cdms_colors.get()) or DEFAULT_CDMS_COLORS
-        x_range = (float(self.cdms_xmin.get()), float(self.cdms_xmax.get()))
+
+        # Global X/Y ranges (normalized Y range)
+        x_range = (float(self.global_xmin.get()), float(self.global_xmax.get()))
         normalize = bool(self.cdms_normalize.get())
         norm_mode = self.cdms_norm_mode.get()
         try:
-            cdms_hspace = float(self.cdms_subplot_spacing.get())
+            hspace = float(self.global_subplot_spacing.get())
         except Exception:
-            cdms_hspace = 0.6
+            hspace = 0.6
         mode = self.cdms_mode.get()
 
         lw = float(self.line_width.get())
         x_lab = self.x_label.get().strip() or None
         y_lab = self.y_label.get().strip() or None
+
+        y_min_norm = float(self.global_ymin.get()) if normalize else None
+        y_max_norm = float(self.global_ymax.get()) if normalize else None
 
         if mode == "single":
             if len(self.files) != 1:
@@ -1703,7 +1597,8 @@ class PlotApp:
                 color=colors[0],
                 normalize=normalize,
                 norm_mode=norm_mode,
-                y_max=(float(self.cdms_ymax_pct.get()) if normalize else None),
+                y_min=y_min_norm,
+                y_max=y_max_norm,
                 font_name=cfg.font_name,
                 font_size=cfg.font_size,
                 figsize=cfg.figsize,
@@ -1722,6 +1617,7 @@ class PlotApp:
             self._set_status("CD-MS mass (single) plot complete.")
             return
 
+        # stacked
         if len(labels) != len(self.files):
             Messagebox.show_error("Number of labels must match number of files.", title="Label mismatch")
             return
@@ -1738,14 +1634,15 @@ class PlotApp:
             second_labels=second_labels if use_second else [None] * len(self.files),
             x_range=x_range,
             colors=colors,
-            y_max=(float(self.cdms_ymax_pct.get()) if normalize else None),
+            y_min=y_min_norm,
+            y_max=y_max_norm,
             normalize=normalize,
             norm_mode=norm_mode,
             font_name=cfg.font_name,
             font_size=cfg.font_size,
             figsize=cfg.figsize,
             dpi=DISPLAY_DPI,
-            hspace=cdms_hspace,
+            hspace=hspace,
             line_width=lw,
             x_label=x_lab,
             y_label=y_lab,
@@ -1777,9 +1674,13 @@ class PlotApp:
         if len(colors) < 2:
             Messagebox.show_error("Please provide two colors (mAU, mV).", title="Colors required")
             return
-        xlim = (float(self.mwd_xmin.get()), float(self.mwd_xmax.get()))
+
+        xlim = (float(self.global_xmin.get()), float(self.global_xmax.get()))
         normalize = bool(self.mwd_normalize.get())
         norm_mode = self.mwd_norm_mode.get()
+
+        y_min_norm = float(self.global_ymin.get()) if normalize else None
+        y_max_norm = float(self.global_ymax.get()) if normalize else None
 
         lw = float(self.line_width.get())
         x_lab = self.x_label.get().strip() or None
@@ -1794,7 +1695,8 @@ class PlotApp:
             xlim=xlim,
             normalize=normalize,
             norm_mode=norm_mode,
-            y_max=(float(self.mwd_ymax_pct.get()) if normalize else None),
+            y_min=y_min_norm,
+            y_max=y_max_norm,
             font_name=cfg.font_name,
             font_size=cfg.font_size,
             figsize=cfg.figsize,
@@ -1817,18 +1719,21 @@ class PlotApp:
         second_raw = self.mz_second_labels.get("1.0", "end").strip()
         second_labels = parse_str_list(second_raw) if (use_second and second_raw) else [None] * len(self.files)
         colors = parse_str_list(self.mz_colors.get()) or DEFAULT_MZ_COLORS
-        x_range = (float(self.mz_xmin.get()), float(self.mz_xmax.get()))
+
+        x_range = (float(self.global_xmin.get()), float(self.global_xmax.get()))
         normalize = bool(self.mz_normalize.get())
         norm_mode = self.mz_norm_mode.get()
         mode = self.mz_mode.get()
         try:
-            mz_hspace = float(self.mz_subplot_spacing.get())
+            hspace = float(self.global_subplot_spacing.get())
         except Exception:
-            mz_hspace = 0.6
+            hspace = 0.6
 
         lw = float(self.line_width.get())
         x_lab = self.x_label.get().strip() or None
         y_lab = self.y_label.get().strip() or None
+        y_min_norm = float(self.global_ymin.get()) if normalize else None
+        y_max_norm = float(self.global_ymax.get()) if normalize else None
 
         if mode == "single":
             if len(self.files) != 1:
@@ -1846,7 +1751,8 @@ class PlotApp:
                 color=colors[0],
                 normalize=normalize,
                 norm_mode=norm_mode,
-                y_max=(float(self.mz_ymax_pct.get()) if normalize else None),
+                y_min=y_min_norm,
+                y_max=y_max_norm,
                 font_name=cfg.font_name,
                 font_size=cfg.font_size,
                 figsize=cfg.figsize,
@@ -1865,6 +1771,7 @@ class PlotApp:
             self._set_status("m/z spectrum (single) plot complete.")
             return
 
+        # stacked
         if len(labels) != len(self.files):
             Messagebox.show_error("Number of labels must match number of files.", title="Label mismatch")
             return
@@ -1881,14 +1788,15 @@ class PlotApp:
             second_labels=second_labels if use_second else [None] * len(self.files),
             x_range=x_range,
             colors=colors,
-            y_max=(float(self.mz_ymax_pct.get()) if normalize else None),
+            y_min=y_min_norm,
+            y_max=y_max_norm,
             normalize=normalize,
             norm_mode=norm_mode,
             font_name=cfg.font_name,
             font_size=cfg.font_size,
             figsize=cfg.figsize,
             dpi=DISPLAY_DPI,
-            hspace=mz_hspace,
+            hspace=hspace,
             line_width=lw,
             x_label=x_lab,
             y_label=y_lab,
@@ -1929,6 +1837,9 @@ class PlotApp:
         x_lab = self.x_label.get().strip() or None
         y_lab = self.y_label.get().strip() or None
 
+        spec_ymin = float(self.global_ymin.get()) if bool(self.raw_norm.get()) else None
+        spec_ymax = float(self.global_ymax.get()) if bool(self.raw_norm.get()) else None
+
         fig, (ax1, ax2) = plot_raw_chrom_and_spectrum(
             raw_path=raw_path,
             ms_level=int(self.raw_ms_level.get()),
@@ -1937,7 +1848,8 @@ class PlotApp:
             spectrum_index=(int(self.raw_index.get()) if self.raw_mode.get() == "index" else None),
             normalize_spectrum=bool(self.raw_norm.get()),
             norm_mode=norm_mode,
-            spec_y_max=(float(self.raw_ymax_pct.get()) if bool(self.raw_norm.get()) else None),
+            spec_y_min=spec_ymin,
+            spec_y_max=spec_ymax,
             figsize=cfg.figsize,
             dpi=DISPLAY_DPI,
             font_name=cfg.font_name,

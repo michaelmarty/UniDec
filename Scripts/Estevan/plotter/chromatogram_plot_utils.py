@@ -77,8 +77,7 @@ def read_chrom_file(
 
 def _plain_y_formatter() -> ScalarFormatter:
     """
-    Return a ScalarFormatter configured to avoid scientific notation
-    and show a sensible number of decimals.
+    Disable scientific notation and use plain decimal for y-axis.
     """
     fmt = ScalarFormatter(useMathText=False)
     fmt.set_scientific(False)
@@ -97,7 +96,7 @@ def plot_chrom_stack(
     font_name: str = "Arial",
     font_size: int = 10,
     xlim: Tuple[float, float] = (10.0, 20.0),
-    ylim: Tuple[float, float] = (0.0, 1.0),
+    ylim: Tuple[float, float] = (0.0, 1.0),  # interpreted only when normalize=True
     figsize: Tuple[float, float] = (8, 10),
     dpi: int = 300,
     tick_length: float = 5.0,
@@ -106,7 +105,6 @@ def plot_chrom_stack(
     tight_rect: Tuple[float, float, float, float] = (0.08, 0.08, 0.98, 0.96),
     h_pad: float = 0.6,
     hspace: float = 0.55,
-    # NEW: user-defined styling from GUI
     line_width: Optional[float] = None,
     x_label: Optional[str] = None,
     y_label: Optional[str] = None,
@@ -116,10 +114,12 @@ def plot_chrom_stack(
     """
     Multi-panel chromatogram plot (one subplot per file).
 
-    - If normalize=True: traces are normalized (0–100% or 0–1) and ylim is interpreted
-      in that normalized space.
-    - If normalize=False: raw mAU is used; norm_mode and ylim are ignored; each panel's
-      y-limits are [0, max(mAU)] from the data.
+    - If normalize=True:
+        * Traces are normalized (0–100% or 0–1).
+        * ylim=(ymin,ymax) is interpreted in normalized units and applied.
+    - If normalize=False:
+        * Raw mAU is used.
+        * ylim is ignored; each panel gets [0, max(mAU)] from data.
     """
     n = len(files)
     if len(sample_labels) != n:
@@ -127,7 +127,7 @@ def plot_chrom_stack(
 
     colors = ensure_colors(colors, n, DEFAULT_CHROM_COLORS)
     if line_width is None:
-        line_width = 1.8  # previous default inside function
+        line_width = 1.8
 
     width_in = figsize[0] if figsize and len(figsize) > 0 else DEFAULT_WIDTH_IN
     target_h = compute_target_height(n_rows=n)
@@ -156,28 +156,29 @@ def plot_chrom_stack(
 
             # Y-limits & ticks
             if normalize:
+                ymin_req, ymax_req = ylim
+
                 if norm_mode == "percent":
-                    default_ymax = 100.0
                     clamp_lo, clamp_hi = 0.0, 100.0
                 else:
-                    default_ymax = 1.0
                     clamp_lo, clamp_hi = 0.0, 1.0
 
-                if ylim is not None:
-                    ymin, ymax = ylim
-                    ymin = max(clamp_lo, ymin)
-                    ymax = min(clamp_hi, ymax)
-                    if ymax <= ymin:
-                        ymin, ymax = clamp_lo, default_ymax
-                else:
-                    ymin, ymax = clamp_lo, default_ymax
+                ymin = max(clamp_lo, ymin_req)
+                ymax = min(clamp_hi, ymax_req)
+                if ymax <= ymin:
+                    # Fallback if user supplies invalid range
+                    ymin, ymax = clamp_lo, clamp_hi
 
                 ax.set_ylim(ymin, ymax)
 
                 mid = ymin + 0.5 * (ymax - ymin)
                 if norm_mode == "percent":
                     ax.set_yticks([ymin, mid, ymax])
-                    ax.set_yticklabels(["0", "%", f"{ymax:.0f}"])
+                    ax.set_yticklabels([
+                        f"{ymin:.0f}",
+                        "%",
+                        f"{ymax:.0f}",
+                    ])
                 else:
                     ax.set_yticks([ymin, mid, ymax])
                     ax.set_yticklabels([
@@ -186,6 +187,7 @@ def plot_chrom_stack(
                         f"{ymax:.2g}",
                     ])
             else:
+                # Raw mAU
                 y_series = df_local["mAU"]
                 if y_series.empty:
                     ymin, ymax = 0.0, 1.0
@@ -218,7 +220,6 @@ def plot_chrom_stack(
             if i < n - 1:
                 ax.tick_params(labelbottom=False)
 
-        # Labels
         fig.supxlabel(x_label if x_label else "Volume (mL)")
         if y_label:
             fig.supylabel(y_label)
