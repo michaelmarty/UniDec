@@ -373,7 +373,9 @@ class PlotApp:
         self.global_ymax = tk.DoubleVar(value=100.0)
         self.global_subplot_spacing = tk.DoubleVar(value=0.6)
 
-        # Ensure initial Y-lims display without unnecessary decimals (e.g., "0", "100")
+        # Ensure initial X/Y-lims display without unnecessary decimals (e.g., "0", "20", "100")
+        self.global_xmin.set(self._format_number_for_entry(self.global_xmin.get()))
+        self.global_xmax.set(self._format_number_for_entry(self.global_xmax.get()))
         self.global_ymin.set(self._format_number_for_entry(self.global_ymin.get()))
         self.global_ymax.set(self._format_number_for_entry(self.global_ymax.get()))
 
