@@ -311,6 +311,12 @@ class PlotApp:
 
         # Bind tab change to update per-tab default ranges
         self.nb.bind("<<NotebookTabChanged>>", self._on_tab_changed)
+
+        # Global normalization mode shared across tabs (0–1 vs 0–100%)
+        # Initialized to whatever the chromatogram tab uses by default.
+        self.global_norm_mode = tk.StringVar(value=self.chrom_norm_mode.get())
+        self._bind_global_norm_mode()
+
         return  # ensure no extra calls below
 
     # --------------------------- Footer ---------------------------
@@ -421,19 +427,24 @@ class PlotApp:
 
     def _bind_global_y_clamping(self):
         """
-        Bind focus-out clamping for global Y-lim entries, using the chrom
-        normalization mode as the reference (0–100% vs 0–1). This ensures
-        that out-of-range values are corrected automatically.
+        Bind focus-out clamping for global Y-lim entries, using the global
+        normalization mode (0–100% vs 0–1). This ensures that out-of-range
+        values are corrected automatically.
         """
         if not hasattr(self, "global_ymin_entry") or not hasattr(self, "global_ymax_entry"):
             return
-        if not hasattr(self, "chrom_norm_mode"):
-            return
+        if not hasattr(self, "global_norm_mode"):
+            # Fallback to chrom_norm_mode if global isn't initialized yet
+            mode_var = getattr(self, "chrom_norm_mode", None)
+            if mode_var is None:
+                return
+        else:
+            mode_var = self.global_norm_mode
 
         def _on_ymin_focus_out(event=None):
             self._clamp_y_entry(
                 entry_var=self.global_ymin,
-                mode_var=self.chrom_norm_mode,
+                mode_var=mode_var,
                 percent_range=(0.0, 100.0),
                 unit_range=(0.0, 1.0),
             )
@@ -441,7 +452,7 @@ class PlotApp:
         def _on_ymax_focus_out(event=None):
             self._clamp_y_entry(
                 entry_var=self.global_ymax,
-                mode_var=self.chrom_norm_mode,
+                mode_var=mode_var,
                 percent_range=(0.0, 100.0),
                 unit_range=(0.0, 1.0),
             )
@@ -1053,24 +1064,90 @@ class PlotApp:
             else:
                 max_var.set(self._format_number_for_entry(vmax))
 
-            # If this mode_var is the chrom normalization mode, also
-            # clamp the global Y-limits to 0–100 or 0–1.
-            if hasattr(self, "chrom_norm_mode") and mode_var is self.chrom_norm_mode:
-                if hasattr(self, "global_ymin") and hasattr(self, "global_ymax"):
-                    self._clamp_y_entry(
-                        entry_var=self.global_ymin,
-                        mode_var=self.chrom_norm_mode,
-                        percent_range=(0.0, 100.0),
-                        unit_range=(0.0, 1.0),
-                    )
-                    self._clamp_y_entry(
-                        entry_var=self.global_ymax,
-                        mode_var=self.chrom_norm_mode,
-                        percent_range=(0.0, 100.0),
-                        unit_range=(0.0, 1.0),
-                    )
-
         mode_var.trace_add("write", _update_on_mode_change)
+
+    def _bind_global_norm_mode(self):
+        """
+        Keep a single global normalization mode (0–1 vs 0–100%) consistent across
+        all tabs. Any change in a per-tab norm_mode (chrom, cdms, mwd, mz, raw)
+        updates the global mode and rescales global_ymin/global_ymax. Then the
+        new mode is propagated back to all per-tab variables.
+        """
+
+        # List of all per-tab normalization StringVars
+        self._norm_mode_vars = [
+            self.chrom_norm_mode,
+            self.cdms_norm_mode,
+            self.mwd_norm_mode,
+            self.mz_norm_mode,
+            self.raw_norm_mode,
+        ]
+
+        def rescale_global_y_limits(old_mode: str, new_mode: str):
+            """Convert global_ymin/global_ymax between 0–1 and 0–100%."""
+            if not hasattr(self, "global_ymin") or not hasattr(self, "global_ymax"):
+                return
+            try:
+                ymin = float(self.global_ymin.get())
+                ymax = float(self.global_ymax.get())
+            except Exception:
+                return
+
+            # If modes are the same, nothing to do
+            if old_mode == new_mode:
+                return
+
+            # old: unit, new: percent  -> multiply by 100
+            # old: percent, new: unit -> divide by 100
+            if old_mode == "unit" and new_mode == "percent":
+                ymin *= 100.0
+                ymax *= 100.0
+            elif old_mode == "percent" and new_mode == "unit":
+                ymin /= 100.0
+                ymax /= 100.0
+
+            # Clamp to allowed ranges
+            if new_mode == "percent":
+                lo, hi = 0.0, 100.0
+            else:
+                lo, hi = 0.0, 1.0
+
+            ymin, ymax = clamp_range(ymin, ymax, lo, hi)
+            self.global_ymin.set(self._format_number_for_entry(ymin))
+            self.global_ymax.set(self._format_number_for_entry(ymax))
+
+        def on_any_norm_mode_change(changed_var: tk.StringVar):
+            """
+            Called whenever *any* per-tab norm_mode changes.
+            Treat that as the new global mode, rescale Y-limits, and then
+            push the mode to all norm_mode vars (including the one that changed).
+            """
+            old_global_mode = self.global_norm_mode.get()
+            new_mode = changed_var.get()
+
+            if new_mode not in ("percent", "unit"):
+                # Ignore unexpected values
+                return
+
+            if new_mode == old_global_mode:
+                # No actual global change
+                return
+
+            # 1) Rescale global Y-limits according to mode change
+            rescale_global_y_limits(old_global_mode, new_mode)
+
+            # 2) Update stored global mode
+            self.global_norm_mode.set(new_mode)
+
+            # 3) Propagate the new mode to all per-tab variables
+            for var in self._norm_mode_vars:
+                if var is not changed_var:
+                    var.set(new_mode)
+
+        # Attach traces to each norm_mode var
+        for var in self._norm_mode_vars:
+            # Use a lambda capturing the specific var
+            var.trace_add("write", lambda *_ , v=var: on_any_norm_mode_change(v))
 
     def _toggle_text_state(self, text_widget: tk.Text, flag_var: tk.BooleanVar):
         state = tk.NORMAL if flag_var.get() else tk.DISABLED
@@ -1214,14 +1291,8 @@ class PlotApp:
             # Thermo RAW or unknown: don't change global X-lim
             return
 
-        # Set global X limits to the tab defaults
         self.global_xmin.set(xmin)
         self.global_xmax.set(xmax)
-
-        # Optionally, you can also reset global Y-lim when switching tabs.
-        # Commented out here; uncomment if desired:
-        # self.global_ymin.set(0.0)
-        # self.global_ymax.set(100.0)
 
     def _on_files_drop(self, event):
         try:
