@@ -2,7 +2,6 @@ from __future__ import annotations
 import os
 import threading
 from dataclasses import dataclass
-from functools import partial
 from typing import List, Sequence, Tuple, Optional, Callable
 
 import numpy as np
@@ -19,7 +18,6 @@ try:
 except Exception:  # fallback for older versions
     from ttkbootstrap.scrolled import ScrolledFrame
 
-
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
 # Drag-and-drop root (optional)
@@ -30,20 +28,21 @@ except Exception:
     DND_AVAILABLE = False
 
 # Plotting utilities (ensure these files exist in the same folder)
-from chromatogram_plot_utils import plot_chrom_stack, plot_chrom_offset_stack, read_chrom_file
+from chromatogram_plot_utils import plot_chrom_stack, read_chrom_file
 from cdms_mass_plot_utils import (
-    plot_cdms_mass_offset_stack,
+    plot_cdms_mass_stack,
     plot_single_cdms_mass,
-    read_cdms_mass_file,
     _load_mass,
 )
-from mwd_chromatogram_utils import plot_mwd_chromatograms, load_chrom_file as load_mwd_chrom_file
-from mz_spectrum_plot_utils import plot_single_mz_spectrum, plot_mz_spectrum_offset_stack, read_mz_spectrum_file
-from thermo_raw_utils import (
-    plot_raw_chrom_and_spectrum, _convert_raw_to_mzml, load_raw_scans, read_mzml_scans_stream,
-    pick_spectrum_from_stream
+from mwd_chromatogram_utils import plot_mwd_chromatograms
+from mz_spectrum_plot_utils import (
+    plot_single_mz_spectrum,
+    plot_mz_spectrum_stack,
+    read_mz_spectrum_file,
 )
-
+from thermo_raw_utils import (
+    plot_raw_chrom_and_spectrum, _convert_raw_to_mzml
+)
 
 # --------------------------- Defaults & Helpers ---------------------------
 
@@ -247,10 +246,6 @@ class PlotApp:
         """
         Create a scrollable left pane and return (container_frame, inner_content_frame).
         Build all left-side controls inside 'inner_content_frame'.
-
-        Uses ttkbootstrap.ScrolledFrame without autohide. We manually hide/show
-        the vertical scrollbar when content fits, and keep the controls pinned
-        at the top.
         """
         container = tb.Frame(paned, bootstyle="secondary")
 
@@ -295,50 +290,22 @@ class PlotApp:
 
         return container, inner
 
-        def resize_scrollable_area(event):
-            """
-            Keep the scrollable region slightly narrower than the container width
-            so the scrollbar never covers the rightmost part of the controls.
-            """
-            if not canvas:
-                return
-            # Reduce width to leave room for scrollbar
-            new_width = max(event.width - SCROLLBAR_WIDTH, 50)
-            canvas.itemconfigure("frame", width=new_width)  # tag used by ttkbootstrap
-            update_scrollbar_visibility()
-
-        # ttkbootstrap tags the internal window item as "frame"
-        # Recalculate width when outer container changes
-        container.bind("<Configure>", resize_scrollable_area)
-
-        # And recalc scrollbar visibility when content size changes
-        inner.bind("<Configure>", update_scrollbar_visibility)
-        if sf is not container:
-            sf.bind("<Configure>", update_scrollbar_visibility)
-
-        return container, inner
-
     # --------------------------- Body ---------------------------
 
     def _build_body(self, parent: tk.Widget):
         paned = tb.Panedwindow(parent, orient=HORIZONTAL, bootstyle="secondary")
         paned.pack(fill=BOTH, expand=YES, padx=10, pady=0)
 
-        # Scrollable left container + raw inner frame from _build_scrollable_left
         left_container, left_inner = self._build_scrollable_left(paned)
         paned.add(left_container, weight=1)
 
-        # NEW: add a padded frame inside the scrollable area
-        # This padding provides a right margin so the scrollbar never overlaps controls.
         left = tb.Frame(left_inner, padding=(0, 0, 16, 0), bootstyle="secondary")
         left.pack(fill=BOTH, expand=YES)
 
-        # Right plot area
         right = tb.Frame(paned, padding=10, bootstyle="secondary")
         paned.add(right, weight=3)
         self.plot_area = right
 
-        # Build content on the padded 'left' frame
         nb = tb.Notebook(left, bootstyle="primary")
         nb.pack(fill=BOTH, expand=YES)
 
@@ -376,7 +343,6 @@ class PlotApp:
         lf = tb.Labelframe(parent, text="Common Options", padding=10, bootstyle="secondary")
         lf.pack(fill=X, pady=6)
 
-        # Save path
         sp = tb.Frame(lf, bootstyle="secondary")
         sp.pack(fill=X, pady=4)
         tb.Label(sp, text="Save as:", width=12).pack(side=LEFT)
@@ -384,7 +350,6 @@ class PlotApp:
         tb.Entry(sp, textvariable=self.save_var).pack(side=LEFT, fill=X, expand=YES, padx=6)
         tb.Button(sp, text="Browse", bootstyle="secondary", command=self._browse_save).pack(side=LEFT)
 
-        # Fonts, DPI, figsize
         grid = tb.Frame(lf, bootstyle="secondary")
         grid.pack(fill=X, pady=4)
 
@@ -405,7 +370,6 @@ class PlotApp:
         tb.Entry(grid, textvariable=self.fig_w, width=6).grid(row=0, column=7, sticky=W, padx=2)
         tb.Entry(grid, textvariable=self.fig_h, width=6).grid(row=0, column=8, sticky=W, padx=2)
 
-        # Labels, line width
         style_frame = tb.Frame(lf, bootstyle="secondary")
         style_frame.pack(fill=X, pady=6)
         self.x_label_override = tk.StringVar()
@@ -419,7 +383,6 @@ class PlotApp:
         tb.Label(style_frame, text="Line width:").pack(side=LEFT, padx=(10, 0))
         tb.Entry(style_frame, textvariable=self.line_width, width=6).pack(side=LEFT, padx=6)
 
-        # Toggles
         toggles = tb.Frame(lf, bootstyle="secondary")
         toggles.pack(fill=X, pady=4)
         self.show_plot = tk.BooleanVar(value=True)
@@ -451,8 +414,7 @@ class PlotApp:
             options=[("Single Chromatogram", "single"), ("Stacked Chromatograms", "stacked")],
         )
 
-        # Labels & colors
-        lf_labels = self._build_labels_colors_section(
+        self._build_labels_colors_section(
             parent=self.chrom_tab,
             title="Chromatogram Labels & Colors",
             text_widget_attr="chrom_labels",
@@ -461,7 +423,6 @@ class PlotApp:
             palette_title="Chromatogram Colors",
         )
 
-        # Axes & standards
         lf_axes = tb.Labelframe(self.chrom_tab, text="Chromatogram Axes & Standards", padding=8, bootstyle="secondary")
         lf_axes.pack(fill=X, pady=6)
 
@@ -472,18 +433,16 @@ class PlotApp:
         self.chrom_xmax = tk.DoubleVar(value=20.0)
         self.chrom_ymin = tk.DoubleVar(value=0.0)
         self.chrom_ymax = tk.DoubleVar(value=100.0)
-        self.chrom_y_offset = tk.DoubleVar(value=1.0)
+        self.chrom_subplot_spacing = tk.DoubleVar(value=0.6)
         self.chrom_normalize = tk.BooleanVar(value=True)
         self.chrom_norm_mode = tk.StringVar(value="percent")
         self.chrom_show_standards = tk.BooleanVar(value=True)
         self.chrom_standards = tk.StringVar(value=DEFAULT_CHROM_STANDARDS)
 
-        # X limits
         tb.Label(grid, text="X-lim (mL):").grid(row=0, column=0, sticky=W)
         tb.Entry(grid, textvariable=self.chrom_xmin, width=8).grid(row=0, column=1, padx=4)
         tb.Entry(grid, textvariable=self.chrom_xmax, width=8).grid(row=0, column=2, padx=4)
 
-        # Y limits
         self.chrom_ymin_entry = tb.Entry(grid, textvariable=self.chrom_ymin, width=8)
         self.chrom_ymax_entry = tb.Entry(grid, textvariable=self.chrom_ymax, width=8)
 
@@ -491,8 +450,8 @@ class PlotApp:
         self.chrom_ymin_entry.grid(row=0, column=4, padx=4)
         self.chrom_ymax_entry.grid(row=0, column=5, padx=4)
 
-        tb.Label(grid, text="Y-offset step:").grid(row=1, column=0, sticky=W, pady=(4, 0))
-        tb.Entry(grid, textvariable=self.chrom_y_offset, width=8).grid(row=1, column=1, padx=4, pady=(4, 0))
+        tb.Label(grid, text="Subplot spacing:").grid(row=1, column=0, sticky=W, pady=(4, 0))
+        tb.Entry(grid, textvariable=self.chrom_subplot_spacing, width=8).grid(row=1, column=1, padx=4, pady=(4, 0))
 
         tb.Checkbutton(lf_axes, text="Normalize traces to max", variable=self.chrom_normalize).pack(anchor=W, pady=4)
 
@@ -506,7 +465,6 @@ class PlotApp:
             unit_range=(0.0, 1.0),
         )
 
-        # Clamp chrom Y-limits on focus-out (no live rewriting)
         def _clamp_chrom_y(event=None):
             try:
                 mode = self.chrom_norm_mode.get()
@@ -526,7 +484,6 @@ class PlotApp:
         self.chrom_ymin_entry.bind("<FocusOut>", _clamp_chrom_y)
         self.chrom_ymax_entry.bind("<FocusOut>", _clamp_chrom_y)
 
-        # Standards
         std_row = tb.Frame(lf_axes, bootstyle="secondary")
         std_row.pack(fill=X, pady=4)
         tb.Checkbutton(
@@ -537,7 +494,6 @@ class PlotApp:
         tb.Label(std_row, text="Standard Volumes (mL):").pack(side=LEFT, padx=8)
         tb.Entry(std_row, textvariable=self.chrom_standards, width=28).pack(side=LEFT, padx=6)
 
-        # Replicates
         self._build_replicates_panel(
             parent=self.chrom_tab,
             title="Replicates (optional)",
@@ -563,9 +519,8 @@ class PlotApp:
             options=[("Single CD-MS Mass", "single"), ("Stacked CD-MS Mass", "stacked")],
         )
 
-        # Labels, second labels, colors
         self.cdms_two_legends = tk.BooleanVar(value=False)
-        lf_labels = self._build_two_legend_labels_section(
+        self._build_two_legend_labels_section(
             parent=self.cdms_tab,
             title="CD-MS Mass Labels & Colors",
             labels_attr="cdms_labels",
@@ -580,7 +535,6 @@ class PlotApp:
             ),
         )
 
-        # Axes & layout
         lf_axes = tb.Labelframe(self.cdms_tab, text="CD-MS Mass Axes & Layout", padding=8, bootstyle="secondary")
         lf_axes.pack(fill=X, pady=6)
         grid = tb.Frame(lf_axes, bootstyle="secondary")
@@ -589,7 +543,7 @@ class PlotApp:
         self.cdms_xmin = tk.DoubleVar(value=0.0)
         self.cdms_xmax = tk.DoubleVar(value=500.0)
         self.cdms_ymax_pct = tk.DoubleVar(value=100.0)
-        self.cdms_y_offset = tk.DoubleVar(value=120.0)
+        self.cdms_subplot_spacing = tk.DoubleVar(value=0.6)
         self.cdms_normalize = tk.BooleanVar(value=True)
         self.cdms_norm_mode = tk.StringVar(value="percent")
 
@@ -601,8 +555,8 @@ class PlotApp:
         tb.Label(grid, text="Y max (normalized):").grid(row=0, column=3, sticky=W)
         self.cdms_ymax_entry.grid(row=0, column=4, padx=4)
 
-        tb.Label(grid, text="Y-offset step:").grid(row=1, column=0, sticky=W, pady=(4, 0))
-        tb.Entry(grid, textvariable=self.cdms_y_offset, width=8).grid(row=1, column=1, padx=4, pady=(4, 0))
+        tb.Label(grid, text="Subplot spacing:").grid(row=1, column=0, sticky=W, pady=(4, 0))
+        tb.Entry(grid, textvariable=self.cdms_subplot_spacing, width=8).grid(row=1, column=1, padx=4, pady=(4, 0))
 
         tb.Checkbutton(lf_axes, text="Normalize to max", variable=self.cdms_normalize).pack(anchor=W, pady=4)
 
@@ -616,7 +570,6 @@ class PlotApp:
             unit_range=(0.0, 1.0),
         )
 
-        # Clamp CD-MS Y max on focus-out
         def _clamp_cdms_ymax(event=None):
             try:
                 mode = self.cdms_norm_mode.get()
@@ -650,7 +603,6 @@ class PlotApp:
         self.mwd_tab = tb.Frame(nb, padding=8, bootstyle="secondary")
         nb.add(self.mwd_tab, text="MWD Chromatograms")
 
-        # Files
         lf_files = tb.Labelframe(
             self.mwd_tab, text="MWD Files (drag & drop or browse)", padding=8, bootstyle="secondary"
         )
@@ -673,7 +625,6 @@ class PlotApp:
         self.mwd_mau_entry = file_row(lf_files, "mAU file:", "mwd_mau_path", self._browse_mwd_mau)
         self.mwd_mv_entry = file_row(lf_files, "mV file:", "mwd_mv_path", self._browse_mwd_mv)
 
-        # Labels & colors
         lf_labels = tb.Labelframe(self.mwd_tab, text="Labels & Colors", padding=8, bootstyle="secondary")
         lf_labels.pack(fill=X, pady=4)
         row3 = tb.Frame(lf_labels, bootstyle="secondary")
@@ -698,7 +649,6 @@ class PlotApp:
             side=LEFT, padx=4
         )
 
-        # Axes & options
         lf_axes = tb.Labelframe(self.mwd_tab, text="Axes & Options", padding=8, bootstyle="secondary")
         lf_axes.pack(fill=X, pady=4)
         grid = tb.Frame(lf_axes, bootstyle="secondary")
@@ -732,7 +682,6 @@ class PlotApp:
             unit_range=(0.0, 1.0),
         )
 
-        # Clamp MWD Y max on focus-out
         def _clamp_mwd_ymax(event=None):
             try:
                 mode = self.mwd_norm_mode.get()
@@ -779,7 +728,6 @@ class PlotApp:
             ),
         )
 
-        # Axes & layout
         lf_axes = tb.Labelframe(self.mz_tab, text="m/z Axes & Layout", padding=8, bootstyle="secondary")
         lf_axes.pack(fill=X, pady=6)
         grid = tb.Frame(lf_axes, bootstyle="secondary")
@@ -788,7 +736,7 @@ class PlotApp:
         self.mz_xmin = tk.DoubleVar(value=100.0)
         self.mz_xmax = tk.DoubleVar(value=2000.0)
         self.mz_ymax_pct = tk.DoubleVar(value=100.0)
-        self.mz_y_offset = tk.DoubleVar(value=120.0)
+        self.mz_subplot_spacing = tk.DoubleVar(value=0.6)
         self.mz_normalize = tk.BooleanVar(value=True)
         self.mz_norm_mode = tk.StringVar(value="percent")
 
@@ -800,8 +748,8 @@ class PlotApp:
         tb.Label(grid, text="Y max (normalized):").grid(row=0, column=3, sticky=W)
         self.mz_ymax_entry.grid(row=0, column=4, padx=4)
 
-        tb.Label(grid, text="Y-offset step:").grid(row=1, column=0, sticky=W, pady=(4, 0))
-        tb.Entry(grid, textvariable=self.mz_y_offset, width=8).grid(row=1, column=1, padx=4, pady=(4, 0))
+        tb.Label(grid, text="Subplot spacing:").grid(row=1, column=0, sticky=W, pady=(4, 0))
+        tb.Entry(grid, textvariable=self.mz_subplot_spacing, width=8).grid(row=1, column=1, padx=4, pady=(4, 0))
 
         tb.Checkbutton(lf_axes, text="Normalize to max", variable=self.mz_normalize).pack(anchor=W, pady=4)
 
@@ -815,7 +763,6 @@ class PlotApp:
             unit_range=(0.0, 1.0),
         )
 
-        # Clamp m/z Y max on focus-out
         def _clamp_mz_ymax(event=None):
             try:
                 mode = self.mz_norm_mode.get()
@@ -849,7 +796,6 @@ class PlotApp:
         self.raw_tab = tb.Frame(nb, padding=8, bootstyle="secondary")
         nb.add(self.raw_tab, text="Thermo RAW")
 
-        # RAW file
         lf_file = tb.Labelframe(self.raw_tab, text="RAW/mzML File", padding=8, bootstyle="secondary")
         lf_file.pack(fill=X, pady=4)
         row = tb.Frame(lf_file, bootstyle="secondary")
@@ -863,7 +809,6 @@ class PlotApp:
             self.raw_entry.drop_target_register(DND_FILES)
             self.raw_entry.dnd_bind("<<Drop>>", lambda e: self._on_single_file_drop(e, self.raw_path))
 
-        # Options
         lf_opts = tb.Labelframe(self.raw_tab, text="Options", padding=8, bootstyle="secondary")
         lf_opts.pack(fill=X, pady=4)
         grid = tb.Frame(lf_opts, bootstyle="secondary")
@@ -898,7 +843,6 @@ class PlotApp:
 
         tb.Checkbutton(lf_opts, text="Normalize spectrum to max", variable=self.raw_norm).pack(anchor=W, pady=4)
 
-        # Normalization scale & Ymax
         raw_norm_frame = tb.Frame(lf_opts, bootstyle="secondary")
         raw_norm_frame.pack(fill=X, pady=2)
         tb.Label(raw_norm_frame, text="Spectrum normalization scale:").pack(side=LEFT)
@@ -921,7 +865,6 @@ class PlotApp:
             unit_range=(0.0, 1.0),
         )
 
-        # Clamp RAW spectrum Y max on focus-out
         def _clamp_raw_ymax(event=None):
             try:
                 mode = self.raw_norm_mode.get()
@@ -938,7 +881,6 @@ class PlotApp:
 
         self.raw_ymax_entry.bind("<FocusOut>", _clamp_raw_ymax)
 
-        # msconvert options
         lf_ms = tb.Labelframe(self.raw_tab, text="msconvert (ProteoWizard)", padding=8, bootstyle="secondary")
         lf_ms.pack(fill=X, pady=4)
         row2 = tb.Frame(lf_ms, bootstyle="secondary")
@@ -1111,11 +1053,6 @@ class PlotApp:
 
     @staticmethod
     def _format_number_for_entry(value: float) -> str:
-        """
-        Format float for entry display:
-        - Integers as '55'
-        - Others as '55.5', '0.75', etc. (up to 6 decimals, trimmed).
-        """
         if abs(value - round(value)) < 1e-9:
             return str(int(round(value)))
         return f"{value:.6f}".rstrip("0").rstrip(".")
@@ -1151,14 +1088,6 @@ class PlotApp:
         percent_range: Tuple[float, float],
         unit_range: Tuple[float, float],
     ):
-        """
-        Track normalization mode (percent vs unit).
-
-        This version:
-        - Only adjusts values when the mode changes,
-        - Does NOT validate/format on every keystroke,
-        - Leaves clamping to focus-out handlers on the actual entries.
-        """
         def _update_on_mode_change(*_):
             try:
                 mode = mode_var.get()
@@ -1171,7 +1100,6 @@ class PlotApp:
             u_lo, u_hi = unit_range
 
             if mode == "percent":
-                # Convert 0–1 → 0–100 if they were unit-like
                 if vmax <= 1.0:
                     vmax *= 100.0
                 if vmin is not None and vmin <= 1.0:
@@ -1180,7 +1108,6 @@ class PlotApp:
                 if vmin is not None:
                     vmin = max(p_lo, min(p_hi, vmin))
             else:
-                # Convert 0–100 → 0–1 if they were percent-like
                 if vmax > 1.0:
                     vmax /= 100.0
                 if vmin is not None and vmin > 1.0:
@@ -1197,7 +1124,6 @@ class PlotApp:
                 min_var.set(self._format_number_for_entry(vmin))
             max_var.set(self._format_number_for_entry(vmax))
 
-        # Only respond when the user switches between "percent" and "unit"
         mode_var.trace_add("write", _update_on_mode_change)
 
     def _toggle_text_state(self, text_widget: tk.Text, flag_var: tk.BooleanVar):
@@ -1602,7 +1528,6 @@ class PlotApp:
 
     def _overlay_cdms_replicates(self, axes, groups, colors, normalize: bool, x_range):
         def selector(fp: str):
-            # Use the same loader as main CD-MS plotting, which guarantees kDa
             df = _load_mass(fp)
             df = df[(df["mass_kDa"] >= x_range[0]) & (df["mass_kDa"] <= x_range[1])].copy()
             return (
@@ -1656,7 +1581,6 @@ class PlotApp:
         else:
             ax_list = [axes_obj]
 
-        # Line width override
         try:
             lw = float(self.line_width.get())
             for ax in ax_list:
@@ -1665,7 +1589,6 @@ class PlotApp:
         except Exception:
             pass
 
-        # Axis label overrides
         xlab = self.x_label_override.get().strip()
         ylab = self.y_label_override.get().strip()
 
@@ -1751,6 +1674,10 @@ class PlotApp:
         norm_mode = self.chrom_norm_mode.get()
         xlim = (float(self.chrom_xmin.get()), float(self.chrom_xmax.get()))
         ylim = (float(self.chrom_ymin.get()), float(self.chrom_ymax.get()))
+        try:
+            chrom_hspace = float(self.chrom_subplot_spacing.get())
+        except Exception:
+            chrom_hspace = 0.55
 
         mode = self.chrom_mode.get()
         if mode == "single":
@@ -1792,11 +1719,11 @@ class PlotApp:
                 ylim=ylim,
                 figsize=cfg.figsize,
                 dpi=DISPLAY_DPI,
+                hspace=chrom_hspace,
                 save=None,
                 show=cfg.show,
             )
 
-        # Replicates
         if bool(self.chrom_rep_enable.get()):
             groups = self._parse_rep_groups(self.chrom_rep_groups.get("1.0", "end"))
             axes_list = axes if isinstance(axes, (list, tuple)) else [axes]
@@ -1825,6 +1752,10 @@ class PlotApp:
         x_range = (float(self.cdms_xmin.get()), float(self.cdms_xmax.get()))
         normalize = bool(self.cdms_normalize.get())
         norm_mode = self.cdms_norm_mode.get()
+        try:
+            cdms_hspace = float(self.cdms_subplot_spacing.get())
+        except Exception:
+            cdms_hspace = 0.6
         mode = self.cdms_mode.get()
 
         if mode == "single":
@@ -1842,7 +1773,6 @@ class PlotApp:
                 color=colors[0],
                 normalize=normalize,
                 norm_mode=norm_mode,
-                # pass GUI y max
                 y_max=(float(self.cdms_ymax_pct.get()) if normalize else None),
                 font_name=cfg.font_name,
                 font_size=cfg.font_size,
@@ -1860,7 +1790,6 @@ class PlotApp:
             self._set_status("CD-MS mass (single) plot complete.")
             return
 
-        # stacked
         if len(labels) != len(self.files):
             Messagebox.show_error("Number of labels must match number of files.", title="Label mismatch")
             return
@@ -1871,14 +1800,12 @@ class PlotApp:
             )
             return
 
-        fig, axes = plot_cdms_mass_offset_stack(
+        fig, axes = plot_cdms_mass_stack(
             datasets=self.files,
             labels=labels,
             second_labels=second_labels if use_second else [None] * len(self.files),
             x_range=x_range,
             colors=colors,
-            # GUI y-offset and y-max
-            y_offset_step=float(self.cdms_y_offset.get()),
             y_max=(float(self.cdms_ymax_pct.get()) if normalize else None),
             normalize=normalize,
             norm_mode=norm_mode,
@@ -1886,9 +1813,11 @@ class PlotApp:
             font_size=cfg.font_size,
             figsize=cfg.figsize,
             dpi=DISPLAY_DPI,
+            hspace=cdms_hspace,
             save=None,
             show=cfg.show,
         )
+
         if bool(self.cdms_rep_enable.get()):
             groups = self._parse_rep_groups(self.cdms_rep_groups.get("1.0", "end"))
             axes_list = axes if isinstance(axes, (list, tuple)) else [axes]
@@ -1951,6 +1880,10 @@ class PlotApp:
         normalize = bool(self.mz_normalize.get())
         norm_mode = self.mz_norm_mode.get()
         mode = self.mz_mode.get()
+        try:
+            mz_hspace = float(self.mz_subplot_spacing.get())
+        except Exception:
+            mz_hspace = 0.6
 
         if mode == "single":
             if len(self.files) != 1:
@@ -1985,7 +1918,6 @@ class PlotApp:
             self._set_status("m/z spectrum (single) plot complete.")
             return
 
-        # stacked
         if len(labels) != len(self.files):
             Messagebox.show_error("Number of labels must match number of files.", title="Label mismatch")
             return
@@ -1996,13 +1928,12 @@ class PlotApp:
             )
             return
 
-        fig, axes = plot_mz_spectrum_offset_stack(
+        fig, axes = plot_mz_spectrum_stack(
             datasets=self.files,
             labels=labels,
             second_labels=second_labels if use_second else [None] * len(self.files),
             x_range=x_range,
             colors=colors,
-            y_offset_step=float(self.mz_y_offset.get()),
             y_max=(float(self.mz_ymax_pct.get()) if normalize else None),
             normalize=normalize,
             norm_mode=norm_mode,
@@ -2010,9 +1941,11 @@ class PlotApp:
             font_size=cfg.font_size,
             figsize=cfg.figsize,
             dpi=DISPLAY_DPI,
+            hspace=mz_hspace,
             save=None,
             show=cfg.show,
         )
+
         if bool(self.mz_rep_enable.get()):
             groups = self._parse_rep_groups(self.mz_rep_groups.get("1.0", "end"))
             axes_list = axes if isinstance(axes, (list, tuple)) else [axes]
@@ -2092,10 +2025,6 @@ class PlotApp:
     # --------------------------- RAW → mzML Conversion ---------------------------
 
     def convert_raw_to_mzml(self, raw_path: str) -> Optional[str]:
-        """
-        Synchronous conversion helper that calls thermo_raw_utils._convert_raw_to_mzml
-        with GUI options. Returns mzML path or "__CONVERT_ERROR__:..." on failure.
-        """
         try:
             self.root.after(0, lambda: self.plot_btn.configure(state="disabled"))
         except Exception:
