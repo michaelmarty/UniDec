@@ -382,6 +382,10 @@ class PlotApp:
         self.global_ymax = tk.DoubleVar(value=100.0)
         self.global_subplot_spacing = tk.DoubleVar(value=0.6)
 
+        # Ensure initial Y-lims display without unnecessary decimals (e.g., "0", "100")
+        self.global_ymin.set(self._format_number_for_entry(self.global_ymin.get()))
+        self.global_ymax.set(self._format_number_for_entry(self.global_ymax.get()))
+
         tb.Label(axes_frame, text="X-lim min:").pack(side=LEFT)
         tb.Entry(axes_frame, textvariable=self.global_xmin, width=8).pack(side=LEFT, padx=4)
         tb.Label(axes_frame, text="X-lim max:").pack(side=LEFT)
@@ -1280,13 +1284,13 @@ class PlotApp:
 
         # Defaults per tab
         if tab_text == "Chromatograms":
-            xmin, xmax = 0.0, 20.0
+            xmin, xmax = 0, 20
         elif tab_text == "CD-MS Mass":
-            xmin, xmax = 0.0, 500.0
+            xmin, xmax = 0, 500
         elif tab_text == "MWD Chromatograms":
-            xmin, xmax = 0.0, 20.0
+            xmin, xmax = 0, 20
         elif tab_text == "m/z Spectra":
-            xmin, xmax = 0.0, 20000.0
+            xmin, xmax = 0, 20000
         else:
             # Thermo RAW or unknown: don't change global X-lim
             return
