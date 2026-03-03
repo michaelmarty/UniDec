@@ -156,6 +156,13 @@ int run_chromatogram(int argc, char* argv[], Config config) {
 	config.file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
 	num = int_attr(config.file_id, "/ms_dataset", "num", num);
 
+	// Create an array of spectra
+	Spectrum * spectra = (Spectrum*)malloc(sizeof(Spectrum) * num);
+	if (spectra == NULL) {
+		printf("Error allocating memory for spectra array\n");
+		exit(1);
+	}
+
 	//Iterate through files
 	for (int i = 0; i < num; i++) {
 		// Run either deconvolution or processing
@@ -166,6 +173,9 @@ int run_chromatogram(int argc, char* argv[], Config config) {
 
 	// Close the file
 	H5Fclose(config.file_id);
+
+	// Free memory
+	free(spectra);
 
 	clock_t end = clock();
 	float totaltime = (float)(end - starttime) / CLOCKS_PER_SEC;

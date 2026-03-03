@@ -490,19 +490,10 @@ int run_unidec(int argc, char *argv[], Config config) {
 		if (strcmp(argv[2], "-verbose") == 0) { verbose = 1; }
 	}
 
-	//..................................
-	//
 	// File Inputs
-	//
-	//.................................
-
 	Input inp = InitInputs();
+	ReadInputs(&config, &inp);
 
-	if (argc >= 2)
-	{
-		ReadInputs(&config, &inp);
-	}
-	else{ exit(88); }
 	if (verbose == 1) { printf("Read Inputs\n"); }
 
 	// Setup the Deconvolution
