@@ -308,7 +308,28 @@ class PlotApp:
 
         # Rebuild file panel after tabs
         self._build_file_panel(left)
+
+        # Track tab changes so we can rescale global Y-limits
+        self.nb.bind("<<NotebookTabChanged>>", self._on_tab_changed)
+
         return  # ensure no extra calls below
+
+    def _on_tab_changed(self, event=None):
+        """
+        When the user switches tabs, update the global Y-limits to the
+        active tab's normalization scale (0–100 or 0–1).
+        """
+        mode_var = self._get_active_norm_mode_var()
+        if mode_var is None:
+            return
+
+        self._convert_global_y_to_mode(
+            mode_var=mode_var,
+            ymin_var=self.global_ymin,
+            ymax_var=self.global_ymax,
+            percent_range=(0.0, 100.0),
+            unit_range=(0.0, 1.0),
+        )
 
     # --------------------------- Footer ---------------------------
 
@@ -426,34 +447,12 @@ class PlotApp:
         """
         Bind focus-out clamping for global Y-lim entries, using the
         *currently active tab's* normalization mode.
-
-        That means:
-        - On Chrom tab: chrom_norm_mode
-        - On CD-MS tab: cdms_norm_mode
-        - On MWD tab:   mwd_norm_mode
-        - On m/z tab:   mz_norm_mode
-        - On RAW tab:   raw_norm_mode
-
-        We determine the tab in the handler at focus-out time.
         """
         if not hasattr(self, "global_ymin_entry") or not hasattr(self, "global_ymax_entry"):
             return
 
-        def _get_active_mode_var() -> Optional[tk.StringVar]:
-            tab = self._active_tab()
-            if tab == "Chromatograms":
-                return getattr(self, "chrom_norm_mode", None)
-            if tab == "CD-MS Mass":
-                return getattr(self, "cdms_norm_mode", None)
-            if tab == "MWD Chromatograms":
-                return getattr(self, "mwd_norm_mode", None)
-            if tab == "m/z Spectra":
-                return getattr(self, "mz_norm_mode", None)
-            # RAW
-            return getattr(self, "raw_norm_mode", None)
-
         def _on_ymin_focus_out(event=None):
-            mode_var = _get_active_mode_var()
+            mode_var = self._get_active_norm_mode_var()
             if mode_var is None:
                 return
             self._clamp_y_entry(
@@ -464,7 +463,7 @@ class PlotApp:
             )
 
         def _on_ymax_focus_out(event=None):
-            mode_var = _get_active_mode_var()
+            mode_var = self._get_active_norm_mode_var()
             if mode_var is None:
                 return
             self._clamp_y_entry(
@@ -476,6 +475,78 @@ class PlotApp:
 
         self.global_ymin_entry.bind("<FocusOut>", _on_ymin_focus_out)
         self.global_ymax_entry.bind("<FocusOut>", _on_ymax_focus_out)
+
+    def _get_active_norm_mode_var(self) -> Optional[tk.StringVar]:
+        """
+        Return the normalization mode variable (percent/unit) for the
+        currently active tab.
+        """
+        tab = self._active_tab()
+        if tab == "Chromatograms":
+            return getattr(self, "chrom_norm_mode", None)
+        if tab == "CD-MS Mass":
+            return getattr(self, "cdms_norm_mode", None)
+        if tab == "MWD Chromatograms":
+            return getattr(self, "mwd_norm_mode", None)
+        if tab == "m/z Spectra":
+            return getattr(self, "mz_norm_mode", None)
+        # RAW tab
+        return getattr(self, "raw_norm_mode", None)
+
+    def _convert_global_y_to_mode(
+        self,
+        mode_var: tk.StringVar,
+        ymin_var: Optional[tk.DoubleVar],
+        ymax_var: tk.DoubleVar,
+        percent_range=(0.0, 100.0),
+        unit_range=(0.0, 1.0),
+    ):
+        """
+        Convert global Y-limits into the scale implied by mode_var
+        ('percent' or 'unit'), clamping into the given ranges.
+
+        This mirrors the logic in _track_norm_mode, but can be called
+        explicitly (e.g., on tab change).
+        """
+        try:
+            mode = mode_var.get()
+            vmax = float(ymax_var.get())
+            vmin = float(ymin_var.get()) if ymin_var is not None else None
+        except Exception:
+            return
+
+        p_lo, p_hi = percent_range
+        u_lo, u_hi = unit_range
+
+        if mode == "percent":
+            # Convert from 0–1 to 0–100 if values look like unit scale
+            if vmax <= 1.0:
+                vmax *= 100.0
+            if vmin is not None and vmin <= 1.0:
+                vmin *= 100.0
+            vmax = max(p_lo, min(p_hi, vmax))
+            if vmin is not None:
+                vmin = max(p_lo, min(p_hi, vmin))
+        else:  # "unit"
+            # Convert from 0–100 to 0–1 if values look like percent scale
+            if vmax > 1.0:
+                vmax /= 100.0
+            if vmin is not None and vmin > 1.0:
+                vmin /= 100.0
+            vmax = max(u_lo, min(u_hi, vmax))
+            if vmin is not None:
+                vmin = max(u_lo, min(u_hi, vmin))
+
+        if vmin is not None:
+            vmin, vmax2 = clamp_range(
+                vmin,
+                vmax,
+                *(percent_range if mode == "percent" else unit_range),
+            )
+            ymin_var.set(self._format_number_for_entry(vmin))
+            ymax_var.set(self._format_number_for_entry(vmax2))
+        else:
+            ymax_var.set(self._format_number_for_entry(vmax))
 
     # --------------------------- Tab Builders ---------------------------
 
