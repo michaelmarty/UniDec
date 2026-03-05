@@ -163,6 +163,10 @@ class PlotApp:
         self._build_body(self.body)
         self._build_footer(self.footer)
 
+        # Bind automatic clamping for global Y-limits (after tabs are built
+        # so that chrom_norm_mode exists)
+        self._bind_global_y_clamping()
+
         self._center_on_screen()
 
         self.files: List[str] = []
@@ -305,9 +309,27 @@ class PlotApp:
         # Rebuild file panel after tabs
         self._build_file_panel(left)
 
-        # Bind tab change to update per-tab default ranges
+        # Track tab changes so we can rescale global Y-limits
         self.nb.bind("<<NotebookTabChanged>>", self._on_tab_changed)
+
         return  # ensure no extra calls below
+
+    def _on_tab_changed(self, event=None):
+        """
+        When the user switches tabs, update the global Y-limits to the
+        active tab's normalization scale (0–100 or 0–1).
+        """
+        mode_var = self._get_active_norm_mode_var()
+        if mode_var is None:
+            return
+
+        self._convert_global_y_to_mode(
+            mode_var=mode_var,
+            ymin_var=self.global_ymin,
+            ymax_var=self.global_ymax,
+            percent_range=(0.0, 100.0),
+            unit_range=(0.0, 1.0),
+        )
 
     # --------------------------- Footer ---------------------------
 
@@ -372,15 +394,23 @@ class PlotApp:
         self.global_ymax = tk.DoubleVar(value=100.0)
         self.global_subplot_spacing = tk.DoubleVar(value=0.6)
 
+        # Ensure initial X/Y-lims display without unnecessary decimals (e.g., "0", "20", "100")
+        self.global_xmin.set(self._format_number_for_entry(self.global_xmin.get()))
+        self.global_xmax.set(self._format_number_for_entry(self.global_xmax.get()))
+        self.global_ymin.set(self._format_number_for_entry(self.global_ymin.get()))
+        self.global_ymax.set(self._format_number_for_entry(self.global_ymax.get()))
+
         tb.Label(axes_frame, text="X-lim min:").pack(side=LEFT)
         tb.Entry(axes_frame, textvariable=self.global_xmin, width=8).pack(side=LEFT, padx=4)
         tb.Label(axes_frame, text="X-lim max:").pack(side=LEFT)
         tb.Entry(axes_frame, textvariable=self.global_xmax, width=8).pack(side=LEFT, padx=4)
 
         tb.Label(axes_frame, text="Y-lim min:").pack(side=LEFT, padx=(12, 0))
-        tb.Entry(axes_frame, textvariable=self.global_ymin, width=8).pack(side=LEFT, padx=4)
+        self.global_ymin_entry = tb.Entry(axes_frame, textvariable=self.global_ymin, width=8)
+        self.global_ymin_entry.pack(side=LEFT, padx=4)
         tb.Label(axes_frame, text="Y-lim max:").pack(side=LEFT)
-        tb.Entry(axes_frame, textvariable=self.global_ymax, width=8).pack(side=LEFT, padx=4)
+        self.global_ymax_entry = tb.Entry(axes_frame, textvariable=self.global_ymax, width=8)
+        self.global_ymax_entry.pack(side=LEFT, padx=4)
 
         tb.Label(axes_frame, text="Subplot spacing:").pack(side=LEFT, padx=(12, 0))
         tb.Entry(axes_frame, textvariable=self.global_subplot_spacing, width=8).pack(side=LEFT, padx=4)
@@ -412,6 +442,111 @@ class PlotApp:
             text="Transparent export background",
             variable=self.transparent_export,
         ).pack(anchor=W, pady=2)
+
+    def _bind_global_y_clamping(self):
+        """
+        Bind focus-out clamping for global Y-lim entries, using the
+        *currently active tab's* normalization mode.
+        """
+        if not hasattr(self, "global_ymin_entry") or not hasattr(self, "global_ymax_entry"):
+            return
+
+        def _on_ymin_focus_out(event=None):
+            mode_var = self._get_active_norm_mode_var()
+            if mode_var is None:
+                return
+            self._clamp_y_entry(
+                entry_var=self.global_ymin,
+                mode_var=mode_var,
+                percent_range=(0.0, 100.0),
+                unit_range=(0.0, 1.0),
+            )
+
+        def _on_ymax_focus_out(event=None):
+            mode_var = self._get_active_norm_mode_var()
+            if mode_var is None:
+                return
+            self._clamp_y_entry(
+                entry_var=self.global_ymax,
+                mode_var=mode_var,
+                percent_range=(0.0, 100.0),
+                unit_range=(0.0, 1.0),
+            )
+
+        self.global_ymin_entry.bind("<FocusOut>", _on_ymin_focus_out)
+        self.global_ymax_entry.bind("<FocusOut>", _on_ymax_focus_out)
+
+    def _get_active_norm_mode_var(self) -> Optional[tk.StringVar]:
+        """
+        Return the normalization mode variable (percent/unit) for the
+        currently active tab.
+        """
+        tab = self._active_tab()
+        if tab == "Chromatograms":
+            return getattr(self, "chrom_norm_mode", None)
+        if tab == "CD-MS Mass":
+            return getattr(self, "cdms_norm_mode", None)
+        if tab == "MWD Chromatograms":
+            return getattr(self, "mwd_norm_mode", None)
+        if tab == "m/z Spectra":
+            return getattr(self, "mz_norm_mode", None)
+        # RAW tab
+        return getattr(self, "raw_norm_mode", None)
+
+    def _convert_global_y_to_mode(
+        self,
+        mode_var: tk.StringVar,
+        ymin_var: Optional[tk.DoubleVar],
+        ymax_var: tk.DoubleVar,
+        percent_range=(0.0, 100.0),
+        unit_range=(0.0, 1.0),
+    ):
+        """
+        Convert global Y-limits into the scale implied by mode_var
+        ('percent' or 'unit'), clamping into the given ranges.
+
+        This mirrors the logic in _track_norm_mode, but can be called
+        explicitly (e.g., on tab change).
+        """
+        try:
+            mode = mode_var.get()
+            vmax = float(ymax_var.get())
+            vmin = float(ymin_var.get()) if ymin_var is not None else None
+        except Exception:
+            return
+
+        p_lo, p_hi = percent_range
+        u_lo, u_hi = unit_range
+
+        if mode == "percent":
+            # Convert from 0–1 to 0–100 if values look like unit scale
+            if vmax <= 1.0:
+                vmax *= 100.0
+            if vmin is not None and vmin <= 1.0:
+                vmin *= 100.0
+            vmax = max(p_lo, min(p_hi, vmax))
+            if vmin is not None:
+                vmin = max(p_lo, min(p_hi, vmin))
+        else:  # "unit"
+            # Convert from 0–100 to 0–1 if values look like percent scale
+            if vmax > 1.0:
+                vmax /= 100.0
+            if vmin is not None and vmin > 1.0:
+                vmin /= 100.0
+            vmax = max(u_lo, min(u_hi, vmax))
+            if vmin is not None:
+                vmin = max(u_lo, min(u_hi, vmin))
+
+        if vmin is not None:
+            vmin, vmax2 = clamp_range(
+                vmin,
+                vmax,
+                *(percent_range if mode == "percent" else unit_range),
+            )
+            ymin_var.set(self._format_number_for_entry(vmin))
+            ymax_var.set(self._format_number_for_entry(vmax2))
+        else:
+            ymax_var.set(self._format_number_for_entry(vmax))
 
     # --------------------------- Tab Builders ---------------------------
 
@@ -926,6 +1061,28 @@ class PlotApp:
             return str(int(round(value)))
         return f"{value:.6f}".rstrip("0").rstrip(".")
 
+    def _clamp_y_entry(self, entry_var: tk.DoubleVar, mode_var: tk.StringVar,
+                       percent_range=(0.0, 100.0), unit_range=(0.0, 1.0)):
+        """
+        Clamp a Y-limit entry according to the current normalization mode.
+
+        percent_range: bounds when mode == 'percent'
+        unit_range:    bounds when mode == 'unit'
+        """
+        try:
+            mode = mode_var.get()
+            val = float(entry_var.get())
+        except Exception:
+            return
+
+        if mode == "percent":
+            lo, hi = percent_range
+        else:
+            lo, hi = unit_range
+
+        val = max(lo, min(hi, val))
+        entry_var.set(self._format_number_for_entry(val))
+
     def _build_norm_mode_toggle(
         self,
         parent: tk.Widget,
@@ -986,12 +1143,14 @@ class PlotApp:
                     vmin = max(u_lo, min(u_hi, vmin))
 
             if vmin is not None:
-                vmin, vmax = clamp_range(
+                vmin, vmax2 = clamp_range(
                     vmin, vmax,
                     *(percent_range if mode == "percent" else unit_range)
                 )
                 min_var.set(self._format_number_for_entry(vmin))
-            max_var.set(self._format_number_for_entry(vmax))
+                max_var.set(self._format_number_for_entry(vmax2))
+            else:
+                max_var.set(self._format_number_for_entry(vmax))
 
         mode_var.trace_add("write", _update_on_mode_change)
 
@@ -1108,43 +1267,6 @@ class PlotApp:
         if self.mz_tab.winfo_ismapped():
             return "m/z Spectra"
         return "Thermo RAW"
-
-    def _on_tab_changed(self, event=None):
-        """
-        Per-tab default ranges for the global X-lim.
-
-        Chromatograms: 0–20 mL
-        CD-MS Mass:    0–500 kDa
-        MWD:           0–20 mL
-        m/z Spectra:   0–20000 m/z
-        Thermo RAW:    leave global X-lim unchanged (RAW uses RT/m/z from data).
-        """
-        try:
-            tab_text = self.nb.tab(self.nb.select(), "text")
-        except Exception:
-            tab_text = ""
-
-        # Defaults per tab
-        if tab_text == "Chromatograms":
-            xmin, xmax = 0.0, 20.0
-        elif tab_text == "CD-MS Mass":
-            xmin, xmax = 0.0, 500.0
-        elif tab_text == "MWD Chromatograms":
-            xmin, xmax = 0.0, 20.0
-        elif tab_text == "m/z Spectra":
-            xmin, xmax = 0.0, 20000.0
-        else:
-            # Thermo RAW or unknown: don't change global X-lim
-            return
-
-        # Set global X limits to the tab defaults
-        self.global_xmin.set(xmin)
-        self.global_xmax.set(xmax)
-
-        # Optionally, you can also reset global Y-lim when switching tabs.
-        # Commented out here; uncomment if desired:
-        # self.global_ymin.set(0.0)
-        # self.global_ymax.set(100.0)
 
     def _on_files_drop(self, event):
         try:

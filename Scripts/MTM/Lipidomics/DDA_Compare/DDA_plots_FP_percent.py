@@ -65,18 +65,18 @@ def good_percentage_plot(df, datasets=None, type="All"):
             percentages.append(good_percentage)
             totalcounts.append(total_count)
             print(f"{dataset} present: {good_percentage:.2f}% good IDs")
-            labels.append(f"{dataset} Total")
+            labels.append(f"{dataset}")
 
     # plt.bar(dataset_counts, percentages, color="skyblue")
-    plt.figure(figsize=(8, 6))
+    plt.figure(figsize=(10, 6))
     plt.subplot(122)
     plt.bar(labels, percentages)
     plt.xlabel("Dataset")
-    plt.ylabel("Percentage of Good IDs")
+    plt.ylabel("Percentage of True Positives")
     # plt.title("Percentage of Good IDs by Dataset Count")
     plt.xticks(rotation=45, ha="right")
     pmin = np.floor(np.amin(percentages) * 10) / 10 - 5
-    pmin = 70
+    pmin = 60
     plt.ylim(pmin, 100)
 
     # plt.subplot(122)
@@ -88,16 +88,17 @@ def good_percentage_plot(df, datasets=None, type="All"):
 
     plt.subplot(121)
     # Number of good and bad IDs in different colors on stacked bar chart
-    plt.bar(labels, totalcounts, color="forestgreen", label="Good IDs")
+    plt.bar(labels, totalcounts, color="forestgreen", label="True")
     bad_counts = [total - (total * good / 100) for total, good in zip(totalcounts, percentages)]
-    plt.bar(labels, bad_counts, color="red", label="Bad IDs")
+    plt.bar(labels, bad_counts, color="red", label="False")
     plt.xlabel("Dataset")
     plt.ylabel("Count of IDs")
     # plt.title("Good vs Bad IDs by Dataset Count")
     plt.xticks(rotation=45, ha="right")
-    plt.legend()
+    plt.legend(loc="upper left")
     plt.tight_layout()
     plt.savefig("Good_Bad_IDs_by_Dataset.png", dpi=600, bbox_inches="tight")
+    plt.savefig("Good_Bad_IDs_by_Dataset.pdf")
 
     plt.show()
 
