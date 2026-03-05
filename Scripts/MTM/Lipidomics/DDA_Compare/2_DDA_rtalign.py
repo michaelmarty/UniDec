@@ -11,7 +11,7 @@ df = pd.read_csv("Combined_DDA.csv")
 # Drop all but Stellar datasets
 # df = df[df["Dataset"].isin(["ITIT", "Stellar"])]
 
-correct_dataset_rts(df, "Average Rt(min)", ref_dataset="Stellar")
+df = correct_dataset_rts(df, "Average Rt(min)", ref_dataset="Stellar")
 
 # Write out corrected dataframe for reference
 df.to_csv("Combined_DDA_RT_Corrected.csv", index=False)

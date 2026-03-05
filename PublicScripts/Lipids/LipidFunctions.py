@@ -218,7 +218,7 @@ class_nfattyacids = {
 }
 
 hg_simplifier = {"Cer_AP": "Cer", "Cer_HDS": "Cer", 'Cer_NDS': "Cer", 'Cer_NP': "Cer", 'Cer_NS': "Cer",
-                 "Cer_EODS" : "Cer", "Cer_EOS" : "Cer", "Cer_HS" : "Cer", "Cer_AS": "Cer",
+                 "Cer_EODS" : "Cer", "Cer_EOS" : "Cer", "Cer_HS" : "Cer", "Cer_AS": "Cer", "Cer_ADS" : "Cer",
                  "HexCer_AP": "HexCer", "HexCer_NDS": "HexCer", "HexCer_HS": "HexCer", "HexCer_NS": "HexCer",
                  "HexCer_EOS": "HexCer", "HexCer_HDS": "HexCer", "AHexCer": "HexCer", "Hex2Cer": "HexCer",
                  "Hex3Cer": "HexCer", "SHexCer": "HexCer", "ASM": "SM", "LNAPE":"PE", "LNAPS":"PS", "NAPE":"PE", "NAPS":"PS",
@@ -2274,7 +2274,7 @@ def simplify_class_df(df, class_col="Ontology"):
     df[class_col] = df[class_col].apply(simplify_class_name)
     return df
 
-def mzrt_plot(df, class_col="Ontology", title="", simplify=True):
+def mzrt_plot(df, class_col="Ontology", title="", simplify=True, write_file=False):
     # ------------------------------
     # Plot setup
     # ------------------------------
@@ -2336,4 +2336,8 @@ def mzrt_plot(df, class_col="Ontology", title="", simplify=True):
 
     plt.subplots_adjust(bottom=0.25)
     plt.tight_layout()
+    if write_file:
+        plt.savefig(f"{title}_mzrt_plot.pdf", bbox_inches='tight')
+        plt.savefig(f"{title}_mzrt_plot.png", bbox_inches='tight', dpi=300)
+
     plt.show()
