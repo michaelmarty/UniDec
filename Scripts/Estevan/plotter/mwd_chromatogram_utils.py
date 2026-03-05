@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 from plot_helpers import style_context, ensure_colors, compute_target_height, DEFAULT_MWD_COLORS
 
 DEFAULT_WIDTH_IN = 10.0
-ROW_HEIGHT_IN     = 1.35
-MIN_HEIGHT_IN     = 3.8
+ROW_HEIGHT_IN = 1.35
+MIN_HEIGHT_IN = 3.8
 
 
 def load_chrom_file(path: str, signal_keywords: Sequence[str]) -> Optional[pd.DataFrame]:
@@ -72,6 +72,8 @@ def plot_mwd_chromatograms(
     xlim: Tuple[float, float] = (0.0, 26.0),
     normalize: bool = True,
     norm_mode: str = "percent",  # "percent" or "unit"
+    y_min: Optional[float] = None,
+    y_max: Optional[float] = None,
     alpha_mv: float = 0.9,
     font_name: str = "Arial",
     font_size: int = 12,
@@ -79,10 +81,21 @@ def plot_mwd_chromatograms(
     dpi: int = 300,
     tick_length: float = 5.0,
     tick_width: float = 1.0,
+    line_width: Optional[float] = None,
+    x_label: Optional[str] = None,
+    y_label_left: Optional[str] = None,
+    y_label_right: Optional[str] = None,
     save: Optional[str] = None,
     show: bool = False,
 ):
+    """
+    Dual-axis MWD chromatograms (mAU & mV).
+
+    y_min / y_max control the normalized range when normalize=True.
+    """
     colors = ensure_colors(colors, 2, DEFAULT_MWD_COLORS)
+    if line_width is None:
+        line_width = 1.8
 
     width_in = figsize[0] if figsize and len(figsize) > 0 else DEFAULT_WIDTH_IN
     target_h = compute_target_height(n_rows=1)
@@ -100,7 +113,7 @@ def plot_mwd_chromatograms(
                         df_mau_local["signal"] = (df_mau_local["signal"] / max_val) * 100.0
                     else:
                         df_mau_local["signal"] = df_mau_local["signal"] / max_val
-            ax1.plot(df_mau_local["ml"], df_mau_local["signal"], color=colors[0], label=mau_label, linewidth=1.8)
+            ax1.plot(df_mau_local["ml"], df_mau_local["signal"], color=colors[0], label=mau_label, linewidth=line_width)
 
         ax2 = ax1.twinx()
         df_mv = load_chrom_file(mv_file, ["mv"])
@@ -113,7 +126,14 @@ def plot_mwd_chromatograms(
                         df_mv_local["signal"] = (df_mv_local["signal"] / max_val) * 100.0
                     else:
                         df_mv_local["signal"] = df_mv_local["signal"] / max_val
-            ax2.plot(df_mv_local["ml"], df_mv_local["signal"], color=colors[1], label=mv_label, linewidth=1.8, alpha=alpha_mv)
+            ax2.plot(
+                df_mv_local["ml"],
+                df_mv_local["signal"],
+                color=colors[1],
+                label=mv_label,
+                linewidth=line_width,
+                alpha=alpha_mv,
+            )
 
         ax1.set_xlim(*xlim)
         ax1.margins(y=0)
@@ -126,30 +146,42 @@ def plot_mwd_chromatograms(
 
         if normalize:
             if norm_mode == "percent":
-                ax1.set_ylim(0, 100)
-                ax2.set_ylim(0, 100)
-                ax1.set_yticks([0, 50, 100])
-                ax2.set_yticks([0, 50, 100])
-                ax1.set_yticklabels(["0", "%", "100"])
-                ax2.set_yticklabels(["0", "%", "100"])
+                clamp_lo, clamp_hi = 0.0, 100.0
             else:
-                ax1.set_ylim(0, 1.0)
-                ax2.set_ylim(0, 1.0)
-                ax1.set_yticks([0.0, 0.5, 1.0])
-                ax2.set_yticks([0.0, 0.5, 1.0])
-                ax1.set_yticklabels(["0", "0.5", "1.0"])
-                ax2.set_yticklabels(["0", "0.5", "1.0"])
-            ax1.set_ylabel("Normalized Absorbance")
-            ax2.set_ylabel("Normalized Voltage")
+                clamp_lo, clamp_hi = 0.0, 1.0
+
+            ymin = clamp_lo if y_min is None else max(clamp_lo, float(y_min))
+            ymax = clamp_hi if y_max is None else min(clamp_hi, float(y_max))
+            if ymax <= ymin:
+                ymin, ymax = clamp_lo, clamp_hi
+
+            ax1.set_ylim(ymin, ymax)
+            ax2.set_ylim(ymin, ymax)
+
+            mid = ymin + 0.5 * (ymax - ymin)
+            if norm_mode == "percent":
+                ticks = [ymin, mid, ymax]
+                labels = [f"{ymin:.0f}", "%", f"{ymax:.0f}"]
+            else:
+                ticks = [ymin, mid, ymax]
+                labels = [f"{ymin:.2g}", f"{mid:.2g}", f"{ymax:.2g}"]
+
+            ax1.set_yticks(ticks)
+            ax2.set_yticks(ticks)
+            ax1.set_yticklabels(labels)
+            ax2.set_yticklabels(labels)
+
+            ax1.set_ylabel(y_label_left if y_label_left else "Normalized Absorbance")
+            ax2.set_ylabel(y_label_right if y_label_right else "Normalized Voltage")
         else:
             if df_mau is not None and len(df_mau):
                 ax1.set_ylim(0, max(1.0, float(df_mau["signal"].max())))
             if df_mv is not None and len(df_mv):
                 ax2.set_ylim(0, max(1.0, float(df_mv["signal"].max())))
-            ax1.set_ylabel("Absorbance (mAU)")
-            ax2.set_ylabel("Voltage (mV)")
+            ax1.set_ylabel(y_label_left if y_label_left else "Absorbance (mAU)")
+            ax2.set_ylabel(y_label_right if y_label_right else "Voltage (mV)")
 
-        ax1.set_xlabel("Retention Volume (mL)")
+        ax1.set_xlabel(x_label if x_label else "Retention Volume (mL)")
 
         ax1.tick_params(axis="x", length=tick_length, width=tick_width)
         ax1.tick_params(axis="y", length=tick_length, width=tick_width)
