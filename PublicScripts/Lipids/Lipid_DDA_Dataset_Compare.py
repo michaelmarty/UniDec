@@ -131,18 +131,13 @@ def outlier_setup_dda(df, mztol=0.3, write_output=True):
     return outdf
 
 
-
 def venn_diagram(df, sets, namecol="Metabolite name", title="", ax=None):
     vdata = {}
     for s in sets:
-        vdata[s + " " + str(len(df[df["Dataset"] == s][namecol].unique()))] = set(df[df["Dataset"] == s][namecol])
-        print("Length of set", s, ":", len(df[df["Dataset"] == s][namecol].unique()))
-
-    # Print number of unique names across all sets
-    unique_names = set()
-    for s in sets:
-        unique_names.update(df[df["Dataset"] == s][namecol].unique())
-    print("Number of unique names across all sets:", len(unique_names))
+        subdf = df[df["Dataset"] == s]
+        unique_names = subdf[namecol].unique()
+        l = len(unique_names)
+        vdata[s + " " + str(l)] = set(unique_names)
 
     if ax is None:
         plt.figure(figsize=(8, 8))
@@ -151,8 +146,9 @@ def venn_diagram(df, sets, namecol="Metabolite name", title="", ax=None):
     plt.title(title)
 
 def count_number_of_datasets(df, namecol="Metabolite name", dataset_col="Dataset", class_col="Ontology"):
-    # Drop duplicate rows based on dataset and class to avoid counting the same metabolite multiple times
-    df = df.drop_duplicates(subset=[dataset_col, class_col, namecol])
+    # If Dataset Count column already exists, drop it to avoid confusion
+    if "Dataset Count" in df.columns:
+        df = df.drop(columns=["Dataset Count"])
     # Count the number of unique datasets each metabolite is found in
     dataset_counts = df.groupby(namecol)[dataset_col].nunique()
     # Addback into the dataframe
@@ -171,7 +167,7 @@ def get_class_counts(df, name_col="Metabolite name", dataset_col="Dataset", clas
         # Sum across datasets to get total counts per class for coloring
         class_counts = class_counts.sum(axis=0)
         print(f"Number of unique names in {i} datasets:", subdf[name_col].nunique())
-        cdf = pd.DataFrame(class_counts, columns=[str(i)]).transpose()
+        cdf = pd.DataFrame(class_counts, columns=[str(i) + " Datasets"]).transpose()
         counts.append(cdf)
 
     counts = counts[::-1]  # Reverse to have higher counts on bottom of stack
@@ -180,14 +176,29 @@ def get_class_counts(df, name_col="Metabolite name", dataset_col="Dataset", clas
     # Combine counts for 1, 2, and 3 datasets
     class_counts = pd.concat(counts, axis=1).fillna(0)
     # Merge duplicate classes together by summing across them
-    class_counts = class_counts.groupby(class_counts.columns, axis=1).sum()
+    class_counts = class_counts.T.groupby(class_counts.columns).sum().T
+    # Rename rows that have a dataset in them to say dataset + only
+    newrows = []
+    for idx in class_counts.index:
+        if any(dataset in idx for dataset in datasets):
+            newrows.append(idx + " Only")
+        else:
+            newrows.append(idx)
+    class_counts.index = newrows
     return class_counts
 
-def bar_chart_of_classes(df, dataset_col="Dataset", class_col="Ontology", name_col="Simple name", title="", ax=None):
-    # Create counts of classes in all datasets
-    if "Dataset Count" not in df.columns:
-        df = count_number_of_datasets(df)
+def bar_chart_of_classes(df, datasets, dataset_col="Dataset", class_col="Ontology", name_col="Metabolite name", title="", ax=None):
     class_counts = get_class_counts(df, name_col=name_col, dataset_col=dataset_col, class_col=class_col)
+    # Sort order of class counts rows to match datasets order with only at the end, add the other classes at the beginning in the same order they appear in the dataframe
+    new_order = []
+    for idx in class_counts.index:
+        if "Only" not in idx:
+            new_order.append(idx)
+    for dataset in datasets:
+        only_row = dataset + " Only"
+        if only_row in class_counts.index:
+            new_order.append(only_row)
+    class_counts = class_counts.reindex(new_order)
 
     if ax is None:
         plt.figure(figsize=(10, 6))
@@ -195,14 +206,15 @@ def bar_chart_of_classes(df, dataset_col="Dataset", class_col="Ontology", name_c
         plt.sca(ax)
     colors = [class_color_map.get(cls, "#333333") for cls in class_counts.columns]
     class_counts.plot(kind="bar", stacked=True, ax=ax, color=colors)
+    # rotate x tick labels by 45 degrees
+    plt.xticks(rotation=45, ha="right")
 
     plt.title(title)
     plt.ylabel("Count")
-    plt.xlabel(dataset_col)
+    # plt.xlabel(dataset_col)
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8, reverse=True)
-    return df
 
-def compare_classes_plot(df, datasets=None, use_simple_names=True):
+def compare_classes_plot(df, datasets=None, use_simple_names=True, use_simple_classes=True):
     df = df.copy()
     if datasets is None:
         datasets = sorted(df["Dataset"].unique())
@@ -218,27 +230,24 @@ def compare_classes_plot(df, datasets=None, use_simple_names=True):
         namecol = "Metabolite name"
 
     # Drop duplicate rows based on dataset and class to avoid counting the same metabolite multiple times
-    df = df.drop_duplicates(subset=["Dataset", "Ontology", namecol])
+    df = df.drop_duplicates(subset=["Dataset", namecol])
 
     # Simplify classes by applying hg_simplifier dict to Ontology column
     df["Ontology"] = df["Ontology"].replace(hg_simplifier)
 
-    if "Dataset Count" not in df.columns:
-        df = count_number_of_datasets(df)
+    if use_simple_classes:
+        # Simplify classes by applying class_simplifier dict to Ontology column
+        df = simplify_class_df(df)
+
+    # Count number of datasets for each metabolite name and add as a column to the dataframe
+    df = count_number_of_datasets(df, namecol=namecol)
 
     plt.figure(figsize=(18, 10))
     plt.subplot(1, 2, 1)
     venn_diagram(df, datasets, namecol=namecol, title="Overlap of Identified Metabolites", ax=plt.gca())
     plt.subplot(1, 2, 2)
-    df = bar_chart_of_classes(df, dataset_col="Dataset", class_col="Ontology", title="Class Distribution by Dataset",
-                              ax=plt.gca())
-    # Write out df with dataset counts for reference
-
-    # Drop duplicates based on class and name to get unique metabolites for each class
-    # df = df.drop_duplicates(subset=["Ontology", "Metabolite name"])
-    # Sort by ontology and metabolite name
-    # df = df.sort_values(by=["Ontology", "Metabolite name", "Adduct type"])
-    # df.to_csv("Combined_DDA_with_Dataset_Counts.csv", index=False)
+    bar_chart_of_classes(df, datasets, dataset_col="Dataset", class_col="Ontology", title="Class Distribution by Dataset",
+                         name_col=namecol, ax=plt.gca())
     plt.tight_layout()
     plt.savefig("DDA_Overlap_and_Class_Distribution.png", dpi=600, bbox_inches="tight")
     plt.savefig("DDA_Overlap_and_Class_Distribution.pdf", bbox_inches="tight")

@@ -15,6 +15,7 @@ os.chdir(topdir)
 
 df = pd.read_excel("Combined_DDA_Full.xlsx", sheet_name="Full Data")
 
-compare_classes_plot(df)
+datasets = ["OTOT", "OTIT", "ITIT", "Stellar"]
+compare_classes_plot(df, datasets=datasets)
 
 
