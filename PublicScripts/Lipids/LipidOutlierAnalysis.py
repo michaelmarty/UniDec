@@ -26,10 +26,18 @@ def comment_parser(df):
         return df
     # See if any of the comments contain "Low quality"
     ucomments = df["Comment"].unique()
-    if not any("Low quality" in str(c) for c in ucomments):
-        return df
-    # Create a new column "Low_Quality_Flag"
-    df["Low_Quality_Flag"] = df["Comment"].apply(lambda x: True if "Low quality" in str(x) else False)
+    if any("Low quality" in str(c) for c in ucomments):
+        # Create a new column "Low_Quality_Flag"
+        df["Low_Quality_Flag"] = df["Comment"].apply(lambda x: True if "Low quality" in str(x) else False)
+
+    if any("Misannotation" in str(c) for c in ucomments):
+        # Create Misannotated flag column
+        df["Misannotated_Flag"] = df["Comment"].apply(lambda x: True if "Misannotation" in str(x) else False)
+
+    if any("Overannotation" in str(c) for c in ucomments):
+    # Create Overannotated flag column
+        df["Overannotated_Flag"] = df["Comment"].apply(lambda x: True if "Overannotation" in str(x) else False)
+
     return df
 
 def basic_class_network_analysis(df, tol=0.3):
