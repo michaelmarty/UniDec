@@ -93,6 +93,13 @@ default_isdf = pd.read_csv(io.StringIO(israw))
 default_isdf = default_isdf.rename(columns={"Lipid": "Name 1", "Name 2": "Lipid"})
 # Drop "IS " prefix from "Lipid" column
 default_isdf["Lipid"] = default_isdf["Lipid"].str.replace(r"^IS\s+", "", regex=True)
+# Replace - in "Lipid" column with _
+default_isdf["Lipid"] = default_isdf["Lipid"].str.replace("-", "_")
+# Replace TAG with TG and DAG with DG in "Lipid" column
+default_isdf["Lipid"] = default_isdf["Lipid"].str.replace("TAG", "TG")
+default_isdf["Lipid"] = default_isdf["Lipid"].str.replace("DAG", "DG")
+print(default_isdf.to_string())
+
 # Drop last two columns
 # default_isdf = default_isdf.iloc[:, :-2]
 # Calculated mass from m/z avg
@@ -836,7 +843,7 @@ def is_analysis(file, mode="Products", isdf=None):
                 response_factor = row[r] / conc if conc != 0 else 0
                 isrows.at[i, r + "_RF"] = response_factor
         else:
-            print(f"IS Compound: {isname}, Class: {isclass}, Replicate: {r}, Concentration: Unknown, Area: {row[r]}, Response Factor: Unknown (no matching IS found in IS dataframe)")
+            print(f"IS Compound: {isname}, Class: {isclass}, Concentration: Unknown. Response Factor: Unknown (no matching IS found in IS dataframe)")
 
     # Mean response factor across replicates for each IS compound
     rf_cols = [r + "_RF" for r in replicates]
@@ -862,5 +869,5 @@ if __name__ == "__main__":
     #
     # exit()
 
-    compare_pipeline(file, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
+    compare_pipeline(file, set1, set2, mode="Products", drop_IS=True, normalize_IS=False,
                   normalize_TIC=True, paired=True, bh_correction=True, plot_results=True)

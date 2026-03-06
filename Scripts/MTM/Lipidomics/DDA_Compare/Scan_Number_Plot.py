@@ -10,9 +10,10 @@ def get_scan_number(path):
     return imp.get_max_scan()
 
 topdir = r"Z:\Group Share\Annika\IQX vs Stellar DDA\Raw Data"
+topdir = r"Z:\Group Share\Shivam\IQX Stellar 3\RawData"
 os.chdir(topdir)
 files = ud.match_files(topdir, "*.raw")
-if False:
+if True:
     rows = []
     for f in files:
         if "blank" in f.lower():
@@ -21,17 +22,28 @@ if False:
             polarity = "Positive"
         elif "neg" in f.lower():
             polarity = "Negative"
+        elif "both" in f.lower():
+            polarity = "Both"
         else:
             polarity = "Unknown"
 
-        if "ITIT" in f:
-            type = "ITIT"
+        # if "ITIT" in f:
+        #     type = "ITIT"
+
+        if "ITIT_Normal" in f:
+            type = "ITIT_Normal"
+        elif "ITIT_Turbo" in f:
+            type = "ITIT_Turbo"
+        elif "ITIT_Rapid" in f:
+            type = "ITIT_Rapid"
         elif "OTOT" in f:
             type = "OTOT"
         elif "OTIT" in f:
             type = "OTIT"
         elif "UntDDA" in f:
             type = "Stellar"
+        elif "Both" in f:
+            type = "Stellar_Both"
         else:
             type = "Unknown"
 
@@ -49,7 +61,7 @@ rows = df.to_dict(orient="records")
 
 unique_types = set(row["Type"] for row in rows)
 # Sort by the order of ITIT, OTOT, OTIT, Stellar
-type_order = ["OTOT", "OTIT", "ITIT", "Stellar"]
+type_order = ["OTOT", "OTIT", 'ITIT_Normal', "ITIT_Rapid", "ITIT_Turbo", "Stellar"]
 unique_types = sorted(unique_types, key=lambda x: type_order.index(x) if x in type_order else len(type_order))
 for t in unique_types:
     type_rows = [row for row in rows if row["Type"] == t]
@@ -61,8 +73,12 @@ for t in unique_types:
     pos_std = np.std([row["Scan Number"] for row in pos_rows]) if pos_rows else 0
     neg_std = np.std([row["Scan Number"] for row in neg_rows]) if neg_rows else 0
 
-    total_avg = pos_avg + neg_avg
-    total_std = np.sqrt(pos_std**2 + neg_std**2)
+    both_rows = [row for row in type_rows if row["Polarity"] == "Both"]
+    both_avg = np.mean([row["Scan Number"] for row in both_rows]) if both_rows else 0
+    both_std = np.std([row["Scan Number"] for row in both_rows]) if both_rows else 0
+
+    total_avg = pos_avg + neg_avg + both_avg
+    total_std = np.sqrt(pos_std**2 + neg_std**2 + both_std**2)
     plt.bar(t, total_avg, yerr=total_std, label=t)
 
 plt.xlabel("Type")
