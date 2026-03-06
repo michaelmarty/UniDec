@@ -74,6 +74,8 @@ class PlotBase(object):
         self.nativez = []
         self.text = []
         self.lines = []
+        self.labeltexts = []
+        self.labellines = []
         self.cbar = None
         self.datalims = None
         self.zoomvals = None
