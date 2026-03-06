@@ -691,7 +691,8 @@ def msdial_to_transitionlist(df, cutoff=0, spectrumkey="Ref Spec", rtwindow=4, r
     proddf = pd.DataFrame(newrows)
 
     # Drop MS/MS spectrum column
-    proddf = proddf.drop(columns=[spectrumkey])
+    proddf = proddf.drop(columns=[spectrumkey], errors="ignore")
+    proddf = pd.DataFrame(newrows)
 
     # If remove_precursors is True, drop rows where Product Mz is greater than 5 below Precursor Mz
     if remove_precursors:
