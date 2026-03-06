@@ -848,19 +848,19 @@ def is_analysis(file, mode="Products", isdf=None):
 
 
 if __name__ == "__main__":
-    file = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\Molecule Transition Results.csv"
+    file = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\Molecule Transition Results.csv"
     # file = r"C:\Users\marty\Downloads\Extr_US_MoleculeTransResults.csv"
 
-    # set1 = ["0.5% FT1", "0.5% FT2", "0.5% FT3"]
-    set2 = ["Rep1", "Rep2", "Rep3"]
+    set1 = ["FT 1", "FT 2", "FT 3"]
+    set2 = ["E 1", "E 2", "E 3"]
 
-    is_analysis(file)
-    exit()
+    # is_analysis(file)
+    # exit()
 
-    cv_pipeline(file, results_set=set2, mode="Products", drop_IS=False, normalize_IS=False, normalize_TIC=False,
-                write_output=True, plot_results=True)
-
-    exit()
+    # cv_pipeline(file, results_set=set2, mode="Products", drop_IS=False, normalize_IS=False, normalize_TIC=False,
+    #             write_output=True, plot_results=True)
+    #
+    # exit()
 
     compare_pipeline(file, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
                   normalize_TIC=True, paired=True, bh_correction=True, plot_results=True)
