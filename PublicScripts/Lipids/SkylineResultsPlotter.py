@@ -9,6 +9,7 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib as mpl
 import io
 from PublicScripts.Lipids.LipidFunctions import simplify_class_df, get_color_for_class
+from copy import deepcopy
 
 mpl.use("WxAgg")
 
@@ -98,7 +99,7 @@ default_isdf["Lipid"] = default_isdf["Lipid"].str.replace("-", "_")
 # Replace TAG with TG and DAG with DG in "Lipid" column
 default_isdf["Lipid"] = default_isdf["Lipid"].str.replace("TAG", "TG")
 default_isdf["Lipid"] = default_isdf["Lipid"].str.replace("DAG", "DG")
-print(default_isdf.to_string())
+# print(default_isdf.to_string())
 
 # Drop last two columns
 # default_isdf = default_isdf.iloc[:, :-2]
@@ -108,6 +109,17 @@ default_isdf["Mass"] = (default_isdf["m/z (+)"] + default_isdf["m/z (-)"]) / 2.
 default_isdf["Concentration (uM)"] = default_isdf["Concentration (ug/mL)"] / default_isdf["Mass"]
 
 default_is_mapper = {"GM3": "PI", "PA": "PG", "PEtOH": "PG"}
+
+def safedivide(a, b):
+    """
+    Divide numpy arrays b from a. Define a/0=0 to avoid zero division error.
+    :param a: Numerator
+    :param b: Denominator
+    :return: a/b
+    """
+    c = deepcopy(b)
+    c[b != 0] = a[b != 0] / b[b != 0]
+    return c
 
 def get_row_dict(id, mdf):
     row = mdf[mdf["Alignment ID"] == id]
@@ -229,6 +241,10 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
 
     if normalize_TIC:
         outdf = normalize_tic(outdf, replicates)
+
+    # Set any values less than minval to minval to avoid issues with log transformation later
+    # for r in replicates:
+    #     outdf[r] = outdf[r].apply(lambda x: max(x, minval))
 
     # Calculate CV for each molecule across all replicates
     # Drop all where mean is 0 to avoid division by zero
@@ -438,7 +454,8 @@ def stats_calcs(df, replicates_set1, replicates_set2, paired=False, bh_correctio
         # Propagate standard deviation
         set1_std = df[replicates_set1].std(axis=1, ddof=1)
         set2_std = df[replicates_set2].std(axis=1, ddof=1)
-        df["StdDevFC"] = df["FC"] * np.sqrt((set1_std / set1_means) ** 2 + (set2_std / set2_means) ** 2)
+        # Make sure to handle cases where set1_means or set2_means are zero to avoid division by zero
+        df["StdDevFC"] = df["FC"] * np.sqrt(safedivide(set1_std , set1_means) ** 2 + safedivide(set2_std , set2_means) ** 2)
         df["CI95_FC"] = stats.t.ppf(0.975, df=len(replicates_set1) + len(replicates_set2) - 2) * (
                     df["StdDevFC"] / np.sqrt(len(replicates_set1) + len(replicates_set2)))
 
@@ -492,7 +509,7 @@ def class_calcs(df, replicate_set1, replicate_set2, class_col="Molecule List Nam
     return outdf, summarycols
 
 
-def make_volcano_plot(df, log2fc_col="Log2FC", neglogp_col="Log10p", title="Volcano Plot", ax=None, xlims=[-12, 12]):
+def make_volcano_plot(df, log2fc_col="Log2FC", neglogp_col="Log10p", title="Volcano Plot", ax=None, xlims=[-8, 8]):
     if ax is None:
         plt.figure(figsize=(8, 6))
     else:
@@ -501,10 +518,13 @@ def make_volcano_plot(df, log2fc_col="Log2FC", neglogp_col="Log10p", title="Volc
     classes = df["Molecule List Name"].unique()
     # colors = plt.cm.get_cmap('tab10', len(classes))
     # class_color_map = {cls: colors(i) for i, cls in enumerate(classes)}
-    sizes = df["Mean"]
-    # Scale sizes to between 20 and 50
-    sizes = 20 + (sizes - sizes.min()) / (sizes.max() - sizes.min()) * (50 - 20)
-    plt.scatter(df[log2fc_col], df[neglogp_col], alpha=0.7, c=df["Molecule List Name"].map(get_color_for_class), s=sizes)
+    # sizes = df["Mean"]
+    # # Scale sizes to between 20 and 50
+    # sizes = 20 + (sizes - sizes.min()) / (sizes.max() - sizes.min()) * (50 - 20)
+
+    # Clip log2fc values to xlims for better visualization
+    df[log2fc_col] = df[log2fc_col].clip(lower=xlims[0]+0.15, upper=xlims[1]-0.15)
+    plt.scatter(df[log2fc_col], df[neglogp_col], alpha=0.7, c=df["Molecule List Name"].map(get_color_for_class))
     plt.title(title)
     plt.xlabel("Log2 Fold Change")
     plt.ylabel("-Log10 p-value")
@@ -544,7 +564,7 @@ def make_volcano_plot(df, log2fc_col="Log2FC", neglogp_col="Log10p", title="Volc
 
 
 
-def make_class_plots(classdf, ax=None, fclimit=10):
+def make_class_plots(classdf, ax=None, fclimit=None):
     if ax is None:
         plt.figure(figsize=(10, 6))
     else:
@@ -597,7 +617,8 @@ def pca_plot(df, replicates_set1, replicates_set2, title="PCA Plot", ax=None):
     plt.ylabel(f'PC2 - {pca.explained_variance_ratio_[1] * 100:.2f}%')
     plt.legend(pc_df['Group'].unique())
 
-def heatmap_plot(df, replicates, title="Heatmap", ax=None, lindex=-3, colormap='viridis', normtype="minmax", scale="linear"):
+def heatmap_plot(df, replicates, title="Heatmap", ax=None, lindex=0, colormap='viridis', normtype="minmax",
+                 scale="linear", class_rect=False):
     data = df[replicates].values
     vmax = 1-1e-12
     vmin = 1e-12
@@ -632,25 +653,22 @@ def heatmap_plot(df, replicates, title="Heatmap", ax=None, lindex=-3, colormap='
     labels = [r[lindex:] for r in replicates]
     plt.xticks(ticks=np.arange(len(replicates)), labels=labels, rotation=0, fontsize=8)
 
-    # Draw colored rectangles around each class
-    classes = df["Molecule List Name"].values
-    class_changes = [0]
-    for i in range(1, len(classes)):
-        if classes[i] != classes[i - 1]:
-            class_changes.append(i)
-    class_changes.append(len(classes))
-    for i in range(len(class_changes) - 1):
-        start = class_changes[i] - 0.5
-        end = class_changes[i + 1] - 0.5
-        rect = mpl.patches.Rectangle(( -0.5, start), len(replicates), end - start,
-                                     linewidth=1, edgecolor=get_color_for_class(classes[class_changes[i]]),
-                                     facecolor='none')
-        plt.gca().add_patch(rect)
-        # print(start, end)
-        # # Add a thick colored line to the right of the rectangle
-        # line = mpl.lines.Line2D([len(replicates) - 0.5, len(replicates) - 0.5], [start, end],
-        #                         linewidth=3, color=class_color_map[classes[class_changes[i]]])
-        # plt.gca().add_line(line)
+    if class_rect:
+        # Draw colored rectangles around each class
+        classes = df["Molecule List Name"].values
+        class_changes = [0]
+        for i in range(1, len(classes)):
+            if classes[i] != classes[i - 1]:
+                class_changes.append(i)
+        class_changes.append(len(classes))
+        for i in range(len(class_changes) - 1):
+            start = class_changes[i] - 0.5
+            end = class_changes[i + 1] - 0.5
+            rect = mpl.patches.Rectangle(( -0.5, start), len(replicates), end - start,
+                                         linewidth=1, edgecolor=get_color_for_class(classes[class_changes[i]]),
+                                         facecolor='none')
+            plt.gca().add_patch(rect)
+
 
     plt.title(title)
 
@@ -752,7 +770,7 @@ def cv_pipeline(filepath, results_set=None, mode="Products", drop_IS=True, norma
 
 def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
                   normalize_TIC=True, paired=True, bh_correction=True, plot_results=True, heatplots=True,
-                  piecharts=True, figsavepath=None):
+                  piecharts=True, figsavepath=None, heatmap_cutoffs=True, write_output=False):
 
     df = pd.read_csv(filepath)
     normdf, replicates = sum_transitions(df, mode=mode, drop_IS=drop_IS, normalize_IS=normalize_IS,
@@ -766,10 +784,11 @@ def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normal
         normdf.to_excel(writer, sheet_name="Molecule Stats", index=False)
         df.to_excel(writer, sheet_name="Raw Data", index=False)
 
-    # # Write classdf to CSV
-    # classdf.to_csv(os.path.splitext(filepath)[0] + "_class_stats.csv", index=False)
-    # # Write normdf to CSV
-    # normdf.to_csv(os.path.splitext(filepath)[0] + "_molecule_stats.csv", index=False)
+    if write_output:
+        # # Write classdf to CSV
+        classdf.to_csv(os.path.splitext(filepath)[0] + "_class_stats.csv", index=False)
+        # # Write normdf to CSV
+        normdf.to_csv(os.path.splitext(filepath)[0] + "_molecule_stats.csv", index=False)
 
     if plot_results:
         plt.figure(figsize=(18, 10))
@@ -792,7 +811,17 @@ def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normal
         if heatplots:
             ax4 = plt.subplot(nrow, ncol, i+1)
             # Sort normdf by class and then by Mean
-            normdfsorted = normdf.sort_values(by=["Molecule List Name", "Mean"], ascending=[True, False])
+            # normdfsorted = normdf.sort_values(by=["Molecule List Name", "Mean"], ascending=[True, False])
+            normdfsorted = normdf.sort_values(by=["Log2FC"], ascending=[True])
+
+            if heatmap_cutoffs:
+                # Filter normdfsorted to only include rows where -log10p > 1.3 (p<0.05) and abs(log2FC) > 1
+                normdfsorted = normdfsorted[(normdfsorted["Log10p"] > 1.3) & (normdfsorted["Log2FC"].abs() > 1)]
+                if len(normdfsorted) == 0:
+                    print("No significant molecules found for heatmap after applying cutoffs.")
+                    # normdfsorted = normdf.sort_values(by=["Molecule List Name", "Mean"], ascending=[True, False])
+                    normdfsorted = normdf.sort_values(by=["Log2FC"], ascending=[True])
+
             heatmap_plot(normdfsorted, replicates, title="Heatmap", ax=ax4, normtype="minmax", scale="linear")
 
             ax5 = plt.subplot(nrow, ncol, i+2)
@@ -808,7 +837,8 @@ def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normal
 
             ax6 = plt.subplot(nrow, ncol, i+3)
             cols = ["Log2FC", "StdDevFC"]
-            heatmap_plot(normdfsorted, cols, title="Fold Change Heatmap", ax=ax6, lindex=0, colormap="RdBu_r", normtype="zerocentered")
+            heatmap_plot(normdfsorted, cols, title="Fold Change Heatmap", ax=ax6, lindex=0, colormap="RdBu_r",
+                         normtype="zerocentered")
             i += 3
 
         if piecharts:
@@ -870,4 +900,4 @@ if __name__ == "__main__":
     # exit()
 
     compare_pipeline(file, set1, set2, mode="Products", drop_IS=True, normalize_IS=False,
-                  normalize_TIC=True, paired=True, bh_correction=True, plot_results=True)
+                  normalize_TIC=True, paired=False, bh_correction=True, plot_results=True, write_output=True)
