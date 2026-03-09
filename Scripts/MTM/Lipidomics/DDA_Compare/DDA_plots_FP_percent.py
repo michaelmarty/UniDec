@@ -106,12 +106,13 @@ mpl.use("WxAgg")
 
 topdir = r"Z:\Group Share\Shivam\DDA"
 topdir = r"Z:\Group Share\Annika\IQ-X\Feb 2026 UntDDA\MSDial\Marked Low Score\RTP2"
+topdir = r"Z:\Group Share\Shivam\IQX Stellar 3\FinalResults"
 os.chdir(topdir)
 
 # df = pd.read_csv("Combined_DDA_RT_Corrected_FullNames.csv")
 df = pd.read_excel("Combined_DDA_OutlierAnalysis_Results.xlsx", sheet_name="All Data")
 # Drop all where Outlier_Result is 1
-df = df[df["Outlier_Prediction"] == 0]
+# df = df[df["Outlier_Prediction"] == 0]
 # good_percentage_plot(df)
 good_percentage_plot(df, datasets=["OTOT", "OTIT", "ITIT", "Stellar"], type="Total")
 exit()

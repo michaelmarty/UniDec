@@ -2,7 +2,7 @@ from PublicScripts.Lipids.Lipid_DDA_Dataset_Compare import *
 import pandas as pd
 from PublicScripts.Lipids.RT_Correction import correct_dataset_rts
 
-topdir = r"Z:\Group Share\Annika\IQX vs Stellar DDA\RTP2 Peak Masters and xml"
+topdir = r"Z:\Group Share\Shivam\IQX Stellar 3\FinalResults"
 os.chdir(topdir)
 
 datasets = ["ITIT", "OTIT", "OTOT", "Stellar"]

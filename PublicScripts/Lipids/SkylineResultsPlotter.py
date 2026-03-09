@@ -10,6 +10,7 @@ import matplotlib as mpl
 import io
 from PublicScripts.Lipids.LipidFunctions import simplify_class_df, get_color_for_class
 from copy import deepcopy
+from matplotlib.gridspec import GridSpec
 
 mpl.use("WxAgg")
 
@@ -222,7 +223,7 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
             if normalize_IS:
                 # If any IS values have a zero in any replicate, skip this IS compound
                 if any(newrow[r] == 0 for r in replicates) and m.startswith("IS"):
-                    print(f"WARNING: Removing IS compound {m} with adduct {a}")
+                    print(f"WARNING: Removing IS compound {m} with adduct {a} because it is 0")
                     continue
             newrows.append(newrow)
 
@@ -371,8 +372,27 @@ def get_is(df, class_name, adduct, is_mapper_dict=None):
     isrows = subdf[subdf["Molecule"].str.startswith("IS ")]
     return isrows
 
+def dereplicate_adducts(normdf, replicates):
+    # for each lipid name, if there are two different adducts, take the mean of the two adducts for each replicate and use that as the value for a merged row with the name of the lipid and a summed string of both adducts
+    outrows = []
+    lipids = normdf["Molecule"].unique()
+    for lipid in lipids:
+        subdf = normdf[normdf["Molecule"] == lipid]
+        adducts = subdf["Adduct"].unique()
+        if len(adducts) == 1:
+            outrows.append(subdf.iloc[0])
+        else:
+            newrow = subdf.iloc[0].copy()
+            newrow["Adduct"] = "+".join(adducts)
+            for r in replicates:
+                newrow[r] = subdf[r].mean()
+            outrows.append(newrow)
+    outdf = pd.DataFrame(outrows)
+    print(len(normdf), "rows before dereplication, ", len(outdf), "rows after dereplication.")
+    return outdf
 
-def normalize_is(df, replicates, conc_col, isdf=default_isdf):
+
+def normalize_is(df, replicates, conc_col, isdf=default_isdf, dereplicate=True):
     normdf = df.copy()
     classes = normdf["Molecule List Name"].unique()
     for r in replicates:
@@ -418,6 +438,9 @@ def normalize_is(df, replicates, conc_col, isdf=default_isdf):
             mask = (mask1) & (mask2) & (mask3)
             normdf.loc[mask, replicates] = normdata
 
+    if dereplicate:
+        normdf = dereplicate_adducts(normdf, replicates)
+
     return normdf
 
 
@@ -428,6 +451,8 @@ def stats_calcs(df, replicates_set1, replicates_set2, paired=False, bh_correctio
     set2_means = df[replicates_set2].mean(axis=1)
     df["Set1_Mean"] = set1_means
     df["Set2_Mean"] = set2_means
+    df["Set1_CV"] = df[replicates_set1].std(axis=1, ddof=1) / set1_means
+    df["Set2_CV"] = df[replicates_set2].std(axis=1, ddof=1) / set2_means
 
     summarycols = []
     if paired:
@@ -459,6 +484,9 @@ def stats_calcs(df, replicates_set1, replicates_set2, paired=False, bh_correctio
         df["CI95_FC"] = stats.t.ppf(0.975, df=len(replicates_set1) + len(replicates_set2) - 2) * (
                     df["StdDevFC"] / np.sqrt(len(replicates_set1) + len(replicates_set2)))
 
+    # Drop any with a fold change of 0
+    df = df[df["FC"] != 0].copy()
+
     p_values = []
     for index, row in df.iterrows():
         set1_values = row[replicates_set1].values
@@ -476,6 +504,9 @@ def stats_calcs(df, replicates_set1, replicates_set2, paired=False, bh_correctio
             _, p = stats.ttest_ind(set1_values, set2_values)
         p_values.append(p)
     df["p-value"] = p_values
+
+    # Drop any that are inf or nan in Log2FC or Log10p
+    df = df.replace([np.inf, -np.inf], np.nan).dropna(subset=["FC", "p-value"])
 
     if bh_correction:
         corrected = multipletests(df["p-value"], method='fdr_bh')
@@ -505,11 +536,12 @@ def class_calcs(df, replicate_set1, replicate_set2, class_col="Molecule List Nam
         outdf = normalize_tic(outdf, replicates)
 
     outdf, summarycols = stats_calcs(outdf, replicate_set1, replicate_set2, paired=paired, bh_correction=bh_correction)
-    print(outdf)
+    # print(outdf)
     return outdf, summarycols
 
 
-def make_volcano_plot(df, log2fc_col="Log2FC", neglogp_col="Log10p", title="Volcano Plot", ax=None, xlims=[-8, 8]):
+def make_volcano_plot(df, log2fc_col="Log2FC", neglogp_col="Log10p", title="Volcano Plot", ax=None, xlims=[-8, 8],
+                      fold_range=1.):
     if ax is None:
         plt.figure(figsize=(8, 6))
     else:
@@ -529,8 +561,8 @@ def make_volcano_plot(df, log2fc_col="Log2FC", neglogp_col="Log10p", title="Volc
     plt.xlabel("Log2 Fold Change")
     plt.ylabel("-Log10 p-value")
     plt.axhline(y=-np.log10(0.05), color='r', linestyle='--')
-    plt.axvline(x=1, color='g', linestyle='--')
-    plt.axvline(x=-1, color='g', linestyle='--')
+    plt.axvline(x=fold_range, color='g', linestyle='--')
+    plt.axvline(x=-fold_range, color='g', linestyle='--')
     plt.xlim(xlims)
 
     # Add cursor hover to show molecule names
@@ -581,7 +613,7 @@ def make_class_plots(classdf, ax=None, fclimit=None):
     else:
         rotation=0
 
-    plt.bar(classdf["Molecule List Name"], classdf["FC"], yerr=classdf["StdDevFC"], color=colors,
+    plt.bar(classdf["Molecule List Name"], classdf["FC"], yerr=classdf["CI95_FC"], color=colors,
             label=labels, capsize=5)
     plt.xticks(rotation=rotation)
     # line at y=1
@@ -618,7 +650,7 @@ def pca_plot(df, replicates_set1, replicates_set2, title="PCA Plot", ax=None):
     plt.legend(pc_df['Group'].unique())
 
 def heatmap_plot(df, replicates, title="Heatmap", ax=None, lindex=0, colormap='viridis', normtype="minmax",
-                 scale="linear", class_rect=False):
+                 scale="linear", class_rect=False, fontsize=5):
     data = df[replicates].values
     vmax = 1-1e-12
     vmin = 1e-12
@@ -648,10 +680,10 @@ def heatmap_plot(df, replicates, title="Heatmap", ax=None, lindex=0, colormap='v
 
     plt.imshow(data, aspect='auto', cmap=colormap, norm=scale, vmax=vmax, vmin=vmin)
     # plt.colorbar(label='Normalized Intensity')
-    plt.yticks(ticks=np.arange(len(df)), labels=df['Molecule'], fontsize=5)
+    plt.yticks(ticks=np.arange(len(df)), labels=df['Molecule'], fontsize=fontsize)
     # Labels are last 3 characters of replicates
     labels = [r[lindex:] for r in replicates]
-    plt.xticks(ticks=np.arange(len(replicates)), labels=labels, rotation=0, fontsize=8)
+    plt.xticks(ticks=np.arange(len(replicates)), labels=labels, rotation=0, fontsize=12)
 
     if class_rect:
         # Draw colored rectangles around each class
@@ -770,53 +802,83 @@ def cv_pipeline(filepath, results_set=None, mode="Products", drop_IS=True, norma
 
 def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
                   normalize_TIC=True, paired=True, bh_correction=True, plot_results=True, heatplots=True,
-                  piecharts=True, figsavepath=None, heatmap_cutoffs=True, write_output=False):
+                  piecharts=True, figsavepath=None, heatmap_cutoffs=True, write_output=True, fold_range=1.5,
+                     otherthresh=0.035, set1_name="Set 1", set2_name="Set 2"):
 
     df = pd.read_csv(filepath)
+
+    # Limit to molecule list name of pc for testing
+    # df = df[df["Molecule List Name"] == "PC"]
+
     normdf, replicates = sum_transitions(df, mode=mode, drop_IS=drop_IS, normalize_IS=normalize_IS,
                                          normalize_TIC=normalize_TIC)
     classdf, classsummarycols = class_calcs(normdf, set1, set2, paired=paired)
     normdf, summarycols = stats_calcs(normdf, set1, set2, paired=paired, bh_correction=bh_correction)
-
-    # Write to two sheets in an Excel file
-    with pd.ExcelWriter(os.path.splitext(filepath)[0] + "_stats.xlsx") as writer:
-        classdf.to_excel(writer, sheet_name="Class Stats", index=False)
-        normdf.to_excel(writer, sheet_name="Molecule Stats", index=False)
-        df.to_excel(writer, sheet_name="Raw Data", index=False)
+    print(len(normdf), "molecules after stats calculations.")
 
     if write_output:
-        # # Write classdf to CSV
-        classdf.to_csv(os.path.splitext(filepath)[0] + "_class_stats.csv", index=False)
-        # # Write normdf to CSV
-        normdf.to_csv(os.path.splitext(filepath)[0] + "_molecule_stats.csv", index=False)
+        # Write to two sheets in an Excel file
+        with pd.ExcelWriter(os.path.splitext(filepath)[0] + "_stats.xlsx") as writer:
+            classdf.to_excel(writer, sheet_name="Class Stats", index=False)
+            normdf.to_excel(writer, sheet_name="Molecule Stats", index=False)
+            df.to_excel(writer, sheet_name="Raw Data", index=False)
+
+            # # Do comparative formating on teh Molecule Stats sheet for the replicates
+            # workbook = writer.book
+            # worksheet = writer.sheets["Molecule Stats"]
+            # # Get the column indices for the replicates
+            # replicate_cols = [normdf.columns.get_loc(r) for r in replicates]
+            # # Apply conditional formatting to color from red to green with red being global minimum and green being global maximum for the whole set of replicates
+            # for col in replicate_cols:
+            #     col_letter = chr(65 + col)  # Convert column index to letter (assuming less than 26 columns)
+            #     worksheet.conditional_format(f"{col_letter}2:{col_letter}{len(normdf)+1}", {
+            #         'type': '2_color_scale',
+            #         'min_color': "#FF0000",
+            #         'max_color': "#00FF00"
+            #     })
+
+
+    # if write_output:
+    #     # # Write classdf to CSV
+    #     classdf.to_csv(os.path.splitext(filepath)[0] + "_class_stats.csv", index=False)
+    #     # # Write normdf to CSV
+    #     normdf.to_csv(os.path.splitext(filepath)[0] + "_molecule_stats.csv", index=False)
 
     if plot_results:
-        plt.figure(figsize=(18, 10))
+
         nrow = 1
         if heatplots:
             nrow +=1
         if piecharts:
             nrow +=1
         ncol = 3
-        ax1 = plt.subplot(nrow, ncol, 1)
+
+        fig = plt.figure(figsize=(18, 10))
+        gs = GridSpec(nrow, ncol, figure=fig)
+
+        # ax1 = plt.subplot(nrow, ncol, 1)
+        ax1 = fig.add_subplot(gs[0, 0])
         make_class_plots(classdf, ax=ax1)
 
-        ax2 = plt.subplot(nrow, ncol, 2)
-        make_volcano_plot(normdf, title="Volcano Plot", ax=ax2)
+        # ax2 = plt.subplot(nrow, ncol, 2)
+        ax2 = fig.add_subplot(gs[0, 1])
+        make_volcano_plot(normdf, title="Volcano Plot", ax=ax2, fold_range=fold_range)
 
-        ax3 = plt.subplot(nrow, ncol, 3)
+        # ax3 = plt.subplot(nrow, ncol, 3)
+        ax3 = fig.add_subplot(gs[0, 2])
         pca_plot(normdf, set1, set2, title="PCA Plot", ax=ax3)
 
         i=3
         if heatplots:
-            ax4 = plt.subplot(nrow, ncol, i+1)
+            # ax4 = plt.subplot(nrow, ncol, i+1)
+            ax4 = fig.add_subplot(gs[1, 0])
             # Sort normdf by class and then by Mean
             # normdfsorted = normdf.sort_values(by=["Molecule List Name", "Mean"], ascending=[True, False])
             normdfsorted = normdf.sort_values(by=["Log2FC"], ascending=[True])
 
             if heatmap_cutoffs:
                 # Filter normdfsorted to only include rows where -log10p > 1.3 (p<0.05) and abs(log2FC) > 1
-                normdfsorted = normdfsorted[(normdfsorted["Log10p"] > 1.3) & (normdfsorted["Log2FC"].abs() > 1)]
+                normdfsorted = normdfsorted[(normdfsorted["Log10p"] > -np.log10(0.05)) & (normdfsorted["Log2FC"].abs() > fold_range)]
                 if len(normdfsorted) == 0:
                     print("No significant molecules found for heatmap after applying cutoffs.")
                     # normdfsorted = normdf.sort_values(by=["Molecule List Name", "Mean"], ascending=[True, False])
@@ -824,7 +886,8 @@ def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normal
 
             heatmap_plot(normdfsorted, replicates, title="Heatmap", ax=ax4, normtype="minmax", scale="linear")
 
-            ax5 = plt.subplot(nrow, ncol, i+2)
+            # ax5 = plt.subplot(nrow, ncol, i+2)
+            ax5 = fig.add_subplot(gs[1, 1])
             if paired:
                 titleval = "Paired Ratio Heatmap"
                 normtype = "onecentered"
@@ -835,17 +898,19 @@ def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normal
                 cmap = "viridis"
             heatmap_plot(normdfsorted, summarycols, title=titleval, ax=ax5, lindex=0, colormap=cmap, normtype=normtype)
 
-            ax6 = plt.subplot(nrow, ncol, i+3)
+            ax6 = fig.add_subplot(gs[1:, 2])
             cols = ["Log2FC", "StdDevFC"]
             heatmap_plot(normdfsorted, cols, title="Fold Change Heatmap", ax=ax6, lindex=0, colormap="RdBu_r",
-                         normtype="zerocentered")
+                         normtype="zerocentered", fontsize=8)
             i += 3
 
         if piecharts:
-            ax7 = plt.subplot(nrow, ncol, i+1)
-            pie_chart(classdf, "Set1_Mean", ax=ax7, title="Class Distribution Set 1")
-            ax8 = plt.subplot(nrow, ncol, i+2)
-            pie_chart(classdf, "Set2_Mean", ax=ax8, title="Class Distribution Set 2")
+            # ax7 = plt.subplot(nrow, ncol, i+1)
+            ax7 = fig.add_subplot(gs[-1, 0])
+            pie_chart(classdf, "Set1_Mean", ax=ax7, title="Class Distribution " + set1_name, otherthresh=otherthresh)
+            # ax8 = plt.subplot(nrow, ncol, i+2)
+            ax8 = fig.add_subplot(gs[-1, 1])
+            pie_chart(classdf, "Set2_Mean", ax=ax8, title="Class Distribution " + set2_name, otherthresh=otherthresh)
 
         plt.tight_layout()
 
@@ -890,6 +955,7 @@ if __name__ == "__main__":
 
     set1 = ["FT 1", "FT 2", "FT 3"]
     set2 = ["E 1", "E 2", "E 3"]
+    set3 = ["Memb Extr 1", "Memb Extr 2", "Memb Extr 3"]
 
     # is_analysis(file)
     # exit()
@@ -899,5 +965,6 @@ if __name__ == "__main__":
     #
     # exit()
 
-    compare_pipeline(file, set1, set2, mode="Products", drop_IS=True, normalize_IS=False,
-                  normalize_TIC=True, paired=False, bh_correction=True, plot_results=True, write_output=True)
+    compare_pipeline(file, set3, set2, mode="Products", drop_IS=True, normalize_IS=True,
+                  normalize_TIC=True, paired=False, bh_correction=True, plot_results=True, write_output=True,
+                     fold_range=np.log2(1.5), otherthresh=0.015, set1_name="FT", set2_name="E")
