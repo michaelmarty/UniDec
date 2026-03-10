@@ -12,6 +12,16 @@ from PublicScripts.Lipids.LipidFunctions import simplify_class_df, get_color_for
 from copy import deepcopy
 from matplotlib.gridspec import GridSpec
 
+mpl.rcParams['ps.useafm'] = True
+mpl.rcParams['ps.fonttype'] = 42
+mpl.rcParams['pdf.fonttype'] = 42
+mpl.rcParams['lines.linewidth'] = 1
+mpl.rcParams['errorbar.capsize'] = 3
+mpl.rcParams['patch.force_edgecolor'] = True
+mpl.rcParams['patch.facecolor'] = 'b'
+mpl.rcParams['lines.markersize'] = 7
+mpl.rcParams['font.size'] = 12
+
 mpl.use("WxAgg")
 
 israw = r"""
@@ -164,6 +174,38 @@ def clean_classes(df):
     # Switch name ST 27:1;1 to ST
     df["Molecule List Name"] = df["Molecule List Name"].str.replace("ST 27:1;1", "ST")
     return df
+
+def clean_names(names, split_side=1):
+    # Split at the | character and take the split_side part (0 for left, 1 for right)
+    # If "|" is not present, keep the original name
+    names = names.str.split("|").str[split_side].fillna(names)
+    # names = names.str.split("|").str[split_side]
+    # Replace any - with _ in "Molecule" column
+    names = names.str.replace("-", "_")
+    return names
+
+def fix_name_order(names):
+    fixednames = []
+    for name in names:
+        if not isinstance(name, str):
+            print(name)
+            fixednames.append(name)
+            continue
+        if "_" in name:
+            p1 = name.split(" ")[0]
+            p2 = name.split(" ")[1]
+            # If "P" or "O" in p2 just add original name and continue
+            if "P" in p2 or "O" in p2:
+                fixednames.append(name)
+                continue
+            # For tails in p2, split at the _ and then order them in ascending order and join with a _
+            tails = p2.split("_")
+            tails = sorted(tails, key=lambda x: int(x.split(":")[0]))
+            p2 = "_".join(tails)
+            fixednames.append(f"{p1} {p2}")
+        else:
+            fixednames.append(name)
+    return fixednames
 
 def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=True,
                     conc_col="Concentration (uM)"):
@@ -650,19 +692,27 @@ def pca_plot(df, replicates_set1, replicates_set2, title="PCA Plot", ax=None):
     plt.legend(pc_df['Group'].unique())
 
 def heatmap_plot(df, replicates, title="Heatmap", ax=None, lindex=0, colormap='viridis', normtype="minmax",
-                 scale="linear", class_rect=False, fontsize=5):
+                 scale="linear", class_rect=False, fontsize=5, color_classes=False, colorbar=None):
     data = df[replicates].values
     vmax = 1-1e-12
     vmin = 1e-12
+    dmax = np.max(data)
+    dmin = np.min(data)
     if normtype=="minmax":
         # Normalize data to 0-1 for better color mapping
-        data = (data - np.min(data)) / (np.max(data) - np.min(data))
+        data = (data - dmin) / (dmax - dmin)
     elif normtype=="zscore":
         data = StandardScaler().fit_transform(data)
     elif normtype=="zerocentered":
         data = (data / (2 * np.amax(np.abs(data)))) + 0.5
+        extreme = np.amax(np.abs([dmin, dmax]))
+        dmin = -extreme
+        dmax = extreme
     elif normtype=="onecentered":
         data = ((data - 1) / (2 * np.amax(np.abs(data - 1)))) + 0.5
+        extreme = np.amax(np.abs([dmin, dmax]))
+        dmin = -extreme
+        dmax = extreme
     elif normtype=="zerocentered_clip":
         data = data + 0.5
         data[data < vmin] = vmin
@@ -679,11 +729,25 @@ def heatmap_plot(df, replicates, title="Heatmap", ax=None, lindex=0, colormap='v
         plt.sca(ax)
 
     plt.imshow(data, aspect='auto', cmap=colormap, norm=scale, vmax=vmax, vmin=vmin)
-    # plt.colorbar(label='Normalized Intensity')
-    plt.yticks(ticks=np.arange(len(df)), labels=df['Molecule'], fontsize=fontsize)
     # Labels are last 3 characters of replicates
     labels = [r[lindex:] for r in replicates]
     plt.xticks(ticks=np.arange(len(replicates)), labels=labels, rotation=0, fontsize=12)
+    # If color classes, color ytick labels by class with a colored dot ahead of the label
+    ylabels = df['Molecule']
+    if color_classes:
+        classes = df["Molecule List Name"].values
+        for i, cls in enumerate(classes):
+            plt.text(-0.6, i, "●", color=get_color_for_class(cls), fontsize=fontsize*1.5, va='center', ha='right')
+        # Add 3 spaces to the end of each label to avoid overlap with the colored dot
+        ylabels = [label + "     " for label in ylabels]
+
+    plt.yticks(ticks=np.arange(len(df)), labels=ylabels, fontsize=fontsize)
+
+    if colorbar is not None:
+        cb = plt.colorbar(label=colorbar, pad=0.02, aspect=75)
+        # Label ticks on color bar with dmin, 0, dmax
+        cb.set_ticks([vmin, 0.5, vmax])
+        cb.set_ticklabels([f"{dmin:.1f}", "0", f"{dmax:.1f}"])
 
     if class_rect:
         # Draw colored rectangles around each class
@@ -798,7 +862,17 @@ def cv_pipeline(filepath, results_set=None, mode="Products", drop_IS=True, norma
         plt.show()
 
 
+def filter_normdf(normdf, fold_range=1.):
+    normdfsorted = normdf.sort_values(by=["Log2FC"], ascending=[False])
 
+    # Filter normdfsorted to only include rows where -log10p > 1.3 (p<0.05) and abs(log2FC) > 1
+    normdfsorted = normdfsorted[
+        (normdfsorted["Log10p"] > -np.log10(0.05)) & (normdfsorted["Log2FC"].abs() > fold_range)]
+    if len(normdfsorted) == 0:
+        print("No significant molecules found for heatmap after applying cutoffs.")
+        # normdfsorted = normdf.sort_values(by=["Molecule List Name", "Mean"], ascending=[True, False])
+        normdfsorted = normdf.sort_values(by=["Log2FC"], ascending=[False])
+    return normdfsorted
 
 def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
                   normalize_TIC=True, paired=True, bh_correction=True, plot_results=True, heatplots=True,
@@ -806,6 +880,7 @@ def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normal
                      otherthresh=0.035, set1_name="Set 1", set2_name="Set 2"):
 
     df = pd.read_csv(filepath)
+    os.chdir(os.path.dirname(filepath))
 
     # Limit to molecule list name of pc for testing
     # df = df[df["Molecule List Name"] == "PC"]
@@ -817,11 +892,14 @@ def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normal
     print(len(normdf), "molecules after stats calculations.")
 
     if write_output:
-        # Write to two sheets in an Excel file
-        with pd.ExcelWriter(os.path.splitext(filepath)[0] + "_stats.xlsx") as writer:
-            classdf.to_excel(writer, sheet_name="Class Stats", index=False)
-            normdf.to_excel(writer, sheet_name="Molecule Stats", index=False)
-            df.to_excel(writer, sheet_name="Raw Data", index=False)
+        try:
+            # Write to two sheets in an Excel file
+            with pd.ExcelWriter(os.path.splitext(filepath)[0] + "_stats.xlsx") as writer:
+                classdf.to_excel(writer, sheet_name="Class Stats", index=False)
+                normdf.to_excel(writer, sheet_name="Molecule Stats", index=False)
+                df.to_excel(writer, sheet_name="Raw Data", index=False)
+        except:
+            print("Error writing to Excel file. Writing to CSV instead.")
 
             # # Do comparative formating on teh Molecule Stats sheet for the replicates
             # workbook = writer.book
@@ -873,16 +951,10 @@ def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normal
             # ax4 = plt.subplot(nrow, ncol, i+1)
             ax4 = fig.add_subplot(gs[1, 0])
             # Sort normdf by class and then by Mean
-            # normdfsorted = normdf.sort_values(by=["Molecule List Name", "Mean"], ascending=[True, False])
-            normdfsorted = normdf.sort_values(by=["Log2FC"], ascending=[True])
-
             if heatmap_cutoffs:
-                # Filter normdfsorted to only include rows where -log10p > 1.3 (p<0.05) and abs(log2FC) > 1
-                normdfsorted = normdfsorted[(normdfsorted["Log10p"] > -np.log10(0.05)) & (normdfsorted["Log2FC"].abs() > fold_range)]
-                if len(normdfsorted) == 0:
-                    print("No significant molecules found for heatmap after applying cutoffs.")
-                    # normdfsorted = normdf.sort_values(by=["Molecule List Name", "Mean"], ascending=[True, False])
-                    normdfsorted = normdf.sort_values(by=["Log2FC"], ascending=[True])
+                normdfsorted = filter_normdf(normdf, fold_range=fold_range)
+            else:
+                normdfsorted = normdf.sort_values(by=["Molecule List Name", "Mean"], ascending=[True, False])
 
             heatmap_plot(normdfsorted, replicates, title="Heatmap", ax=ax4, normtype="minmax", scale="linear")
 
@@ -919,6 +991,8 @@ def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normal
 
         plt.show()
 
+    return normdf, classdf
+
 def is_analysis(file, mode="Products", isdf=None):
     df = pd.read_csv(file)
     isrows = df[df["Molecule"].str.startswith("IS ")]
@@ -947,6 +1021,51 @@ def is_analysis(file, mode="Products", isdf=None):
     isrows["CV_RF"] = isrows[rf_cols].std(axis=1, ddof=1) / isrows[rf_cols].mean(axis=1)
     print(isrows.to_string())
 
+def lipid_bar_chart_compare(df, classes=["PC"], ax=None, fontsize=8, s1name="Set 1", s2name="Set 2", log2fclimit=0):
+    if ax is None:
+        plt.figure(figsize=(8, 6))
+    else:
+        plt.sca(ax)
+
+    subdf = df[df["Molecule List Name"].isin(classes)]
+    # Sort by molecule name
+    subdf = subdf.sort_values(by=["Molecule"], ascending=[True])
+    # Means are Set1_Mean and Set2_Mean columns
+    # Errors are Set1_CV and Set2_CV columns multiplied by the means to get standard deviation
+    x = np.arange(len(subdf))
+    labels = subdf["Molecule"]
+    # Drop before "|" in labels for better readability
+    labels = clean_names(labels, split_side=1)
+    labels = fix_name_order(labels)
+    width = 0.35
+    plt.bar(x - width/2, subdf["Set1_Mean"], width, yerr=subdf["Set1_CV"] * subdf["Set1_Mean"], label=s1name, capsize=5)
+    plt.bar(x + width/2, subdf["Set2_Mean"], width, yerr=subdf["Set2_CV"] * subdf["Set2_Mean"], label=s2name, capsize=5)
+    bmax = max((subdf["Set1_Mean"] + subdf["Set1_CV"] * subdf["Set1_Mean"]).max(), (subdf["Set2_Mean"] + subdf["Set2_CV"] * subdf["Set2_Mean"]).max())
+    # Add significance stars based on p-value with thresholds of 0.05, 0.01, and 0.001
+    offset = bmax * 0.02
+    for i, pval in enumerate(subdf["p-value"]):
+        log2fc = subdf["Log2FC"].iloc[i]
+        if abs(log2fc) < log2fclimit:
+            continue
+
+        if pval < 0.001:
+            plt.text(x[i], max(subdf["Set1_Mean"].iloc[i] + subdf["Set1_CV"].iloc[i] * subdf["Set1_Mean"].iloc[i],
+                               subdf["Set2_Mean"].iloc[i] + subdf["Set2_CV"].iloc[i] * subdf["Set2_Mean"].iloc[i]) + offset,
+                     "***", ha='center', va='bottom', fontsize=fontsize)
+        elif pval < 0.01:
+            plt.text(x[i], max(subdf["Set1_Mean"].iloc[i] + subdf["Set1_CV"].iloc[i] * subdf["Set1_Mean"].iloc[i],
+                               subdf["Set2_Mean"].iloc[i] + subdf["Set2_CV"].iloc[i] * subdf["Set2_Mean"].iloc[i]) + offset,
+                     "**", ha='center', va='bottom', fontsize=fontsize)
+        elif pval < 0.05:
+            plt.text(x[i], max(subdf["Set1_Mean"].iloc[i] + subdf["Set1_CV"].iloc[i] * subdf["Set1_Mean"].iloc[i],
+                               subdf["Set2_Mean"].iloc[i] + subdf["Set2_CV"].iloc[i] * subdf["Set2_Mean"].iloc[i]) + offset,
+                     "*", ha='center', va='bottom', fontsize=fontsize)
+
+    plt.xticks(x, labels, rotation=90, fontsize=fontsize)
+    plt.legend()
+    plt.ylabel("Mol %")
+    plt.title("Lipid Comparison for " + ", ".join(classes))
+
 
 
 if __name__ == "__main__":
@@ -965,6 +1084,20 @@ if __name__ == "__main__":
     #
     # exit()
 
-    compare_pipeline(file, set3, set2, mode="Products", drop_IS=True, normalize_IS=True,
+    normdf, classdf = compare_pipeline(file, set3, set1, mode="Products", drop_IS=True, normalize_IS=True,
                   normalize_TIC=True, paired=False, bh_correction=True, plot_results=True, write_output=True,
-                     fold_range=np.log2(1.5), otherthresh=0.015, set1_name="FT", set2_name="E")
+                     fold_range=np.log2(3), otherthresh=0.03, set1_name="FT", set2_name="E")
+
+    exit()
+    # Figure with pie 1 volcano pie 2 in a row
+    plt.figure(figsize=(18, 6))
+    ax1 = plt.subplot(1, 3, 1)
+    pie_chart(classdf, "Set1_Mean", ax=ax1, title="Membrane Extract", otherthresh=0.015)
+    ax2 = plt.subplot(1, 3, 2)
+    make_volcano_plot(normdf, title="Volcano Plot", ax=ax2, fold_range=np.log2(1.75), xlims=[-6, 6])
+    ax3 = plt.subplot(1, 3, 3)
+    pie_chart(classdf, "Set2_Mean", ax=ax3, title="CB2 Nanodiscs", otherthresh=0.015)
+    plt.tight_layout()
+    plt.savefig(os.path.splitext(file)[0] + "_volcano_pies.png")
+    plt.savefig(os.path.splitext(file)[0] + "_volcano_pies.pdf")
+    plt.show()
