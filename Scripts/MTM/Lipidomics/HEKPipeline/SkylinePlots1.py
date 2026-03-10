@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from PublicScripts.Lipids.SkylineResultsPlotter import *
 
 file = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\Molecule Transition Results_stats_working.xlsx"
-# file = r"C:\Users\marty\Downloads\Extr_US_MoleculeTransResults.csv"
+file = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\Molecule Transition Results_stats.xlsx"
 
 classdf = pd.read_excel(file, sheet_name="Class Stats")
 normdf = pd.read_excel(file, sheet_name="Molecule Stats")
@@ -18,7 +18,7 @@ set3 = ["Memb Extr 1", "Memb Extr 2", "Memb Extr 3"]
 # ax1 = plt.subplot(1, 3, 1)
 # pie_chart(classdf, "Set1_Mean", ax=ax1, title="Depleted Nanodiscs", otherthresh=0.015)
 # ax2 = plt.subplot(1, 3, 2)
-# make_volcano_plot(normdf, title="Volcano Plot", ax=ax2, fold_range=np.log2(1.75), xlims=[-6, 6])
+# make_volcano_plot(normdf, title="Depleted ND vs. CB2 ND", ax=ax2, fold_range=np.log2(1.75), xlims=[-6, 6])
 # ax3 = plt.subplot(1, 3, 3)
 # pie_chart(classdf, "Set2_Mean", ax=ax3, title="CB2 Nanodiscs", otherthresh=0.015)
 # plt.tight_layout()
@@ -55,10 +55,23 @@ set3 = ["Memb Extr 1", "Memb Extr 2", "Memb Extr 3"]
 #     plt.tight_layout()
 #     plt.show()
 # exit()
-plt.figure(figsize=(10, 6))
-ax = plt.subplot(1, 1, 1)
-lipid_bar_chart_compare(normdf, classes=["SM"], ax=ax, fontsize=10, s1name="Depleted Nanodiscs", s2name="CB2 Nanodiscs", log2fclimit=np.log2(1))
+# plt.figure(figsize=(10, 6))
+# ax = plt.subplot(1, 1, 1)
+# lipid_bar_chart_compare(normdf, classes=["SM"], ax=ax, fontsize=10, s1name="Depleted Nanodiscs", s2name="CB2 Nanodiscs", log2fclimit=np.log2(1))
+# plt.tight_layout()
+# # plt.savefig(os.path.splitext(file)[0] + "_PE_bar.png", dpi=600)
+# # plt.savefig(os.path.splitext(file)[0] + "_PE_bar.pdf")
+# plt.show()
+
+# Stacked pie chart to show the membrane
+plt.figure(figsize=(6, 8))
+ax1 = plt.subplot(2, 1, 1)
+pie_chart(classdf, "Set1_Mean", ax=ax1, title="HEK Membrane Extract", otherthresh=0.015)
+ax2 = plt.subplot(2, 1, 2)
+make_volcano_plot(normdf, title="Membrane vs. CB2 ND", ax=ax2, fold_range=np.log2(1.75), xlims=[-6, 6])
+# ax3 = plt.subplot(1, 3, 3)
+# pie_chart(classdf, "Set2_Mean", ax=ax3, title="CB2 Nanodiscs", otherthresh=0.015)
 plt.tight_layout()
-# plt.savefig(os.path.splitext(file)[0] + "_PE_bar.png", dpi=600)
-# plt.savefig(os.path.splitext(file)[0] + "_PE_bar.pdf")
+plt.savefig(os.path.splitext(file)[0] + "_volcano_pies_2.png")
+plt.savefig(os.path.splitext(file)[0] + "_volcano_pies_2.pdf")
 plt.show()

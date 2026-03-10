@@ -1086,7 +1086,7 @@ if __name__ == "__main__":
 
     normdf, classdf = compare_pipeline(file, set3, set1, mode="Products", drop_IS=True, normalize_IS=True,
                   normalize_TIC=True, paired=False, bh_correction=True, plot_results=True, write_output=True,
-                     fold_range=np.log2(3), otherthresh=0.03, set1_name="FT", set2_name="E")
+                     fold_range=np.log2(5), otherthresh=0.03, set1_name="FT", set2_name="E")
 
     exit()
     # Figure with pie 1 volcano pie 2 in a row
