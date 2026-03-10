@@ -241,6 +241,9 @@ def compare_classes_plot(df, datasets=None, use_simple_names=True, use_simple_cl
 
     # Count number of datasets for each metabolite name and add as a column to the dataframe
     df = count_number_of_datasets(df, namecol=namecol)
+    # Rename datasets to add / to OTOT, OTIT, and ITIT
+    df["Dataset"] = df["Dataset"].replace({"OTOT": "OT/OT", "OTIT": "OT/IT", "ITIT": "IT/IT"})
+    datasets = [d.replace("OTOT", "OT/OT").replace("OTIT", "OT/IT").replace("ITIT", "IT/IT") for d in datasets]
 
     plt.figure(figsize=(18, 10))
     plt.subplot(1, 2, 1)

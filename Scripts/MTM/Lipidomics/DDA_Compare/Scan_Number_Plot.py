@@ -13,7 +13,7 @@ topdir = r"Z:\Group Share\Annika\IQX vs Stellar DDA\Raw Data"
 topdir = r"Z:\Group Share\Shivam\IQX Stellar 3\RawData"
 os.chdir(topdir)
 files = ud.match_files(topdir, "*.raw")
-if True:
+if False:
     rows = []
     for f in files:
         if "blank" in f.lower():
@@ -62,8 +62,9 @@ rows = df.to_dict(orient="records")
 unique_types = set(row["Type"] for row in rows)
 # Sort by the order of ITIT, OTOT, OTIT, Stellar
 type_order = ["OTOT", "OTIT", 'ITIT_Normal', "ITIT_Rapid", "ITIT_Turbo", "Stellar"]
+type_order = ["OTOT", "OTIT",  "ITIT_Rapid", "Stellar"]
 unique_types = sorted(unique_types, key=lambda x: type_order.index(x) if x in type_order else len(type_order))
-for t in unique_types:
+for t in type_order:
     type_rows = [row for row in rows if row["Type"] == t]
     pos_rows = [row for row in type_rows if row["Polarity"] == "Positive"]
     neg_rows = [row for row in type_rows if row["Polarity"] == "Negative"]
@@ -79,12 +80,21 @@ for t in unique_types:
 
     total_avg = pos_avg + neg_avg + both_avg
     total_std = np.sqrt(pos_std**2 + neg_std**2 + both_std**2)
+    if t == "ITIT_Rapid":
+        t = "IT/IT"
+    elif t == "OTOT":
+        t = "OT/OT"
+    elif t == "OTIT":
+        t = "OT/IT"
+
+
     plt.bar(t, total_avg, yerr=total_std, label=t)
 
-plt.xlabel("Type")
+# plt.xlabel("Type")
 plt.ylabel("Number of Scans")
-plt.title("Distribution of Scan Numbers by Type")
-plt.legend()
+plt.title("Total Scan Numbers for Pos and Neg by Type")
+# plt.legend()
+plt.tight_layout()
 plt.savefig("Scan_Number_Distribution.png", dpi=300)
 plt.savefig("Scan_Number_Distribution.pdf")
 plt.show()

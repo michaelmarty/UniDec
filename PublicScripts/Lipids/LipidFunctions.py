@@ -2275,7 +2275,7 @@ def simplify_class_df(df, class_col="Ontology"):
     df[class_col] = df[class_col].apply(simplify_class_name)
     return df
 
-def mzrt_plot(df, class_col="Ontology", title="", simplify=True, write_file=False):
+def mzrt_plot(df, class_col="Ontology", title="", simplify=True, write_file=False, labeln=False):
     # ------------------------------
     # Plot setup
     # ------------------------------
@@ -2320,16 +2320,17 @@ def mzrt_plot(df, class_col="Ontology", title="", simplify=True, write_file=Fals
     plt.xticks(np.arange(0.0, 18, 2.5))
     plt.yticks(np.arange(0.0, 1600.1, 200))
 
-    # Add total number of lipids on the plot
-    total_lipids = len(df)
-    plt.text(
-        0.98, 0.98, f"Total lipids: {total_lipids}",
-        horizontalalignment='right',
-        verticalalignment='top',
-        transform=plt.gca().transAxes,
-        fontsize=20,
-        bbox=dict(facecolor='white', alpha=0.6, edgecolor='none', pad=5)
-    )
+    if labeln:
+        # Add total number of lipids on the plot
+        total_lipids = len(df)
+        plt.text(
+            0.98, 0.98, f"Total lipids: {total_lipids}",
+            horizontalalignment='right',
+            verticalalignment='top',
+            transform=plt.gca().transAxes,
+            fontsize=20,
+            bbox=dict(facecolor='white', alpha=0.6, edgecolor='none', pad=5)
+        )
 
     ncol = min(6, len(unique_classes))
     plt.legend(handles=custom_legend, loc='upper center', bbox_to_anchor=(0.5, -0.1),

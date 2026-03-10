@@ -877,10 +877,15 @@ def filter_normdf(normdf, fold_range=1.):
 def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
                   normalize_TIC=True, paired=True, bh_correction=True, plot_results=True, heatplots=True,
                   piecharts=True, figsavepath=None, heatmap_cutoffs=True, write_output=True, fold_range=1.5,
-                     otherthresh=0.035, set1_name="Set 1", set2_name="Set 2"):
+                     otherthresh=0.035, set1_name="Set 1", set2_name="Set 2", drop_lipids=[]):
 
     df = pd.read_csv(filepath)
     os.chdir(os.path.dirname(filepath))
+
+    if len(drop_lipids) > 0:
+        df = df[~df["Molecule"].isin(drop_lipids)]
+        print(f"Dropped {len(drop_lipids)} lipids from the dataset: {drop_lipids}")
+
 
     # Limit to molecule list name of pc for testing
     # df = df[df["Molecule List Name"] == "PC"]
@@ -1086,7 +1091,7 @@ if __name__ == "__main__":
 
     normdf, classdf = compare_pipeline(file, set3, set1, mode="Products", drop_IS=True, normalize_IS=True,
                   normalize_TIC=True, paired=False, bh_correction=True, plot_results=True, write_output=True,
-                     fold_range=np.log2(5), otherthresh=0.03, set1_name="FT", set2_name="E")
+                     fold_range=np.log2(5), otherthresh=0.03, set1_name="FT", set2_name="E", drop_lipids=["SM 35:1;2"])
 
     exit()
     # Figure with pie 1 volcano pie 2 in a row

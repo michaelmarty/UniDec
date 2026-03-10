@@ -21,7 +21,7 @@ def plot_attributes_by_datasetcount(df, attrlist = []):
     plt.tight_layout()
     plt.show()
 
-def good_percentage_plot(df, datasets=None, type="All"):
+def good_percentage_plot(df, datasets=None, type="All", figname="Good_Percentage_by_Dataset"):
 
 
     if datasets is None:
@@ -67,6 +67,9 @@ def good_percentage_plot(df, datasets=None, type="All"):
             print(f"{dataset} present: {good_percentage:.2f}% good IDs")
             labels.append(f"{dataset}")
 
+    # Add slash in labels for OTOT, OTIT, and ITIT
+    labels = [label.replace("OTOT", "OT/OT").replace("OTIT", "OT/IT").replace("ITIT", "IT/IT") for label in labels]
+
     # plt.bar(dataset_counts, percentages, color="skyblue")
     plt.figure(figsize=(10, 6))
     plt.subplot(122)
@@ -74,9 +77,9 @@ def good_percentage_plot(df, datasets=None, type="All"):
     plt.xlabel("Dataset")
     plt.ylabel("Percentage of True Positives")
     # plt.title("Percentage of Good IDs by Dataset Count")
-    plt.xticks(rotation=45, ha="right")
+    # plt.xticks(rotation=45, ha="right")
     pmin = np.floor(np.amin(percentages) * 10) / 10 - 5
-    pmin = 60
+    pmin = 50
     plt.ylim(pmin, 100)
 
     # plt.subplot(122)
@@ -94,11 +97,12 @@ def good_percentage_plot(df, datasets=None, type="All"):
     plt.xlabel("Dataset")
     plt.ylabel("Count of IDs")
     # plt.title("Good vs Bad IDs by Dataset Count")
-    plt.xticks(rotation=45, ha="right")
+    # plt.xticks(rotation=45, ha="right")
     plt.legend(loc="upper left")
+    plt.ylim(0, 2100)
     plt.tight_layout()
-    plt.savefig("Good_Bad_IDs_by_Dataset.png", dpi=600, bbox_inches="tight")
-    plt.savefig("Good_Bad_IDs_by_Dataset.pdf")
+    plt.savefig(figname + ".png", dpi=600, bbox_inches="tight")
+    plt.savefig( figname + ".pdf")
 
     plt.show()
 
@@ -115,6 +119,9 @@ df = pd.read_excel("Combined_DDA_OutlierAnalysis_Results.xlsx", sheet_name="All 
 # df = df[df["Outlier_Prediction"] == 0]
 # good_percentage_plot(df)
 good_percentage_plot(df, datasets=["OTOT", "OTIT", "ITIT", "Stellar"], type="Total")
+
+df = df[df["Outlier_Prediction"] == 0]
+good_percentage_plot(df, datasets=["OTOT", "OTIT", "ITIT", "Stellar"], type="Total", figname="Good_Percentage_by_Dataset_OutlierFiltered")
 exit()
 print(df.columns)
 # Create logSN column
