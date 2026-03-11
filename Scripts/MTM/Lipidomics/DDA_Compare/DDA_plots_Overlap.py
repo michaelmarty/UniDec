@@ -15,8 +15,14 @@ topdir = r"Z:\Group Share\Shivam\IQX Stellar 3\FinalResults"
 os.chdir(topdir)
 
 df = pd.read_excel("Combined_DDA_Full.xlsx", sheet_name="Full Data")
+df = pd.read_excel("Combined_DDA_OutlierAnalysis_Results.xlsx", sheet_name="All Data")
+# df = df[df["Outlier_Prediction"] == 0]
+
+# Drop any with class "BRSE"
+df = df[df["Ontology"] != "BRSE"]
+df = df[df["Ontology"] != "HBMP"]
 
 datasets = ["OTOT", "OTIT", "ITIT", "Stellar"]
-compare_classes_plot(df, datasets=datasets)
+compare_classes_plot(df, datasets=datasets, use_simple_names=False, drop_low_quality=True)
 
 

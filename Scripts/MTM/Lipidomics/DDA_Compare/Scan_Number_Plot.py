@@ -13,7 +13,7 @@ topdir = r"Z:\Group Share\Annika\IQX vs Stellar DDA\Raw Data"
 topdir = r"Z:\Group Share\Shivam\IQX Stellar 3\RawData"
 os.chdir(topdir)
 files = ud.match_files(topdir, "*.raw")
-if False:
+if True:
     rows = []
     for f in files:
         if "blank" in f.lower():

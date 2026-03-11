@@ -75,6 +75,7 @@ class_color_map = {
     "TG": "#8F1458",
     "TAG": "#8F1458",
     "FA": "#FFA1DB",
+    "FAHFA": "#FF0000",
     "CE": "#D10081",
     "NAE": "#777777",
     "ST": "#B40808",

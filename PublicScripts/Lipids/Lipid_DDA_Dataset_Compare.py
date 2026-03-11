@@ -214,13 +214,14 @@ def bar_chart_of_classes(df, datasets, dataset_col="Dataset", class_col="Ontolog
     # plt.xlabel(dataset_col)
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8, reverse=True)
 
-def compare_classes_plot(df, datasets=None, use_simple_names=True, use_simple_classes=True):
+def compare_classes_plot(df, datasets=None, use_simple_names=True, use_simple_classes=True, drop_low_quality=True):
     df = df.copy()
     if datasets is None:
         datasets = sorted(df["Dataset"].unique())
 
-    # Remove low quality ids where comment includes "Low quality"
-    df = df[~df["Comment"].str.contains("Low quality", case=False, na=False)]
+    if drop_low_quality:
+        # Remove low quality ids where comment includes "Low quality"
+        df = df[~df["Comment"].str.contains("Low quality", case=False, na=False)]
 
     if use_simple_names:
         simpnames = df["Metabolite name"].apply(lambda x: x.split("|")[0] if "|" in x else x)
