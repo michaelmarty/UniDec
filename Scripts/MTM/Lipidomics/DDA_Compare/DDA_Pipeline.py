@@ -5,7 +5,7 @@ from PublicScripts.Lipids.RT_Correction import correct_dataset_rts
 topdir = r"Z:\Group Share\Shivam\IQX Stellar 3\FinalResults\AS"
 os.chdir(topdir)
 
-datasets = ["ITIT", "OTIT", "OTOT", "Stellar"]
+datasets = ["ITIT", "OTIT", "OTOT", "Stellar", "Stellar_both"]
 
 df = prep_datasets(topdir, datasets) # 1
 df = correct_dataset_rts(df, "Average Rt(min)", ref_dataset="Stellar", plot=False) # 2

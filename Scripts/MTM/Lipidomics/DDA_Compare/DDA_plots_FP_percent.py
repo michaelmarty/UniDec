@@ -92,7 +92,7 @@ def good_percentage_plot(df, datasets=None, type="All", figname="Good_Percentage
     # plt.title("Percentage of Good IDs by Dataset Count")
     # plt.xticks(rotation=45, ha="right")
     pmin = np.floor(np.amin(percentages) * 10) / 10 - 5
-    pmin = 50
+    pmin = 35
     plt.ylim(pmin, 100)
 
     # plt.subplot(122)
@@ -124,6 +124,7 @@ topdir = r"Z:\Group Share\Shivam\DDA"
 topdir = r"Z:\Group Share\Annika\IQ-X\Feb 2026 UntDDA\MSDial\Marked Low Score\RTP2"
 topdir = r"Z:\Group Share\Shivam\IQX Stellar 3\FinalResults\AS"
 os.chdir(topdir)
+datasets = ["OTOT", "OTIT", "ITIT", "Stellar", "Stellar_both"]
 
 # df = pd.read_csv("Combined_DDA_RT_Corrected_FullNames.csv")
 df = pd.read_excel("Combined_DDA_OutlierAnalysis_Results.xlsx", sheet_name="All Data")
@@ -132,10 +133,10 @@ df = df[df["Ontology"] != "HBMP"]
 # Drop all where Outlier_Result is 1
 # df = df[df["Outlier_Prediction"] == 0]
 # good_percentage_plot(df)
-good_percentage_plot(df, datasets=["OTOT", "OTIT", "ITIT", "Stellar"], type="Total")
+good_percentage_plot(df, datasets=datasets, type="Total")
 
 df = df[df["Outlier_Prediction"] == 0]
-good_percentage_plot(df, datasets=["OTOT", "OTIT", "ITIT", "Stellar"], type="Total", figname="Good_Percentage_by_Dataset_OutlierFiltered")
+good_percentage_plot(df, datasets=datasets, type="Total", figname="Good_Percentage_by_Dataset_OutlierFiltered")
 plt.show()
 exit()
 print(df.columns)

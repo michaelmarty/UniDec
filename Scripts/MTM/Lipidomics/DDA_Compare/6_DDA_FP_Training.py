@@ -56,9 +56,9 @@ for col in columns:
         if ("Class_z_" not in col):
             features.append(col)
 
-features = ["Simple dot product", "Matched peaks count", "Class_strength"]#, "LogSN", "RTdiff"]#, "SMILES_strength"]
+# features = ["Simple dot product", "Matched peaks count", "Class_strength", ]#, "LogSN", "RTdiff"]#, "SMILES_strength"]
 
-df, features = prep_for_rf(df, features, one_hot_encode=False)
+df, features = prep_for_rf(df, features, one_hot_encode=True)
 
 print("Features:", features)
 

@@ -2276,7 +2276,7 @@ def simplify_class_df(df, class_col="Ontology"):
     df[class_col] = df[class_col].apply(simplify_class_name)
     return df
 
-def mzrt_plot(df, class_col="Ontology", title="", simplify=True, write_file=False, labeln=False):
+def mzrt_plot(df, class_col="Ontology", title="", simplify=True, write_file=False, labeln=False, rtcol="Average Rt(min)", mzcol="Average Mz"):
     # ------------------------------
     # Plot setup
     # ------------------------------
@@ -2311,7 +2311,7 @@ def mzrt_plot(df, class_col="Ontology", title="", simplify=True, write_file=Fals
     # Plot
     # ------------------------------
     plt.figure(figsize=(12, 8))
-    plt.scatter(df["Average Rt(min)"], df["Average Mz"], c=df["Color"], s=80)
+    plt.scatter(df[rtcol], df[mzcol], c=df["Color"], s=80)
 
     plt.gca().spines['top'].set_visible(False)
     plt.gca().spines['right'].set_visible(False)

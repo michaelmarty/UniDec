@@ -234,6 +234,9 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
     # Precompute average RT per molecule
     rt_df = df.groupby(mol_col)[rtcol].mean().reset_index()
 
+    mzcol = "Precursor Mz"
+    mz_df = df.groupby(mol_col)[mzcol].mean().reset_index()
+
     newrows = []
     for m in molecules:
         # Get all adducts for the molecule
@@ -241,7 +244,8 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
         adducts = subdf[adduct_col].unique()
         for a in adducts:
             newrow = {"Molecule": m, "Molecule List Name": df[df[mol_col] == m][class_col].values[0],
-                      "RT": rt_df[rt_df[mol_col] == m][rtcol].values[0], "Adduct": a}
+                      "RT": rt_df[rt_df[mol_col] == m][rtcol].values[0],
+                      "Adduct": a}
             for r in replicates:
                 mask = (df[mol_col] == m) & (df[rep_col] == r) & (df[adduct_col] == a)
                 subset = df[mask]
@@ -600,8 +604,8 @@ def make_volcano_plot(df, log2fc_col="Log2FC", neglogp_col="Log10p", title="Volc
     df[log2fc_col] = df[log2fc_col].clip(lower=xlims[0]+0.15, upper=xlims[1]-0.15)
     plt.scatter(df[log2fc_col], df[neglogp_col], alpha=0.7, c=df["Molecule List Name"].map(get_color_for_class))
     plt.title(title)
-    plt.xlabel("Log2 Fold Change")
-    plt.ylabel("-Log10 p-value")
+    plt.xlabel("Log\u2082 Fold Change")
+    plt.ylabel("-Log\u2081\u2080 p-value")
     plt.axhline(y=-np.log10(0.05), color='r', linestyle='--')
     plt.axvline(x=fold_range, color='g', linestyle='--')
     plt.axvline(x=-fold_range, color='g', linestyle='--')
@@ -1089,7 +1093,7 @@ if __name__ == "__main__":
     #
     # exit()
 
-    normdf, classdf = compare_pipeline(file, set3, set1, mode="Products", drop_IS=True, normalize_IS=True,
+    normdf, classdf = compare_pipeline(file, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
                   normalize_TIC=True, paired=False, bh_correction=True, plot_results=True, write_output=True,
                      fold_range=np.log2(5), otherthresh=0.03, set1_name="FT", set2_name="E", drop_lipids=["SM 35:1;2"])
 
