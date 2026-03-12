@@ -11,6 +11,11 @@ os.chdir(topdir)
 df = pd.read_excel("Combined_DDA_OutlierAnalysis_Results.xlsx", sheet_name="All Data")
 # Drop all where Outlier_Result is 1
 df = df[df["Outlier_Prediction"] == 0]
+# Drop all with Low_Quality_Flag is 1
+df = df[df["Low_Quality_Flag"] == 0]
+# Drop classes with "BRSE" and "HBMP"
+df = df[df["Ontology"] != "BRSE"]
+df = df[df["Ontology"] != "HBMP"]
 
 # Select only Dataset of "OTOT"
 df = df[df["Dataset"] == "OTIT"]

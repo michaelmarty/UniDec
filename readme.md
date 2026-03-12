@@ -252,6 +252,8 @@ Changed UniChrom default to timemid rather than timestart.
 New hidden feature, setting a peak picking threshold of greater than 1 with the normalization on will 
 assume that the threshold is a multiple of the 90% percentile intensity value rather than a fraction of the max.
 
+Fixed Fill Down on Import Wizard when values were filled.
+
 v.8.1.1
 
 Added code signing to help with security warnings on Windows.

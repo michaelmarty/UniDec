@@ -106,6 +106,12 @@ class ImportWizard(wx.Frame):
         self.folder_path.Bind(wx.EVT_KEY_UP, self.on_folder_path_change)
 
         panel.SetSizerAndFit(sizer)
+
+        # Set up drag and drop
+        file_drop_target = FileDropTarget(self)
+        self.SetDropTarget(file_drop_target)
+
+
         self.SetFocus()
         self.Centre()
 
@@ -257,8 +263,59 @@ class ImportWizard(wx.Frame):
 
             return file_path  # + '_ionMS_import.csv'
 
+    def load_file(self, path):
+        """
+        Load file from export file
+        """
+        f = open(path, 'r')
+        lines = f.readlines()
+        f.close()
+
+        # From line 1, get whether it should be linear, t-wave, ms, or ms times
+        if lines[0].startswith('ionMS import wizard'):
+            if 'Linear' in lines:
+                self.rb.SetSelection(0)
+            elif 'T-wave' in lines:
+                self.rb.SetSelection(1)
+            elif 'MS' in lines:
+                self.rb.SetSelection(2)
+            elif 'MS Times' in lines:
+                self.rb.SetSelection(3)
+
+        # From line 2, get column labels and set in grid
+        cols = lines[1].strip().split(',')
+        for col, value in enumerate(cols):
+            self.my_grid.SetColLabelValue(col, value)
+
+        # From line 3 onwards, get data and add to grid
+        for line in lines[2:]:
+            if line.strip() == '' or line[0] == '#':
+                continue
+            values = line.strip().split(',')
+            index = self.my_grid.next_free_row()
+            for col, value in enumerate(values):
+                self.my_grid.SetCellValue(index, col, value)
+
+
+
+
     def close(self, evt):
         self.Close()
+
+# Set up drag and drop
+class FileDropTarget(wx.FileDropTarget):
+    def __init__(self, window):
+        super().__init__()
+        self.window = window
+
+    def OnDropFiles(self, x, y, filenames):
+        for file in filenames:
+            if os.path.isfile(file):
+                self.window.load_file(file)
+            elif os.path.isdir(file):
+                self.window.folder_path.SetValue(file)
+                self.window.my_tree.populate_tree()
+        return True
 
 
 if __name__ == '__main__':
@@ -266,4 +323,8 @@ if __name__ == '__main__':
     app = wx.App(False)
     frame = ImportWizard(None)
     frame.Show()
+    path = r"C:\Data\DataTypeCollection\ImportWizardTest.csv"
+    frame.load_file(path)
     app.MainLoop()
+
+

@@ -114,15 +114,15 @@ def good_percentage_plot(df, datasets=None, type="All", figname="Good_Percentage
     plt.legend(loc="upper left")
     plt.ylim(0, 1400)
     plt.tight_layout()
-    plt.savefig(figname + ".png", dpi=600, bbox_inches="tight")
-    plt.savefig( figname + ".pdf")
+    # plt.savefig(figname + ".png", dpi=600, bbox_inches="tight")
+    # plt.savefig( figname + ".pdf")
 
 
 mpl.use("WxAgg")
 
 topdir = r"Z:\Group Share\Shivam\DDA"
 topdir = r"Z:\Group Share\Annika\IQ-X\Feb 2026 UntDDA\MSDial\Marked Low Score\RTP2"
-topdir = r"Z:\Group Share\Shivam\IQX Stellar 3\FinalResults"
+topdir = r"Z:\Group Share\Shivam\IQX Stellar 3\FinalResults\AS"
 os.chdir(topdir)
 
 # df = pd.read_csv("Combined_DDA_RT_Corrected_FullNames.csv")
