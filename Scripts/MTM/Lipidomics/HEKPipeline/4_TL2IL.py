@@ -5,8 +5,8 @@ from PublicScripts.Lipids.LipidFunctions import tl_to_il, derplicate_il
 topdir = r"Z:\Group Share\Annika\Stellar\HEK\tMS2"
 os.chdir(topdir)
 
-tlpath = r"Combined_TransitionList_10_Adjusted.csv"
-outpath = r"Combined_IsoList_Adjusted.csv"
+tlpath = r"Combined_TransitionList.csv"
+outpath = r"Combined_IsoList.csv"
 
 tldf = pd.read_csv(tlpath)
 

@@ -3,11 +3,11 @@ import pandas as pd
 import PublicScripts.Lipids.LipidFragPrediction as lfp
 from PublicScripts.Lipids.LipidFunctions import rename_overlapping_species
 
-topdir = r"Z:\Group Share\Annika\Stellar\HEK\tMS2"
+topdir = r"Z:\Group Share\Annika\IQ-X\AcquireX and Neo\AcquireX\Feb 2026 AX"
 os.chdir(topdir)
 
-filepath = r"Combined_TransitionList_Cleanest_3.csv"
-outfile = filepath.replace("_3.csv", "_4.csv")
+filepath = r"Combined_TransitionList.csv"
+outfile = filepath.replace("t.csv", "t_Clean.csv")
 
 df = pd.read_csv(filepath)
 
@@ -54,7 +54,7 @@ drop_names = ["CL 14:0_18:1_16:1_16:1", r"Cer 19:0;2O/43:0", r"Cer 18:1;O2/40:2"
               "PE 48:2", "PE 50:1", "PE 54:3", "PI 38:2", "PI 38:4", "PI 40:2", "PI 40:3", "PS 15:0", "PS 17:1", "PS 32:1", "PS 40:2", "TG 42:1|TG 12:0_12:0_18:1", "TG 44:0|TG 14:0_14:0_16:0", "PC 26:0", "PC 28:1", "PC 29:0", "PC 30:1", "PC 31:0",
               "SM 42:1;2", "SM 42:2;2", "SM 42:3;2", "SM 43:7;2", "SM 44:2;2", "SM 47:0;2", "SM 49:1;2", "SM 49:2;2", "SM 51:1;2", "SM 53:1;2", "SM 53:2;2", "SM 53:3;2", "SM 54:2;2", "SM 55:0;2", "SM 55:1;2", "SM 55:2;2", "SM 55:3;2", "SM 56:0;2",
               "SM 57:3;2", "SM 60:1;2", "SM 31:0;2", "SM 33:0;2", "SM 33:1;2", "SM 33:3;2", "SM 35:0;2", "SM 40:5;2|SM 18:2;2/22:3", "SM 43:2;2|SM 17:0;2/26:2", "SM 52:2;2|SM 18:1;2/34:1", "SM 57:1;2|SM 18:1;2/39:0", "SM 58:2;2|SM 18:0;2/40:2", "SM 59:1;2|SM 18:1;2/41:0",
-              "SM 61:1;2|SM 17:0;2/44:1", "SM 61:2;2|SM 17:0;2/44:2", "SM 61:3;2|SM 29:3;2/32:0", "SM 37:5;2", "SM 37:6;2", "SM 39:3;2", "SM 39:6;2", "SM 35:2;2", "SM 37:1;2", "SM 39:1;2",
+              "SM 61:1;2|SM 17:0;2/44:1", "SM 61:2;2|SM 17:0;2/44:2", "SM 61:3;2|SM 29:3;2/32:0", "SM 37:5;2", "SM 37:6;2", "SM 39:3;2", "SM 39:6;2", "SM 35:2;2", "SM 37:1;2", "SM 39:1;2", "PC O_38:0", "PC O-40:0|PC O-24:0_16:0",
 ]
 # Drop if Molecule Name contains any of the drop names
 for name in drop_names:

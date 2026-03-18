@@ -34,7 +34,7 @@ def prep_datasets(topdir, datasets, min_count=None, drop_d7=True, write_output=T
 
     if write_output:
         # Write out combined dataframe for reference
-        combineddf.to_csv("Combined_DDA.csv", index=False)
+        combineddf.to_csv("Combined_DDA_Full1.csv", index=False)
     return combineddf
 
 def full_name_assignment(df, rttol=0.1, rtcol="Average Rt(min)"):
