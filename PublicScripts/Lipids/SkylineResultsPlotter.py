@@ -207,6 +207,23 @@ def fix_name_order(names):
             fixednames.append(name)
     return fixednames
 
+def split_names(df, mol_col="Molecule"):
+    df = df.copy()
+    firstnames = []
+    secondnames = []
+    for i, row in df.iterrows():
+        name = row[mol_col]
+        if "|" in name:
+            first, second = name.split("|")
+        else:
+            first, second = name, name
+        firstnames.append(first)
+        secondnames.append(second)
+
+    df["First Name"] = firstnames
+    df["Second Name"] = secondnames
+    return df
+
 def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=True,
                     conc_col="Concentration (uM)"):
     adduct_col="Precursor Adduct" if "Precursor Adduct" in df.columns else "Adduct"
@@ -308,6 +325,127 @@ def normalize_tic(df, replicates):
         total = normdf[r].sum()
         normdf[r] = normdf[r] / total
     return normdf
+
+def make_trim_mask(values, trim_fraction):
+    n = len(values)
+    if n == 0:
+        return np.zeros(0, dtype=bool)
+    if trim_fraction <= 0 or n < 3:
+        return np.ones(n, dtype=bool)
+    ntrim = int(np.floor(n * trim_fraction))
+    if ntrim == 0:
+        return np.ones(n, dtype=bool)
+    if 2 * ntrim >= n:
+        ntrim = max((n - 1) // 2, 0)
+    order = np.argsort(values)
+    keep = np.zeros(n, dtype=bool)
+    keep[order[ntrim:n - ntrim]] = True
+    return keep
+
+def choose_reference_sample(matrix, totals):
+    scaled = matrix.divide(totals.replace(0, np.nan), axis=1)
+    uq = scaled.replace(0, np.nan).quantile(0.75, axis=0)
+    uq = uq.replace([np.inf, -np.inf], np.nan).dropna()
+    if len(uq) > 0:
+        return (uq - uq.median()).abs().idxmin()
+    return (totals[totals > 0] - totals[totals > 0].median()).abs().idxmin()
+
+def calc_tmm_factor(obs, ref, obs_total, ref_total, logratio_trim=0.30, sum_trim=0.05):
+    mask = np.isfinite(obs) & np.isfinite(ref) & (obs > 0) & (ref > 0)
+    if np.sum(mask) < 3:
+        return 1.0
+
+    obs = obs[mask]
+    ref = ref[mask]
+
+    norm_obs = obs / obs_total
+    norm_ref = ref / ref_total
+    m_vals = np.log2(norm_obs / norm_ref)
+    a_vals = 0.5 * np.log2(norm_obs * norm_ref)
+
+    keep = make_trim_mask(m_vals, logratio_trim) & make_trim_mask(a_vals, sum_trim)
+    if np.sum(keep) == 0:
+        keep = np.ones(len(m_vals), dtype=bool)
+
+    obs_keep = obs[keep]
+    ref_keep = ref[keep]
+    m_keep = m_vals[keep]
+
+    with np.errstate(divide='ignore', invalid='ignore'):
+        inv_var = ((obs_total - obs_keep) / (obs_total * obs_keep)) + ((ref_total - ref_keep) / (ref_total * ref_keep))
+        weights = np.where(np.isfinite(inv_var) & (inv_var > 0), 1.0 / inv_var, np.nan)
+
+    valid = np.isfinite(weights) & np.isfinite(m_keep)
+    if np.sum(valid) == 0:
+        mean_m = np.mean(m_keep)
+    else:
+        mean_m = np.average(m_keep[valid], weights=weights[valid])
+
+    factor = float(2 ** mean_m)
+    if not np.isfinite(factor) or factor <= 0:
+        return 1.0
+    return factor
+
+
+def normalize_trimmed_mean_mvalues(df, set1, set2):
+    """
+    Normalize replicate columns using trimmed mean of M-values (TMM).
+
+    This follows the standard TMM idea of estimating a per-sample scaling factor
+    against a reference sample by trimming extreme M-values and A-values. The
+    replicate columns from set1 and set2 are scaled while metadata columns are
+    preserved unchanged.
+
+    :param df: Wide dataframe containing replicate intensity columns.
+    :param set1: Replicate column names for group 1.
+    :param set2: Replicate column names for group 2.
+    :return: Copy of df with normalized replicate columns.
+    """
+    replicates = list(dict.fromkeys(list(set1) + list(set2)))
+    normdf = df.copy()
+
+    data = normdf[replicates].apply(pd.to_numeric, errors="coerce").fillna(0.0).astype(float)
+    lib_sizes = data.sum(axis=0).astype(float)
+
+    ref_col = choose_reference_sample(data, lib_sizes)
+    ref_total = float(lib_sizes[ref_col])
+    ref_values = data[ref_col].values.astype(float)
+
+    factors = pd.Series(1.0, index=replicates, dtype=float)
+    for r in replicates:
+        obs_total = float(lib_sizes[r])
+        if obs_total <= 0:
+            print(f"WARNING: Replicate '{r}' has zero total intensity. Leaving as zeros after TMM normalization.")
+            factors[r] = 1.0
+            continue
+        if r == ref_col:
+            factors[r] = 1.0
+            continue
+        factors[r] = calc_tmm_factor(data[r].values.astype(float), ref_values, obs_total, ref_total)
+
+    valid_factors = factors[(factors > 0) & np.isfinite(factors)]
+    if len(valid_factors) > 0:
+        factors = factors / np.exp(np.mean(np.log(valid_factors)))
+
+    effective_lib_sizes = lib_sizes * factors
+    valid_effective = effective_lib_sizes[(effective_lib_sizes > 0) & np.isfinite(effective_lib_sizes)]
+    if len(valid_effective) == 0:
+        print("WARNING: No valid effective library sizes were produced by TMM normalization. Returning unmodified data.")
+        normdf[replicates] = data
+        return normdf
+
+    scale_target = float(np.exp(np.mean(np.log(valid_effective))))
+    normalized = data.copy()
+    for r in replicates:
+        denom = effective_lib_sizes[r]
+        if not np.isfinite(denom) or denom <= 0:
+            normalized[r] = 0.0
+        else:
+            normalized[r] = data[r] / denom * scale_target
+
+    normdf[replicates] = normalized
+    return normdf
+
 
 def get_is_conc_from_isdf(isrow, isdf, conc_col):
     try:
@@ -879,7 +1017,8 @@ def filter_normdf(normdf, fold_range=1.):
     return normdfsorted
 
 def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
-                  normalize_TIC=True, paired=True, bh_correction=True, plot_results=True, heatplots=True,
+                  normalize_TIC=True, norm_tmm=False,
+                     paired=True, bh_correction=True, plot_results=True, heatplots=True,
                   piecharts=True, figsavepath=None, heatmap_cutoffs=True, write_output=True, fold_range=1.5,
                      otherthresh=0.035, set1_name="Set 1", set2_name="Set 2", drop_lipids=[]):
 
@@ -896,9 +1035,16 @@ def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normal
 
     normdf, replicates = sum_transitions(df, mode=mode, drop_IS=drop_IS, normalize_IS=normalize_IS,
                                          normalize_TIC=normalize_TIC)
+
+    if norm_tmm:
+        print("TMM Normalization")
+        normdf = normalize_trimmed_mean_mvalues(normdf, set1, set2)
+
     classdf, classsummarycols = class_calcs(normdf, set1, set2, paired=paired)
     normdf, summarycols = stats_calcs(normdf, set1, set2, paired=paired, bh_correction=bh_correction)
     print(len(normdf), "molecules after stats calculations.")
+
+    normdf = split_names(normdf)
 
     if write_output:
         try:
@@ -1094,8 +1240,9 @@ if __name__ == "__main__":
     # exit()
 
     normdf, classdf = compare_pipeline(file, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
+                                       norm_tmm=True,
                   normalize_TIC=True, paired=False, bh_correction=True, plot_results=True, write_output=True,
-                     fold_range=np.log2(5), otherthresh=0.03, set1_name="FT", set2_name="E", drop_lipids=["SM 35:1;2"])
+                     fold_range=np.log2(2), otherthresh=0.03, set1_name="FT", set2_name="E", drop_lipids=["SM 35:1;2"])
 
     exit()
     # Figure with pie 1 volcano pie 2 in a row
