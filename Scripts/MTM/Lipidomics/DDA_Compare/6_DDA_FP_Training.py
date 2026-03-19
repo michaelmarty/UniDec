@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
 from PublicScripts.Lipids.LipidOutlierAnalysis import dataset_split_rf_data, random_forest, plot_rf_results, \
-    prep_for_rf, plsr, random_split_rf_data, apply_rf_prediction
+    prep_for_rf, plsr, random_split_rf_data, apply_rf_prediction, get_isotope_ratio
 from PublicScripts.Lipids.LipidFunctions import smiles_analysis
 import joblib
 
@@ -20,6 +20,8 @@ os.chdir(topdir)
 
 filepath = r"Combined_DDA_OutlierAnalysis.xlsx"
 df = pd.read_excel(filepath)
+
+# df = get_isotope_ratio(df)
 print("Columns in df:")
 print(df.columns.tolist())
 # Drop any with "AqX" in the dataset name, since those are all not annotated and will just add noise to the model
@@ -56,7 +58,7 @@ for col in columns:
         if ("Class_z_" not in col):
             features.append(col)
 
-# features = ["Simple dot product", "Matched peaks count", "Class_strength", ]#, "LogSN", "RTdiff"]#, "SMILES_strength"]
+features = ["Simple dot product", "Matched peaks count", "Class_strength" ]#, "LogSN", "RTdiff"]#, "SMILES_strength"]
 
 df, features = prep_for_rf(df, features, one_hot_encode=True)
 
