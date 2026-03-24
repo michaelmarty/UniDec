@@ -13,10 +13,10 @@ rcParams['font.family'] = 'sans-serif'
 rcParams['font.sans-serif'] = 'Arial'
 rcParams['font.size'] = 12
 
-dir = r"Z:\Group Share\BHT\Short Temp\20251216_BHT_0o1mgmL_carbonicanhydrase_CDMS_2uLinj_merged_unidecfiles"
+dir = r"Z:\Group Share\BHT\Short Temp\b\20260314_BHT_agilentc8column_pegylatedcytokine_CDMS_30to45gradient_0o1mgmL_merged_unidecfiles"
 os.chdir(dir)
 
-kfile = "20251216_BHT_0o1mgmL_carbonicanhydrase_CDMS_2uLinj_merged_htkernel.txt"
+kfile = "20260314_BHT_agilentc8column_pegylatedcytokine_CDMS_30to45gradient_0o1mgmL_merged_htkernel.txt"
 kdat = np.loadtxt(kfile)
 
 tfile = "TIC_chrom.txt"
@@ -27,9 +27,9 @@ hdat = np.loadtxt(hfile)
 
 padindex = 0
 rollindex = 0
-ymax = 300  # y-axis top value
+ymax = 400  # y-axis top value
 
-for i in range(300, 750):
+for i in range(0, 569):
     startindex = i
 
     # Shift kernel and pad
