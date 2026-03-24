@@ -121,6 +121,9 @@ default_isdf["Concentration (uM)"] = default_isdf["Concentration (ug/mL)"] / def
 
 default_is_mapper = {"GM3": "PI", "PA": "PG", "PEtOH": "PG"}
 
+# print(default_isdf.to_string())
+# exit()
+
 def safedivide(a, b):
     """
     Divide numpy arrays b from a. Define a/0=0 to avoid zero division error.
@@ -245,6 +248,7 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
                                   "[M5H2+H]":"[M+H]", "[M5H2-H]":"[M-H]",
                                   "[M5H2+CH3COO]": "[M+CH3COO]", "[M5H2-CH3COO]": "[M-CH3COO]",
                                   "[M9H2+H]": "[M+H]", "[M9H2-H]": "[M-H]",
+                                  "[M7H2+H-H2O]": "[M+H-H2O]",
                                   "[M9H2+CH3COO]": "[M+CH3COO]", "[M9H2-CH3COO]": "[M-CH3COO]"}})
 
     rtcol = "RT" if "RT" in df.columns else "Retention Time"
@@ -293,6 +297,7 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
     outdf = pd.DataFrame(newrows)
 
     if normalize_IS:
+        print("Normalizing IS")
         outdf = normalize_is(outdf, replicates, conc_col)
         if len(outdf) == 0:
             raise ValueError("No data left after IS normalization. Check if IS compounds are present.")
@@ -300,10 +305,12 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
         outdf = outdf[~(outdf[replicates].sum(axis=1) == 0)]
 
     if drop_IS:
+        print("Dropping IS compounds")
         # Drop any rows where Molecule starts with "IS_"
         outdf = outdf[~outdf[mol_col].str.startswith("IS")]
 
     if normalize_TIC:
+        print("Normalizing TIC")
         outdf = normalize_tic(outdf, replicates)
 
     # Set any values less than minval to minval to avoid issues with log transformation later
@@ -1016,26 +1023,29 @@ def filter_normdf(normdf, fold_range=1.):
         normdfsorted = normdf.sort_values(by=["Log2FC"], ascending=[False])
     return normdfsorted
 
-def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
+def compare_pipeline(files, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
                   normalize_TIC=True, norm_tmm=False,
                      paired=True, bh_correction=True, plot_results=True, heatplots=True,
                   piecharts=True, figsavepath=None, heatmap_cutoffs=True, write_output=True, fold_range=1.5,
                      otherthresh=0.035, set1_name="Set 1", set2_name="Set 2", drop_lipids=[]):
 
-    df = pd.read_csv(filepath)
-    os.chdir(os.path.dirname(filepath))
+    dfs = []
+    for filepath in files:
+        df = pd.read_csv(filepath)
+        os.chdir(os.path.dirname(filepath))
+        dfs.append(df)
+
+    df = pd.concat(dfs, ignore_index=True)
 
     if len(drop_lipids) > 0:
         df = df[~df["Molecule"].isin(drop_lipids)]
         print(f"Dropped {len(drop_lipids)} lipids from the dataset: {drop_lipids}")
-
 
     # Limit to molecule list name of pc for testing
     # df = df[df["Molecule List Name"] == "PC"]
 
     normdf, replicates = sum_transitions(df, mode=mode, drop_IS=drop_IS, normalize_IS=normalize_IS,
                                          normalize_TIC=normalize_TIC)
-
     if norm_tmm:
         print("TMM Normalization")
         normdf = normalize_trimmed_mean_mvalues(normdf, set1, set2)
@@ -1045,6 +1055,7 @@ def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normal
     print(len(normdf), "molecules after stats calculations.")
 
     normdf = split_names(normdf)
+    print(normdf.to_string())
 
     if write_output:
         try:
@@ -1054,22 +1065,7 @@ def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normal
                 normdf.to_excel(writer, sheet_name="Molecule Stats", index=False)
                 df.to_excel(writer, sheet_name="Raw Data", index=False)
         except:
-            print("Error writing to Excel file. Writing to CSV instead.")
-
-            # # Do comparative formating on teh Molecule Stats sheet for the replicates
-            # workbook = writer.book
-            # worksheet = writer.sheets["Molecule Stats"]
-            # # Get the column indices for the replicates
-            # replicate_cols = [normdf.columns.get_loc(r) for r in replicates]
-            # # Apply conditional formatting to color from red to green with red being global minimum and green being global maximum for the whole set of replicates
-            # for col in replicate_cols:
-            #     col_letter = chr(65 + col)  # Convert column index to letter (assuming less than 26 columns)
-            #     worksheet.conditional_format(f"{col_letter}2:{col_letter}{len(normdf)+1}", {
-            #         'type': '2_color_scale',
-            #         'min_color': "#FF0000",
-            #         'max_color': "#00FF00"
-            #     })
-
+            print("ERROR writing to Excel file. Close file and try again!")
 
     # if write_output:
     #     # # Write classdf to CSV
@@ -1225,6 +1221,7 @@ def lipid_bar_chart_compare(df, classes=["PC"], ax=None, fontsize=8, s1name="Set
 
 if __name__ == "__main__":
     file = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\Molecule Transition Results.csv"
+    file2 = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\Molecule Transition Results Chol.csv"
     # file = r"C:\Users\marty\Downloads\Extr_US_MoleculeTransResults.csv"
 
     set1 = ["FT 1", "FT 2", "FT 3"]
@@ -1239,8 +1236,8 @@ if __name__ == "__main__":
     #
     # exit()
 
-    normdf, classdf = compare_pipeline(file, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
-                                       norm_tmm=True,
+    normdf, classdf = compare_pipeline([file, file2], set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
+                                       norm_tmm=False,
                   normalize_TIC=True, paired=False, bh_correction=True, plot_results=True, write_output=True,
                      fold_range=np.log2(2), otherthresh=0.03, set1_name="FT", set2_name="E", drop_lipids=["SM 35:1;2"])
 
