@@ -4,23 +4,29 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
 from PublicScripts.Lipids.LipidOutlierAnalysis import dataset_split_rf_data, random_forest, plot_rf_results, \
-    prep_for_rf, plsr, random_split_rf_data, apply_rf_prediction
+    prep_for_rf, plsr, random_split_rf_data, apply_rf_prediction, get_isotope_ratio
 from PublicScripts.Lipids.LipidFunctions import smiles_analysis
 import joblib
 
 mpl.use("WxAgg")
 
 topdir = r"Z:\Group Share\Shivam\DDA"
-topdir = r"Z:\Group Share\Annika\IQ-X\Feb 2026 UntDDA\MSDial\Marked Low Score\RTP2"
+topdir = r"Z:\Group Share\Shivam\Final_results"
+topdir = r"Z:\Group Share\Shivam\IQX Stellar 3\FinalResults"
+# topdir = r"Z:\Group Share\Annika\IQ-X\Feb 2026 UntDDA\MSDial\Marked Low Score\RTP2"
+# topdir = r"Z:\Group Share\Annika\IQX vs Stellar DDA\RTP2 Peak Masters and xml"
+
 os.chdir(topdir)
 
 filepath = r"Combined_DDA_OutlierAnalysis.xlsx"
 df = pd.read_excel(filepath)
+
+# df = get_isotope_ratio(df)
 print("Columns in df:")
 print(df.columns.tolist())
 # Drop any with "AqX" in the dataset name, since those are all not annotated and will just add noise to the model
 # df = df[~df["Dataset"].str.contains("AqX", case=False, na=False)]
-df = smiles_analysis(df, simtype="tanimoto", cutoff=0.1, fingerprinttype="rdkit")
+# df = smiles_analysis(df, simtype="tanimoto", cutoff=0.1, fingerprinttype="rdkit")
 
 drop_columns = ["Post curation result", "MS/MS assigned", "Annotation tag (VS1.0)", "INCHIKEY", "m/z matched",
                 "MS/MS matched", "Manually modified for quantification", "Manually modified for annotation",
@@ -39,11 +45,11 @@ not_features = ["Metabolite name", "Formula", "Ontology", "SMILES", "Comment", "
                 "MS/MS spectrum", "Ref Spec", "Polarity", "Dataset", "Dataset Count", "Tails", "T1", "T2", "T3",
                 "T4", "Low_Quality_Flag", 'Adduct type', "Match_Grade"]
 
-drop_features = ['Alignment ID', 'Average Rt(min)', 'Average Mz', 'Reference RT', 'Reference m/z', "RT matched",
-                 "Adduct_Match", "outlier", "Fill %", "S/N average", "Matched peaks percentage",
-                 "m/z similarity", "RT similarity", "RTdiff", "Class_Anomaly_Score", "Tail_Anomaly_Score",
-                 "Tail_z_Anomaly_Score", "Class_z_Anomaly_Score", "Tail_Match_Fraction", 'Reverse dot product',
-                 "LogSN", "mahalanobis", "Total score", "Headgroup_Match", "Weighted dot product", "Class_degree"]
+# drop_features = ['Alignment ID', 'Average Rt(min)', 'Average Mz', 'Reference RT', 'Reference m/z', "RT matched",
+#                  "Adduct_Match", "outlier", "Fill %", "S/N average", "Matched peaks percentage",
+#                  "m/z similarity", "RT similarity", "RTdiff", "Class_Anomaly_Score", "Tail_Anomaly_Score",
+#                  "Tail_z_Anomaly_Score", "Class_z_Anomaly_Score", "Tail_Match_Fraction", 'Reverse dot product',
+#                  "LogSN", "mahalanobis", "Total score", "Headgroup_Match", "Weighted dot product", "Class_degree"]
 drop_features = []
 columns = df.columns.tolist()
 features = []
@@ -52,9 +58,9 @@ for col in columns:
         if ("Class_z_" not in col):
             features.append(col)
 
-features = ["Simple dot product", "Matched peaks count", "Class_strength", "SMILES_strength"]
+features = ["Simple dot product", "Matched peaks count", "Class_strength" ]#, "LogSN", "RTdiff"]#, "SMILES_strength"]
 
-df, features = prep_for_rf(df, features, one_hot_encode=False)
+df, features = prep_for_rf(df, features, one_hot_encode=True)
 
 print("Features:", features)
 

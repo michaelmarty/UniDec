@@ -240,6 +240,9 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 v.8.1.2
 
+Added a Toggle for peak labelling in the experimental menu. Made peak labelling more robust and immediately appear and disappear.
+As noted in the Hidden Features page of the wiki, this can be activated by Space + Middle Click or Alt + Right Click.
+
 Added retention time integration into UniChrom and MetaUniDec. It will now report the area and apex value of var1 (RT) extracts.
 
 Added peak picking normalization parameter on MetaUniDec and UniChrom.
@@ -248,6 +251,8 @@ Changed UniChrom default to timemid rather than timestart.
 
 New hidden feature, setting a peak picking threshold of greater than 1 with the normalization on will 
 assume that the threshold is a multiple of the 90% percentile intensity value rather than a fraction of the max.
+
+Fixed Fill Down on Import Wizard when values were filled.
 
 v.8.1.1
 
