@@ -74,11 +74,11 @@ plt.legend()
 plt.tight_layout()
 
 # Save the plot as a 300 DPI PNG with a transparent background in the same folder as the first dataset
-output_path_png = os.path.join(os.path.dirname(file_paths[0]), 'total_ion_chromatoram_comparison.png')
+output_path_png = os.path.join(os.path.dirname(file_paths[0]), 'total_ion_chromatogram_comparison.png')
 plt.savefig(output_path_png, dpi=300, transparent=True)
 
 # Save the plot as a PDF in the same folder as the first dataset
-output_path_pdf = os.path.join(os.path.dirname(file_paths[0]), 'total_ion_chromatoram_comparison.pdf')
+output_path_pdf = os.path.join(os.path.dirname(file_paths[0]), 'total_ion_chromatogram_comparison.pdf')
 plt.savefig(output_path_pdf, dpi=300)
 
 # Print the output paths
