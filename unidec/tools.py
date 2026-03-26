@@ -430,8 +430,10 @@ def get_zvalue(ci=0.99):
 
 def integrate(data, start, end):
     boo1 = data[:, 0] < end
-    boo2 = data[:, 0] > start
+    boo2 = data[:, 0] >= start
     intdat = data[np.all([boo1, boo2], axis=0)]
+    if len(intdat) == 1:
+        return intdat[0, 1], intdat
     integral = np.trapezoid(intdat[:, 1], x=intdat[:, 0])
     return integral, intdat
 
@@ -1776,9 +1778,9 @@ def unidec_call(config, silent=False, conv=False, **kwargs):
     """
 
     call = [config.UniDecPath, str(config.confname)]
-
-    if config.autotune:
-        call.append("-autotune")
+    #
+    # if config.autotune:
+    #     call.append("-autotune")
 
     if conv:
         call.append("-conv")
@@ -1809,6 +1811,16 @@ def peakdetect(data, config=None, window=10, threshold=0, ppm=None, norm=True):
         window = config.peakwindow / config.massbins
         threshold = config.peakthresh
         norm = config.normthresh
+
+    if norm == 1 and threshold > 1:
+        # Get noise level by averaging lowest 90% of the data and multiplying by threshold
+        nonzerodata = data[data[:, 1] > 0][:, 1]
+        l1 = len(nonzerodata)
+        sdat = np.sort(np.ravel(nonzerodata))
+        index = round(l1 * 90 / 100.)
+        noise_level = sdat[index]
+        print("Noise Level:", noise_level, l1, index, np.amax(sdat))
+        threshold = noise_level * threshold / np.amax(sdat)
 
     peaks = []
     length = len(data)

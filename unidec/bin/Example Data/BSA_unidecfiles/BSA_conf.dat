@@ -1,11 +1,11 @@
-version 8.1.1
+version 8.1.2
 imflag 0
 cdmsflag 0
 input C:\Python\UniDecDev\unidec\bin\Example Data\BSA_unidecfiles\BSA_input.dat
 output C:\Python\UniDecDev\unidec\bin\Example Data\BSA_unidecfiles\BSA
 numit 50
-numz 25
-endz 25
+numz 80
+endz 80
 startz 1
 zzsig 1.0
 psig 1.0
@@ -15,21 +15,21 @@ psfun 0
 zpsfn 0
 discreteplot 0
 smashflag 0
-massub 150000.0
+massub 600000.0
 masslb 1000.0
 msig 0.0
 molig 0.0
 massbins 10.0
 mtabsig 0.0
 isomode 0
-minmz 2267.337324860533
-maxmz 7869.814616874398
+minmz 792.0801300282897
+maxmz 20213.939583611616
 subbuff 0.0
 subtype 2
 smooth 0.0
 mzbins 0.0
 peakwindow 50.0
-peakthresh 0.01
+peakthresh 10.0
 normthresh 1
 peakplotthresh 0.1
 plotsep 0.025
@@ -45,7 +45,7 @@ accvol 0.0
 peakshapeinflate 1.0
 noiseflag 0
 linflag 2
-cmap nipy_spectral
+cmap ocean_r
 peakcmap rainbow
 spectracmap rainbow
 publicationmode 1

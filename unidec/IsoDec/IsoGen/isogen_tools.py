@@ -1,3 +1,4 @@
+import molmass
 import pyteomics.mass as ms
 import numpy as np
 from collections import Counter
@@ -20,26 +21,26 @@ The format of this is a dictionary of elemental compositions of the 20 common am
 The order of the compositions by element is C, H, N, O, S (as is taken by isojim)
 '''
 aa_elementalcomp_dict = {
-    "A": np.array([3,5,1,1,0,0,0,0,0,0,0]),
-    "R": np.array([6,12,4,1,0,0,0,0,0,0,0]),
-    "N": np.array([4,6,2,2,0,0,0,0,0,0,0]),
-    "D": np.array([4,5,1,3,0,0,0,0,0,0,0]),
-    "C": np.array([3,5,1,1,1,0,0,0,0,0,0]),
-    "Q": np.array([5,8,2,2,0,0,0,0,0,0,0]),
-    "E": np.array([5,7,2,3,0,0,0,0,0,0,0]),
-    "G": np.array([2,3,1,1,0,0,0,0,0,0,0]),
-    "H": np.array([6,7,3,1,0,0,0,0,0,0,0]),
-    "I": np.array([6,11,1,1,0,0,0,0,0,0,0]),
-    "L": np.array([6,11,1,1,0,0,0,0,0,0,0]),
-    "K": np.array([6,12,2,1,0,0,0,0,0,0,0]),
-    "M": np.array([5,9,1,1,1,0,0,0,0,0,0]),
-    "F": np.array([9,9,1,1,0,0,0,0,0,0,0]),
-    "P": np.array([5,7,1,1,0,0,0,0,0,0,0]),
-    "S": np.array([5,7,1,2,0,0,0,0,0,0,0]),
-    "T": np.array([4,7,1,2,0,0,0,0,0,0,0]),
-    "W": np.array([11,10,2,1,0,0,0,0,0,0,0]),
-    "Y": np.array([9,9,1,2,0,0,0,0,0,0,0]),
-    "V": np.array([5,9,1,1,0,0,0,0,0,0,0])
+    "A": np.array([3,5,1,1,0]),
+    "R": np.array([6,12,4,1,0]),
+    "N": np.array([4,6,2,2,0]),
+    "D": np.array([4,5,1,3,0]),
+    "C": np.array([3,5,1,1,1]),
+    "Q": np.array([5,8,2,2,0]),
+    "E": np.array([5,7,2,3,0]),
+    "G": np.array([2,3,1,1,0]),
+    "H": np.array([6,7,3,1,0]),
+    "I": np.array([6,11,1,1,0]),
+    "L": np.array([6,11,1,1,0]),
+    "K": np.array([6,12,2,1,0]),
+    "M": np.array([5,9,1,1,1]),
+    "F": np.array([9,9,1,1,0]),
+    "P": np.array([5,7,1,1,0]),
+    "S": np.array([5,7,1,2,0]),
+    "T": np.array([4,7,1,2,0]),
+    "W": np.array([11,10,2,1,0]),
+    "Y": np.array([9,9,1,2,0]),
+    "V": np.array([5,9,1,1,0])
 }
 
 rnas = ['A', 'C', 'G', 'U']
@@ -52,24 +53,22 @@ rna_dict = {
     "U": "C9H11O8N2P"}
 
 # RNA Dictionary of Separated Nucleotide Formulas
-# Ordered by C,H,O,N,S
+# Ordered by C,H,N,O,S
 # These are the numbers of each element in the nucleotide
 # in the context of an oligonucleotide to my best approximation.
 # Does not take into account termininal groups (OH, PO4, etc)
 rna_dict_sep = {
-    "A": [10,12,5,5,0,0,0,0,0,0,0],
-    "C": [9,12,6,3,0,0,0,0,0,0,0],
-    "G": [10,12,6,5,0,0,0,0,0,0,0],
-    "U": [9,11,7,2,0,0,0,0,0,0,0]}
+    "A": np.array([10, 11, 5, 2]),
+    "C": np.array([9, 11, 3, 3]),
+    "G": np.array([10, 11, 5, 3]),
+    "U": np.array([9, 10, 2, 4])}
 
-rna_mass_dict = {
-    "A": 347.221,
-    "C": 323.209,
-    "G": 363.221,
-    "U": 324.203}
+phospho = np.array([0, 0, 0, 4])
+
+rnaformula_dict_keys = ["C", "H", "N", "O"]
 
 
-rnaveragine_comp_numerical = np.array([9.4999, 11.7038, 6.0010, 3.70037, 1])
+rnaveragine_comp_numerical = np.array([9.50, 10.75, 3.75, 7.0, 0])
 rnaveragine_mass = 304.6166 #Da
 
 rdict = {}
@@ -92,9 +91,8 @@ for i, d in enumerate(dna_dict):
 massavgine = 111.1254
 avgine = np.array([4.9384, 7.7583, 1.3577, 1.4773, 0.0417])
 '''Ordered as C, H, N, O, S, P'''
-rnaveragine_comp_numerical = np.array([9.50, 10.70, 6.09, 3.70, 0, 1])
-rnaveragine_comp_forisolist = np.array([9.50, 10.70, 6.09, 3.70, 0, 0, 0, 0, 0, 0, 0])
-rnaveragine_mass = 321.29163925 #Da
+rnaveragine_comp_forisolist = np.array([9.50, 10.70, 3.70, 7.00, 0])
+rnaveragine_mass = 312.9514 #Da
 isotopes = np.array(
     [
         [[12.0, 98.90], [13.0033548, 1.10], [0, 0], [0, 0]],
@@ -137,43 +135,6 @@ def rna_makemass(mass):
     intnum = [int(round(n)) for n in num]
     return intnum
 
-
-# # @njit(fastmath=True)
-# def isojim(isolist, length=128):
-#     """Thanks to Jim Prell for Sketching this Code"""
-#     buffer = np.zeros(length)
-#     h = np.array([1, 0.00015, 0, 0])
-#     c = np.array([1, 0.011, 0, 0])
-#     n = np.array([1, 0.0037, 0, 0])
-#     o = np.array([1, 0.0004, 0.002, 0])
-#     s = np.array([1, 0.0079, 0.044, 0])
-#     h = np.append(h, buffer)
-#     c = np.append(c, buffer)
-#     n = np.append(n, buffer)
-#     o = np.append(o, buffer)
-#     s = np.append(s, buffer)
-#
-#     dt = np.dtype(np.complex128)
-#     hft = fftpack.rfft(h).astype(dt)
-#     cft = fftpack.rfft(c).astype(dt)
-#     nft = fftpack.rfft(n).astype(dt)
-#     oft = fftpack.rfft(o).astype(dt)
-#     sft = fftpack.rfft(s).astype(dt)
-#
-#     numc = isolist[0]
-#     numh = isolist[1]
-#     numn = isolist[2]
-#     numo = isolist[3]
-#     nums = isolist[4]
-#
-#     allft = cft**numc * hft**numh * nft**numn * oft**numo * sft**nums
-#
-#     # with nb.objmode(allift='float64[:]'):
-#     #    allift = fftpack.irfft(allft)
-#     allift = np.abs(fftpack.irfft(allft))
-#     # allift = np.abs(allift)
-#     allift = allift / np.amax(allift)
-#     return allift[:length]  # .astype(nb.float64)
 
 def pepmass_to_dist(mass, isolen=128):
     _, minmassint, isolist = pep_makemass(mass)
@@ -267,6 +228,52 @@ def peptide_to_mass(peptide):
     except Exception:
         return None
     return mass + mod_mass
+
+def add_nucleotide_to_dict(count, nuc_dict, seq_dict):
+    for k,v in nuc_dict.items():
+        seq_dict[k] += count * v
+
+    return seq_dict
+
+def rnaseq_to_mass(rna_seq):
+    formula_list = np.array([0,2,0,2])
+    n = len(rna_seq)
+
+    formula_list += (n-1) * phospho
+
+    for nuc in rna_seq:
+        if nuc in rna_dict_sep:
+            formula_list += rna_dict_sep[nuc]
+        else:
+            print("Unexpected nucleotide found: ", nuc)
+
+    formula_string = ""
+    for i,atom in enumerate(formula_list):
+        formula_string = formula_string + str(rnaformula_dict_keys[i]) + str(formula_list[i]) + " "
+
+    formula_string = formula_string + "P" + str(n-1)
+    formula = molmass.Formula(formula_string)
+
+    return formula.monoisotopic_mass
+
+def rnaseq_to_formula(rna_seq):
+    formula_list = np.array([0, 2, 0, 2])
+    n = len(rna_seq)
+
+    formula_list += (n - 1) * phospho
+
+    for nuc in rna_seq:
+        if nuc in rna_dict_sep:
+            formula_list += rna_dict_sep[nuc]
+        else:
+            print("Unexpected nucleotide found: ", nuc)
+
+    formula_string = ""
+    for i, atom in enumerate(formula_list):
+        formula_string = formula_string + str(rnaformula_dict_keys[i]) + str(formula_list[i]) + " "
+
+    formula_string = formula_string + "P" + str(n - 1)
+    return formula_string
 
 # Convert peptide sequence into vector
 def peptide_to_vector(peptide):
@@ -370,22 +377,14 @@ def rnamass_to_dist(mass, isolen=128):
     return dist
 
 
-isogenrnaveragine_massranges = [[200, 20000], [1000, 80000], [8000, 160000]]
-isogenrnaveragine_isolens = [32, 64, 128]
-
 def rnamass_to_isolen(mass):
     if mass < 18000:
         return 32
-    elif mass > 1800 and mass < 75000:
+    elif mass > 18000 and mass < 75000:
         return 64
-    elif mass < 160000:
-        return 128
     else:
-        return -1
+        return 128
 
-
-isogenmass_massranges = [[800, 12000], [50, 60000], [8000, 120000]]
-isogenmass_isolens = [32, 64, 128]
 
 def pepmass_to_isolen(mass):
     if mass < 11000:
@@ -400,21 +399,6 @@ def pepmass_to_isolen(mass):
 #Take the total mass, then divide by the total number of atoms in the averagine
 #Then multiply by
 if __name__ == "__main__":
-    fullseq = "CKLH[PO4]CKLAH"
-    fullseq1 = "[PO4]CKLHCK[H3COO]LAH"
-    fullseq2 = "CKLHCKLAH[PO4]"
-
-    print(peptide_to_vector(fullseq))
-    print(peptide_to_vector(fullseq1))
-    print(peptide_to_vector(fullseq2))
+    seq = "ACGU"
+    mass = rnaseq_to_mass(seq)
     exit()
-
-
-    rnaseq = "GUAC"
-    dnaseq = "GATC"
-    print(rnaseq_to_vector(rnaseq))
-    print(dnaseq_to_vector(dnaseq))
-    print(rnaseq_to_dist(rnaseq))
-    print(dnaseq_to_dist(dnaseq))
-    print(len(elements))
-

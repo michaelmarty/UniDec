@@ -921,3 +921,10 @@ class UniDecPres(object):
 
     def on_pick_peaks(self, evt=None):
         pass
+
+    def on_toggle_lflag(self, evt=None):
+        print("Toggling LFlag")
+        # Loop over plots in view
+        for plot in self.view.plots:
+            if plot is not None and plot.zoom is not None:
+                plot.zoom.switch_label()

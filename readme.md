@@ -153,11 +153,23 @@ However, if you want to look at chromatography data directly, we now recommend U
 Most users will likely just want to run the compiled version. For those advanced users who have experience with Python,
 we have provided the source code for the GUI and API. For more information, check out this [walkthrough](https://github.com/michaelmarty/UniDec/wiki/Installing-the-UniDec-Source-Code). Specific package requirements are outlined in the setup.py file.
 
-However, an experimental distribution is provide on PyPI. Using:
+You can also install it off PyPI using:
 
     pip install unidec
 
-should install UniDec on your computer and install any required dependencies. Try this out first and see if it works.
+It may not be the most updated version, so let me know if it is out of date.
+
+If you would like to try to run experimental features from the v3 branch, this set of commands will pull and install it:
+
+    virtualenv env
+    .\env\Scripts\activate
+    git clone https://github.com/michaelmarty/UniDec.git -b v3
+    cd UniDec
+    pip install -r requirements.txt
+    pip install pythonnet # IF ON WINDOWS
+    python -m unidec.Launcher
+
+
 
 ### The UniDec Binaries
 
@@ -226,6 +238,22 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 ## Change Log
 
+v.8.1.2
+
+Added a Toggle for peak labelling in the experimental menu. Made peak labelling more robust and immediately appear and disappear.
+As noted in the Hidden Features page of the wiki, this can be activated by Space + Middle Click or Alt + Right Click.
+
+Added retention time integration into UniChrom and MetaUniDec. It will now report the area and apex value of var1 (RT) extracts.
+
+Added peak picking normalization parameter on MetaUniDec and UniChrom.
+
+Changed UniChrom default to timemid rather than timestart.
+
+New hidden feature, setting a peak picking threshold of greater than 1 with the normalization on will 
+assume that the threshold is a multiple of the 90% percentile intensity value rather than a fraction of the max.
+
+Fixed Fill Down on Import Wizard when values were filled.
+
 v.8.1.1
 
 Added code signing to help with security warnings on Windows.
@@ -234,6 +262,8 @@ Added ability to use "n*" notation when defining combinations in UPP. As long as
 it will use it as multiples. For example, "2*Seq1" will be the same as "Seq1+Seq1". Note, this also means that * in sequence names is not allowed.
 
 Fixed bug for Oligomer and Mass Tools matching and simulation.
+
+Fixed two major bugs for UniDecCD when using not normalized data.
 
 Added export to Meta and UniChrom for peak apex values, including mass, intensity, dscore, and var1 apex location.
 

@@ -46,6 +46,7 @@ void MakeKernel2D(float *peak, const int *Size, const float *dH, const float *dC
 
 int mod(const int a, const int b);
 float clip(const float x, const float cutoff);
+float clip_floor(const float x, const float floor);
 float euclid(float a, float b, float c, float d);
 float calcmz(const float mass, const int z, const float adductmass);
 float calcmass(const float mz, const int z, const float adductmass);

@@ -1,4 +1,4 @@
-version 8.1.0
+version 8.1.2
 imflag 0
 cdmsflag 0
 input C:\Python\UniDecDev\unidec\bin\Example Data\ADH_unidecfiles\ADH_input.dat
@@ -29,7 +29,7 @@ subtype 2
 smooth 0.0
 mzbins 1.0
 peakwindow 500.0
-peakthresh 0.1
+peakthresh 3.0
 normthresh 0
 peakplotthresh 0.1
 plotsep 0.025
