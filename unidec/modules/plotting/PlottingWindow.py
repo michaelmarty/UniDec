@@ -132,6 +132,9 @@ class PlottingWindowBase(PlotBase, wx.Panel):
         :param resetzoom: Boolean, whether to reset zooming
         :return: None
         """
+        if self.zoom is not None:
+            self.zoom.kill_labels(repaint=False)
+
         if resetzoom:
             self.reset_zoom()
 
@@ -147,6 +150,7 @@ class PlottingWindowBase(PlotBase, wx.Panel):
                 pass
         if self.zoomvals is not None:
             self.set_zoomvals()
+
         self.canvas.draw()
         self.active_size = self.GetSize()
 
@@ -388,6 +392,12 @@ class PlottingWindowBase(PlotBase, wx.Panel):
         :param groups: Group of axes to link zoom together for
         :return: None
         """
+        if self.zoom is not None:
+            priorlflag = self.zoom.lflag
+        else:
+            priorlflag = 0
+        # print("Prior LFlag:", priorlflag)
+
         # setup for zoom box
         if groups is None:
             groups = [1, 2, 3, 4, 5, 6, 7, 8]
@@ -423,6 +433,9 @@ class PlottingWindowBase(PlotBase, wx.Panel):
                 useblit=True,
                 onmove_callback=None,
                 rectprops=dict(alpha=0.2, facecolor='yellow'))
+
+        # Reset Lflag to what it was before
+        self.zoom.lflag = priorlflag
 
     def on_newxy(self, x, y):
         # print(x, y)

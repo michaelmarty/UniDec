@@ -75,6 +75,7 @@ class_color_map = {
     "TG": "#8F1458",
     "TAG": "#8F1458",
     "FA": "#FFA1DB",
+    "FAHFA": "#FF0000",
     "CE": "#D10081",
     "NAE": "#777777",
     "ST": "#B40808",
@@ -218,7 +219,7 @@ class_nfattyacids = {
 }
 
 hg_simplifier = {"Cer_AP": "Cer", "Cer_HDS": "Cer", 'Cer_NDS': "Cer", 'Cer_NP': "Cer", 'Cer_NS': "Cer",
-                 "Cer_EODS" : "Cer", "Cer_EOS" : "Cer", "Cer_HS" : "Cer", "Cer_AS": "Cer",
+                 "Cer_EODS" : "Cer", "Cer_EOS" : "Cer", "Cer_HS" : "Cer", "Cer_AS": "Cer", "Cer_ADS" : "Cer",
                  "HexCer_AP": "HexCer", "HexCer_NDS": "HexCer", "HexCer_HS": "HexCer", "HexCer_NS": "HexCer",
                  "HexCer_EOS": "HexCer", "HexCer_HDS": "HexCer", "AHexCer": "HexCer", "Hex2Cer": "HexCer",
                  "Hex3Cer": "HexCer", "SHexCer": "HexCer", "ASM": "SM", "LNAPE":"PE", "LNAPS":"PS", "NAPE":"PE", "NAPS":"PS",
@@ -457,6 +458,7 @@ def set_tails(df, columnname="Molecule Name"):
     return df
 
 def set_basic_tail_names(df, columnname="Molecule Name"):
+    df = df.copy()
     tnames = []
     t1s = []
     t2s = []
@@ -690,7 +692,8 @@ def msdial_to_transitionlist(df, cutoff=0, spectrumkey="Ref Spec", rtwindow=4, r
     proddf = pd.DataFrame(newrows)
 
     # Drop MS/MS spectrum column
-    proddf = proddf.drop(columns=[spectrumkey])
+    proddf = proddf.drop(columns=[spectrumkey], errors="ignore")
+    proddf = pd.DataFrame(newrows)
 
     # If remove_precursors is True, drop rows where Product Mz is greater than 5 below Precursor Mz
     if remove_precursors:
@@ -2273,7 +2276,7 @@ def simplify_class_df(df, class_col="Ontology"):
     df[class_col] = df[class_col].apply(simplify_class_name)
     return df
 
-def mzrt_plot(df, class_col="Ontology", title="", simplify=True):
+def mzrt_plot(df, class_col="Ontology", title="", simplify=True, write_file=False, labeln=False, rtcol="Average Rt(min)", mzcol="Average Mz"):
     # ------------------------------
     # Plot setup
     # ------------------------------
@@ -2308,7 +2311,7 @@ def mzrt_plot(df, class_col="Ontology", title="", simplify=True):
     # Plot
     # ------------------------------
     plt.figure(figsize=(12, 8))
-    plt.scatter(df["Average Rt(min)"], df["Average Mz"], c=df["Color"], s=80)
+    plt.scatter(df[rtcol], df[mzcol], c=df["Color"], s=80)
 
     plt.gca().spines['top'].set_visible(False)
     plt.gca().spines['right'].set_visible(False)
@@ -2318,16 +2321,17 @@ def mzrt_plot(df, class_col="Ontology", title="", simplify=True):
     plt.xticks(np.arange(0.0, 18, 2.5))
     plt.yticks(np.arange(0.0, 1600.1, 200))
 
-    # Add total number of lipids on the plot
-    total_lipids = len(df)
-    plt.text(
-        0.98, 0.98, f"Total lipids: {total_lipids}",
-        horizontalalignment='right',
-        verticalalignment='top',
-        transform=plt.gca().transAxes,
-        fontsize=20,
-        bbox=dict(facecolor='white', alpha=0.6, edgecolor='none', pad=5)
-    )
+    if labeln:
+        # Add total number of lipids on the plot
+        total_lipids = len(df)
+        plt.text(
+            0.98, 0.98, f"Total lipids: {total_lipids}",
+            horizontalalignment='right',
+            verticalalignment='top',
+            transform=plt.gca().transAxes,
+            fontsize=20,
+            bbox=dict(facecolor='white', alpha=0.6, edgecolor='none', pad=5)
+        )
 
     ncol = min(6, len(unique_classes))
     plt.legend(handles=custom_legend, loc='upper center', bbox_to_anchor=(0.5, -0.1),
@@ -2335,4 +2339,8 @@ def mzrt_plot(df, class_col="Ontology", title="", simplify=True):
 
     plt.subplots_adjust(bottom=0.25)
     plt.tight_layout()
+    if write_file:
+        plt.savefig(f"{title}_mzrt_plot.pdf", bbox_inches='tight')
+        plt.savefig(f"{title}_mzrt_plot.png", bbox_inches='tight', dpi=300)
+
     plt.show()

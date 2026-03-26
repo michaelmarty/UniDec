@@ -83,6 +83,29 @@ struct Decon {
     int maxlength;
 };
 
+typedef struct IntraDecon IntraDecon;
+
+struct IntraDecon {
+    int mlength;
+    int zlength;
+    int numclose;
+    int ln;
+    float betafactor;
+    int off;
+    char *barr;
+    int * mind;
+    int * zind;
+    int * closemind;
+    int * closezind;
+    int * closeind;
+    float * mdist;
+    float * zdist;
+    float * oldblur;
+    float * closeval;
+    float * closearray;
+    float * dataInt2;
+};
+
 
 typedef struct Config Config;
 
@@ -186,13 +209,26 @@ struct Config {
     int normthresh;
 };
 
-UDSTRUCT_EXPORTS Input SetupInputs();
+typedef struct Spectrum Spectrum;
+
+struct Spectrum {
+    Config *config;
+    Input *inp;
+    Decon *decon;
+    IntraDecon *intra;
+};
+
+UDSTRUCT_EXPORTS Input InitInputs();
 UDSTRUCT_EXPORTS void FreeInputs(Input inp);
-UDSTRUCT_EXPORTS Decon SetupDecon();
+UDSTRUCT_EXPORTS Decon InitDecon();
 UDSTRUCT_EXPORTS void FreeDecon(Decon decon);
+UDSTRUCT_EXPORTS IntraDecon InitIntraDecon();
+UDSTRUCT_EXPORTS void FreeIntraDecon(IntraDecon intradecon);
 UDSTRUCT_EXPORTS void SetDefaultConfig(Config *config);
 UDSTRUCT_EXPORTS void PostImport(Config *config);
 UDSTRUCT_EXPORTS Config LoadConfig(Config config, const char *filename);
 UDSTRUCT_EXPORTS void PrintHelp();
+UDSTRUCT_EXPORTS Spectrum InitSpectrum();
+UDSTRUCT_EXPORTS void FreeSpectrum(Spectrum spec);
 
 #endif //UDSTRUCT_H

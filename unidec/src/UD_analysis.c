@@ -294,9 +294,13 @@ int peak_detect(const float *dataMZ, const float *dataInt, const int lengthmz, c
 			if (threshold_index < lengthmz) {
 				threshval = sorted[threshold_index] * thresh;
 			}
+			free(sorted);
 		}
 	}
-	else { threshval = thresh; }
+	else {
+		threshval = thresh;
+		// printf("Threshval %f max %f\n", threshval, max);
+	}
 
 
 
@@ -782,10 +786,10 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 
 			//Import everything
 			config.metamode = i;
-			Decon decon = SetupDecon();
-			Input inp = SetupInputs();
+			Decon decon = InitDecon();
+			Input inp = InitInputs();
 
-			ReadInputs(argc, argv, &config, &inp);
+			ReadInputs(&config, &inp);
 
 			int status = ReadDecon(&config, inp, &decon);
 

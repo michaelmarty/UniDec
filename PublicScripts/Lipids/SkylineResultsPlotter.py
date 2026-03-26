@@ -9,6 +9,18 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib as mpl
 import io
 from PublicScripts.Lipids.LipidFunctions import simplify_class_df, get_color_for_class
+from copy import deepcopy
+from matplotlib.gridspec import GridSpec
+
+mpl.rcParams['ps.useafm'] = True
+mpl.rcParams['ps.fonttype'] = 42
+mpl.rcParams['pdf.fonttype'] = 42
+mpl.rcParams['lines.linewidth'] = 1
+mpl.rcParams['errorbar.capsize'] = 3
+mpl.rcParams['patch.force_edgecolor'] = True
+mpl.rcParams['patch.facecolor'] = 'b'
+mpl.rcParams['lines.markersize'] = 7
+mpl.rcParams['font.size'] = 12
 
 mpl.use("WxAgg")
 
@@ -93,6 +105,13 @@ default_isdf = pd.read_csv(io.StringIO(israw))
 default_isdf = default_isdf.rename(columns={"Lipid": "Name 1", "Name 2": "Lipid"})
 # Drop "IS " prefix from "Lipid" column
 default_isdf["Lipid"] = default_isdf["Lipid"].str.replace(r"^IS\s+", "", regex=True)
+# Replace - in "Lipid" column with _
+default_isdf["Lipid"] = default_isdf["Lipid"].str.replace("-", "_")
+# Replace TAG with TG and DAG with DG in "Lipid" column
+default_isdf["Lipid"] = default_isdf["Lipid"].str.replace("TAG", "TG")
+default_isdf["Lipid"] = default_isdf["Lipid"].str.replace("DAG", "DG")
+# print(default_isdf.to_string())
+
 # Drop last two columns
 # default_isdf = default_isdf.iloc[:, :-2]
 # Calculated mass from m/z avg
@@ -101,6 +120,20 @@ default_isdf["Mass"] = (default_isdf["m/z (+)"] + default_isdf["m/z (-)"]) / 2.
 default_isdf["Concentration (uM)"] = default_isdf["Concentration (ug/mL)"] / default_isdf["Mass"]
 
 default_is_mapper = {"GM3": "PI", "PA": "PG", "PEtOH": "PG"}
+
+# print(default_isdf.to_string())
+# exit()
+
+def safedivide(a, b):
+    """
+    Divide numpy arrays b from a. Define a/0=0 to avoid zero division error.
+    :param a: Numerator
+    :param b: Denominator
+    :return: a/b
+    """
+    c = deepcopy(b)
+    c[b != 0] = a[b != 0] / b[b != 0]
+    return c
 
 def get_row_dict(id, mdf):
     row = mdf[mdf["Alignment ID"] == id]
@@ -145,6 +178,55 @@ def clean_classes(df):
     df["Molecule List Name"] = df["Molecule List Name"].str.replace("ST 27:1;1", "ST")
     return df
 
+def clean_names(names, split_side=1):
+    # Split at the | character and take the split_side part (0 for left, 1 for right)
+    # If "|" is not present, keep the original name
+    names = names.str.split("|").str[split_side].fillna(names)
+    # names = names.str.split("|").str[split_side]
+    # Replace any - with _ in "Molecule" column
+    names = names.str.replace("-", "_")
+    return names
+
+def fix_name_order(names):
+    fixednames = []
+    for name in names:
+        if not isinstance(name, str):
+            print(name)
+            fixednames.append(name)
+            continue
+        if "_" in name:
+            p1 = name.split(" ")[0]
+            p2 = name.split(" ")[1]
+            # If "P" or "O" in p2 just add original name and continue
+            if "P" in p2 or "O" in p2:
+                fixednames.append(name)
+                continue
+            # For tails in p2, split at the _ and then order them in ascending order and join with a _
+            tails = p2.split("_")
+            tails = sorted(tails, key=lambda x: int(x.split(":")[0]))
+            p2 = "_".join(tails)
+            fixednames.append(f"{p1} {p2}")
+        else:
+            fixednames.append(name)
+    return fixednames
+
+def split_names(df, mol_col="Molecule"):
+    df = df.copy()
+    firstnames = []
+    secondnames = []
+    for i, row in df.iterrows():
+        name = row[mol_col]
+        if "|" in name:
+            first, second = name.split("|")
+        else:
+            first, second = name, name
+        firstnames.append(first)
+        secondnames.append(second)
+
+    df["First Name"] = firstnames
+    df["Second Name"] = secondnames
+    return df
+
 def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=True,
                     conc_col="Concentration (uM)"):
     adduct_col="Precursor Adduct" if "Precursor Adduct" in df.columns else "Adduct"
@@ -166,11 +248,15 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
                                   "[M5H2+H]":"[M+H]", "[M5H2-H]":"[M-H]",
                                   "[M5H2+CH3COO]": "[M+CH3COO]", "[M5H2-CH3COO]": "[M-CH3COO]",
                                   "[M9H2+H]": "[M+H]", "[M9H2-H]": "[M-H]",
+                                  "[M7H2+H-H2O]": "[M+H-H2O]",
                                   "[M9H2+CH3COO]": "[M+CH3COO]", "[M9H2-CH3COO]": "[M-CH3COO]"}})
 
     rtcol = "RT" if "RT" in df.columns else "Retention Time"
     # Precompute average RT per molecule
     rt_df = df.groupby(mol_col)[rtcol].mean().reset_index()
+
+    mzcol = "Precursor Mz"
+    mz_df = df.groupby(mol_col)[mzcol].mean().reset_index()
 
     newrows = []
     for m in molecules:
@@ -179,7 +265,8 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
         adducts = subdf[adduct_col].unique()
         for a in adducts:
             newrow = {"Molecule": m, "Molecule List Name": df[df[mol_col] == m][class_col].values[0],
-                      "RT": rt_df[rt_df[mol_col] == m][rtcol].values[0], "Adduct": a}
+                      "RT": rt_df[rt_df[mol_col] == m][rtcol].values[0],
+                      "Adduct": a}
             for r in replicates:
                 mask = (df[mol_col] == m) & (df[rep_col] == r) & (df[adduct_col] == a)
                 subset = df[mask]
@@ -203,13 +290,14 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
             if normalize_IS:
                 # If any IS values have a zero in any replicate, skip this IS compound
                 if any(newrow[r] == 0 for r in replicates) and m.startswith("IS"):
-                    print(f"WARNING: Removing IS compound {m} with adduct {a}")
+                    print(f"WARNING: Removing IS compound {m} with adduct {a} because it is 0")
                     continue
             newrows.append(newrow)
 
     outdf = pd.DataFrame(newrows)
 
     if normalize_IS:
+        print("Normalizing IS")
         outdf = normalize_is(outdf, replicates, conc_col)
         if len(outdf) == 0:
             raise ValueError("No data left after IS normalization. Check if IS compounds are present.")
@@ -217,11 +305,17 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
         outdf = outdf[~(outdf[replicates].sum(axis=1) == 0)]
 
     if drop_IS:
+        print("Dropping IS compounds")
         # Drop any rows where Molecule starts with "IS_"
         outdf = outdf[~outdf[mol_col].str.startswith("IS")]
 
     if normalize_TIC:
+        print("Normalizing TIC")
         outdf = normalize_tic(outdf, replicates)
+
+    # Set any values less than minval to minval to avoid issues with log transformation later
+    # for r in replicates:
+    #     outdf[r] = outdf[r].apply(lambda x: max(x, minval))
 
     # Calculate CV for each molecule across all replicates
     # Drop all where mean is 0 to avoid division by zero
@@ -238,6 +332,127 @@ def normalize_tic(df, replicates):
         total = normdf[r].sum()
         normdf[r] = normdf[r] / total
     return normdf
+
+def make_trim_mask(values, trim_fraction):
+    n = len(values)
+    if n == 0:
+        return np.zeros(0, dtype=bool)
+    if trim_fraction <= 0 or n < 3:
+        return np.ones(n, dtype=bool)
+    ntrim = int(np.floor(n * trim_fraction))
+    if ntrim == 0:
+        return np.ones(n, dtype=bool)
+    if 2 * ntrim >= n:
+        ntrim = max((n - 1) // 2, 0)
+    order = np.argsort(values)
+    keep = np.zeros(n, dtype=bool)
+    keep[order[ntrim:n - ntrim]] = True
+    return keep
+
+def choose_reference_sample(matrix, totals):
+    scaled = matrix.divide(totals.replace(0, np.nan), axis=1)
+    uq = scaled.replace(0, np.nan).quantile(0.75, axis=0)
+    uq = uq.replace([np.inf, -np.inf], np.nan).dropna()
+    if len(uq) > 0:
+        return (uq - uq.median()).abs().idxmin()
+    return (totals[totals > 0] - totals[totals > 0].median()).abs().idxmin()
+
+def calc_tmm_factor(obs, ref, obs_total, ref_total, logratio_trim=0.30, sum_trim=0.05):
+    mask = np.isfinite(obs) & np.isfinite(ref) & (obs > 0) & (ref > 0)
+    if np.sum(mask) < 3:
+        return 1.0
+
+    obs = obs[mask]
+    ref = ref[mask]
+
+    norm_obs = obs / obs_total
+    norm_ref = ref / ref_total
+    m_vals = np.log2(norm_obs / norm_ref)
+    a_vals = 0.5 * np.log2(norm_obs * norm_ref)
+
+    keep = make_trim_mask(m_vals, logratio_trim) & make_trim_mask(a_vals, sum_trim)
+    if np.sum(keep) == 0:
+        keep = np.ones(len(m_vals), dtype=bool)
+
+    obs_keep = obs[keep]
+    ref_keep = ref[keep]
+    m_keep = m_vals[keep]
+
+    with np.errstate(divide='ignore', invalid='ignore'):
+        inv_var = ((obs_total - obs_keep) / (obs_total * obs_keep)) + ((ref_total - ref_keep) / (ref_total * ref_keep))
+        weights = np.where(np.isfinite(inv_var) & (inv_var > 0), 1.0 / inv_var, np.nan)
+
+    valid = np.isfinite(weights) & np.isfinite(m_keep)
+    if np.sum(valid) == 0:
+        mean_m = np.mean(m_keep)
+    else:
+        mean_m = np.average(m_keep[valid], weights=weights[valid])
+
+    factor = float(2 ** mean_m)
+    if not np.isfinite(factor) or factor <= 0:
+        return 1.0
+    return factor
+
+
+def normalize_trimmed_mean_mvalues(df, set1, set2):
+    """
+    Normalize replicate columns using trimmed mean of M-values (TMM).
+
+    This follows the standard TMM idea of estimating a per-sample scaling factor
+    against a reference sample by trimming extreme M-values and A-values. The
+    replicate columns from set1 and set2 are scaled while metadata columns are
+    preserved unchanged.
+
+    :param df: Wide dataframe containing replicate intensity columns.
+    :param set1: Replicate column names for group 1.
+    :param set2: Replicate column names for group 2.
+    :return: Copy of df with normalized replicate columns.
+    """
+    replicates = list(dict.fromkeys(list(set1) + list(set2)))
+    normdf = df.copy()
+
+    data = normdf[replicates].apply(pd.to_numeric, errors="coerce").fillna(0.0).astype(float)
+    lib_sizes = data.sum(axis=0).astype(float)
+
+    ref_col = choose_reference_sample(data, lib_sizes)
+    ref_total = float(lib_sizes[ref_col])
+    ref_values = data[ref_col].values.astype(float)
+
+    factors = pd.Series(1.0, index=replicates, dtype=float)
+    for r in replicates:
+        obs_total = float(lib_sizes[r])
+        if obs_total <= 0:
+            print(f"WARNING: Replicate '{r}' has zero total intensity. Leaving as zeros after TMM normalization.")
+            factors[r] = 1.0
+            continue
+        if r == ref_col:
+            factors[r] = 1.0
+            continue
+        factors[r] = calc_tmm_factor(data[r].values.astype(float), ref_values, obs_total, ref_total)
+
+    valid_factors = factors[(factors > 0) & np.isfinite(factors)]
+    if len(valid_factors) > 0:
+        factors = factors / np.exp(np.mean(np.log(valid_factors)))
+
+    effective_lib_sizes = lib_sizes * factors
+    valid_effective = effective_lib_sizes[(effective_lib_sizes > 0) & np.isfinite(effective_lib_sizes)]
+    if len(valid_effective) == 0:
+        print("WARNING: No valid effective library sizes were produced by TMM normalization. Returning unmodified data.")
+        normdf[replicates] = data
+        return normdf
+
+    scale_target = float(np.exp(np.mean(np.log(valid_effective))))
+    normalized = data.copy()
+    for r in replicates:
+        denom = effective_lib_sizes[r]
+        if not np.isfinite(denom) or denom <= 0:
+            normalized[r] = 0.0
+        else:
+            normalized[r] = data[r] / denom * scale_target
+
+    normdf[replicates] = normalized
+    return normdf
+
 
 def get_is_conc_from_isdf(isrow, isdf, conc_col):
     try:
@@ -348,8 +563,27 @@ def get_is(df, class_name, adduct, is_mapper_dict=None):
     isrows = subdf[subdf["Molecule"].str.startswith("IS ")]
     return isrows
 
+def dereplicate_adducts(normdf, replicates):
+    # for each lipid name, if there are two different adducts, take the mean of the two adducts for each replicate and use that as the value for a merged row with the name of the lipid and a summed string of both adducts
+    outrows = []
+    lipids = normdf["Molecule"].unique()
+    for lipid in lipids:
+        subdf = normdf[normdf["Molecule"] == lipid]
+        adducts = subdf["Adduct"].unique()
+        if len(adducts) == 1:
+            outrows.append(subdf.iloc[0])
+        else:
+            newrow = subdf.iloc[0].copy()
+            newrow["Adduct"] = "+".join(adducts)
+            for r in replicates:
+                newrow[r] = subdf[r].mean()
+            outrows.append(newrow)
+    outdf = pd.DataFrame(outrows)
+    print(len(normdf), "rows before dereplication, ", len(outdf), "rows after dereplication.")
+    return outdf
 
-def normalize_is(df, replicates, conc_col, isdf=default_isdf):
+
+def normalize_is(df, replicates, conc_col, isdf=default_isdf, dereplicate=True):
     normdf = df.copy()
     classes = normdf["Molecule List Name"].unique()
     for r in replicates:
@@ -395,6 +629,9 @@ def normalize_is(df, replicates, conc_col, isdf=default_isdf):
             mask = (mask1) & (mask2) & (mask3)
             normdf.loc[mask, replicates] = normdata
 
+    if dereplicate:
+        normdf = dereplicate_adducts(normdf, replicates)
+
     return normdf
 
 
@@ -405,6 +642,8 @@ def stats_calcs(df, replicates_set1, replicates_set2, paired=False, bh_correctio
     set2_means = df[replicates_set2].mean(axis=1)
     df["Set1_Mean"] = set1_means
     df["Set2_Mean"] = set2_means
+    df["Set1_CV"] = df[replicates_set1].std(axis=1, ddof=1) / set1_means
+    df["Set2_CV"] = df[replicates_set2].std(axis=1, ddof=1) / set2_means
 
     summarycols = []
     if paired:
@@ -431,9 +670,13 @@ def stats_calcs(df, replicates_set1, replicates_set2, paired=False, bh_correctio
         # Propagate standard deviation
         set1_std = df[replicates_set1].std(axis=1, ddof=1)
         set2_std = df[replicates_set2].std(axis=1, ddof=1)
-        df["StdDevFC"] = df["FC"] * np.sqrt((set1_std / set1_means) ** 2 + (set2_std / set2_means) ** 2)
+        # Make sure to handle cases where set1_means or set2_means are zero to avoid division by zero
+        df["StdDevFC"] = df["FC"] * np.sqrt(safedivide(set1_std , set1_means) ** 2 + safedivide(set2_std , set2_means) ** 2)
         df["CI95_FC"] = stats.t.ppf(0.975, df=len(replicates_set1) + len(replicates_set2) - 2) * (
                     df["StdDevFC"] / np.sqrt(len(replicates_set1) + len(replicates_set2)))
+
+    # Drop any with a fold change of 0
+    df = df[df["FC"] != 0].copy()
 
     p_values = []
     for index, row in df.iterrows():
@@ -452,6 +695,9 @@ def stats_calcs(df, replicates_set1, replicates_set2, paired=False, bh_correctio
             _, p = stats.ttest_ind(set1_values, set2_values)
         p_values.append(p)
     df["p-value"] = p_values
+
+    # Drop any that are inf or nan in Log2FC or Log10p
+    df = df.replace([np.inf, -np.inf], np.nan).dropna(subset=["FC", "p-value"])
 
     if bh_correction:
         corrected = multipletests(df["p-value"], method='fdr_bh')
@@ -481,11 +727,12 @@ def class_calcs(df, replicate_set1, replicate_set2, class_col="Molecule List Nam
         outdf = normalize_tic(outdf, replicates)
 
     outdf, summarycols = stats_calcs(outdf, replicate_set1, replicate_set2, paired=paired, bh_correction=bh_correction)
-    print(outdf)
+    # print(outdf)
     return outdf, summarycols
 
 
-def make_volcano_plot(df, log2fc_col="Log2FC", neglogp_col="Log10p", title="Volcano Plot", ax=None, xlims=[-12, 12]):
+def make_volcano_plot(df, log2fc_col="Log2FC", neglogp_col="Log10p", title="Volcano Plot", ax=None, xlims=[-8, 8],
+                      fold_range=1.):
     if ax is None:
         plt.figure(figsize=(8, 6))
     else:
@@ -494,16 +741,19 @@ def make_volcano_plot(df, log2fc_col="Log2FC", neglogp_col="Log10p", title="Volc
     classes = df["Molecule List Name"].unique()
     # colors = plt.cm.get_cmap('tab10', len(classes))
     # class_color_map = {cls: colors(i) for i, cls in enumerate(classes)}
-    sizes = df["Mean"]
-    # Scale sizes to between 20 and 50
-    sizes = 20 + (sizes - sizes.min()) / (sizes.max() - sizes.min()) * (50 - 20)
-    plt.scatter(df[log2fc_col], df[neglogp_col], alpha=0.7, c=df["Molecule List Name"].map(get_color_for_class), s=sizes)
+    # sizes = df["Mean"]
+    # # Scale sizes to between 20 and 50
+    # sizes = 20 + (sizes - sizes.min()) / (sizes.max() - sizes.min()) * (50 - 20)
+
+    # Clip log2fc values to xlims for better visualization
+    df[log2fc_col] = df[log2fc_col].clip(lower=xlims[0]+0.15, upper=xlims[1]-0.15)
+    plt.scatter(df[log2fc_col], df[neglogp_col], alpha=0.7, c=df["Molecule List Name"].map(get_color_for_class))
     plt.title(title)
-    plt.xlabel("Log2 Fold Change")
-    plt.ylabel("-Log10 p-value")
+    plt.xlabel("Log\u2082 Fold Change")
+    plt.ylabel("-Log\u2081\u2080 p-value")
     plt.axhline(y=-np.log10(0.05), color='r', linestyle='--')
-    plt.axvline(x=1, color='g', linestyle='--')
-    plt.axvline(x=-1, color='g', linestyle='--')
+    plt.axvline(x=fold_range, color='g', linestyle='--')
+    plt.axvline(x=-fold_range, color='g', linestyle='--')
     plt.xlim(xlims)
 
     # Add cursor hover to show molecule names
@@ -537,7 +787,7 @@ def make_volcano_plot(df, log2fc_col="Log2FC", neglogp_col="Log10p", title="Volc
 
 
 
-def make_class_plots(classdf, ax=None, fclimit=10):
+def make_class_plots(classdf, ax=None, fclimit=None):
     if ax is None:
         plt.figure(figsize=(10, 6))
     else:
@@ -554,7 +804,7 @@ def make_class_plots(classdf, ax=None, fclimit=10):
     else:
         rotation=0
 
-    plt.bar(classdf["Molecule List Name"], classdf["FC"], yerr=classdf["StdDevFC"], color=colors,
+    plt.bar(classdf["Molecule List Name"], classdf["FC"], yerr=classdf["CI95_FC"], color=colors,
             label=labels, capsize=5)
     plt.xticks(rotation=rotation)
     # line at y=1
@@ -590,19 +840,28 @@ def pca_plot(df, replicates_set1, replicates_set2, title="PCA Plot", ax=None):
     plt.ylabel(f'PC2 - {pca.explained_variance_ratio_[1] * 100:.2f}%')
     plt.legend(pc_df['Group'].unique())
 
-def heatmap_plot(df, replicates, title="Heatmap", ax=None, lindex=-3, colormap='viridis', normtype="minmax", scale="linear"):
+def heatmap_plot(df, replicates, title="Heatmap", ax=None, lindex=0, colormap='viridis', normtype="minmax",
+                 scale="linear", class_rect=False, fontsize=5, color_classes=False, colorbar=None):
     data = df[replicates].values
     vmax = 1-1e-12
     vmin = 1e-12
+    dmax = np.max(data)
+    dmin = np.min(data)
     if normtype=="minmax":
         # Normalize data to 0-1 for better color mapping
-        data = (data - np.min(data)) / (np.max(data) - np.min(data))
+        data = (data - dmin) / (dmax - dmin)
     elif normtype=="zscore":
         data = StandardScaler().fit_transform(data)
     elif normtype=="zerocentered":
         data = (data / (2 * np.amax(np.abs(data)))) + 0.5
+        extreme = np.amax(np.abs([dmin, dmax]))
+        dmin = -extreme
+        dmax = extreme
     elif normtype=="onecentered":
         data = ((data - 1) / (2 * np.amax(np.abs(data - 1)))) + 0.5
+        extreme = np.amax(np.abs([dmin, dmax]))
+        dmin = -extreme
+        dmax = extreme
     elif normtype=="zerocentered_clip":
         data = data + 0.5
         data[data < vmin] = vmin
@@ -619,31 +878,42 @@ def heatmap_plot(df, replicates, title="Heatmap", ax=None, lindex=-3, colormap='
         plt.sca(ax)
 
     plt.imshow(data, aspect='auto', cmap=colormap, norm=scale, vmax=vmax, vmin=vmin)
-    # plt.colorbar(label='Normalized Intensity')
-    plt.yticks(ticks=np.arange(len(df)), labels=df['Molecule'], fontsize=5)
     # Labels are last 3 characters of replicates
     labels = [r[lindex:] for r in replicates]
-    plt.xticks(ticks=np.arange(len(replicates)), labels=labels, rotation=0, fontsize=8)
+    plt.xticks(ticks=np.arange(len(replicates)), labels=labels, rotation=0, fontsize=12)
+    # If color classes, color ytick labels by class with a colored dot ahead of the label
+    ylabels = df['Molecule']
+    if color_classes:
+        classes = df["Molecule List Name"].values
+        for i, cls in enumerate(classes):
+            plt.text(-0.6, i, "●", color=get_color_for_class(cls), fontsize=fontsize*1.5, va='center', ha='right')
+        # Add 3 spaces to the end of each label to avoid overlap with the colored dot
+        ylabels = [label + "     " for label in ylabels]
 
-    # Draw colored rectangles around each class
-    classes = df["Molecule List Name"].values
-    class_changes = [0]
-    for i in range(1, len(classes)):
-        if classes[i] != classes[i - 1]:
-            class_changes.append(i)
-    class_changes.append(len(classes))
-    for i in range(len(class_changes) - 1):
-        start = class_changes[i] - 0.5
-        end = class_changes[i + 1] - 0.5
-        rect = mpl.patches.Rectangle(( -0.5, start), len(replicates), end - start,
-                                     linewidth=1, edgecolor=get_color_for_class(classes[class_changes[i]]),
-                                     facecolor='none')
-        plt.gca().add_patch(rect)
-        # print(start, end)
-        # # Add a thick colored line to the right of the rectangle
-        # line = mpl.lines.Line2D([len(replicates) - 0.5, len(replicates) - 0.5], [start, end],
-        #                         linewidth=3, color=class_color_map[classes[class_changes[i]]])
-        # plt.gca().add_line(line)
+    plt.yticks(ticks=np.arange(len(df)), labels=ylabels, fontsize=fontsize)
+
+    if colorbar is not None:
+        cb = plt.colorbar(label=colorbar, pad=0.02, aspect=75)
+        # Label ticks on color bar with dmin, 0, dmax
+        cb.set_ticks([vmin, 0.5, vmax])
+        cb.set_ticklabels([f"{dmin:.1f}", "0", f"{dmax:.1f}"])
+
+    if class_rect:
+        # Draw colored rectangles around each class
+        classes = df["Molecule List Name"].values
+        class_changes = [0]
+        for i in range(1, len(classes)):
+            if classes[i] != classes[i - 1]:
+                class_changes.append(i)
+        class_changes.append(len(classes))
+        for i in range(len(class_changes) - 1):
+            start = class_changes[i] - 0.5
+            end = class_changes[i + 1] - 0.5
+            rect = mpl.patches.Rectangle(( -0.5, start), len(replicates), end - start,
+                                         linewidth=1, edgecolor=get_color_for_class(classes[class_changes[i]]),
+                                         facecolor='none')
+            plt.gca().add_patch(rect)
+
 
     plt.title(title)
 
@@ -741,54 +1011,106 @@ def cv_pipeline(filepath, results_set=None, mode="Products", drop_IS=True, norma
         plt.show()
 
 
+def filter_normdf(normdf, fold_range=1.):
+    normdfsorted = normdf.sort_values(by=["Log2FC"], ascending=[False])
 
+    # Filter normdfsorted to only include rows where -log10p > 1.3 (p<0.05) and abs(log2FC) > 1
+    normdfsorted = normdfsorted[
+        (normdfsorted["Log10p"] > -np.log10(0.05)) & (normdfsorted["Log2FC"].abs() > fold_range)]
+    if len(normdfsorted) == 0:
+        print("No significant molecules found for heatmap after applying cutoffs.")
+        # normdfsorted = normdf.sort_values(by=["Molecule List Name", "Mean"], ascending=[True, False])
+        normdfsorted = normdf.sort_values(by=["Log2FC"], ascending=[False])
+    return normdfsorted
 
-def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
-                  normalize_TIC=True, paired=True, bh_correction=True, plot_results=True, heatplots=True,
-                  piecharts=True, figsavepath=None):
+def compare_pipeline(files, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
+                  normalize_TIC=True, norm_tmm=False,
+                     paired=True, bh_correction=True, plot_results=True, heatplots=True,
+                  piecharts=True, figsavepath=None, heatmap_cutoffs=True, write_output=True, fold_range=1.5,
+                     otherthresh=0.035, set1_name="Set 1", set2_name="Set 2", drop_lipids=[]):
 
-    df = pd.read_csv(filepath)
+    dfs = []
+    for filepath in files:
+        df = pd.read_csv(filepath)
+        os.chdir(os.path.dirname(filepath))
+        dfs.append(df)
+
+    df = pd.concat(dfs, ignore_index=True)
+
+    if len(drop_lipids) > 0:
+        df = df[~df["Molecule"].isin(drop_lipids)]
+        print(f"Dropped {len(drop_lipids)} lipids from the dataset: {drop_lipids}")
+
+    # Limit to molecule list name of pc for testing
+    # df = df[df["Molecule List Name"] == "PC"]
+
     normdf, replicates = sum_transitions(df, mode=mode, drop_IS=drop_IS, normalize_IS=normalize_IS,
                                          normalize_TIC=normalize_TIC)
+    if norm_tmm:
+        print("TMM Normalization")
+        normdf = normalize_trimmed_mean_mvalues(normdf, set1, set2)
+
     classdf, classsummarycols = class_calcs(normdf, set1, set2, paired=paired)
     normdf, summarycols = stats_calcs(normdf, set1, set2, paired=paired, bh_correction=bh_correction)
+    print(len(normdf), "molecules after stats calculations.")
 
-    # Write to two sheets in an Excel file
-    with pd.ExcelWriter(os.path.splitext(filepath)[0] + "_stats.xlsx") as writer:
-        classdf.to_excel(writer, sheet_name="Class Stats", index=False)
-        normdf.to_excel(writer, sheet_name="Molecule Stats", index=False)
-        df.to_excel(writer, sheet_name="Raw Data", index=False)
+    normdf = split_names(normdf)
+    print(normdf.to_string())
 
-    # # Write classdf to CSV
-    # classdf.to_csv(os.path.splitext(filepath)[0] + "_class_stats.csv", index=False)
-    # # Write normdf to CSV
-    # normdf.to_csv(os.path.splitext(filepath)[0] + "_molecule_stats.csv", index=False)
+    if write_output:
+        try:
+            # Write to two sheets in an Excel file
+            with pd.ExcelWriter(os.path.splitext(filepath)[0] + "_stats.xlsx") as writer:
+                classdf.to_excel(writer, sheet_name="Class Stats", index=False)
+                normdf.to_excel(writer, sheet_name="Molecule Stats", index=False)
+                df.to_excel(writer, sheet_name="Raw Data", index=False)
+        except:
+            print("ERROR writing to Excel file. Close file and try again!")
+
+    # if write_output:
+    #     # # Write classdf to CSV
+    #     classdf.to_csv(os.path.splitext(filepath)[0] + "_class_stats.csv", index=False)
+    #     # # Write normdf to CSV
+    #     normdf.to_csv(os.path.splitext(filepath)[0] + "_molecule_stats.csv", index=False)
 
     if plot_results:
-        plt.figure(figsize=(18, 10))
+
         nrow = 1
         if heatplots:
             nrow +=1
         if piecharts:
             nrow +=1
         ncol = 3
-        ax1 = plt.subplot(nrow, ncol, 1)
+
+        fig = plt.figure(figsize=(18, 10))
+        gs = GridSpec(nrow, ncol, figure=fig)
+
+        # ax1 = plt.subplot(nrow, ncol, 1)
+        ax1 = fig.add_subplot(gs[0, 0])
         make_class_plots(classdf, ax=ax1)
 
-        ax2 = plt.subplot(nrow, ncol, 2)
-        make_volcano_plot(normdf, title="Volcano Plot", ax=ax2)
+        # ax2 = plt.subplot(nrow, ncol, 2)
+        ax2 = fig.add_subplot(gs[0, 1])
+        make_volcano_plot(normdf, title="Volcano Plot", ax=ax2, fold_range=fold_range)
 
-        ax3 = plt.subplot(nrow, ncol, 3)
+        # ax3 = plt.subplot(nrow, ncol, 3)
+        ax3 = fig.add_subplot(gs[0, 2])
         pca_plot(normdf, set1, set2, title="PCA Plot", ax=ax3)
 
         i=3
         if heatplots:
-            ax4 = plt.subplot(nrow, ncol, i+1)
+            # ax4 = plt.subplot(nrow, ncol, i+1)
+            ax4 = fig.add_subplot(gs[1, 0])
             # Sort normdf by class and then by Mean
-            normdfsorted = normdf.sort_values(by=["Molecule List Name", "Mean"], ascending=[True, False])
+            if heatmap_cutoffs:
+                normdfsorted = filter_normdf(normdf, fold_range=fold_range)
+            else:
+                normdfsorted = normdf.sort_values(by=["Molecule List Name", "Mean"], ascending=[True, False])
+
             heatmap_plot(normdfsorted, replicates, title="Heatmap", ax=ax4, normtype="minmax", scale="linear")
 
-            ax5 = plt.subplot(nrow, ncol, i+2)
+            # ax5 = plt.subplot(nrow, ncol, i+2)
+            ax5 = fig.add_subplot(gs[1, 1])
             if paired:
                 titleval = "Paired Ratio Heatmap"
                 normtype = "onecentered"
@@ -799,16 +1121,19 @@ def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normal
                 cmap = "viridis"
             heatmap_plot(normdfsorted, summarycols, title=titleval, ax=ax5, lindex=0, colormap=cmap, normtype=normtype)
 
-            ax6 = plt.subplot(nrow, ncol, i+3)
+            ax6 = fig.add_subplot(gs[1:, 2])
             cols = ["Log2FC", "StdDevFC"]
-            heatmap_plot(normdfsorted, cols, title="Fold Change Heatmap", ax=ax6, lindex=0, colormap="RdBu_r", normtype="zerocentered")
+            heatmap_plot(normdfsorted, cols, title="Fold Change Heatmap", ax=ax6, lindex=0, colormap="RdBu_r",
+                         normtype="zerocentered", fontsize=8)
             i += 3
 
         if piecharts:
-            ax7 = plt.subplot(nrow, ncol, i+1)
-            pie_chart(classdf, "Set1_Mean", ax=ax7, title="Class Distribution Set 1")
-            ax8 = plt.subplot(nrow, ncol, i+2)
-            pie_chart(classdf, "Set2_Mean", ax=ax8, title="Class Distribution Set 2")
+            # ax7 = plt.subplot(nrow, ncol, i+1)
+            ax7 = fig.add_subplot(gs[-1, 0])
+            pie_chart(classdf, "Set1_Mean", ax=ax7, title="Class Distribution " + set1_name, otherthresh=otherthresh)
+            # ax8 = plt.subplot(nrow, ncol, i+2)
+            ax8 = fig.add_subplot(gs[-1, 1])
+            pie_chart(classdf, "Set2_Mean", ax=ax8, title="Class Distribution " + set2_name, otherthresh=otherthresh)
 
         plt.tight_layout()
 
@@ -816,6 +1141,8 @@ def compare_pipeline(filepath, set1, set2, mode="Products", drop_IS=True, normal
             plt.savefig(figsavepath)
 
         plt.show()
+
+    return normdf, classdf
 
 def is_analysis(file, mode="Products", isdf=None):
     df = pd.read_csv(file)
@@ -836,7 +1163,7 @@ def is_analysis(file, mode="Products", isdf=None):
                 response_factor = row[r] / conc if conc != 0 else 0
                 isrows.at[i, r + "_RF"] = response_factor
         else:
-            print(f"IS Compound: {isname}, Class: {isclass}, Replicate: {r}, Concentration: Unknown, Area: {row[r]}, Response Factor: Unknown (no matching IS found in IS dataframe)")
+            print(f"IS Compound: {isname}, Class: {isclass}, Concentration: Unknown. Response Factor: Unknown (no matching IS found in IS dataframe)")
 
     # Mean response factor across replicates for each IS compound
     rf_cols = [r + "_RF" for r in replicates]
@@ -845,22 +1172,85 @@ def is_analysis(file, mode="Products", isdf=None):
     isrows["CV_RF"] = isrows[rf_cols].std(axis=1, ddof=1) / isrows[rf_cols].mean(axis=1)
     print(isrows.to_string())
 
+def lipid_bar_chart_compare(df, classes=["PC"], ax=None, fontsize=8, s1name="Set 1", s2name="Set 2", log2fclimit=0):
+    if ax is None:
+        plt.figure(figsize=(8, 6))
+    else:
+        plt.sca(ax)
+
+    subdf = df[df["Molecule List Name"].isin(classes)]
+    # Sort by molecule name
+    subdf = subdf.sort_values(by=["Molecule"], ascending=[True])
+    # Means are Set1_Mean and Set2_Mean columns
+    # Errors are Set1_CV and Set2_CV columns multiplied by the means to get standard deviation
+    x = np.arange(len(subdf))
+    labels = subdf["Molecule"]
+    # Drop before "|" in labels for better readability
+    labels = clean_names(labels, split_side=1)
+    labels = fix_name_order(labels)
+    width = 0.35
+    plt.bar(x - width/2, subdf["Set1_Mean"], width, yerr=subdf["Set1_CV"] * subdf["Set1_Mean"], label=s1name, capsize=5)
+    plt.bar(x + width/2, subdf["Set2_Mean"], width, yerr=subdf["Set2_CV"] * subdf["Set2_Mean"], label=s2name, capsize=5)
+    bmax = max((subdf["Set1_Mean"] + subdf["Set1_CV"] * subdf["Set1_Mean"]).max(), (subdf["Set2_Mean"] + subdf["Set2_CV"] * subdf["Set2_Mean"]).max())
+    # Add significance stars based on p-value with thresholds of 0.05, 0.01, and 0.001
+    offset = bmax * 0.02
+    for i, pval in enumerate(subdf["p-value"]):
+        log2fc = subdf["Log2FC"].iloc[i]
+        if abs(log2fc) < log2fclimit:
+            continue
+
+        if pval < 0.001:
+            plt.text(x[i], max(subdf["Set1_Mean"].iloc[i] + subdf["Set1_CV"].iloc[i] * subdf["Set1_Mean"].iloc[i],
+                               subdf["Set2_Mean"].iloc[i] + subdf["Set2_CV"].iloc[i] * subdf["Set2_Mean"].iloc[i]) + offset,
+                     "***", ha='center', va='bottom', fontsize=fontsize)
+        elif pval < 0.01:
+            plt.text(x[i], max(subdf["Set1_Mean"].iloc[i] + subdf["Set1_CV"].iloc[i] * subdf["Set1_Mean"].iloc[i],
+                               subdf["Set2_Mean"].iloc[i] + subdf["Set2_CV"].iloc[i] * subdf["Set2_Mean"].iloc[i]) + offset,
+                     "**", ha='center', va='bottom', fontsize=fontsize)
+        elif pval < 0.05:
+            plt.text(x[i], max(subdf["Set1_Mean"].iloc[i] + subdf["Set1_CV"].iloc[i] * subdf["Set1_Mean"].iloc[i],
+                               subdf["Set2_Mean"].iloc[i] + subdf["Set2_CV"].iloc[i] * subdf["Set2_Mean"].iloc[i]) + offset,
+                     "*", ha='center', va='bottom', fontsize=fontsize)
+
+    plt.xticks(x, labels, rotation=90, fontsize=fontsize)
+    plt.legend()
+    plt.ylabel("Mol %")
+    plt.title("Lipid Comparison for " + ", ".join(classes))
+
 
 
 if __name__ == "__main__":
-    file = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\Molecule Transition Results.csv"
+    file = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\Molecule Transition Results.csv"
+    file2 = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\Molecule Transition Results Chol.csv"
     # file = r"C:\Users\marty\Downloads\Extr_US_MoleculeTransResults.csv"
 
-    # set1 = ["0.5% FT1", "0.5% FT2", "0.5% FT3"]
-    set2 = ["Rep1", "Rep2", "Rep3"]
+    set1 = ["FT 1", "FT 2", "FT 3"]
+    set2 = ["E 1", "E 2", "E 3"]
+    set3 = ["Memb Extr 1", "Memb Extr 2", "Memb Extr 3"]
 
-    is_analysis(file)
+    # is_analysis(file)
+    # exit()
+
+    # cv_pipeline(file, results_set=set2, mode="Products", drop_IS=False, normalize_IS=False, normalize_TIC=False,
+    #             write_output=True, plot_results=True)
+    #
+    # exit()
+
+    normdf, classdf = compare_pipeline([file, file2], set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
+                                       norm_tmm=False,
+                  normalize_TIC=True, paired=False, bh_correction=True, plot_results=True, write_output=True,
+                     fold_range=np.log2(2), otherthresh=0.03, set1_name="FT", set2_name="E", drop_lipids=["SM 35:1;2"])
+
     exit()
-
-    cv_pipeline(file, results_set=set2, mode="Products", drop_IS=False, normalize_IS=False, normalize_TIC=False,
-                write_output=True, plot_results=True)
-
-    exit()
-
-    compare_pipeline(file, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
-                  normalize_TIC=True, paired=True, bh_correction=True, plot_results=True)
+    # Figure with pie 1 volcano pie 2 in a row
+    plt.figure(figsize=(18, 6))
+    ax1 = plt.subplot(1, 3, 1)
+    pie_chart(classdf, "Set1_Mean", ax=ax1, title="Membrane Extract", otherthresh=0.015)
+    ax2 = plt.subplot(1, 3, 2)
+    make_volcano_plot(normdf, title="Volcano Plot", ax=ax2, fold_range=np.log2(1.75), xlims=[-6, 6])
+    ax3 = plt.subplot(1, 3, 3)
+    pie_chart(classdf, "Set2_Mean", ax=ax3, title="CB2 Nanodiscs", otherthresh=0.015)
+    plt.tight_layout()
+    plt.savefig(os.path.splitext(file)[0] + "_volcano_pies.png")
+    plt.savefig(os.path.splitext(file)[0] + "_volcano_pies.pdf")
+    plt.show()

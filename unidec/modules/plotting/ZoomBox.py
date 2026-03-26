@@ -88,7 +88,8 @@ class ZoomBox(ZoomCommon):
          2 = center mouse button (scroll wheel)
          3 = right mouse button
         """
-        super(ZoomCommon, self).__init__()
+        # super(ZoomCommon, self).__init__()
+        super().__init__()
         self.crossoverpercent = 0.06
         self.pad = pad
         self.parent = parent

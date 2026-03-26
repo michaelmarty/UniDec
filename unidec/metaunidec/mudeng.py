@@ -591,8 +591,10 @@ if __name__ == '__main__':
     # path = "C:\\Data\\HTS_Sharon\\20220404-5_sequence_Shortlist.csv"
     # eng.csv_reader(path)
     file = r"C:\Data\TestSpectra\JAW.hdf5"
+    file = r"C:\Data\UniDecTest\SEC_Native_Bispecific_Special.hdf5"
 
     eng.open(file)
+    eng.config.dtsig = 4
     eng.run_unidec()
-    eng.sum_masses()
-    eng.export_2D_decon_3column()
+    # eng.sum_masses()
+    # eng.export_2D_decon_3column()

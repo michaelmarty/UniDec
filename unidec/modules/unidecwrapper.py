@@ -246,6 +246,7 @@ struct Config {
     int silent;
     int cdmsflag;
     int variablepw;
+    int normthresh;
 };
 """
 
@@ -343,11 +344,12 @@ class Config(ctypes.Structure):
         ("cdmsflag", ctypes.c_int),
         ("variablepw", ctypes.c_int),
         ("minratio", ctypes.c_float),
+        ("normthresh", ctypes.c_int),
     ]
 
 
 unideclib = ctypes.CDLL(default_dll_path)
-unideclib.run_unidec_core.argtypes = [Config, Input, ctypes.POINTER(Decon), ctypes.c_int, ctypes.c_int]
+unideclib.run_unidec_core.argtypes = [Config, Input, ctypes.POINTER(Decon), ctypes.c_int]
 unideclib.run_unidec_core.restype = ctypes.c_int
 
 unideclib.SetupZtab.argtypes = [Config, ctypes.POINTER(Input)]
@@ -420,7 +422,7 @@ def run_unidec_core(eng):
     # Setup Ztab
     unideclib.SetupZtab(c_config, ctypes.byref(c_input))
     # Run the core UniDec function
-    result = unideclib.run_unidec_core(c_config, c_input, ctypes.byref(c_decon), 0, 0)
+    result = unideclib.run_unidec_core(c_config, c_input, ctypes.byref(c_decon), 0)
     if result != 0:
         raise RuntimeError(f"UniDec core function failed with error code {result}")
     c_to_py_decon(c_decon, eng)
@@ -431,6 +433,8 @@ if __name__ == "__main__":
     eng = UniDec()
     testfile = os.path.join(os.path.join(os.path.dirname(default_dll_path), "Example Data"), "ADH.txt")
     eng.open_file(testfile)
+    eng.config.normthresh = 1
+    eng.config.peakthresh = 0.1
 
     run_unidec_core(eng)
 

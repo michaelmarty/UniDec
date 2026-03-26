@@ -204,6 +204,7 @@ class WizardGrid(wx.grid.Grid):
         """
         Try to fill down the columnn
         """
+        print(f"Filling down column {self.col} starting at row {self.row} with value {self.GetCellValue(self.row, self.col)}")
         # get text to paste
         paste = self.GetCellValue(self.row, self.col)
 
@@ -212,9 +213,8 @@ class WizardGrid(wx.grid.Grid):
             row += 1
             left = self.GetCellValue(row, 0)
             if left.strip() != '': # filename col not empty
-                current_value = '' if self.GetCellValue(row, self.col) == 'None' else self.GetCellValue(row, self.col).strip()
-                if current_value == '':
-                    self.SetCellValue(row, self.col, paste)
+                # current_value = '' if self.GetCellValue(row, self.col) == 'None' else self.GetCellValue(row, self.col).strip()
+                self.SetCellValue(row, self.col, paste)
             else: # filename empty, no more rows to fill for
                 break
 

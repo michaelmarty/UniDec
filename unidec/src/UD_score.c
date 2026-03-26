@@ -506,7 +506,7 @@ float score_from_peaks(const int plen, const float *peakx, const float *peaky, f
 	return uniscore;
 }
 
-int peaks_no_score(Config config, Decon* decon, Input inp, const float threshold, const int silent) {
+int peaks_no_score(Config config, Decon* decon, const int silent) {
 	decon->peakx = calloc(decon->mlen, sizeof(float));
 	decon->peaky = calloc(decon->mlen, sizeof(float));
 
@@ -514,13 +514,18 @@ int peaks_no_score(Config config, Decon* decon, Input inp, const float threshold
 		config.peakthresh, config.normthresh, decon->peakx, decon->peaky);
 	decon->plen = plen;
 
+	if (plen == 0) {
+		if (silent == 0) { printf("No peaks detected.\n"); }
+		return 0;
+	}
+
 	decon->peakx = realloc(decon->peakx, plen * sizeof(float));
 	decon->peaky = realloc(decon->peaky, plen * sizeof(float));
 	decon->dscores = calloc(plen, sizeof(float));
 
 	if (decon->peakx == NULL || decon->peaky == NULL || decon->dscores == NULL){
-		printf("Error setting ");
-		exit(11);
+		printf("Error setting up peaks for scoring.\n");
+		exit(1);
 	}
 
 	peak_norm(decon->peaky, plen, config.peaknorm);
@@ -532,7 +537,8 @@ int peaks_no_score(Config config, Decon* decon, Input inp, const float threshold
 float score(Config config, Decon *decon, Input inp, const float threshold, const int silent)
 {
 	//printf("Starting Score %f %f\n", config.peakwin, config.peakthresh);
-	int plen = peaks_no_score(config, decon, inp, threshold, silent);
+	int plen = peaks_no_score(config, decon, silent);
+	if (plen == 0) { return 0; }
 
 	float uniscore = score_from_peaks(plen, decon->peakx, decon->peaky, decon->dscores, config, decon, inp, threshold);
 	if (silent == 0) { printf("Average Peaks Score (UniScore): %f\n", uniscore); }
@@ -582,9 +588,9 @@ void get_scan_scores(int argc, char* argv[], Config config)
 	for (int i = 0; i < num; i++) {
 		config.metamode = i;
 
-		Decon decon = SetupDecon();
-		Input inp = SetupInputs();
-		ReadInputs(argc, argv, &config, &inp);
+		Decon decon = InitDecon();
+		Input inp = InitInputs();
+		ReadInputs(&config, &inp);
 		int status = ReadDecon(&config, inp, &decon);
 
 		if(status ==1){
@@ -593,7 +599,7 @@ void get_scan_scores(int argc, char* argv[], Config config)
 		}
 		else
 		{
-			peaks_no_score(config, &decon, inp, 0, config.silent);
+			peaks_no_score(config, &decon, config.silent);
 			if (config.silent == 0) { printf("Missing deconvolution outputs. Writing without scores.\nTo get scores, turn off Fast Profile/Fast Centroid and try deconvolving again."); }
 			WritePeaks(config, &decon);
 		}

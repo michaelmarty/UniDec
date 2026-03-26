@@ -11,6 +11,7 @@ from sklearn.metrics import classification_report
 import matplotlib.pyplot as plt
 from sklearn.cross_decomposition import PLSRegression
 import joblib
+import molmass as mm
 
 drop_columns = ["MS/MS assigned", "m/z matched", "Manually modified for annotation", "RT matched", "MS/MS matched",
                 "Post curation result", "Manually modified for quantification",
@@ -26,10 +27,18 @@ def comment_parser(df):
         return df
     # See if any of the comments contain "Low quality"
     ucomments = df["Comment"].unique()
-    if not any("Low quality" in str(c) for c in ucomments):
-        return df
-    # Create a new column "Low_Quality_Flag"
-    df["Low_Quality_Flag"] = df["Comment"].apply(lambda x: True if "Low quality" in str(x) else False)
+    if any("Low quality" in str(c) for c in ucomments):
+        # Create a new column "Low_Quality_Flag"
+        df["Low_Quality_Flag"] = df["Comment"].apply(lambda x: True if "Low quality" in str(x) else False)
+
+    if any("Misannotation" in str(c) for c in ucomments):
+        # Create Misannotated flag column
+        df["Misannotated_Flag"] = df["Comment"].apply(lambda x: True if "Misannotation" in str(x) else False)
+
+    if any("Overannotation" in str(c) for c in ucomments):
+    # Create Overannotated flag column
+        df["Overannotated_Flag"] = df["Comment"].apply(lambda x: True if "Overannotation" in str(x) else False)
+
     return df
 
 def basic_class_network_analysis(df, tol=0.3):
@@ -46,7 +55,7 @@ def basic_class_network_analysis(df, tol=0.3):
 
 
 def outlier_analysis(posdf, negdf, tol=0.05, rttol=0.1, contribs=False, add_all_cols_heads=False,
-                     add_all_cols_tails=False, drop_cols=True):
+                     add_all_cols_tails=False, drop_cols=True, do_tails=True):
     if drop_cols:
         # Drop unnecessary columns if present
         for col in drop_columns:
@@ -64,10 +73,11 @@ def outlier_analysis(posdf, negdf, tol=0.05, rttol=0.1, contribs=False, add_all_
     posdf, posgraphs = class_network_analysis(posdf, tol=tol, add_all_cols=add_all_cols_heads)
     negdf, neggraphs = class_network_analysis(negdf, tol=tol, add_all_cols=add_all_cols_heads)
     # headgraphs = posgraphs + neggraphs
-    #
-    posdf, posgraphs = tail_network_analysis(posdf, min_count=5, mz_tol=tol, add_all_cols=add_all_cols_tails)
-    negdf, neggraphs = tail_network_analysis(negdf, min_count=5, mz_tol=tol, add_all_cols=add_all_cols_tails)
-    # tailgraphs = posgraphs + neggraphs
+
+    if do_tails:
+        posdf, posgraphs = tail_network_analysis(posdf, min_count=5, mz_tol=tol, add_all_cols=add_all_cols_tails)
+        negdf, neggraphs = tail_network_analysis(negdf, min_count=5, mz_tol=tol, add_all_cols=add_all_cols_tails)
+        # tailgraphs = posgraphs + neggraphs
 
     # Merge DFs
     posdf, negdf = merge_pos_neg(posdf, negdf, rttol)
@@ -82,6 +92,10 @@ def outlier_analysis(posdf, negdf, tol=0.05, rttol=0.1, contribs=False, add_all_
 
     features = ['RTdiff', 'Total score', 'LogSN', 'Headgroup_Match', 'Tail_Match_Fraction',
                 "Class_z_Anomaly_Score", "Tail_z_Anomaly_Score"]
+
+    # If any features are missing, remove them from the list
+    features = [f for f in features if f in combined_df.columns]
+
     combined_df = detect_outliers_class(combined_df, features, separate_adducts=True, contribs=contribs)
 
     if not add_all_cols_tails:
@@ -256,16 +270,51 @@ def plot_rf_results(feature_importance, ax=None):
         plt.tight_layout()
         plt.show()
 
+def get_isotope_ratio(df, col="MS1 isotopic spectrum", num=1, fcol="Formula"):
+    isoratios = []
+    theoratios = []
+    for i, row in df.iterrows():
+        spec = row[col]
+        # Split spec by space and colon
+        peaks = spec.split()
+        peaks = [p.split(":") for p in peaks]
+        peaks = np.array(peaks).astype(float)
+        monoi = peaks[0,1]
+        secondi = peaks[num, 1]
+        ratio = secondi/monoi * 100.
+        isoratios.append(ratio)
+
+        formula = row[fcol]
+        f = mm.Formula(formula)
+        # Get isotope distribution
+        iso_dist = f.spectrum(min_intensity=0.01).dataframe()
+        # Get the ratio of the M+num peak to the monoisotopic peak
+        tratio = iso_dist["Intensity %"].iloc[num]
+        theoratios.append(tratio)
+
+
+    df= df.copy()
+    df["IsoRatio"] = isoratios
+    df["TheoRatio"] = theoratios
+    df["IsoError"] = (df["IsoRatio"] - df["TheoRatio"]) / df["TheoRatio"]
+    return df
+
 if __name__ == "__main__":
 
-    topdir = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\HEK\New Libs Tests"
-    posfile = "PosIDsRTP2.csv"
-    negfile = "NegIDsRTP2.csv"
-    posfile = "PosIDsC1_Ref.csv"
-    negfile = "NegIDsC1_Ref.csv"
+    topdir = r'Z:\Group Share\Shivam\IQX Stellar 3\FinalResults'
+    posfile = "AX_neg.csv"
+    # negfile = "NegIDsRTP2.csv"
+    # posfile = "PosIDsC1_Ref.csv"
+    # negfile = "NegIDsC1_Ref.csv"
     posxml = ""
     negxml = ""
 
     os.chdir(topdir)
+    df = pd.read_csv(posfile)
+    get_isotope_ratio(df)
+
+
+    exit()
+
     outdf = outlier_pipeline(posfile, negfile, posxml, negxml)
 

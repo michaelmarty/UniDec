@@ -58,7 +58,7 @@ class ZoomSpan(ZoomCommon):
 
 
         """
-        super(ZoomCommon, self).__init__()
+        super().__init__()
         if rectprops is None:
             rectprops = dict(facecolor='yellow', alpha=0.2)
 
