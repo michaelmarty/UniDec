@@ -10,7 +10,7 @@ import os
 # os.chdir("/mnt/c/VMD/AqpZMutants/W14A_CG/gromacs")
 # os.chdir(r"C:\VMD\AqpZMutants\WT_CG\gromacs")
 os.chdir("/mnt/c/VMD/CB2/CG/POPG5/gromacs")
-trajfile_list = ["step7_production.xtc"]
+trajfile_list = ["step7.1_production.xtc"]
 topfile_list = ["step7_production.gro"]  # topology file is needed when trajectory format does not
                                                # provide topology information. See mdtraj.load() for more
                                                # information.
@@ -58,7 +58,7 @@ pdb_file_to_map = None   # if a pdb coordinate of the receptor is provided, a py
 fig_format = "pdf"  # format for all pylipid produced figures. Allow for formats that are supported by
                     # matplotlib.pyplot.savefig().
 
-num_cpus = 1  # the number of cpu to use when functions are using multiprocessing. By default,
+num_cpus = 16  # the number of cpu to use when functions are using multiprocessing. By default,
                  # i.e. None, the functions will use up all the cpus available. This can use up all the memory in
                  # some cases.
 
