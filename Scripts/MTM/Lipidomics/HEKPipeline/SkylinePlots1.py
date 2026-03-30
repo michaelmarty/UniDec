@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from PublicScripts.Lipids.SkylineResultsPlotter import *
 
 file = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\Molecule Transition Results_stats_working.xlsx"
-file = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\Molecule Transition Results_stats.xlsx"
+file = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\Molecule Transition Results Chol_stats.xlsx"
 
 classdf = pd.read_excel(file, sheet_name="Class Stats")
 normdf = pd.read_excel(file, sheet_name="Molecule Stats")
@@ -26,13 +26,13 @@ set3 = ["Memb Extr 1", "Memb Extr 2", "Memb Extr 3"]
 # plt.show()
 
 # Class plots bar chart
-plt.figure(figsize=(10, 6))
-ax1 = plt.subplot(1, 1, 1)
-make_class_plots(classdf, ax=ax1)
-plt.tight_layout()
-plt.savefig(os.path.splitext(file)[0] + "_class_bar.png", dpi=1200)
-plt.savefig(os.path.splitext(file)[0] + "_class_bar.pdf")
-plt.show()
+# plt.figure(figsize=(10, 6))
+# ax1 = plt.subplot(1, 1, 1)
+# make_class_plots(classdf, ax=ax1)
+# plt.tight_layout()
+# plt.savefig(os.path.splitext(file)[0] + "_class_bar.png", dpi=1200)
+# plt.savefig(os.path.splitext(file)[0] + "_class_bar.pdf")
+# plt.show()
 
 # Heatmap of the fold changes for each molecule in the volcano plot that passes thresholds
 # bbox = [0.5, 0.05, 0.4, 0.9]
@@ -56,13 +56,13 @@ plt.show()
 #     plt.tight_layout()
 #     plt.show()
 # exit()
-# plt.figure(figsize=(10, 6))
-# ax = plt.subplot(1, 1, 1)
-# lipid_bar_chart_compare(normdf, classes=["SM"], ax=ax, fontsize=10, s1name="Depleted Nanodiscs", s2name="CB2 Nanodiscs", log2fclimit=np.log2(1))
-# plt.tight_layout()
-# # plt.savefig(os.path.splitext(file)[0] + "_PE_bar.png", dpi=600)
-# # plt.savefig(os.path.splitext(file)[0] + "_PE_bar.pdf")
-# plt.show()
+plt.figure(figsize=(10, 6))
+ax = plt.subplot(1, 1, 1)
+lipid_bar_chart_compare(normdf, classes=["PI"], ax=ax, fontsize=10, s1name="Depleted Nanodiscs", s2name="CB2 Nanodiscs", log2fclimit=np.log2(1))
+plt.tight_layout()
+# plt.savefig(os.path.splitext(file)[0] + "_PE_bar.png", dpi=600)
+# plt.savefig(os.path.splitext(file)[0] + "_PE_bar.pdf")
+plt.show()
 
 # Stacked pie chart to show the membrane
 # plt.figure(figsize=(6, 8))

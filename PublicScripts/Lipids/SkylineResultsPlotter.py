@@ -265,6 +265,7 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
         adducts = subdf[adduct_col].unique()
         for a in adducts:
             newrow = {"Molecule": m, "Molecule List Name": df[df[mol_col] == m][class_col].values[0],
+                      "MZ": mz_df[mz_df[mol_col] == m][mzcol].values[0],
                       "RT": rt_df[rt_df[mol_col] == m][rtcol].values[0],
                       "Adduct": a}
             for r in replicates:
@@ -1236,7 +1237,7 @@ if __name__ == "__main__":
     #
     # exit()
 
-    normdf, classdf = compare_pipeline([file, file2], set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
+    normdf, classdf = compare_pipeline([file2, file], set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
                                        norm_tmm=False,
                   normalize_TIC=True, paired=False, bh_correction=True, plot_results=True, write_output=True,
                      fold_range=np.log2(2), otherthresh=0.03, set1_name="FT", set2_name="E", drop_lipids=["SM 35:1;2"])
