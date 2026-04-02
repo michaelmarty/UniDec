@@ -6,10 +6,17 @@ import numpy as np
 def tl_to_msp(tl_file, msp_file=None, namecol="Molecule Name", listcol="Molecule List Name",
               formulacol="Molecule Formula", precmzcol="Precursor Mz", rtcol="Molecule Retention Time",
               chargecol="Precursor Charge", adductcol="Precursor Adduct", prodmzcol="Product Mz" ):
+
     if msp_file is None:
         msp_file = os.path.splitext(tl_file)[0] + ".txt"
 
     tl_df = pd.read_csv(tl_file)
+    if rtcol not in tl_df.columns:
+        rtcol = "Explicit Retention Time"
+        if rtcol not in tl_df.columns:
+            print(f"Warning: Retention time column not found. Setting retention time to 0.")
+            tl_df[rtcol] = 0
+
     # Get unique entries based on the important columns
     udf = tl_df[[namecol, adductcol]].drop_duplicates()
 
@@ -48,6 +55,7 @@ def tl_to_msp(tl_file, msp_file=None, namecol="Molecule Name", listcol="Molecule
             for peak in peaks:
                 intensity = 100  # Placeholder intensity, can be modified to use actual intensity if available
                 f.write(f"{peak}\t{intensity}\n")
+            f.write("\n")  # Separate entries with a blank line
     # Print the file here for confirmation
     print(f"MSP file created: {msp_file}")
     # Print the file contents for confirmation
@@ -58,4 +66,5 @@ def tl_to_msp(tl_file, msp_file=None, namecol="Molecule Name", listcol="Molecule
 
 if __name__ == "__main__":
     tl_file = r"Z:\Group Share\Annika\Stellar\FAM\CholTransList.csv"
+    tl_file = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\Old\Combined_TransitionList_14.csv"
     tl_to_msp(tl_file)
