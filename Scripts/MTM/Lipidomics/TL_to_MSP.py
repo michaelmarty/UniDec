@@ -8,7 +8,7 @@ def tl_to_msp(tl_file, msp_file=None, namecol="Molecule Name", listcol="Molecule
               chargecol="Precursor Charge", adductcol="Precursor Adduct", prodmzcol="Product Mz" ):
 
     if msp_file is None:
-        msp_file = os.path.splitext(tl_file)[0] + ".txt"
+        msp_file = os.path.splitext(tl_file)[0] + ".msp"
 
     tl_df = pd.read_csv(tl_file)
     if rtcol not in tl_df.columns:
@@ -66,5 +66,5 @@ def tl_to_msp(tl_file, msp_file=None, namecol="Molecule Name", listcol="Molecule
 
 if __name__ == "__main__":
     tl_file = r"Z:\Group Share\Annika\Stellar\FAM\CholTransList.csv"
-    tl_file = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\Old\Combined_TransitionList_14.csv"
+    tl_file = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\CurrentData\CleanedAdducts_AllDatasets_TransList_MM_Clean10.csv"
     tl_to_msp(tl_file)
