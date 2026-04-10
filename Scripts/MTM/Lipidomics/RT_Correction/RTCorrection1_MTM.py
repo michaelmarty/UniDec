@@ -13,28 +13,28 @@ def cleanup_df(df):
     df = df[~df['Name'].str.contains("low score", na=False)]
     return df
 
-os.chdir(r"Z:\Group Share\Annika\IQ-X\Feb 2026 UntDDA\MSDial\Marked Low Score")
+os.chdir(r"Z:\Group Share\Annika\Stellar\Untargeted DDA\HEK Feb 2026\MSDial\5min\New folder")
 
-posfile = r"OTIT_pos.csv"
-negfile = r"OTIT_neg.csv"
+# posfile = r"Stellar_pos.csv"
+negfile = r"Neg_5mins_full.csv"
 
 limit = 5
 smooth= 1
 window = 0.5
 
-posdf = pd.read_csv(posfile)
-# posdf = cleanup_df(posdf)
-print(posdf.columns)
-# Grab relevant columns: Metabolite name, Average Rt(min), Reference RT, S/N average, Total score
-posrtdf = posdf[['Metabolite name', 'Average Rt(min)', 'Reference RT', "S/N average", "Total score"]].reset_index(drop=True)
+# posdf = pd.read_csv(posfile)
+# # posdf = cleanup_df(posdf)
+# print(posdf.columns)
+# # Grab relevant columns: Metabolite name, Average Rt(min), Reference RT, S/N average, Total score
+# posrtdf = posdf[['Metabolite name', 'Average Rt(min)', 'Reference RT', "S/N average", "Total score"]].reset_index(drop=True)
 
 negdf = pd.read_csv(negfile)
 # negdf = cleanup_df(negdf)
 negrtdf = negdf[['Metabolite name', 'Average Rt(min)', 'Reference RT', "S/N average", "Total score"]].reset_index(drop=True)
 
 # Contatenate dataframes
-df = pd.concat([negrtdf, posrtdf])
-# df = negrtdf
+# df = pd.concat([negrtdf, posrtdf])
+df = negrtdf
 
 # Append a line beyond this to force fit to go through these points
 # List of rows to add

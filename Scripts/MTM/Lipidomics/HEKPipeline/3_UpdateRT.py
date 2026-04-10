@@ -5,9 +5,9 @@ from PublicScripts.Lipids.LipidFunctions import update_rt
 topdir = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\CurrentData"
 os.chdir(topdir)
 
-tlpath = r"CleanedAdducts_AllDatasets_TransList_MM_Clean11.csv"
+tlpath = r"CleanedAdducts_AllDatasets_TransList_MM_Clean12.csv"
 rtfile = r"RT_Shifts.tsv"
-output_path = tlpath.replace("_Clean11.csv", "_Clean12.csv")
+output_path = tlpath.replace("_Clean12.csv", "_Clean13.csv")
 
 df = pd.read_csv(tlpath)
 

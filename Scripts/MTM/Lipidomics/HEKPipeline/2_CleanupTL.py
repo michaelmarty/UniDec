@@ -6,8 +6,8 @@ from PublicScripts.Lipids.LipidFunctions import rename_overlapping_species
 topdir = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\CurrentData"
 os.chdir(topdir)
 
-filepath = r"CleanedAdducts_AllDatasets_TransList_MM_Clean9.csv"
-outfile = filepath.replace("_Clean9.csv", "_Clean10.csv")
+filepath = r"CleanedAdducts_AllDatasets_TransList_MM_Clean11.csv"
+outfile = filepath.replace("_Clean11.csv", "_Clean12.csv")
 
 df = pd.read_csv(filepath)
 
