@@ -3,11 +3,11 @@ import pandas as pd
 import PublicScripts.Lipids.LipidFragPrediction as lfp
 from PublicScripts.Lipids.LipidFunctions import rename_overlapping_species
 
-topdir = r"Z:\Group Share\Annika\Stellar\HEK\tMS2"
+topdir = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\CurrentData"
 os.chdir(topdir)
 
-filepath = r"AllDatasets_TransList_Clean2.csv"
-outfile = filepath.replace("_Clean2.csv", "_Clean3.csv")
+filepath = r"CleanedAdducts_AllDatasets_TransList_MM_Clean11.csv"
+outfile = filepath.replace("_Clean11.csv", "_Clean12.csv")
 
 df = pd.read_csv(filepath)
 
@@ -83,7 +83,9 @@ drop_names = ["CL 14:0_18:1_16:1_16:1", r"Cer 19:0;2O/43:0", r"Cer 18:1;O2/40:2"
               "TG 67:2|TG 17:0_18:1_32:1", "TG 68:1|TG 16:0_18:0_34:1", "TG 72:2|TG 18:0_18:1_36:1", "TG 72:3|TG 18:1_18:1_36:1", "TG 72:3|TG 18:1_20:1_34:1", "TG 72:4|TG 18:1_18:1_36:2",
               "TG 74:2|TG 18:0_18:1_38:1", "TG 74:3|TG 18:1_18:1_38:1", "TG 74:4|TG 18:1_18:1_38:2", "CL 74:4|CL 18:0_18:1_18:0_20:3", "CL 72:5|CL 16:0_18:1_18:0_20:4", "CL 66:1|CL 16:0_16:0_16:0_18:1",
               "CL 66:3|CL 16:0_16:1_16:1_18:1_B", "CL 68:1|CL 16:0_18:0_16:0_18:1", "CL 70:1|CL 16:0_18:1_18:0_18:0", "CL 70:2|CL 16:0_18:0_18:1_18:1", "CL 70:2|CL 16:0_18:1_18:0_18:1",
-              "CL 70:5|CL 16:0_18:1_16:0_20:4", "CL 72:3|CL 18:0_18:1_18:1_18:1", "CL 72:4|CL 18:0_18:2_18:1_18:1","CL 72:6|CL 16:1_20:3_18:1_18:1",
+              "CL 70:5|CL 16:0_18:1_16:0_20:4", "CL 72:3|CL 18:0_18:1_18:1_18:1", "CL 72:4|CL 18:0_18:2_18:1_18:1","CL 72:6|CL 16:1_20:3_18:1_18:1", "Cer 36:1;2|Cer 18:1;2/18:0_D", "Cer 59:2;4|Cer 41:1;3(FA 18:0)",
+              "DG 35:2|DG 17:1_18:1","DG 46:2|DG 16:1_30:1", "FAHFA 24:2;O|FAHFA 16:1/8:0;O", "FAHFA 28:1;O|FAHFA 18:0/10:0;O", "FAHFA 34:3;O|FAHFA 16:1/18:1;O", "FAHFA 35:8;O|FAHFA 18:5/17:2;O",
+              "FAHFA 36:3;O|FAHFA 18:1/18:1;O", "PC 32:3", "PC 34:3|PC 18:1_16:2", "PC 34:4", "PC 38:5", "PC 49:6", "PE 28:0|PE 14:0_14:0", "PI 38:4|PI 18:1_20:3", "PS 30:1|PS 14:0_16:1", "PC O_33:4|PC O_16:4_17:0",
 
 ]
 # Drop if Molecule Name contains any of the drop names
