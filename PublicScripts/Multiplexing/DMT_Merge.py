@@ -97,7 +97,7 @@ def merge_files(rawlist, dmtlist, outfile):
 
 if __name__ == "__main__":
 
-    folder = r"Z:\Group Share\BHT\Short Temp\b 18"
+    folder = r"Z:\Group Share\BHT\Short Temp\Rabbit IgG 21 Injections Set 3"
     os.chdir(folder)
 
     #strip_dmt_files(folder)
