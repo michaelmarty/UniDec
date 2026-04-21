@@ -2,12 +2,12 @@ import pandas as pd
 import os
 from PublicScripts.Lipids.LipidFunctions import update_rt
 
-topdir = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\CurrentData"
+topdir = r"Z:\Group Share\Farhana\Stellar"
 os.chdir(topdir)
 
-tlpath = r"CleanedAdducts_AllDatasets_TransList_MM_Clean12.csv"
+tlpath = r"CleanedAdducts_AllDatasets_TransList_MM_Clean15.csv"
 rtfile = r"RT_Shifts.tsv"
-output_path = tlpath.replace("_Clean12.csv", "_Clean13.csv")
+output_path = tlpath.replace("_Clean15.csv", "_Clean16.csv")
 
 df = pd.read_csv(tlpath)
 
@@ -39,7 +39,19 @@ forcedrts = {"Cer 38:1;2|Cer 18:1;2/20:0_A": 9.3, "Cer 40:0;2|Cer 18:0;2/22:0_A"
              "PI O_32:1|PI O_16:0_16:1": 5.6, "PI O_34:1|PI O_16:0_18:1": 6.1, "PI O_36:1|PI O_18:0_18:1": 6.7,
              }
 
-forcedrts = {}
+forcedrts = {"Cer 37:3;2|Cer 18:1;2/19:2": 8.3, "Cer 42:2;2|Cer 18:2;2/24:0": 10.6, "IS DG(+[2]H5) 17:0_18:1": 9.6, "LPC 14:1": 1.8, "LPC 26:1": 5.4, "LPC 26:2": 4.7, "LPI 22:2": 2.3,
+             "PC 33:0|PC 16:0_17:0_B": 7.4, "PC 38:2|PC 18:1_20:1": 8.1, "PC 40:1|PC 22:0_18:1": 8.9, "PE 33:1|PE 16:0_17:1": 8.0, "PE 37:1|PE 19:0_18:1": 8.7, "PE 42:2|PE 18:1_24:1": 5.2,
+             "PG 34:1|PG 18:0_16:1": 5.7, "PI 32:1|PI 16:0_16:1": 4.9, "PI 38:2|PI 18:0_20:2": 6.4, "PI 38:2|PI 18:1_20:1": 6.2, "PS 34:2|PS 16:1_18:1": 5.1, "PS 38:3|PS 18:1_20:2": 5.9, "SM 34:4;2": 6.0,
+             "TG 70:2|TG 16:0_18:1_36:1": 16.4, "TG 70:2|TG 18:0_18:1_34:1": 16.2, "PA 34:3|PA 16:1_18:2": 4.8, "PA 36:3|PA 18:1_18:2": 5.5, "PE O_34:0|PE O_18:0_16:0":7.7, "PE O_38:1|PE O_20:0_18:1": 10.0,
+             "PE O_40:2|PE O_22:1_18:1": 10.0, "PI O_32:1|PI O_16:0_16:1": 5.3, "PI O_34:1|PI O_16:0_18:1": 5.9, 'PI O_36:1|PI O_18:0_18:1': 6.6, "PI O_34:2": 5.4
+             }
+forcedrts = {"CL 70:4|CL 16:1_18:1_18:1_18:1": 10.7, "Cer 38:1;2|Cer 18:1;2/20:0_A": 7.8, "Cer 40:0;2|Cer 18:0;2/22:0_A": 9.1,"Cer 40:0;2|Cer 18:0;2/22:0_B": 9.1, "Cer 40:1;2|Cer 18:1;2/22:0_A": 8.7,
+             "Cer 41:2;2|Cer 19:1;2/22:1": 7.8,"Cer 43:2;2|Cer 19:1;2/24:1": 8.7, "HexCer 34:3;2|HexCer 18:2;2/16:1": 5.0, "LPC 22:0": 4.2, "LPE 17:1": 2.2, "LPI 22:2": 2.2,
+             "LPS 22:0": 3.0, "PC 30:1|PC 14:0_16:1": 4.9, "PC 35:2|PC 17:1_18:1": 5.9, "PC 37:1": 6.5, "PC 37:2|PC 18:1_19:1": 6.5, "PC 48:1|PC 16:0_32:1": 12.2, "PE 33:2|PE 16:1_17:1": 6.1,
+             "PE 38:0|PE 18:0_20:0": 7.8, "PE 38:4|PE 18:1_20:3": 6.2, "PE 40:4|PE 18:1_22:3": 6.6, "PE 42:4|PE 22:1_20:3": 6.2, "PG 30:1|PG 14:0_16:1": 3.7, "PG 34:1|PG 18:0_16:1": 4.9,
+             "PG 34:2|PG 16:1_18:1": 4.4, "PI 32:0|PI 16:0_16:0": 4.7, "PI 34:0|PI 16:0_18:0": 4.7, "PI 38:2|PI 18:1_20:1": 5.3, "PS 38:3|PS 18:1_20:2": 5.1, "TG 49:2|TG 15:0_16:1_18:1": 14.1,
+             "PA 36:1|PA 18:0_18:1": 5.1, "PC O_50:3": 10.8, "PI O_34:1|PI O_16:0_18:1": 5.0, "PI O_36:1|PI O_18:0_18:1": 5.5, "PI O_38:2|PI O_18:1_20:1": 5.5, "SHexCer 33:2;3|SHexCer 18:1;2/15:1;O": 6.5, "SHexCer 34:1;2|SHexCer 18:1;2/16:0": 6.5,
+             "SHexCer 42:2;2|SHexCer 18:1;2/24:1": 5.5}
 df = update_rt(df, cdf, mode="apex", min_window=0.5, max_window=2.0, nstds=8, forcedrts=forcedrts)
 
 # Write to output

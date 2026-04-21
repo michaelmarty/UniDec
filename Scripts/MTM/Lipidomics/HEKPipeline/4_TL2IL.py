@@ -2,11 +2,11 @@ import pandas as pd
 import os
 from PublicScripts.Lipids.LipidFunctions import tl_to_il, derplicate_il
 
-topdir = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\CurrentData"
+topdir = r"Z:\Group Share\Farhana\Stellar"
 os.chdir(topdir)
 
-tlpath = r"CleanedAdducts_AllDatasets_TransList_MM_Clean13.csv"
-outpath = r"HEKExtr_MM_IsoList_Clean13.csv"
+tlpath = r"CleanedAdducts_AllDatasets_TransList_MM_Clean16.csv"
+outpath = r"HEKExtr_MM_IsoList_Clean16.csv"
 
 tldf = pd.read_csv(tlpath)
 
