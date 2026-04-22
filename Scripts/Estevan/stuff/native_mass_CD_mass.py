@@ -5,24 +5,24 @@ import numpy as np
 # === USER SETTINGS ===
 font_name = "Arial"
 font_size = 10
-x_range = (0, 500)  # x-axis limits (in kDa)
+x_range = (58, 60)  # x-axis limits (in kDa)
 
 # === FILES TO PLOT ===
 files = [
-    r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\Mass txt files\20251208_EC_D1cherryLong_1to90_DMPC_rep2_cdms_2025-12-08-12-09-32_mass.txt",
-    r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\Mass txt files\20251202_EC_D1mCherryREDOcdms_2025-12-02-11-15-03_mass.txt"
+    r"C:\Python\UniDecPastedSpectra\20260323_MSP1E3D1_mCherry_plustag_unidecfiles\20260323_MSP1E3D1_mCherry_plustag_mass.txt",
+   # r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\Mass txt files\20251202_EC_D1mCherryREDOcdms_2025-12-02-11-15-03_mass.txt"
 ]
 
 # === MAIN LEGEND LABELS (one per file) ===
 labels = [
-    "MSP1D1-sfCherryL",
-    "MSP1D1-mCherry"
+    "MSP1E3D1-mCherry(+)",
+    #"MSP1D1-mCherry"
 ]
 
 # === SECOND LEGEND LABELS (one per file) ===
 second_labels = [
-    "185 ± 20 DMPC per Nanodisc",
-    "151 ± 9 DMPC per Nanodisc",
+    "MSP1D1-sfGFp DMPC + AM2",
+   # "151 ± 9 DMPC per Nanodisc",
 ]
 
 # === FIGURE SETUP ===
@@ -30,8 +30,8 @@ fig, ax = plt.subplots(1, 1, figsize=(9, 5), dpi=300)
 
 # === CUSTOM COLORS ===
 colors = [
-    "#CC79A7",  # color for file 1
-    "#0072B2",  # color for file 2
+    "#5E2F98",  # color for file 1
+    #"#0072B2",  # color for file 2
 ]
 
 # Apply font settings globally

@@ -26,26 +26,26 @@ rcParams['ytick.major.width'] = 1
 
 # === FILES TO PLOT ===
 files = [
-    r"D:\UT Spring 2026\general lab data\FluorND\Chromatogram CSV files\MSP1E3D1sfGFP DMPC Nanodiscs\MSP1E3D1 sfGFP DMPC rep1.csv",
-    r"D:\UT Spring 2026\general lab data\FluorND\Chromatogram CSV files\MSP1E3D1sfGFP DMPC Nanodiscs\MSP1E3D1 sfGFP DMPC rep2.csv",
-    r"D:\UT Spring 2026\general lab data\FluorND\Chromatogram CSV files\MSP1E3D1sfGFP DMPC Nanodiscs\MSP1E3D1 sfGFP DMPC rep3.csv",
-    #r"D:\FLND AKTA files\New folder\MSP1d1_CHERRYLONG.xlsx",
-    #r"D:\FLND AKTA files\New folder\mcherry.xlsx",
-    #r"D:\FLND AKTA files\XLSX chromatograms\d1bLUEBERRY_1TO80_dmpc.xlsx",
-    #r"D:\FLND AKTA files\XLSX chromatograms\HaloTag.xlsx",
-   # r"D:\UT Spring 2026\general lab data\XLSX akta files\E3sfGFP_DMPC1.xlsx",
+    r"E:\SEPAX demo data\D1t0minus_1to80_DMPC_1point5mLflowrate 001.csv",
+    r"E:\SEPAX demo data\03292026_MSP1D1_1to85_DMPG 001.csv",
+    r"E:\SEPAX demo data\03292026_MSP1D1_sfCherryS_1to80_DMPC 002.csv",
+    r"E:\SEPAX demo data\03292026_msp1d1_sfCherryS_1tp85_DMPG 001.csv",
+    #r"D:\UT Spring 2026\general lab data\Raw Akta Files\03302026_MSP1D1_DMPC_1to2_ASYN 001.csv",
+    #r"D:\UT Spring 2026\general lab data\Raw Akta Files\03302026_MSP1D1_DMPG_2to1_AsyntoDISC 001.csv",
+    #r"D:\UT Spring 2026\general lab data\Raw Akta Files\03292026_MSP1D1_sfCherryS_1to80_DMPC 002.csv",
+    #r"D:\UT Spring 2026\general lab data\Raw Akta Files\03292026_msp1d1_sfCherryS_1tp85_DMPG 001.csv",
 ]
 
 # === LEGEND LABELS ===
 sample_labels = [
-    "MSP1E3D1-sfGFP",
-    "MSP1E3D1-sfGFP",
-    "MSP1E3D1-sfGFP",
-    #"MSP1D1-sfCherryLong",
-    #"MSP1D1-mCherry",
-    #"MSP1D1-mBlueberry2",
-    #"MSP1D1-HaloTag",
-    #"MSP1E3D1-sfGFP"
+    "DMPC Nanodisc",
+    "DMPG Nanodisc",
+    "sfCherry-DMPC Nanodisc",
+    "sfCherry-DMPC Nanodisc",
+    #"DMPC disc + Asyn",
+    #"DMPG disc + Asyn",
+    #"Cherry DMPC disc + Asyn",
+    #"Cherry DMPG disc + Asyn"
 ]
 
 # === CUSTOM HEX COLORS ===
@@ -53,7 +53,7 @@ colors = [
     "#333333",
     "#333333",
     "#333333",
-    #"#C76BA0",
+    "#333333",
     #"#C76BA0",
     #"#2C7FB8",
     #"#7A7A7A",
@@ -222,7 +222,7 @@ for i, (file, label) in enumerate(zip(files, sample_labels)):
     # Axis formatting
     axes[i].set_ylim(0, 1.08)
     axes[i].margins(y=0)
-    axes[i].set_xlim(10, 20)
+    axes[i].set_xlim(0, 20)
 
     axes[i].spines["top"].set_visible(False)
     axes[i].spines["right"].set_visible(False)

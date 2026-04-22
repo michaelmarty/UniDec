@@ -13,10 +13,10 @@ def cleanup_df(df):
     df = df[~df['Name'].str.contains("low score", na=False)]
     return df
 
-os.chdir(r"Z:\Group Share\Annika\IQ-X\Feb 2026 UntDDA\MSDial\Marked Low Score")
+os.chdir(r"Z:\Group Share\Annika\Thermo Data")
 
-posfile = r"OTIT_pos.csv"
-negfile = r"OTIT_neg.csv"
+posfile = r"Apex_HEKpos.csv"
+negfile = r"Apex_HEKneg.csv"
 
 limit = 5
 smooth= 1
@@ -32,9 +32,9 @@ negdf = pd.read_csv(negfile)
 # negdf = cleanup_df(negdf)
 negrtdf = negdf[['Metabolite name', 'Average Rt(min)', 'Reference RT', "S/N average", "Total score"]].reset_index(drop=True)
 
-# Contatenate dataframes
+#Contatenate dataframes
 df = pd.concat([negrtdf, posrtdf])
-# df = negrtdf
+df = negrtdf
 
 # Append a line beyond this to force fit to go through these points
 # List of rows to add
