@@ -733,6 +733,27 @@ def cleanup_and_merge_msdial(posfile, negfile, posxml, negxml, rttol=0.2):
 
     return mergeddf, posdf, negdf
 
+def cleanup_and_merge_mzmine(posfile, negfile, rttol=0.2):
+    # Load the data
+    negdf = pd.read_csv(negfile)
+    posdf = pd.read_csv(posfile)
+
+    # Sort by Ontology and Name
+    posdf = posdf.sort_values(by=["Ontology", "Metabolite name"]).reset_index(drop=True)
+    negdf = negdf.sort_values(by=["Ontology", "Metabolite name"]).reset_index(drop=True)
+
+    # Merge positive and negative dataframes
+    posdf, negdf = merge_pos_neg(posdf, negdf, rttol)
+
+    # Create polarity columns and fill with "Positive" and "Negative"
+    posdf["Polarity"] = "Positive"
+    negdf["Polarity"] = "Negative"
+
+    # Concatenate the dataframes
+    mergeddf = pd.concat([posdf, negdf], ignore_index=True)
+
+    return mergeddf, posdf, negdf
+
 
 def find_match_name(name, rt, refdf, rttol=0.1, verbose=False):
     newname = ""
