@@ -581,7 +581,7 @@ if __name__ == "__main__":
     file = r"C:\Data\Lipidomics\test.xml"
     file = r"Z:\Group Share\Annika\DDA_Compare\Stellar_Neg.xml"
 
-    run_all_xml_files(r"Z:\Group Share\Annika\DDA_Compare")
+    run_all_xml_files(r"Z:\Group Share\Annika\DDA_Compare\mzmine")
     exit()
 
 

@@ -14,7 +14,7 @@ def prep_datasets(topdir, datasets, min_count=None, drop_d7=True, write_output=T
             mergeddf, posdf, negdf = cleanup_and_merge_msdial(f"{d}_pos.csv", f"{d}_neg.csv", f"{d}_pos.xml",
                                                               f"{d}_neg.xml", rttol=0.2)
         elif dtype=="mzmine":
-            mergeddf, posdf, negdf = cleanup_and_merge_mzmine(f"{d}_pos_msdial.csv", f"{d}_neg_msdial.csv", rttol=0.2)
+            mergeddf, posdf, negdf = cleanup_and_merge_mzmine(f"{d}_Pos_features_data_msdial.csv", f"{d}_Neg_features_data_msdial.csv", rttol=0.2)
         # Write out merged dataframes for reference
         # mergeddf.to_csv(f"{d}_Merged.csv", index=False)
         mergeddf["Dataset"] = d
