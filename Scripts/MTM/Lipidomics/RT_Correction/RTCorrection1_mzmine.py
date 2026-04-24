@@ -54,6 +54,94 @@ def import_data(posfile, negfile=None):
 
     return df
 
+
+def rt_fit(df, smooth=1, window=0.5, plot=True):
+    # Create a function to correct the Reference RT to match the Average using a 4th degree polynomial
+    fit = np.polyfit(df['Reference RT'], df['Average Rt(min)'], 2)
+    p = np.poly1d(fit)
+    # Sort by Reference RT
+    df = df.sort_values(by=['Reference RT'], ascending=True)
+    x = np.array(df['Reference RT'])
+    y = np.array(df['Average Rt(min)'])
+    w = np.ones_like(y)
+
+    minx = np.min(x)
+    maxx = np.max(x)
+    # Create linear spacing of window min between min and max
+    xnew = np.arange(minx, maxx, window)
+    # Average each y for each xnew
+    ynew = []
+    wnew = []
+    for i in range(len(xnew)):
+        xi = xnew[i]
+        yvals = y[(x >= xi - window * 0.5) & (x < xi + window * 0.5)]
+        wvals = w[(x >= xi - window * 0.5) & (x < xi + window * 0.5)]
+        if len(yvals) > 0:
+            yavg = np.average(yvals, weights=wvals)
+        else:
+            yavg = np.nan
+        ynew.append(yavg)
+        wnew.append(np.sum(wvals))
+    ynew = np.array(ynew)
+    # Remove NaN
+    mask = ~np.isnan(ynew)
+    xnew = xnew[mask]
+    ynew = ynew[mask]
+
+    # Smooth xnew and ynew using a gaussian filter with sigma of 2
+    ynew = gaussian_filter1d(ynew, sigma=smooth)
+
+    # Create an interpolation of xnew and ynew
+    p = interp1d(xnew, ynew, kind='quadratic', fill_value='extrapolate')
+
+    # Remove x and y points outside +/0- limit min of the smoothed line
+    mask = (y > p(x) - limit) & (y < p(x) + limit)
+    xfilt = x[mask]
+    yfilt = y[mask]
+    wfilt = w[mask]
+
+    # Refit
+    # ynew2 = [np.mean(y[(x >= xi-0.05) & (x < xi + 0.05)]) for xi in xnew]
+    ynew2 = []
+    for i in range(len(xnew)):
+        xi = xnew[i]
+        yvals = yfilt[(xfilt >= xi - window * 0.5) & (xfilt < xi + window * 0.5)]
+        wvals = wfilt[(xfilt >= xi - window * 0.5) & (xfilt < xi + window * 0.5)]
+        if len(yvals) > 0:
+            yavg = np.average(yvals, weights=wvals)
+        else:
+            yavg = np.nan
+        ynew2.append(yavg)
+    ynew2 = np.array(ynew2)
+    # Remove NaN
+    mask = ~np.isnan(ynew2)
+    xnew2 = xnew[mask]
+    ynew2 = ynew2[mask]
+
+    # Smooth xnew and ynew using a gaussian filter with sigma of 2
+    ynew2 = gaussian_filter1d(ynew2, sigma=smooth)
+    # Create an interpolation of xnew and ynew
+    p2 = interp1d(xnew2, ynew2, kind='quadratic', fill_value='extrapolate')
+
+    # Save fit to p2 function to a pickle file
+    with open('RTInterpolation.pkl', 'wb') as f:
+        pickle.dump(p2, f)
+
+    if plot:
+        # Plot the data and the fit
+        plt.figure(figsize=(10, 6))
+
+        plt.plot(x, y, 'o', label='Data', alpha=0.25)
+        plt.plot(xnew, ynew, 'o', label='Averaged Data', alpha=0.5)
+        plt.plot(xnew2, ynew2, 'o', label='Averaged Data', alpha=0.5)
+        # plt.plot(xnew, ynew, '-', label='Averaged Data')
+        plt.plot(xnew, p(xnew), '--', label='Corrected Fit')
+        # plt.plot(xnew2, ynew2, '-', label='Averaged Data 2')
+        plt.plot(xnew2, p2(xnew2), '--', label='Corrected Fit 2')
+        plt.plot(xnew, xnew, ':', label='y=x Line')
+        plt.legend()
+        plt.show()
+
 def rt_correction(poslibfile, neglibfile=None, corr_fuction=None, outputext="-Apex"):
     if corr_fuction is None:
         interpolationfunction = r"RTInterpolation.pkl"
@@ -103,113 +191,28 @@ def rt_correction(poslibfile, neglibfile=None, corr_fuction=None, outputext="-Ap
 
 os.chdir(r"Z:\Group Share\Annika\DDA_Compare\mzmine")
 
-posfile = r"OTIT_Pos_features_data_msdial.csv"
+posfile = r"ITIT_Pos_features_data_msdial.csv"
 negfile = None
 
-poslibfile = r"..\MSDIAL-TandemMassSpectralAtlas-VS69-Pos-StellarRTP2-Apex.msp"
+poslibfile = r"..\MSDIAL-TandemMassSpectralAtlas-VS69-Pos-StellarRTP2-IQX_AqX.msp"
 poslibfile = None
-# poslibfile = r"..\MSDIAL-TandemMassSpectralAtlas-VS69-Neg-RTP2_Fixed_no_hcoo-Apex.msp"
+# poslibfile = r"..\MSDIAL-TandemMassSpectralAtlas-VS69-Neg-RTP2_Fixed_no_hcoo.msp"
 neglibfile = None
+
+extadd = "-IQX_AqX"
 
 limit = 5
 smooth= 1
 window = 0.5
 
 df = import_data(posfile, negfile)
+p2 = rt_fit(df, smooth=smooth, window=window, plot=True)
 
-# Create a function to correct the Reference RT to match the Average using a 4th degree polynomial
-fit = np.polyfit(df['Reference RT'], df['Average Rt(min)'], 2)
-p = np.poly1d(fit)
-# Sort by Reference RT
-df = df.sort_values(by=['Reference RT'], ascending=True)
-x = np.array(df['Reference RT'])
-y = np.array(df['Average Rt(min)'])
-w = np.ones_like(y)
-
-minx = np.min(x)
-maxx = np.max(x)
-print(minx, maxx)
-# Create linear spacing of window min between min and max
-xnew = np.arange(minx, maxx, window)
-# Average each y for each xnew
-ynew = []
-wnew = []
-for i in range(len(xnew)):
-    xi = xnew[i]
-    yvals = y[(x >= xi-window*0.5) & (x < xi + window*0.5)]
-    wvals = w[(x >= xi-window*0.5) & (x < xi + window*0.5)]
-    if len(yvals) > 0:
-        yavg = np.average(yvals, weights=wvals)
-    else:
-        yavg = np.nan
-    ynew.append(yavg)
-    wnew.append(np.sum(wvals))
-ynew = np.array(ynew)
-# Remove NaN
-mask = ~np.isnan(ynew)
-xnew = xnew[mask]
-ynew = ynew[mask]
-print(np.amin(xnew), np.amax(xnew))
-
-
-# Smooth xnew and ynew using a gaussian filter with sigma of 2
-ynew = gaussian_filter1d(ynew, sigma=smooth)
-
-# Create an interpolation of xnew and ynew
-p = interp1d(xnew, ynew, kind='quadratic', fill_value='extrapolate')
-
-# Remove x and y points outside +/0- limit min of the smoothed line
-mask = (y > p(x) - limit) & (y < p(x) + limit)
-xfilt = x[mask]
-yfilt = y[mask]
-wfilt = w[mask]
-
-# Refit
-# ynew2 = [np.mean(y[(x >= xi-0.05) & (x < xi + 0.05)]) for xi in xnew]
-ynew2 = []
-for i in range(len(xnew)):
-    xi = xnew[i]
-    yvals = yfilt[(xfilt >= xi-window*0.5) & (xfilt < xi + window*0.5)]
-    wvals = wfilt[(xfilt >= xi-window*0.5) & (xfilt < xi + window*0.5)]
-    if len(yvals) > 0:
-        yavg = np.average(yvals, weights=wvals)
-    else:
-        yavg = np.nan
-    ynew2.append(yavg)
-ynew2 = np.array(ynew2)
-# Remove NaN
-mask = ~np.isnan(ynew2)
-xnew2 = xnew[mask]
-ynew2 = ynew2[mask]
-
-# Smooth xnew and ynew using a gaussian filter with sigma of 2
-ynew2 = gaussian_filter1d(ynew2, sigma=smooth)
-# Create an interpolation of xnew and ynew
-p2 = interp1d(xnew2, ynew2, kind='quadratic', fill_value='extrapolate')
-
-# Save fit to p2 function to a pickle file
-with open('RTInterpolation.pkl', 'wb') as f:
-    pickle.dump(p2, f)
-
-# Plot the data and the fit
-plt.figure(figsize=(10, 6))
-
-
-plt.plot(x, y, 'o', label='Data', alpha=0.25)
-plt.plot(xnew , ynew, 'o', label='Averaged Data', alpha=0.5)
-plt.plot(xnew2 , ynew2, 'o', label='Averaged Data', alpha=0.5)
-# plt.plot(xnew, ynew, '-', label='Averaged Data')
-plt.plot(xnew, p(xnew), '--', label='Corrected Fit')
-# plt.plot(xnew2, ynew2, '-', label='Averaged Data 2')
-plt.plot(xnew2, p2(xnew2), '--', label='Corrected Fit 2')
-plt.plot(xnew, xnew, ':', label='y=x Line')
-plt.legend()
-plt.show()
 
 if poslibfile is not None:
     do_corr = input("Do you want to apply this correction to the library files? (y/n): ")
     if do_corr.lower() == 'y':
-        rt_correction(poslibfile, neglibfile, corr_fuction=p2, outputext="2")
+        rt_correction(poslibfile, neglibfile, corr_fuction=p2, outputext=extadd)
 
 
 exit()

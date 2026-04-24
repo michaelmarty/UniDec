@@ -563,14 +563,14 @@ def run_all_xml_files(directory):
     for filename in os.listdir(directory):
         if filename.endswith(".xml"):
             filepath = os.path.join(directory, filename)
-            print(f"Processing {filepath}...")
+            print(f"\nProcessing {filepath}...")
             data = parse_mzmine_xml(filepath)
             df = rows_to_msdial_dataframe(data["rows"])
             print("Number of rows:", len(df))
             out_path = os.path.splitext(filepath)[0] + "_msdial.csv"
             df.to_csv(out_path, index=False)
             print("Unique ontologies:", df["Ontology"].nunique())
-            print(f"Saved {out_path}")
+            # print(f"Saved {out_path}\n")
 
 
 # ---------------------------------------------------------------------------
