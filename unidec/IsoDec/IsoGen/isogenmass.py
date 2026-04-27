@@ -6,7 +6,7 @@ import time
 from unidec.IsoDec.IsoGen.isogen_tools import *
 from unidec.IsoDec.IsoGen.isogen_base import *
 from unidec.IsoDec.IsoGen.isogenc import fft_pep_mass_to_dist
-from unidec.modules.isotopetools import isomike
+import random
 
 
 class IsoGenMassEngine(IsoGenEngineBase):
@@ -34,7 +34,7 @@ class IsoGenMassEngine(IsoGenEngineBase):
             model = IsoGenModelBase(isolen=l, savename="isogenmass_model_", vectorlen=self.veclen, modelid=modelid)
             self.models.append(model)
 
-    def train(self, n=100000, epochs=10, length=128, forcenew=False):
+    def train(self, masses=None, dists=None, n=100000, epochs=10, length=128, forcenew=False):
         # find length in self.lengths
         try:
             modelindex = np.argwhere(self.lengths == length)[0][0]
@@ -44,10 +44,30 @@ class IsoGenMassEngine(IsoGenEngineBase):
         massrange = self.massranges[modelindex]
         model = self.models[modelindex]
         print("Generating Training Data for isolen:" + str(length))
-        input, target = gen_training_data(n, isolen=length, massrange=massrange)
-        testinput, testtarget = gen_training_data(
-            int(n * 0.1), isolen=length, massrange=massrange
-        )
+        if masses is None or dists is None:
+            input, target = gen_training_data(n, isolen=length, massrange=massrange)
+            testinput, testtarget = gen_training_data(int(n * 0.1), isolen=length, massrange=massrange)
+        else:
+            if dists.shape[1] < length:
+                print("Warning: Isolen does not match training data. Changing to", dists.shape[1])
+                self.isolen = dists.shape[1]
+
+            elif dists.shape[1] > length:
+                print("Warning: Isolen does not match training data. Truncating to", self.isolen)
+                dists = dists[:, :self.isolen]
+
+            # Shuffle once and split
+            n = len(masses)
+            indices = np.random.permutation(n)
+            split = int(n * 0.9)
+
+            train_idx = indices[:split]
+            test_idx = indices[split:]
+
+            input = masses[train_idx]
+            target = dists[train_idx]
+            testinput = masses[test_idx]
+            testtarget = dists[test_idx]
         print("Created Data:", length, n)
         trd, ted = self.create_data_loaders([input, target], [testinput, testtarget])
         model.run_training(trd, ted, epochs=epochs, forcenew=forcenew)
@@ -101,8 +121,6 @@ class IsoGenMassEngine(IsoGenEngineBase):
                 print("No model with the requested isolen (" + str(isolen) + ") exists")
                 raise ValueError("No model with selected isolen exists.")
 
-
-
 def gen_training_data(n, isolen=128, massrange=[100, 1000000], log=False):
     if log:
         rlog = np.random.uniform(np.log10(massrange[0]), np.log10(massrange[1]), n)
@@ -127,6 +145,74 @@ if __name__ == "__main__":
         # eng.train_multiple(["massdata_100000.npz"], epochs=40, forcenew=False, inputname="masses")
     # exit()
 
-    if True:
+    if False:
         eng.train_all(n=1000000, epochs=10, forcenew=False)
+
+    if True:
+        topdir = r"C:\Users\Admin\Documents\martylab\Protein\IntactProtein\Training"
+        os.chdir(topdir)
+
+        import fnmatch
+
+        def match_files(directory, string, exclude=None):
+            files = []
+            for file in os.listdir(directory):
+                if fnmatch.fnmatch(file, string):
+                    if exclude is None or exclude not in file:
+                        files.append(file)
+            return np.array(files)
+
+        def correct_dist_lengths(dists, length):
+            corrected_dists = []
+            for d in dists:
+                if len(d) == length:
+                    corrected_dists.append(d)
+                if len(d) > length:
+                    corrected = [d[i] for i in range(length)]
+                    corrected_dists.append(corrected)
+                if len(d) < length:
+                    diff = length - len(d)
+                    corrected = np.append(d, np.zeros(diff))
+                    corrected_dists.append(corrected)
+
+            return corrected_dists
+
+        polyXdata = np.load(r"C:\Users\Admin\Documents\martylab\Protein\IntactProtein\Training\poly_X_peptides_min_6_max_25.npz")
+        polyXdists = polyXdata['dists']
+        polyXmasses = polyXdata['masses']
+
+        smallpepdata = np.load(r"C:\Users\Admin\Documents\martylab\Protein\IntactProtein\Training\all_peptides_min_1_max_5.npz")
+        smallpepdists = smallpepdata['dists']
+        smallpepmasses = smallpepdata['masses']
+
+        trainfiles = match_files(topdir, "*1100.npz")
+
+        dists = []
+        masses = []
+        for file in trainfiles:
+            data = np.load(file)
+            dists.extend(data['dists'])
+            masses.extend(data['masses'])
+
+        data_indices = [[] for massrange in eng.massranges]
+
+        for i in range(len(masses)):
+            for j in range(len(eng.massranges)):
+                if eng.massranges[j][0] <= masses[i] <= eng.massranges[j][1]:
+                    data_indices[j].append(i)
+
+        for i in range(len(eng.lengths)):
+            curr_masses = np.array([masses[j] for j in data_indices[i]])
+            # curr_masses = np.append(curr_masses, smallpepmasses)
+            # curr_masses = np.append(curr_masses, polyXmasses)
+
+            curr_dists = np.array([dists[j] for j in data_indices[i]])
+            # curr_dists = np.concatenate((curr_dists, smallpepdists))
+            # curr_dists = np.concatenate((curr_dists, polyXdists))
+
+            curr_dists = np.array(correct_dist_lengths(curr_dists, eng.lengths[i]))
+
+            eng.isolen = eng.lengths[i]
+            eng.train(masses=curr_masses, dists=curr_dists, length=eng.lengths[i], epochs=10, forcenew=True)
+
 

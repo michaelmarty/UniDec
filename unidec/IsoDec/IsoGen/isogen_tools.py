@@ -136,6 +136,18 @@ def rna_makemass(mass):
     return intnum
 
 
+def pep_makemass_avgine_input(mass, input_averagine_comp, input_averagine_mass):
+    num = (mass / input_averagine_mass) * input_averagine_comp
+    intnum = np.array([int(round(n)) for n in num])
+    return intnum
+
+
+def pepmass_to_dist_avgine_input(mass, input_avgine_comp, input_avgine_mass, isolen=128):
+    isolist = pep_makemass_avgine_input(mass, input_avgine_comp, input_avgine_mass)
+    intensities = isojim(isolist, length=isolen)
+    intensities = intensities / max(intensities)
+    return intensities
+
 def pepmass_to_dist(mass, isolen=128):
     _, minmassint, isolist = pep_makemass(mass)
     intensities = isojim(isolist, length=isolen)
@@ -251,7 +263,8 @@ def rnaseq_to_mass(rna_seq):
     for i,atom in enumerate(formula_list):
         formula_string = formula_string + str(rnaformula_dict_keys[i]) + str(formula_list[i]) + " "
 
-    formula_string = formula_string + "P" + str(n-1)
+    if n != 1:
+        formula_string = formula_string + "P" + str(n-1)
     formula = molmass.Formula(formula_string)
 
     return formula.monoisotopic_mass
@@ -399,6 +412,13 @@ def pepmass_to_isolen(mass):
 #Take the total mass, then divide by the total number of atoms in the averagine
 #Then multiply by
 if __name__ == "__main__":
-    seq = "ACGU"
-    mass = rnaseq_to_mass(seq)
-    exit()
+    new_avgine_comp = np.array([5.117756, 7.982229, 1.431965, 1.487561, 0.040586])
+    mass = 0
+    for i,v in enumerate(new_avgine_comp):
+        mass += isotopes[i][0][0] * v
+    print(mass)
+
+    new_avgine_mass = 114.726
+    input_mass = 5000
+
+    pep_makemass_avgine_input(input_mass, avgine, 1000)

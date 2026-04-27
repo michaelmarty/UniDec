@@ -42,6 +42,7 @@ exit()
 
 # Plot L2
 plt.figure()
+plt.figure()
 plt.imshow(np.transpose([l2]), aspect=0.25, cmap="viridis", interpolation="none")
 plt.xticks([])
 plt.yticks([])

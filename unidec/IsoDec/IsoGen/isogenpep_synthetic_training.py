@@ -81,6 +81,8 @@ print("Number of peptides:", len(peptides))
 goodseqs, dists, vecs = seqs_to_vectors(peptides)
 print("Vecs Created")
 
+os.chdir(r"C:\Users\Admin\Documents\martylab\Protein\IntactProtein\Training")
+
 np.savez_compressed(
     "peptidedists_synthetic_" + str(len(dists)) + ".npz",
     dists=dists,

@@ -4,6 +4,19 @@ include(GenerateExportHeader)
 
 project(isodeclib C CXX)
 
+# ----------------------------
+# Force consistent MSVC runtime
+# ----------------------------
+if(MSVC)
+    # Release: dynamic DLL runtime
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
+    
+    # Optional: Debug: dynamic DLL runtime
+    if(CMAKE_BUILD_TYPE MATCHES Debug)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDebugDLL")
+    endif()
+endif()
+
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
 

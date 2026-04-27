@@ -34,11 +34,11 @@ class MMTsvFileHeader:
             self.header_dict["retention_time"] = header_split.index("Scan Retention Time")
             self.header_dict["precursor_charge"] = header_split.index("Precursor Charge")
             self.header_dict["precursor_mass"] = header_split.index("Precursor Mass")
-            self.header_dict["accession"] = header_split.index("Protein Accession")
-            self.header_dict["aa_range"] = header_split.index("Start and End Residues In Protein")
+            self.header_dict["accession"] = header_split.index("Accession")
+            self.header_dict["aa_range"] = header_split.index("Start and End Residues In Full Sequence")
             self.header_dict["db_seq"] = header_split.index("Base Sequence")
             self.header_dict["full_seq"] = header_split.index("Full Sequence")
-            self.header_dict["pfm_mass"] = header_split.index("Peptide Monoisotopic Mass")
+            self.header_dict["pfm_mass"] = header_split.index("Monoisotopic Mass")
             self.header_dict["qvalue"] = header_split.index("QValue")
             self.header_dict["target_decoy"] = header_split.index("Decoy")
             self.header_dict["score"] = header_split.index("Score")
@@ -49,6 +49,8 @@ class MMTsvFileHeader:
 class MM_PrSM:
     def __init__(self, line, current_id, parsed_header):
         try:
+            if "|" in line:
+                return
             split_line = line.split("\t")
             self.global_id = current_id
             filename = split_line[parsed_header["filename"]].split('.')[0]
@@ -77,6 +79,10 @@ class MM_PrSM:
 
 
     def parse_aa_range(self, aa_range):
+        if "|" in aa_range:
+            aa_range_split = aa_range.split('|')
+            aa_range = aa_range_split[0]
+
         #First remove the brackets
         aa_range = aa_range.replace('[','').replace(']','')
         aa_split = aa_range.split('to')
@@ -263,6 +269,36 @@ def load_prsms(engines, filepaths, allow_ambiguous=False, qvalue_cutoff=0.01):
                         parsed_header = MMTsvFileHeader(line)
                         found_header = True
     return prsms
+
+def load_psm_file(filepath, allow_ambiguous=False, qvalue_cutoff=0.01):
+    psms = []
+
+    current_id = 0
+    parsed_header = {}
+    found_header = False
+    with open(filepath, "r") as f:
+        lines = f.readlines()
+        for line in lines:
+            if found_header:
+                psm = MM_PrSM(line, current_id, parsed_header.header_dict)
+                if psm.global_id is None or psm.qvalue > qvalue_cutoff:
+                    continue
+                if allow_ambiguous:
+                    psms.append(psm)
+                    current_id += 1
+                if not allow_ambiguous and psm.is_ambiguous:
+                    continue
+                if not allow_ambiguous and not psm.is_ambiguous:
+                    psms.append(psm)
+                    current_id += 1
+
+            else:
+                split = line.split("\t")
+                if split[0] == "File Name":
+                    parsed_header = MMTsvFileHeader(line)
+                    found_header = True
+    return psms
+
 
 def get_prsm_scan_overlap(engines, prsms):
     print("Getting Scan Overlap...")

@@ -234,6 +234,9 @@ def remove_noise_cdata(data, localmin=100, factor=1.5, mode="median"):
         localmins = [np.mean(ydat[i:i + localmin]) for i in range(len(ydat) - localmin)]
     else:
         localmins = [np.median(ydat[i:i + localmin]) for i in range(len(ydat) - localmin)]
+
+    if len(localmins) == 0:
+        return  data
     # Extend the last bit at the end value to be the same length as data
     localmins = np.concatenate([localmins, np.full(len(data) - len(localmins), localmins[-1])])
     # smooth

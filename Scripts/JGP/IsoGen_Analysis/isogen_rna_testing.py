@@ -10,7 +10,6 @@ import fnmatch
 import time
 import random
 from matplotlib.pyplot import rcParams
-from Scripts.JGP.IsoGen_Analysis.BRAIN_wrapper import *
 import pickle
 import math
 
@@ -90,49 +89,15 @@ eng_avg = IsoGenMassEngine()
 tick_size = 16
 label_size = 20
 
-if False:
-    masses = [1000, 5000, 10000, 50000]
-    isolen = 128
-
-    for mass in masses:
-        py_fft_dist = pepmass_to_dist(mass, isolen=128)
-        py_nn_dist = eng_avg.predict(mass)
-        c_fft_dist = fft_pep_mass_to_dist(mass, isolen=128)
-        c_nn_dist = nn_pep_mass_to_dist(mass)
-
-        plt.plot(py_fft_dist, color='r', label="Py-FFT")
-        plt.plot(py_nn_dist, color='orange', label='Py-NN')
-        plt.plot(c_fft_dist, color='b', linestyle=':', label="C-FFT")
-        plt.plot(c_nn_dist, color='purple', linestyle='--', label="C-NN")
-        plt.legend()
-        plt.show()
-
-if False:
-    seqs = ["ADAKCGS", "AACCGKHIYHHHCCHG"]
-
-    for seq in seqs:
-        py_fft_dist = peptide_to_dist(seq, 64)
-        py_nn_dist = eng.predict(seq)
-        c_fft_dist = fft_pep_seq_to_dist(seq)
-        c_nn_dist = nn_pep_seq_to_dist(seq)
-
-        plt.plot(py_fft_dist, color='r', label="Py-FFT")
-        plt.plot(py_nn_dist, color='orange', label='Py-NN')
-        plt.plot(c_fft_dist, color='b', linestyle=':', label="C-FFT")
-        plt.plot(c_nn_dist, color='purple', linestyle='--', label="C-NN")
-        plt.legend()
-        plt.show()
-
 if True:
     topdir = r"C:\Users\Admin\Documents\martylab\RNA_SeqData\Assessment"
     os.chdir(topdir)
-    assessment_files = match_files(topdir, "*500.npz")
+    assessment_files = match_files(topdir, "*.npz")
 
     seqs = []
     dists = []
     vecs = []
     masses = []
-
 
     for file in assessment_files:
         data = np.load(file)
@@ -178,7 +143,7 @@ if True:
 
 
     num_processed = 0
-    mass_bin_width = 100
+    mass_bin_width = 500
     curr_length = 50
 
     for i in shuffled_indices:
@@ -267,7 +232,7 @@ if True:
             nn_mass_css_vals_bymass[mass_key] = [nn_mass_css]
 
         timestart = time.perf_counter()
-        brain_mass_dist = brain_rnamass_to_dist(masses[i])
+        brain_mass_dist = brain_rna_mass_to_dist(masses[i])
         brain_mass_time = round(time.perf_counter() - timestart, 6)
         brain_mass_css = calculate_cosinesimilarity(brain_mass_dist, fft_seq_dist)
 
@@ -287,7 +252,7 @@ if True:
 
 
         timestart = time.perf_counter()
-        brain_seq_dist = brain_rnaseq_to_dist(seqs[i])
+        brain_seq_dist = brain_rna_seq_to_dist(seqs[i])
         brain_seq_time = round(time.perf_counter() - timestart, 6)
         brain_seq_css = calculate_cosinesimilarity(brain_seq_dist, fft_seq_dist)
 
@@ -307,20 +272,11 @@ if True:
 
 
 
-        # if aa_count == curr_length:
+        # if mono_count == curr_length:
         #     plt.plot(fft_seq_dist, label="FFT-Seq")
         #     plt.plot(fft_mass_dist, label="FFT-Mass")
-        #     plt.plot(py_nn_dist, label="Py-NN-Mass")
         #     plt.plot(nn_seq_dist, label="NN-Seq")
         #     plt.plot(nn_mass_dist, label="NN-Mass")
-        #     plt.title("Length: " + str(curr_length) + " Mass: " + str(masses[i]))
-        #     plt.legend()
-        #     plt.show()
-        #
-        #
-        #     plt.plot(fft_seq_dist-fft_mass_dist, label="FFT-Mass Diff")
-        #     plt.plot(fft_seq_dist-nn_mass_dist, label="NN-Mass Diff")
-        #     plt.plot(fft_seq_dist-py_nn_dist, label="Py-NN-Mass Diff")
         #     plt.title("Length: " + str(curr_length) + " Mass: " + str(masses[i]))
         #     plt.legend()
         #     plt.show()

@@ -6,6 +6,7 @@ import time
 from unidec.IsoDec.IsoGen.isogen_base import *
 from unidec.IsoDec.IsoGen.isogen_tools import peptide_to_dist, peptide_to_vector
 from Scripts.JGP.IsoGen_Analysis.distribution_assessment import *
+from unidec.IsoDec.IsoGen.isogenc import fft_pep_seq_to_dist
 
 
 class IsoGenPepEngine(IsoGenEngineBase):
@@ -29,6 +30,16 @@ class IsoGenPepEngine(IsoGenEngineBase):
             if self.lengths[i] == self.isolen:
                 self.model = self.models[i]
 
+    def transfer_train(self, seqs, dists, epochs=10, length=128, forcenew=False):
+        trd, ted = self.setup_data(dists, seqs)
+        print(forcenew)
+        indices = np.where(self.lengths == length)
+        if len(indices) > 0:
+            model = self.models[indices[0][0]]
+            model.run_training(trd, ted, epochs=epochs, forcenew=forcenew)
+        else:
+            print("No model with the requested isolen (" + str(length) + ") exists")
+            raise ValueError("No model with selected isolen exists.")
 
     def inputs_to_vectors(self, inputs):
         return np.array([peptide_to_vector(s) for s in inputs])
@@ -62,35 +73,53 @@ if __name__ == "__main__":
     # Set backend to Agg
     mpl.use('WxAgg')
 
-    os.chdir(r"C:\Users\Admin\OneDrive\Desktop\martylab\IsoGen\IntactProtein\Training")
+    os.chdir(r"C:\Users\Admin\Documents\martylab\Protein\IntactProtein\Training")
 
     isolen = 32
     # trainfile = "peptidedists_633886.npz"
     #trainfile = "Z:\\Group Share\\JGP\\PeptideTraining\\peptidedists_2492495.npz"
     # trainfile_synthetic = "peptidedists_synthetic_168420.npz"
-    trainfile_synthetic = r"E:\Zdrive_backup\PeptideTraining\peptidedists_synthetic_3368720.npz"
+    trainfile_synthetic = "all_peptides_min_1_max_5.npz"
+    trainfile_synthetic_polyX = "poly_X_peptides_min_6_max_25.npz"
 
-    pep1 = "training_random_ecoli_proteins_50000_min_5_max_50.npz"
-    pep2 = "training_random_yeast_proteins_50000_min_5_max_50.npz"
-    pep3 = "training_random_human_proteins_50000_min_5_max_50.npz"
-    pep4 = "training_random_mouse_proteins_50000_min_5_max_50.npz"
+    pep1 = "training_random_ecoli_proteins_10000_min_6_max_55.npz"
+    pep2 = "training_random_yeast_proteins_10000_min_6_max_55.npz"
+    pep3 = "training_random_human_proteins_10000_min_6_max_55.npz"
+    pep4 = "training_random_mouse_proteins_10000_min_6_max_55.npz"
 
-    intact1 = "training_random_ecoli_proteins_1000_min_51_max_1000.npz"
-    intact2 = "training_random_yeast_proteins_1000_min_51_max_1000.npz"
-    intact3 = "training_random_human_proteins_1000_min_51_max_1000.npz"
-    intact4 = "training_random_mouse_proteins_1000_min_51_max_1000.npz"
+    intact1 = "training_random_ecoli_proteins_1000_min_40_max_310.npz"
+    intact2 = "training_random_yeast_proteins_1000_min_40_max_310.npz"
+    intact3 = "training_random_human_proteins_1000_min_40_max_310.npz"
+    intact4 = "training_random_mouse_proteins_1000_min_40_max_310.npz"
+
+    intact5 = "training_random_ecoli_proteins_1000_min_290_max_1010.npz"
+    intact6 = "training_random_yeast_proteins_1000_min_290_max_1010.npz"
+    intact7 = "training_random_human_proteins_1000_min_290_max_1010.npz"
+    intact8 = "training_random_mouse_proteins_1000_min_290_max_1010.npz"
+
+    eng = IsoGenPepEngine()
 
     if True:
         # eng_pep = IsoGenPepEngine(isolen=16)
         # print("Training Peptide Model...")
-        # eng_pep.train_multiple([trainfile_synthetic, pep1, pep2, pep3, pep4],
+        # eng_pep.train_multiple([trainfile_synthetic, trainfile_synthetic, trainfile_synthetic_polyX, trainfile_synthetic_polyX, pep1, pep2],
         #                        epochs=10, forcenew=True)
 
-        eng_prot = IsoGenPepEngine(isolen=128)
-        print("Training Protein Model...")
-        eng_prot.train_multiple([intact1, intact2, intact3, intact4], epochs=10, forcenew=True)
+        eng_prot1 = IsoGenPepEngine(isolen=64)
+        print("Training Peptide Model...")
+        eng_prot1.train_multiple([trainfile_synthetic, trainfile_synthetic,
+                                  trainfile_synthetic_polyX, trainfile_synthetic_polyX,
+                                  intact1, intact2, intact3, intact4],
+                               epochs=10, forcenew=True)
 
-    if False:
+        eng_prot2 = IsoGenPepEngine(isolen=128)
+        print("Training Peptide Model...")
+        eng_prot2.train_multiple([trainfile_synthetic, trainfile_synthetic,
+                                  trainfile_synthetic_polyX, trainfile_synthetic_polyX,
+                                  intact5, intact6, intact7, intact8],
+                                 epochs=10, forcenew=True)
+
+    if True:
         testformulas = ["PEPTIDE", "CCCCCCCCCCCCC", "APTIGGGQGAAAAAAAAAAAASVGGTIPGPGPGGGQGPGEGGEGQTAR", "LLL", "KKK", "CCCM"]
         mpl.use("WxAgg")
 
@@ -98,7 +127,7 @@ if __name__ == "__main__":
             maxval = 10
             dist = eng.predict(f)
             dist = dist / np.max(dist)
-            truedist = peptide_to_dist(f)
+            truedist = fft_pep_seq_to_dist(f)
             truedist = truedist/np.max(truedist)
 
             plt.subplot(2, 3, i + 1)

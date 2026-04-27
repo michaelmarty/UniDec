@@ -6,9 +6,7 @@ import matplotlib as mpl
 import random
 from Scripts.JGP.IsoGen_Analysis.unimod_obo_parser import *
 from unidec.IsoDec.IsoGen.isogenc import fft_pep_seq_to_dist
-
-
-atoms_to_ignore = ["Br", "I", "Cl", "F", "Hg", "Mo", "Se", "B", "Cu", "Si", "As", ]
+from itertools import combinations_with_replacement
 
 
 def get_big_seq(seqs):
@@ -75,7 +73,7 @@ def seqs_to_vectors(seqs):
         return None, None, None, None
     return goodseqs, dists, vecs, masses
 
-def parse_file(fname, maxn=1000000, maxlen=200):
+def parse_file(fname, maxn=10000000, maxlen=None):
     if fname.endswith(".tsv"):
         seqs = parse_tsv_file(fname)
 
@@ -86,7 +84,8 @@ def parse_file(fname, maxn=1000000, maxlen=200):
     if maxn is not None:
         seqs = seqs[:maxn]
 
-    seqs = [s for s in seqs if len(s) <= maxlen]
+    if maxlen is not None:
+        seqs = [s for s in seqs if len(s) <= maxlen]
     print("Retreived Sequences:", len(seqs))
     goodseqs, dists, vecs, masses = seqs_to_vectors(seqs)
 
@@ -150,7 +149,7 @@ def gen_random_prots(all_seqs, organism, iterations=10):
 def mod_to_chemicalformula(mod):
     return ''.join(f"{key}{value}" for key, value in mod.composition.items())
 
-def gen_random_seqs_even_length(all_seqs, organism, n=10, min_length=1, max_length=200):
+def gen_random_seqs_even_length(all_seqs, organism, n=10000, min_length=1, max_length=200):
     big_seq = get_big_seq(all_seqs)
     np.random.shuffle(big_seq)
 
@@ -189,30 +188,146 @@ def gen_random_seqs_even_length(all_seqs, organism, n=10, min_length=1, max_leng
             good_seqs.append(str(r[2]))
             masses.append(r[3])
 
-    np.savez_compressed("assessment_random_"+ str(organism)+ "_proteins_"+str(n)+ "_min_" + str(min_length) + "_max_" +
+    np.savez_compressed("training_random_"+ str(organism)+ "_proteins_"+str(n)+ "_min_" + str(min_length) + "_max_" +
                         str(max_length) + ".npz",
                         dists=dists, vecs=vectors, seqs=good_seqs,masses=masses)
+
+def create_all_poly_x(min_length=1, max_length=20):
+    seqs = []
+    for i in range(min_length, max_length + 1):
+        for aa in aas:
+            seqs.append(aa*i)
+
+    print("Processing sequences...")
+    with multiprocessing.Pool(processes=8) as pool:
+        results = pool.map(seq_to_dist_vecs_seqs, seqs)
+
+    dists = []
+    vectors= []
+    good_seqs = []
+    masses = []
+
+    print("Parsing results...")
+    for r in results:
+        if r[0] is not None and r[1] is not None and r[2] is not None and r[3] is not None:
+            dists.append(np.array(r[0]))
+            vectors.append(r[1])
+            good_seqs.append(str(r[2]))
+            masses.append(r[3])
+
+    np.savez_compressed(
+        "poly_X_peptides_min_" + str(min_length) + "_max_" +
+        str(max_length) + ".npz",
+        dists=dists, vecs=vectors, seqs=good_seqs, masses=masses)
+
+# Create all possible combinations for peptides of lengths 1 to 5
+def create_all_peptides(min_length=1, max_length=5):
+    seqs = []
+
+    for i in range(min_length, max_length+1):
+        for combo in combinations_with_replacement(aas, i):
+            seqs.append(''.join(combo))
+    print("Produced", str(len(seqs)), "sequences.")
+
+    print("Processing sequences...")
+    with multiprocessing.Pool(processes=8) as pool:
+        results = pool.map(seq_to_dist_vecs_seqs, seqs)
+
+    dists = []
+    vectors= []
+    good_seqs = []
+    masses = []
+
+    print("Parsing results...")
+    for r in results:
+        if r[0] is not None and r[1] is not None and r[2] is not None and r[3] is not None:
+            dists.append(np.array(r[0]))
+            vectors.append(r[1])
+            good_seqs.append(str(r[2]))
+            masses.append(r[3])
+
+    np.savez_compressed(
+        "all_peptides_min_" + str(min_length) + "_max_" +
+        str(max_length) + ".npz",
+        dists=dists, vecs=vectors, seqs=good_seqs, masses=masses)
+
+
+def get_avg_comp_from_seqs(seqs):
+    big_seq = get_big_seq(seqs)
+    total = len(big_seq)
+    counts = Counter(big_seq)
+    averagine_comp = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
+    for k,v in counts.items():
+        averagine_comp += (float(v/total) * aa_elementalcomp_dict[k].astype(float))
+    return averagine_comp
+
+
+
 
 if __name__ == "__main__":
     # Set backend to Agg
     mpl.use('WxAgg')
 
-    os.chdir(r"C:\Users\Admin\Documents\martylab\Protein\IntactProtein\OtherTesting")
+    os.chdir(r"C:\Users\Admin\Documents\martylab\Protein\IntactProtein\Training")
+
+    # create_all_peptides(1,5)
+    # create_all_poly_x(6,25)
 
     min_length = 5
-    max_length = 1000
+    max_length = 1100
+
+    # parse_file("yeast_protein_seqs.tsv", maxlen=None)
+    # parse_file("ecoli_protein_seqs.tsv", maxlen=None)
+    # parse_file("human_protein_seqs.tsv", maxlen=None)
+    # parse_file("mouse_protein_seqs.tsv", maxlen=None)
+
 
     human_prot_data = np.load("human_protein_seqs.npz")
-    gen_random_seqs_even_length(human_prot_data["seqs"], "human", min_length=min_length, max_length=max_length)
+    human_avgine = get_avg_comp_from_seqs(human_prot_data['seqs'])
+    yeast_prot_data = np.load("yeast_protein_seqs.npz")
+    yeast_avgine = get_avg_comp_from_seqs(yeast_prot_data['seqs'])
+    ecoli_prot_data = np.load("ecoli_protein_seqs.npz")
+    ecoli_avgine = get_avg_comp_from_seqs(ecoli_prot_data['seqs'])
+    mouse_prot_data = np.load("mouse_protein_seqs.npz")
+    mouse_avgine = get_avg_comp_from_seqs(mouse_prot_data['seqs'])
+
+    print("Human:", human_avgine)
+    print("Yeast:", yeast_avgine)
+    print("Ecoli:", ecoli_avgine)
+    print("Mouse:", mouse_avgine)
+
+    total = (human_avgine + yeast_avgine + ecoli_avgine + mouse_avgine) /4
+    print("Total:", total)
+    exit()
+
+    gen_random_seqs_even_length(human_prot_data["seqs"], "human", n=200, min_length=min_length, max_length=max_length)
+
+    gen_random_seqs_even_length(yeast_prot_data["seqs"], "yeast", n=200, min_length=min_length, max_length=max_length)
+
+    gen_random_seqs_even_length(ecoli_prot_data["seqs"], "ecoli", n=200, min_length=min_length, max_length=max_length)
+
+    gen_random_seqs_even_length(mouse_prot_data["seqs"], "mouse", n=200, min_length=min_length, max_length=max_length)
+
+    exit()
+
+
+    min_length = 290
+    max_length = 1010
+
+    # create_all_poly_x(1,25)
+    # exit()
+
+    human_prot_data = np.load("human_protein_seqs.npz")
+    gen_random_seqs_even_length(human_prot_data["seqs"], "human", n=1000, min_length=min_length, max_length=max_length)
 
     yeast_prot_data = np.load("yeast_protein_seqs.npz")
-    gen_random_seqs_even_length(yeast_prot_data["seqs"], "yeast", min_length=min_length, max_length=max_length)
+    gen_random_seqs_even_length(yeast_prot_data["seqs"], "yeast", n=1000, min_length=min_length, max_length=max_length)
 
     ecoli_prot_data = np.load("ecoli_protein_seqs.npz")
-    gen_random_seqs_even_length(ecoli_prot_data["seqs"], "ecoli", min_length=min_length, max_length=max_length)
+    gen_random_seqs_even_length(ecoli_prot_data["seqs"], "ecoli", n=1000, min_length=min_length, max_length=max_length)
 
     mouse_prot_data = np.load("mouse_protein_seqs.npz")
-    gen_random_seqs_even_length(mouse_prot_data["seqs"], "mouse", min_length=min_length, max_length=max_length)
+    gen_random_seqs_even_length(mouse_prot_data["seqs"], "mouse", n=1000, min_length=min_length, max_length=max_length)
 
 
 

@@ -2,6 +2,7 @@ from brainpy import isotopic_variants
 import matplotlib.pyplot as plt
 from unidec.IsoDec.IsoGen.isogen_tools import *
 from unidec.IsoDec.IsoGen.isogenc import *
+import pyopenms
 
 #Ordered C,H,N,O,P
 rnaveragine_formulacomp_numerical = np.array([9.50, 10.75, 3.75, 7.0, 1])
@@ -64,6 +65,7 @@ def add_aa_to_braindict(braindict, aa_comp):
     braindict["O"] += aa_comp[3]
     braindict["S"] += aa_comp[4]
 
+
 def brain_pepseq_to_dist(sequence, isolen=128):
     formula_dict = pepseq_to_brain_input(sequence)
     isotope_peaks = isotopic_variants(formula_dict, npeaks=isolen, charge=1)
@@ -97,6 +99,7 @@ def rnaseq_to_brain_input(rna_seq):
 
     return formula_dict
 
+
 def brain_rnaseq_to_dist(sequence, isolen=128):
     rna = rnaseq_to_brain_input(sequence)
     isotope_peaks = isotopic_variants(rna, npeaks=isolen, charge=1)
@@ -110,11 +113,32 @@ def brain_rnaseq_to_dist(sequence, isolen=128):
     return intensities
 
 
-if __name__ == "__main__":
-    sequence = "AGCUAGCUAGCU"
-    brain_intensities = brain_rnaseq_to_dist(sequence)
-    fft_intensities = fft_rna_seq_to_dist(sequence)
+def pyopenms_pepseq_to_isodist(sequence, isolen=128):
+    seq = pyopenms.AASequence(sequence)
+    formula = seq.getFormula()
 
+    dist = formula.getIsotopeDistribution(pyopenms.CoarseIsotopePatternGenerator(isolen))
+
+    masses = []
+    intensities = []
+
+
+    dist_cont = dist.getContainer()
+
+    for peak in dist_cont:
+        intensities.append(peak.getIntensity())
+
+    intensities = np.array(intensities)
+    intensities = intensities / max(intensities)
+    return intensities
+
+if __name__ == "__main__":
+    sequence = "CCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+    py_intensities = pyopenms_pepseq_to_isodist(sequence)
+    brain_intensities = brain_pepseq_to_dist(sequence)
+    fft_intensities = fft_pep_seq_to_dist(sequence)
+
+    plt.plot(py_intensities, label="PyOpenMS")
     plt.plot(brain_intensities, label="BRAIN")
     plt.plot(fft_intensities, label="FFT")
     plt.legend()

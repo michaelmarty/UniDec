@@ -22,11 +22,26 @@ const char *elements[] = {
     "H", "B", "C", "N", "O", "F", "P", "S", "K", "V", "Y", "U", "W", "I"
 };
 
+const float c12_abundance = 0.9893;
+const float h1_abundance = 0.999885;
+const float n14_abundance = 0.99632;
+const float o16_abundance = 0.99757;
+const float s32_abundance = 0.9499;
 
+const float c_root = -92.4579;
+const float h_root = -8694.6521;
+const float n_root = -270.7391;
+const float rho_o = 22.0595;
+const float theta_o = 1.5750;
+const float s_root = -424.8761;
+const float rho_s = 4.728;
+const float theta_s = 1.583;
 
 
 char* aa_names[] = {
     "A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "V", "W", "Y"};
+
+
 
 
 // Set up the weights
@@ -227,6 +242,49 @@ float fft_list_to_dist(const int isolist[5], const int length, float* isodist)
     return (float)max_val;
 }
 
+float brain_calc_psi(const int isolist[5], const int l) {
+    float psi = 0;
+    psi += isolist[0] * pow(c_root, -l); //Add C portion
+    psi += isolist[1] * pow(h_root, -l); //Add H portion
+    psi += isolist[2] * pow(n_root, -l); //Add N portion
+    psi += isolist[3] * 2 * pow(rho_o, -l) * cos(theta_o * l); //Add the O portion
+    psi += isolist[4] * pow(s_root, -l); //Add the real S portion
+    psi += isolist[4] * 2 * pow(rho_s, -l) * cos(theta_s * l);
+    return psi;
+}
+
+float brain_list_to_dist(const int isolist[5], const int length, float* isodist) {
+    double* q = (double*)calloc(length, sizeof(double));
+    double* psi = (double*)calloc(length, sizeof(double));
+
+    for (int i = 0; i < length; i++) {
+        psi[i] = brain_calc_psi(isolist, i);
+    }
+
+    q[0] = 1;
+
+    for (int j = 1;j < length;j++) {
+        float s = 0.0;
+        for (int l = 1; l < j+1; l++) {
+            s += q[j-l] * psi[l];
+        }
+        q[j] = -s / j;
+    }
+
+    free(psi);
+
+    const double maxval = normalize_isodist(q, length);
+
+    //memcpy buffer to isodist
+    for (int i = 0; i < length; i++)
+    {
+        isodist[i] = (float)q[i];
+    }
+
+    free(q);
+
+    return (float)maxval;
+}
 
 void construct_isotope_array(const int number, double* isotope_array, const int length)
 {
@@ -272,6 +330,16 @@ void copy_fft(const fftw_complex* in, fftw_complex* out, const int length)
     }
 }
 
+float get_first_isotope_abundance(const int number) {
+    float abundance = 0.0;
+    for (int i = 0; i < dlen; i++) {
+        if (isotope_numbers[i] == number) {
+            abundance = isotope_abundances[i];
+            break;
+        }
+    }
+    return abundance;
+}
 
 void fft_from_precomputed(const int number, fftw_complex* outft, const int length)
 {

@@ -3,6 +3,7 @@ import numpy as np
 import time
 from scipy.spatial.distance import cosine
 
+from Scripts.JGP.IsoGen_Analysis.distribution_assessment import calculate_cosinesimilarity
 from unidec.IsoDec.IsoGen import isogen_tools as igs
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -46,6 +47,22 @@ isogen_lib.nn_rna_mass_to_dist.argtypes = [ctypes.c_float, ctypes.POINTER(ctypes
                                             ctypes.c_int]
 isogen_lib.nn_rna_mass_to_dist.restype =  ctypes.c_float
 
+isogen_lib.brain_pep_mass_to_dist.argtypes = [ctypes.c_float, ctypes.POINTER(ctypes.c_float), ctypes.c_int,
+                                            ctypes.c_int]
+isogen_lib.brain_pep_mass_to_dist.restype = ctypes.c_float
+
+isogen_lib.brain_pep_seq_to_dist.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.c_float), ctypes.c_int,
+                                           ctypes.c_int]
+isogen_lib.brain_pep_seq_to_dist.restype = ctypes.c_float
+
+isogen_lib.brain_rna_seq_to_dist.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.c_float), ctypes.c_int,
+                                           ctypes.c_int]
+isogen_lib.brain_rna_seq_to_dist.restype = ctypes.c_float
+
+isogen_lib.brain_rna_mass_to_dist.argtypes = [ctypes.c_float, ctypes.POINTER(ctypes.c_float), ctypes.c_int,
+                                           ctypes.c_int]
+isogen_lib.brain_rna_mass_to_dist.restype = ctypes.c_float
+
 
 
 # nn = neural net
@@ -67,7 +84,9 @@ def fft_rna_seq_to_dist(seq, isolen=128, offset=0):
     isodist = (ctypes.c_float * isolen)()
     isolen_c = ctypes.c_int(isolen)
     offset_c = ctypes.c_int(offset)
-    isogen_lib.fft_rna_seq_to_dist(seq_bytes, isodist, isolen_c, offset_c)
+    result = isogen_lib.fft_rna_seq_to_dist(seq_bytes, isodist, isolen_c, offset_c)
+    if result == -1:
+        return None
     return np.array(isodist).copy()
 
 
@@ -77,18 +96,42 @@ def fft_rna_mass_to_dist(mass, isolen=128):
     isodist = (ctypes.c_float * isolen)()
     isolen_c = ctypes.c_int(isolen)
     offset = ctypes.c_int(0)
-    isogen_lib.fft_rna_mass_to_dist(fmass, isodist, isolen_c, offset)
-
+    result = isogen_lib.fft_rna_mass_to_dist(fmass, isodist, isolen_c, offset)
+    if result == -1:
+        return None
     return np.array(isodist[:])
+
+
+def brain_rna_seq_to_dist(seq, isolen=128, offset=0):
+    """RNA Seq -> FFT IsoJim dist"""
+    seq_bytes = seq.encode("utf-8")
+    isodist = (ctypes.c_float * isolen)()
+    isolen_c = ctypes.c_int(isolen)
+    offset_c = ctypes.c_int(offset)
+    isogen_lib.brain_rna_seq_to_dist(seq_bytes, isodist, isolen_c, offset_c)
+    return np.array(isodist).copy()
+
+
+def brain_rna_mass_to_dist(mass, isolen=128):
+    """RNA Mass -> IsoDist"""
+    fmass = ctypes.c_float(mass)
+    isodist = (ctypes.c_float * isolen)()
+    isolen_c = ctypes.c_int(isolen)
+    offset = ctypes.c_int(0)
+    isogen_lib.brain_rna_mass_to_dist(fmass, isodist, isolen_c, offset)
+
+    return np.array(isodist).copy()
 
 
 def nn_rna_seq_to_dist(seq, isolen=128, offset=0):
     """RNA sequence -> Isotope Distribution"""
     seq_bytes = seq.encode("utf-8")
-    isodist = (ctypes.c_float * 128)()
+    isodist = (ctypes.c_float * isolen)()
     offset = ctypes.c_int(offset)
     isolen = ctypes.c_int(isolen)
-    isogen_lib.nn_rna_seq_to_dist(seq_bytes, isodist, isolen, offset)
+    result = isogen_lib.nn_rna_seq_to_dist(seq_bytes, isodist, isolen, offset)
+    if result == -1:
+        return None
     return np.array(isodist).copy()
 
 
@@ -97,7 +140,9 @@ def nn_rna_mass_to_dist(mass, isolen=128, offset=0):
     isodist = (ctypes.c_float * isolen)()
     offset = ctypes.c_int(offset)
     isolen = ctypes.c_int(isolen)
-    isogen_lib.nn_rna_mass_to_dist(fmass, isodist, isolen, offset)
+    result = isogen_lib.nn_rna_mass_to_dist(fmass, isodist, isolen, offset)
+    if result == -1:
+        return None
     return np.array(isodist).copy()
 
 
@@ -107,7 +152,9 @@ def nn_pep_seq_to_dist(seq, isolen=128, offset=0):
     isodist = (ctypes.c_float * isolen)()
     isolen = ctypes.c_int(isolen)
     offset = ctypes.c_int(offset)
-    isogen_lib.nn_pep_seq_to_dist(seq_bytes, isodist, isolen, offset)
+    result = isogen_lib.nn_pep_seq_to_dist(seq_bytes, isodist, isolen, offset)
+    if result == -1:
+        return None
     return np.array(isodist).copy()
 
 
@@ -117,6 +164,16 @@ def fft_pep_seq_to_dist(seq, isolen=128, offset=0):
     isolen_c = ctypes.c_int(isolen)
     offset_c = ctypes.c_int(offset)
     result = isogen_lib.fft_pep_seq_to_dist(seq_bytes, isodist, isolen_c, offset_c)
+    if result == -1:
+        return None
+    return np.array(isodist).copy()
+
+def brain_pep_seq_to_dist(seq, isolen=128, offset=0):
+    seq_bytes = seq.encode("utf-8")
+    isodist = (ctypes.c_float * isolen)()
+    isolen_c = ctypes.c_int(isolen)
+    offset_c = ctypes.c_int(offset)
+    result = isogen_lib.brain_pep_seq_to_dist(seq_bytes, isodist, isolen_c, offset_c)
     return np.array(isodist).copy()
 
 
@@ -126,16 +183,26 @@ def fft_pep_mass_to_dist(mass, isolen=128, offset=0):
     offset = ctypes.c_int(0)
     isolen = ctypes.c_int(isolen)
     result = isogen_lib.fft_pep_mass_to_dist(fmass, isodist, isolen, offset)
-    # move to the c code
+    if result == -1:
+        return None
     return np.array(isodist).copy()
 
+def brain_pep_mass_to_dist(mass, isolen=128, offset=0):
+    fmass = ctypes.c_float(mass)
+    isodist = (ctypes.c_float * isolen)()
+    offset = ctypes.c_int(0)
+    isolen = ctypes.c_int(isolen)
+    result = isogen_lib.brain_pep_mass_to_dist(fmass, isodist, isolen, offset)
+    return np.array(isodist).copy()
 
 def nn_pep_mass_to_dist(mass, isolen=128, offset=0):
     fmass = ctypes.c_float(mass)
     isodist = (ctypes.c_float * isolen)()
     offset = ctypes.c_int(0)
     isolen = ctypes.c_int(isolen)
-    isogen_lib.nn_pep_mass_to_dist(fmass, isodist, isolen, offset)
+    result = isogen_lib.nn_pep_mass_to_dist(fmass, isodist, isolen, offset)
+    if result == -1:
+        return None
     return np.array(isodist).copy()
 
 
@@ -182,53 +249,75 @@ if __name__ == "__main__":
     import random
     #Test peptide methods
     if False:
-        test_sequences = ["AGCKLIHRK"]
+        test_sequences = ["CCCCCCC"]
         test_masses = [1200, 11205, 38000]
 
         print("Testing Peptide Sequence to Dist Methods")
         for i in range(len(test_sequences)):
             nn_dist = nn_pep_seq_to_dist(test_sequences[i])
-            fft_dist = fft_pep_seq_to_dist(test_sequences[i], 128)
+            fft_dist = fft_pep_seq_to_dist(test_sequences[i])
+            brain_dist = brain_pep_seq_to_dist(test_sequences[i])
 
             plt.plot(nn_dist, color='r', label='NN')
-            plt.plot(fft_dist, color='b', linestyle='--', label='FFT')
+            plt.plot(fft_dist, color='b', label='FFT')
+            plt.plot(brain_dist, color='k', label='BRAIN')
             plt.legend()
             plt.show()
 
+        print("Testing Peptide Mass to Dist Methods")
         for i in range(len(test_masses)):
             nn_dist = nn_pep_mass_to_dist(test_masses[i])
-            fft_dist = fft_pep_mass_to_dist(test_masses[i], 128)
+            fft_dist = fft_pep_mass_to_dist(test_masses[i])
+            brain_dist = brain_pep_mass_to_dist(test_masses[i])
 
             plt.plot(nn_dist, color='r', label='NN')
-            plt.plot(fft_dist, color='b', linestyle='--', label='FFT')
+            plt.plot(fft_dist, color='b', label='FFT')
+            plt.plot(brain_dist, color='k', label='BRAIN')
             plt.legend()
             plt.show()
 
 
     #Test RNA methods
     if False:
-        test_sequences = ["GUAC", "GUACGUACGUACGUAC", "GUACGUACGUACGUACGUACGUACGUACGUACGUAC",
-                    "GUACGUACGUACGCGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUAC",
-                    "AAAAAAAAAAAAA", "UUUUUUUUUUUUU"]
+        # test_sequences = ["GUAC", "GUACGUACGUACGUAC", "GUACGUACGUACGUACGUACGUACGUACGUACGUAC",
+        #             "GUACGUACGUACGCGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUACGUAC",
+        #             "AAAAAAAAAAAAA", "UUUUUUUUUUUUU"]
+        test_sequences = ["A"*20, "A"*25, "A"*40, "A"*50, "A"*100, "A"*150]
         test_masses = [1200, 11205, 98765]
 
         print("Testing RNA Sequence to Dist Methods")
         for i in range(len(test_sequences)):
-            nn_dist = nn_rna_seq_to_dist(test_sequences[i])
-            fft_dist = fft_rna_seq_to_dist(test_sequences[i], 128)
+            nn_seq_dist = nn_rna_seq_to_dist(test_sequences[i], isolen=64)
+            fft_seq_dist = fft_rna_seq_to_dist(test_sequences[i], isolen=64)
 
-            plt.plot(nn_dist, color='r', label='NN')
-            plt.plot(fft_dist, color='b', linestyle='--', label='FFT')
+            mass = igs.rnaseq_to_mass(test_sequences[i])
+            nn_mass_dist = nn_rna_mass_to_dist(mass)
+            fft_mass_dist = fft_rna_mass_to_dist(mass)
+
+            nn_seq_css = calculate_cosinesimilarity(nn_seq_dist, fft_seq_dist)
+            nn_mass_css = calculate_cosinesimilarity(nn_mass_dist, fft_seq_dist)
+
+            print("NN-Seq CSS: ", nn_seq_css)
+            print("NN-Mass CSS: ", nn_mass_css)
+
+
+            plt.title(test_sequences[i])
+            plt.plot(nn_seq_dist, color='r', label='NN-Seq')
+            plt.plot(fft_seq_dist, color='b', label='FFT-Seq')
+            plt.plot(nn_mass_dist, color='g', label='NN-Mass')
+            plt.plot(fft_mass_dist, color='k', label='FFT-Mass')
             plt.legend()
             plt.show()
 
         print("Testing RNA Mass to Dist Methods")
         for i in range(len(test_masses)):
             nn_dist = nn_rna_mass_to_dist(test_masses[i])
-            fft_dist = fft_rna_mass_to_dist(test_masses[i], 128)
+            fft_dist = fft_rna_mass_to_dist(test_masses[i])
+            brain_dist = brain_rna_mass_to_dist(test_masses[i])
 
             plt.plot(nn_dist, color='r', label='NN')
-            plt.plot(fft_dist, color='b', linestyle='--', label='FFT')
+            plt.plot(fft_dist, color='b', label='FFT')
+            plt.plot(brain_dist, color='k', label='BRAIN')
             plt.legend()
             plt.show()
 
@@ -301,7 +390,7 @@ if __name__ == "__main__":
         from isogen_tools import *
         from Scripts.JGP.IsoGen_Analysis.distribution_assessment import *
 
-        lengths = np.arange(10, 500, 10)
+        lengths = np.arange(500, 1000, 100)
 
         a_seqs = np.array([])
         u_seqs = np.array([])
@@ -350,6 +439,27 @@ if __name__ == "__main__":
 
         plt.plot(a_fft_mass_css_vals, label="FFT-Mass")
         plt.plot(a_nn_seq_css_vals, label="NN-Seq")
+        plt.legend()
+        plt.show()
+
+    #Doing speed tests for large molecules
+    if True:
+        mass = 100000
+
+        timestart = time.perf_counter()
+        fft_mass_dist = fft_pep_mass_to_dist(mass, isolen=1024)
+        fft_mass_time = round(time.perf_counter() - timestart, 5)
+
+
+        timestart = time.perf_counter()
+        brain_mass_dist = brain_pep_mass_to_dist(mass, isolen=1024)
+        brain_mass_time = round(time.perf_counter() - timestart, 5)
+
+        print("FFT Time: ", fft_mass_time)
+        print("BRAIN Time: ", brain_mass_time)
+
+        plt.plot(fft_mass_dist, label='FFT-Mass')
+        plt.plot(brain_mass_dist, label='BRAIN-Mass')
         plt.legend()
         plt.show()
 

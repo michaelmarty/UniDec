@@ -1,8 +1,12 @@
+import math
 import multiprocessing
 import os
 from isogen_tools import *
 from unidec.IsoDec.IsoGen.isogenc import *
 from itertools import combinations_with_replacement
+import random
+
+nucleotides = ["A", "C", "G", "U"]
 
 def get_big_seq(seqs):
     big_seq = [char for seq in seqs for char in seq]
@@ -100,13 +104,17 @@ def create_rnas():
 
     return rnaseqs
 
-def create_all_rnas(min_length=1, max_length=10):
-    nucleotides = ["A", "C", "G", "U"]
+def create_all_rnas(min_length=1, max_length=10, max_count=500):
     seqs = []
-
     for i in range(min_length, max_length+1):
+        print("Processing length: ", str(i))
+        all_combos = []
         for combo in combinations_with_replacement(nucleotides, i):
-            seqs.append(''.join(combo))
+            all_combos.append(''.join(combo))
+        if len(all_combos) > max_count:
+            rand_indices = random.sample(range(len(all_combos)), max_count)
+            all_combos = [all_combos[i] for i in rand_indices]
+        seqs.extend(all_combos)
     print("Produced", str(len(seqs)), "sequences.")
     return seqs
 
@@ -145,8 +153,8 @@ def seqs_to_vectors(seqs):
         return None
     return goodseqs, dists, vecs
 
-def gen_random_seqs_even_length(n=100, min_length=1, max_length=200):
-    big_seq = gen_random_bigseq(0.295, 0.204, 0.205, 0.296)
+def gen_random_seqs_even_length(n=100, min_length=1, max_length=200, nuc_ratios=[0.25, 0.25, 0.25, 0.25]):
+    big_seq = gen_random_bigseq(nuc_ratios[0], nuc_ratios[1], nuc_ratios[2], nuc_ratios[3])
     np.random.shuffle(big_seq)
 
     random_seqs = []
@@ -185,23 +193,94 @@ def gen_random_seqs_even_length(n=100, min_length=1, max_length=200):
             masses.append(r[3])
 
 
+    nuc_ratios_string = str(nuc_ratios[0]) + "_" + str(nuc_ratios[1]) + "_" + str(nuc_ratios[2]) + "_" + str(nuc_ratios[3])
+    nuc_ratios_string = nuc_ratios_string.replace('.','-')
+
     np.savez_compressed("assessment_random_RNAs_"+str(n)+ "_min_" + str(min_length) + "_max_" +
-                        str(max_length) + ".npz",
+                        str(max_length) + "_" + nuc_ratios_string + ".npz",
                         dists=dists, vecs=vectors, seqs=good_seqs,masses=masses)
+
+def create_all_rnas_oflength(length):
+    seqs = []
+    for combo in combinations_with_replacement(nucleotides, length):
+        seqs.append(''.join(combo))
+    return seqs
+
+def create_random_seq(length):
+    random.shuffle(nucleotides)
+    remainder = length
+    seq = ''
+    for i in range(len(nucleotides) - 1):
+        n = random.randint(0, remainder)
+        seq = seq + (n * nucleotides[i])
+
+        remainder -= n
+        if remainder == 0:
+            break
+
+    seq = seq + (remainder * nucleotides[3])
+    vec = rnaseq_to_vector(seq)
+    return seq, vec
+
+def compare_vecs(v1, v2):
+    #Returns 0 if they do not match and 1 if they do
+    diff = v1 - v2
+    for d in diff:
+        if d != 0:
+            return 0
+    return 1
+
+
+def check_exists(vec, existing_vecs):
+    vec = np.array(vec)
+    for v in existing_vecs:
+        if compare_vecs(vec, np.array(v)):
+            return True
+    return False
+
+
+def create_n_random_rnas(length, n=1000):
+    seqs = []
+    vecs = []
+    #First check if there are sufficient combinations to need to not just make all of them
+    combinations = math.factorial(4 + length - 1)/(math.factorial(length)*(math.factorial(4-1)))
+
+    #in this case, generate all possible combinations
+    if combinations < n:
+        seqs = create_all_rnas_oflength(length)
+    else:
+        for i in range(n+1):
+            randseq, vec = create_random_seq(length)
+            if not check_exists(vec, vecs):
+                seqs.append(randseq)
+                vecs.append(vec)
+    return seqs
 
 
 
 if __name__ == "__main__":
     os.chdir(r"C:\Users\Admin\Documents\martylab\RNA_SeqData\Assessment")
 
-    if True:
-        n = 5000
-        min_length = 10
+    if False:
+        nuc_ratios = [[0.25, 0.25, 0.25, 0.25],
+                      [0.7, 0.1, 0.1, 0.1],
+                      [0.1, 0.7, 0.1, 0.1],
+                      [0.1, 0.1, 0.7, 0.1],
+                      [0.1, 0.1, 0.1, 0.7]]
+
+        n = 10
+        min_length = 5
         max_length = 500
-        gen_random_seqs_even_length(n=n, min_length=min_length, max_length=max_length)
+
+        for ratio in nuc_ratios:
+            gen_random_seqs_even_length(n=n, min_length=min_length, max_length=max_length, nuc_ratios=ratio)
 
     if False:
-        all_seqs = create_all_rnas(min_length=2, max_length=20)
+        min_length = 5
+        max_length = 500
+        max_count = 10
+
+        all_seqs = create_all_rnas(min_length=min_length, max_length=max_length, max_count=max_count)
 
         dists = []
         vectors = []
@@ -220,8 +299,39 @@ if __name__ == "__main__":
                 good_seqs.append(str(r[2]))
                 masses.append(r[3])
 
-        np.savez_compressed("synthetic_RNAs_" + str(len(good_seqs)) + ".npz",
+        np.savez_compressed("synthetic_RNAs_min" + str(min_length) + "_max" + str(max_length) + ".npz",
                             dists=dists, vecs=vectors, seqs=good_seqs, masses=masses)
+
+    if True:
+        seqs = []
+        min_length = 5
+        max_length = 500
+        n =  500
+        for i in range(min_length, max_length+1):
+            print("Processing length ", str(i))
+            new_seqs = create_n_random_rnas(length=i, n=n)
+            seqs.extend(new_seqs)
+
+        dists = []
+        vectors = []
+        good_seqs = []
+        masses = []
+
+        print("Processing sequences...")
+        with multiprocessing.Pool(processes=8) as pool:
+            results = pool.map(seq_to_dist_vecs_seqs, seqs)
+
+        print("Parsing results...")
+        for r in results:
+            if r[0] is not None and r[1] is not None and r[2] is not None and r[3] is not None:
+                dists.append(np.array(r[0]))
+                vectors.append(r[1])
+                good_seqs.append(str(r[2]))
+                masses.append(r[3])
+
+        np.savez_compressed("synthetic_RNAs_min" + str(min_length) + "_max" + str(max_length) + ".npz",
+                            dists=dists, vecs=vectors, seqs=good_seqs, masses=masses)
+
 
 
 

@@ -73,8 +73,6 @@ CB_color_cycle = ['#377eb8', '#ff7f00', '#4daf4a',
                   '#f781bf', '#a65628', '#984ea3',
                   '#999999', '#e41a1c', '#dede00']
 
-
-
 save_figs = True
 
 topdir = r"C:\Users\Admin\Documents\martylab\RNA_SeqData\Assessment"
@@ -82,6 +80,7 @@ os.chdir(topdir)
 
 print("Loading data...")
 
+#region Loading Data
 with open("fft_seq_times.txt", "rb") as myFile:
     fft_seq_times = pickle.load(myFile)
     fft_seq_times = order_dict_by_aacount(fft_seq_times)
@@ -171,8 +170,12 @@ with open("brain_mass_css_vals_bymass.txt", "rb") as myFile:
     brain_mass_css_vals_bymass = pickle.load(myFile)
     brain_mass_css_vals_bymass = order_dict_by_aacount(brain_mass_css_vals_bymass)
 
+#endregion Loading Data
 
 print("Averaging and removing outliers...")
+
+#region Averaging and Outlier Removal
+
 for k,v in fft_seq_times.items():
     fft_seq_times[k] = np.average(remove_outliers(v))
 
@@ -217,88 +220,34 @@ for k,v in nn_mass_css_vals_bymass.items():
     nn_mass_css_vals_bymass[k] = np.average(v)
 
 
-brain_max_nuc_count = 300
-brain_max_mass = 50000
-
-keys_to_remove = []
 for k,v in brain_mass_times.items():
-    if k <= brain_max_nuc_count:
-        brain_mass_times[k] = np.average(remove_outliers(v))
-    else:
-        keys_to_remove.append(k)
-for k in keys_to_remove:
-    brain_mass_times.pop(k, None)
+    brain_mass_times[k] = np.average(remove_outliers(v))
 
-keys_to_remove = []
 for k,v in brain_seq_times.items():
-    if k <= brain_max_nuc_count:
-        brain_seq_times[k] = np.average(remove_outliers(v))
-    else:
-        keys_to_remove.append(k)
-for k in keys_to_remove:
-    brain_seq_times.pop(k, None)
+    brain_seq_times[k] = np.average(remove_outliers(v))
 
-
-keys_to_remove = []
 for k,v in brain_mass_times_bymass.items():
-    if k <= brain_max_mass:
-        brain_mass_times_bymass[k] = np.average(remove_outliers(v))
-    else:
-        keys_to_remove.append(k)
-for k in keys_to_remove:
-    brain_mass_times_bymass.pop(k, None)
+    brain_mass_times_bymass[k] = np.average(remove_outliers(v))
 
-keys_to_remove = []
 for k,v in brain_seq_times_bymass.items():
-    if k <= brain_max_mass:
-        brain_seq_times_bymass[k] = np.average(remove_outliers(v))
-    else:
-        keys_to_remove.append(k)
-for k in keys_to_remove:
-    brain_seq_times_bymass.pop(k, None)
+    brain_seq_times_bymass[k] = np.average(remove_outliers(v))
 
-keys_to_remove = []
 for k,v in brain_mass_css_vals.items():
-    if k <= brain_max_nuc_count:
-        brain_mass_css_vals[k] = np.average(remove_outliers(v))
-    else:
-        keys_to_remove.append(k)
-for k in keys_to_remove:
-    brain_mass_css_vals.pop(k, None)
+    brain_mass_css_vals[k] = np.average(remove_outliers(v))
 
-keys_to_remove = []
 for k,v in brain_seq_css_vals.items():
-    if k <= brain_max_nuc_count:
-        brain_seq_css_vals[k] = np.average(remove_outliers(v))
-    else:
-        keys_to_remove.append(k)
-for k in keys_to_remove:
-    brain_seq_css_vals.pop(k, None)
+    brain_seq_css_vals[k] = np.average(remove_outliers(v))
 
-keys_to_remove = []
 for k,v in brain_mass_css_vals_bymass.items():
-    if k <= brain_max_mass:
-        brain_mass_css_vals_bymass[k] = np.average(v)
-    else:
-        keys_to_remove.append(k)
-for k in keys_to_remove:
-    brain_mass_css_vals_bymass.pop(k, None)
+    brain_mass_css_vals_bymass[k] = np.average(v)
 
-keys_to_remove = []
 for k,v in brain_seq_css_vals_bymass.items():
-    if k <= brain_max_mass:
-        brain_seq_css_vals_bymass[k] = np.average(v)
-    else:
-        keys_to_remove.append(k)
-for k in keys_to_remove:
-    brain_seq_css_vals_bymass.pop(k, None)
+    brain_seq_css_vals_bymass[k] = np.average(v)
 
 
 nuc_counts = list(fft_seq_times.keys())
-brain_nuc_counts = list(brain_seq_times.keys())
 
 masses = np.array(list(fft_seq_times_bymass.keys()))/1e3
-brain_masses = np.array(list(brain_seq_times_bymass.keys()))/1e3
 
 fft_seq_avgtimes = list(fft_seq_times.values())
 fft_seq_avgtimes = [x * 1000000.0 for x in fft_seq_avgtimes]
@@ -354,14 +303,16 @@ nn_seq_avgcss_bymass = list(nn_seq_css_vals_bymass.values())
 brain_mass_avgcss_bymass = list(brain_mass_css_vals_bymass.values())
 brain_seq_avgcss_bymass = list(brain_seq_css_vals_bymass.values())
 
+#endregion Averaging and Outlier Removal
+
 # Plot by AA count:
 if False:
     plt.plot(nuc_counts, fft_seq_avgtimes, label="FFT-Seq", linewidth=linewidth, color=CB_color_cycle[0])
     plt.plot(nuc_counts, fft_mass_avgtimes, label="FFT-Mass", linewidth=linewidth, color=CB_color_cycle[1])
     plt.plot(nuc_counts, nn_seq_avgtimes, label="NN-Seq", linewidth=linewidth, color=CB_color_cycle[2])
     plt.plot(nuc_counts, nn_mass_avgtimes, label="NN-Mass", linewidth=linewidth, color=CB_color_cycle[3])
-    plt.plot(brain_nuc_counts, brain_mass_avgtimes, label="BRAIN-Mass", linewidth=linewidth, color=CB_color_cycle[4])
-    plt.plot(brain_nuc_counts, brain_seq_avgtimes, label="BRAIN-Seq", linewidth=linewidth, color=CB_color_cycle[5])
+    plt.plot(nuc_counts, brain_mass_avgtimes, label="BRAIN-Mass", linewidth=linewidth, color=CB_color_cycle[4])
+    plt.plot(nuc_counts, brain_seq_avgtimes, label="BRAIN-Seq", linewidth=linewidth, color=CB_color_cycle[5])
     plt.gca().spines['top'].set_visible(False)
     plt.gca().spines['right'].set_visible(False)
     plt.xlim(0,1000)
@@ -386,8 +337,8 @@ if False:
     plt.plot(nuc_counts, fft_mass_avgcss, label="FFT-Mass", linewidth=linewidth, color=CB_color_cycle[1])
     plt.plot(nuc_counts, nn_seq_avgcss, label="NN-Seq", linewidth=linewidth, color=CB_color_cycle[2])
     plt.plot(nuc_counts, nn_mass_avgcss, label="NN-Mass", linewidth=linewidth, color=CB_color_cycle[3])
-    plt.plot(brain_nuc_counts, brain_mass_avgcss, label="BRAIN-Mass", linewidth=linewidth, color=CB_color_cycle[4])
-    plt.plot(brain_nuc_counts, brain_seq_avgcss, label="BRAIN-Seq", linewidth=linewidth, color=CB_color_cycle[5])
+    plt.plot(nuc_counts, brain_mass_avgcss, label="BRAIN-Mass", linewidth=linewidth, color=CB_color_cycle[4])
+    plt.plot(nuc_counts, brain_seq_avgcss, label="BRAIN-Seq", linewidth=linewidth, color=CB_color_cycle[5])
 
     for aa_count in aa_count_s_transitions:
         plt.vlines(aa_count, 0.99, 1, color='r', linestyle='--')
@@ -412,23 +363,23 @@ if False:
     plt.show()
 
 #Plot by mass
-if True:
+if False:
     plt.plot(masses, fft_seq_avgtimes_bymass, label="FFT-Seq", linewidth=linewidth, color=CB_color_cycle[0])
     plt.plot(masses, fft_mass_avgtimes_bymass, label="FFT-Mass", linewidth=linewidth, color=CB_color_cycle[1])
     plt.plot(masses, nn_seq_avgtimes_bymass, label="NN-Seq", linewidth=linewidth, color=CB_color_cycle[2])
     plt.plot(masses, nn_mass_avgtimes_bymass, label="NN-Mass", linewidth=linewidth, color=CB_color_cycle[3])
-    plt.plot(brain_masses, brain_mass_avgtimes_bymass, label="BRAIN-Mass", linewidth=linewidth, color=CB_color_cycle[4])
-    plt.plot(brain_masses, brain_seq_avgtimes_bymass, label="BRAIN-Seq", linewidth=linewidth, color=CB_color_cycle[5])
+    plt.plot(masses, brain_mass_avgtimes_bymass, label="BRAIN-Mass", linewidth=linewidth, color=CB_color_cycle[4])
+    plt.plot(masses, brain_seq_avgtimes_bymass, label="BRAIN-Seq", linewidth=linewidth, color=CB_color_cycle[5])
     plt.gca().spines['top'].set_visible(False)
     plt.gca().spines['right'].set_visible(False)
     plt.xlim(0, 150)
     plt.xticks([0,25,50,75,100,125,150])
-    plt.ylim(0,550)
+    plt.ylim(0,300)
     plt.gca().spines['bottom'].set_linewidth(2)
     plt.gca().spines['left'].set_linewidth(2)
     plt.tick_params(length=5, width=2)
     plt.xticks(fontsize=tick_size)
-    plt.yticks(fontsize=tick_size)
+    plt.yticks([0,100,200,300], fontsize=tick_size)
     plt.xlabel("RNA Mass (kDa)", fontsize=label_size)
     plt.ylabel("Average Time\n(microseconds)", fontsize=label_size)
     plt.legend(ncol=3, frameon=True, edgecolor="black", fontsize=12)
@@ -444,8 +395,8 @@ if True:
     plt.plot(masses, fft_mass_avgcss_bymass, label="FFT-Mass", linewidth=linewidth, color=CB_color_cycle[1])
     plt.plot(masses, nn_seq_avgcss_bymass, label="NN-Seq", linewidth=linewidth, color=CB_color_cycle[2])
     plt.plot(masses, nn_mass_avgcss_bymass, label="NN-Mass", linewidth=linewidth, color=CB_color_cycle[3])
-    plt.plot(brain_masses, brain_mass_avgcss_bymass, label="BRAIN-Mass", linewidth=linewidth, color=CB_color_cycle[4])
-    plt.plot(brain_masses, brain_seq_avgcss_bymass, label="BRAIN-Seq", linewidth=linewidth, color=CB_color_cycle[5])
+    plt.plot(masses, brain_mass_avgcss_bymass, label="BRAIN-Mass", linewidth=linewidth, color=CB_color_cycle[4])
+    plt.plot(masses, brain_seq_avgcss_bymass, label="BRAIN-Seq", linewidth=linewidth, color=CB_color_cycle[5])
 
 
     plt.gca().spines['top'].set_visible(False)
@@ -465,4 +416,90 @@ if True:
     if save_figs:
         plt.savefig(r"C:\Users\Admin\OneDrive\Desktop\martylab\IsoGen\Figures\rna_mass_v_css.pdf", dpi=300, transparent=True)
         plt.savefig(r"C:\Users\Admin\OneDrive\Desktop\martylab\IsoGen\Figures\rna_mass_v_css.png", dpi=300, transparent=True)
+    plt.show()
+
+#Plot separately the mass and sequence methods by mass
+if True:
+    #Mass methods avg times
+    plt.plot(masses, fft_mass_avgtimes_bymass, label="FFT-Mass", linewidth=linewidth, color=CB_color_cycle[0])
+    plt.plot(masses, nn_mass_avgtimes_bymass, label="NN-Mass", linewidth=linewidth, color=CB_color_cycle[2])
+    plt.plot(masses, brain_mass_avgtimes_bymass, label="BRAIN-Mass", linewidth=linewidth, color=CB_color_cycle[5])
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+    plt.gca().spines['bottom'].set_linewidth(2)
+    plt.gca().spines['left'].set_linewidth(2)
+    plt.tick_params(length=5, width=2)
+    plt.xlim(0, 150)
+    plt.ylim(0,200)
+    plt.xticks(ticks=[0,25,50,75,100,125,150], fontsize=tick_size)
+    plt.yticks([0,50,100,150,200], fontsize=tick_size)
+    plt.xlabel("RNA Mass (kDa)", fontsize=label_size)
+    plt.ylabel("Average Time\n(microseconds)", fontsize=label_size)
+    plt.tight_layout()
+    if save_figs:
+        plt.savefig(r"C:\Users\Admin\OneDrive\Desktop\martylab\IsoGen\Figures\rna_mass_v_speed_massmethods.pdf", dpi=300, transparent=True)
+        plt.savefig(r"C:\Users\Admin\OneDrive\Desktop\martylab\IsoGen\Figures\rna_mass_v_speed_massmethods.png", dpi=300, transparent=True)
+    plt.show()
+
+    #Seq methods avg times
+    plt.plot(nuc_counts, fft_seq_avgtimes, label="FFT-Seq", linewidth=linewidth, color=CB_color_cycle[0])
+    plt.plot(nuc_counts, nn_seq_avgtimes, label="NN-Seq", linewidth=linewidth, color=CB_color_cycle[2])
+    plt.plot(nuc_counts, brain_seq_avgtimes, label="BRAIN-Seq", linewidth=linewidth, color=CB_color_cycle[5])
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+    plt.gca().spines['bottom'].set_linewidth(2)
+    plt.gca().spines['left'].set_linewidth(2)
+    plt.tick_params(length=5, width=2)
+    plt.xlim(0, 500)
+    plt.ylim(0,200)
+    plt.xticks(ticks=[0,100,200,300,400,500], fontsize=tick_size)
+    plt.yticks([0,50,100,150,200], fontsize=tick_size)
+    plt.xlabel("Nucleotides", fontsize=label_size)
+    plt.ylabel("Average Time\n(microseconds)", fontsize=label_size)
+    plt.tight_layout()
+    if save_figs:
+        plt.savefig(r"C:\Users\Admin\OneDrive\Desktop\martylab\IsoGen\Figures\rna_seqlen_v_speed_seqmethods.pdf", dpi=300, transparent=True)
+        plt.savefig(r"C:\Users\Admin\OneDrive\Desktop\martylab\IsoGen\Figures\rna_seqlen_v_speed_seqmethods.png", dpi=300, transparent=True)
+    plt.show()
+
+
+    #Mass methods avgcss
+    plt.plot(masses, fft_mass_avgcss_bymass, label="FFT-Mass", linewidth=linewidth, color=CB_color_cycle[0])
+    plt.plot(masses, nn_mass_avgcss_bymass, label="NN-Mass", linewidth=linewidth, color=CB_color_cycle[2])
+    plt.plot(masses, brain_mass_avgcss_bymass, label="BRAIN-Mass", linewidth=linewidth, color=CB_color_cycle[5])
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+    plt.gca().spines['bottom'].set_linewidth(2)
+    plt.gca().spines['left'].set_linewidth(2)
+    plt.tick_params(length=5, width=2)
+    plt.xlim(0, 150)
+    plt.ylim(bottom=0.9995, top=1.0001)
+    plt.xticks(ticks=[0, 25, 50, 75, 100, 125, 150], fontsize=tick_size)
+    plt.yticks(ticks=[0.9995, 0.9996, 0.9997, 0.9998, 0.9999, 1], fontsize=tick_size)
+    plt.xlabel("RNA Mass (kDa)",fontsize=label_size)
+    plt.ylabel("CSS", fontsize=label_size)
+    plt.tight_layout()
+    if save_figs:
+        plt.savefig(r"C:\Users\Admin\OneDrive\Desktop\martylab\IsoGen\Figures\rna_mass_v_css_massmethods.pdf", dpi=300, transparent=True)
+        plt.savefig(r"C:\Users\Admin\OneDrive\Desktop\martylab\IsoGen\Figures\rna_mass_v_css_massmethods.png", dpi=300, transparent=True)
+    plt.show()
+
+    #seq methods avg css
+    plt.plot(nuc_counts, nn_seq_avgcss, label="NN-Seq", linewidth=linewidth, color=CB_color_cycle[2])
+    plt.plot(nuc_counts, brain_seq_avgcss, label="BRAIN-Seq", linewidth=linewidth, color=CB_color_cycle[5])
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+    plt.gca().spines['bottom'].set_linewidth(2)
+    plt.gca().spines['left'].set_linewidth(2)
+    plt.tick_params(length=5, width=2)
+    plt.xlim(0, 150)
+    plt.ylim(bottom=0.9995, top=1.0001)
+    plt.xticks(ticks=[0, 25, 50, 75, 100, 125, 150], fontsize=tick_size)
+    plt.yticks(ticks=[0.9995, 0.9996, 0.9997, 0.9998, 0.9999, 1],fontsize=tick_size)
+    plt.xlabel("Nucleotides",fontsize=label_size)
+    plt.ylabel("CSS", fontsize=label_size)
+    plt.tight_layout()
+    if save_figs:
+        plt.savefig(r"C:\Users\Admin\OneDrive\Desktop\martylab\IsoGen\Figures\rna_seqlen_v_css_seqmethods.pdf", dpi=300, transparent=True)
+        plt.savefig(r"C:\Users\Admin\OneDrive\Desktop\martylab\IsoGen\Figures\rna_seqlen_v_css_seqmethods.png", dpi=300, transparent=True)
     plt.show()

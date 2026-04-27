@@ -17,6 +17,7 @@
 
 double massavgine = 111.1254;
 double avgine[5] = {4.9384, 7.7583, 1.3577, 1.4773, 0.0417};
+double averagine_coeffs[5] = {0.044440, 0.069816, 0.012218, 0.013294, 0.0003753};
 int numaminoacids = 23;
 
 int num_simp_elements = 5;
@@ -45,6 +46,12 @@ const int aa_vectors[][5] = {
     {9,9,1,2,0}
 };
 
+static const unsigned char aa_lookup[256] = {
+    ['A']=1, ['C']=2, ['D']=3, ['E']=4, ['F']=5, ['G']=6, ['H']=7, ['I']=8, ['K']=9, ['L']=10, ['M']=11,
+    ['N']=12, ['P']=13, ['Q']=14, ['R']=15, ['S']=16, ['T']=17, ['V']=18, ['W']=19, ['Y']=20,
+    ['a']=1, ['c']=2, ['d']=3, ['e']=4, ['f']=5, ['g']=6, ['h']=7, ['i']=8, ['k']=9, ['l']=10, ['m']=11,
+    ['n']=12, ['p']=13, ['q']=14, ['r']=15, ['s']=16, ['t']=17, ['v']=18, ['w']=19, ['y']=20
+};
 
 const char aaorder[] = "ACDEFGHIKLMNPQRSTVWY";
 
@@ -113,82 +120,56 @@ float pep_mass_to_dist_fitting(const float mass, float * isodist, const int isol
 }
 
 
-int aa_to_index(char aa) {
-    for (int i = 0;i<20;i++) {
-        if (aa == aaorder[i]){return i;}
-    }
-    return -1;
-}
-
-int pep_seq_to_aacount(const char* seq) {
-    int length = strlen(seq);
-
-    int aas = 0;
-
-    int in_mod = 0;
-
-    for (int i = 0; i < length; i++) {
-        if (in_mod == 0) {
-            if (seq[i] == '[') {
-                in_mod = 1;
-                continue;
-            }
-            aas += 1;
-        }
-        else {
-            if (seq[i] == '['){ in_mod = 0; }
-        }
-    }
-    return aas;
-}
-
-
 //NN
 int pep_seq_to_nnvector(const char* seq, float* vector) {
-    int length = strlen(seq);
+    int len = 0;
 
-    int aas = 0;
+    for (const char *p = seq; *p != '\0'; p++) {
+        char c = *p;
 
-    int in_mod = 0;
+        unsigned char idx = aa_lookup[c];
 
-    for (int i = 0; i < length; i++) {
-        if (in_mod == 0) {
-            if (seq[i] == '[') {
-                in_mod = 1;
-                continue;
-            }
-            aas += 1;
-            int aaindex = aa_to_index(seq[i]);
-            if (aaindex != -1){ vector[aaindex] += 1.0f; }
+        if (idx) {
+            int aa_index = idx - 1;
+            vector[aa_index] += 1.0f;
         }
         else {
-            if (seq[i] == '['){ in_mod = 0; }
+            printf("Unexpected amino acid: %c\n", c);
+            fflush(stdout);
+            return -1;
         }
+        len++;
     }
-    return aas;
+
+    return len;
 }
 
 
 float nn_pep_seq_to_dist(const char* seq, float* isodist, int isolen, int offset){
     float* vector = (float *) calloc(20, sizeof(float));
-    int aas = pep_seq_to_nnvector(seq, vector);
+    int len = pep_seq_to_nnvector(seq, vector);
 
-    if (aas > 1000) {
-        printf("Sequence contains too many amino acids (>1000).");
-        return -1.0f;
+    if (len == -1) {
+        printf("Error: Sequence contains non-standard amino acid.");
+        return -1;
+    }
+
+    if (len > 1000) {
+        printf("Error: Sequence contains too many amino acids (>1000).");
+        return -1;
     }
 
     struct IsoGenWeights weights;
     float* nn_isodist;
     int nn_isolen;
 
-    if (aas >= 1 && aas <= 50) {
+    if (len >= 1 && len <= 50) {
         weights = SetupWeights(20, 16);
         weights = LoadWeights(weights, isogenpep_model_16_bin);
         nn_isolen = 16;
         nn_isodist = (float*)calloc(nn_isolen, sizeof(float));
     }
-    else if (aas > 50 && aas <= 300) {
+    else if (len > 50 && len <= 300) {
         weights = SetupWeights(20, 64);
         weights = LoadWeights(weights, isogenpep_model_64_bin);
         nn_isolen = 64;
@@ -233,40 +214,9 @@ float nn_pep_seq_to_dist(const char* seq, float* isodist, int isolen, int offset
     return maxval;
 }
 
-//fft
-void add_mod_to_fftlist(char* mod, int* fftlist) {
-    int i = 0;
-    while (mod[i] != '\0') {
-        if (!isupper(mod[i])) {
-            printf("Error while parsing modification formula:%s\n", mod);
-            fflush(stdout);
-            return;
-        }
-
-        char symbol[3] = {0};
-        symbol[0] = mod[i++];
-        if (islower(mod[i])) {
-            symbol[1] = mod[i++];
-        }
-
-        int count = 0;
-        while (isdigit(mod[i])) {
-            count = count * 10 + (mod[i++] - '0');
-        }
-
-        if (count == 0) count = 1;
-
-        for (int j = 0; j < 11; j++) {
-            if (strcmp(symbol, pep_encoding_elements[j]) == 0) {
-                fftlist[j] += count;
-                break;
-            }
-        }
-    }
-}
 
 //fft
-void pep_seq_to_fftlist(const char* sequence, int* fftlist)
+int pep_seq_to_fftlist(const char* seq, int* fftlist)
 {
     // Initialize the formulalist to zero but add the elements of water for the terminii
     fftlist[0] = 0; // Carbon
@@ -275,43 +225,29 @@ void pep_seq_to_fftlist(const char* sequence, int* fftlist)
     fftlist[3] = 1; // Oxygen
     fftlist[4] = 0; // Sulfur
 
-    int length = strlen(sequence);
+    int len = 0;
 
-    int in_mod = 0;
-    char curr_mod[100] = {0};
-    int mod_index = 0;
+    for (const char *p = seq; *p != '\0'; p++) {
+        char c = *p;
 
-    for (int i = 0; i < length; i++) {
-        if (in_mod == 0) {
-            if (sequence[i] == '[') {
-                in_mod = 1;
-                continue;
-            }
+        unsigned char idx = aa_lookup[c];
 
-            //Handle the case where the character corresponds to an amino acid.
-            int aaindex = aa_to_index(sequence[i]);
-            if (aaindex != -1) {
-                for (int j = 0;j<num_simp_elements;j++) {
-                    fftlist[j] += aa_vectors[aaindex][j];
-                }
-            }
+        if (idx) {
+            int aa_index = idx - 1;
+            fftlist[0] += aa_vectors[aa_index][0];
+            fftlist[1] += aa_vectors[aa_index][1];
+            fftlist[2] += aa_vectors[aa_index][2];
+            fftlist[3] += aa_vectors[aa_index][3];
+            fftlist[4] += aa_vectors[aa_index][4];
         }
         else {
-            if (sequence[i] == ']') {
-                in_mod = 0;
-                curr_mod[mod_index] = '\0';
-
-                add_mod_to_fftlist(curr_mod, fftlist);
-
-                mod_index = 0;
-                memset(curr_mod, 0, sizeof(curr_mod));
-            }
-            else {
-                curr_mod[mod_index] = sequence[i];
-                mod_index++;
-            }
+            printf("Unexpected amino acid: %c\n", c);
+            return -1;
         }
+
+        len++;
     }
+    return len;
 }
 
 
@@ -344,38 +280,14 @@ int fft_pep_mass_to_isolen(const float mass) {
     return 1024;
 }
 
+
 //fft
 void pep_mass_to_fftlist(const float mass, int* fftlist)
 {
-    int num = (int)round(mass/massavgine);
     for (int i = 0; i < 5; i++)
     {
-        fftlist[i] = (int)round(num * avgine[i]);
+        fftlist[i] = (int)round(mass * averagine_coeffs[i]);
     }
-}
-
-
-int get_pep_isolen_from_seq(const char* seq) {
-    int aas = 0;
-
-    int length = strlen(seq);
-    int inmod = 0;
-
-    for (int i = 0;i<length;i++) {
-        if (seq[i] == '[') {
-            inmod = 1;
-        }
-        else if (inmod == 1 && seq[i] == ']') {
-            inmod = 0;
-        }
-        else {
-            aas += 1;
-        }
-    }
-
-    if (aas < 50){return 16;}
-    if (aas < 300){return 64;}
-    return 128;
 }
 
 
@@ -387,25 +299,26 @@ float fft_pep_seq_to_dist(const char* sequence, float* isodist, const int isolen
     if (formulalist == NULL)
     {
         printf("Error: Could not allocate memory for formulalist\n");
-        return 1;
+        return -1;
     }
-    pep_seq_to_fftlist(sequence, formulalist);
+    int len = pep_seq_to_fftlist(sequence, formulalist);
+
+    if (len == -1) {
+        printf("Error: sequence contains non-standard amino acid.");
+        return -1;
+    }
+
 
     int fft_isolen;
 
-    int aas = pep_seq_to_aacount(sequence);
-
-    if (aas > 1000) {
-        printf("Sequence contains too many amino acids (>1000).");
-        return -1.0f;
-    }
-
-
-    if (aas <= 300) {
+    if (len <= 300) {
         fft_isolen = 64;
     }
-    else {
+    else if (len <= 1000) {
         fft_isolen = 128;
+    }
+    else {
+        fft_isolen = 1024;
     }
 
 
@@ -443,6 +356,13 @@ float fft_pep_seq_to_dist(const char* sequence, float* isodist, const int isolen
 float fft_pep_mass_to_dist(const float mass, float *isodist, const int isolen, const int offset)
 {
     int* fftlist = (int*)calloc(5, sizeof(int));
+    // Check for null
+    if (fftlist == NULL)
+    {
+        printf("Error: Could not allocate memory for fftlist.\n");
+        return -1;
+    }
+
     pep_mass_to_fftlist(mass, fftlist);
 
     int fft_isolen = fft_pep_mass_to_isolen(mass);
@@ -482,6 +402,7 @@ float nn_pep_mass_to_dist(const float mass, float* isodist, const int isolen, co
     float* vector = (float*)calloc(5, sizeof(float));
     if (vector == NULL) {
         printf("Error: Could not allocate memory for vector\n");
+        return -1;
     }
 
     mass_to_vector(mass, vector);
@@ -527,6 +448,95 @@ float nn_pep_mass_to_dist(const float mass, float* isodist, const int isolen, co
     for (int i = 0; i < isolen; i++) {
         isodist[i] /= maxval;
     }
+    return maxval;
+}
+
+
+
+float brain_pep_mass_to_dist(const float mass, float* isodist, const int isolen, const int offset) {
+    int* brain_list = (int*)calloc(5, sizeof(int));
+    pep_mass_to_fftlist(mass, brain_list);
+
+    int brain_isolen = fft_pep_mass_to_isolen(mass);
+
+    float* brain_isodist = (float*)calloc(brain_isolen, sizeof(float));
+
+    float max_val = brain_list_to_dist(brain_list, brain_isolen, brain_isodist);
+
+    if (brain_isolen < isolen) {
+        for (int i = brain_isolen - offset - 1; i >= 0; i--) {
+            isodist[i+offset] = brain_isodist[i];
+            if (i < offset) { isodist[i] = 0.0f; }
+        }
+    }
+    else {
+        for (int i = isolen - offset - 1; i >= 0; i--) {
+            isodist[i + offset] = brain_isodist[i];
+            if (i < offset) { isodist[i] = 0.0f; }
+        }
+    }
+
+    free(brain_isodist);
+    free(brain_list);
+
+    if (max_val > 0.0f) {
+        for (int i = 0; i < isolen; i++) {
+            isodist[i] /= max_val;
+        }
+    }
+
+    return max_val;
+}
+
+
+float brain_pep_seq_to_dist(const char* sequence, float* isodist, const int isolen, const int offset) {
+    int* formulalist = (int*)calloc(5, sizeof(int));
+    // Check for null
+    if (formulalist == NULL)
+    {
+        printf("Error: Could not allocate memory for formulalist\n");
+        return 1;
+    }
+    int len = pep_seq_to_fftlist(sequence, formulalist);
+
+    int brain_isolen;
+
+    if (len <= 300) {
+        brain_isolen = 64;
+    }
+    else if (len <= 1000) {
+        brain_isolen = 128;
+    }
+    else {
+        brain_isolen = 1024;
+    }
+
+    float* brain_isodist = (float*)calloc(brain_isolen, sizeof(float));
+
+    float maxval = brain_list_to_dist(formulalist, brain_isolen, brain_isodist);
+
+    if (brain_isolen < isolen) {
+        for (int i = brain_isolen - offset - 1; i >= 0; i--) {
+            isodist[i+offset] = brain_isodist[i];
+            if (i < offset) { isodist[i] = 0.0f; }
+        }
+    }
+    else {
+        for (int i = isolen - offset - 1; i >= 0; i--) {
+            isodist[i + offset] = brain_isodist[i];
+            if (i < offset) { isodist[i] = 0.0f; }
+        }
+    }
+
+    free(brain_isodist);
+    free(formulalist);
+
+    if (maxval > 0.0f) {
+        for (int i = 0; i < isolen; i++) {
+            isodist[i] /= maxval;
+        }
+    }
+
     return maxval;
 }
 
