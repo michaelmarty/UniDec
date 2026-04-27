@@ -10,9 +10,10 @@ os.chdir(topdir)
 datasets = ["Stellar", "OTOT", "OTIT", "ITIT", "IQX", "Apex"]
 
 if True:
-    df = prep_datasets(topdir, datasets, dtype="mzmine") # 1
+    df = prep_datasets(topdir, datasets, dtype="mzmine", rttol=0.3) # 1
     df = correct_dataset_rts(df, "Average Rt(min)", ref_dataset="Stellar", plot=False) # 2
-    df = dataset_split(df) # 3
+    df = correct_dataset_rts(df, "Reference RT", ref_dataset="Stellar", plot=False)  # 2
+    df = dataset_split(df, rttol=0.4) # 3
     df = outlier_setup_dda(df) # 5
 
 df = pd.read_excel("Combined_DDA_OutlierAnalysis.xlsx")

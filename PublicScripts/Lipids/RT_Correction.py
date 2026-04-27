@@ -265,7 +265,7 @@ def correct_dataset_rts(df, rtcol, ref_dataset="Stellar", namecol="Metabolite na
         # Define a function to apply the correction
         newrts = correction(df.loc[df["Dataset"] == dataset, rtcol])
         deltart = newrts - df.loc[df["Dataset"] == dataset, rtcol]
-        print(f"Mean RT shift for {dataset}: {np.mean(deltart):.2f} minutes")
+        print(f"Mean RT shift for {dataset}: {-np.mean(deltart):.2f} minutes")
         df.loc[df["Dataset"] == dataset, rtcol] = newrts
         df.loc[df["Dataset"] == dataset, "RT Shift"] = deltart
 

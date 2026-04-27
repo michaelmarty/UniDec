@@ -615,6 +615,65 @@ def remove_specific_problems(df):
     return df
 
 
+def map_ontology_from_lipid_name(lipid_name):
+    """Map a lipid name to a lipid class label (e.g., PC, LPC, EtherPC)."""
+    if lipid_name is None:
+        return ""
+
+    text = str(lipid_name).strip()
+    if not text:
+        return ""
+
+    # Detect ether/plasmalogen notation before extracting the class token.
+    is_ether = (
+            text.startswith("O-")
+            or text.startswith("P-")
+            or text.startswith("O_")
+            or text.startswith("P_")
+            or text.startswith("ETHER")
+            or " ETHER" in text
+            or " P-" in text
+            or " O-" in text
+    )
+
+    # Keep primary annotation when names include pipe-delimited aliases.
+    text = text.split(" ")[0].strip()
+
+    # Output lipid class labels rather than broad ontology families.
+    class_map = {
+        'Cholesterol': 'ST',
+        'CoQ1': 'CoQ',
+        'CoQ2': 'CoQ',
+        'CoQ3': 'CoQ',
+        'CoQ4': 'CoQ',
+        'CoQ5': 'CoQ',
+        'CoQ6': 'CoQ',
+        'CoQ7': 'CoQ',
+        'CoQ8': 'CoQ',
+        'CoQ9': 'CoQ',
+        'CoQ10': 'CoQ',
+        'CoQ11': 'CoQ',
+        'CoQ12': 'CoQ',
+        'CoQ13': 'CoQ',
+        'PI-Cer': 'PI_Cer',
+        'Cholesterol(d7)': 'ST',
+        '25-hydroxycholecalciferol': 'Vitamin_D',
+        'PE-Cer': 'PE_Cer',
+        'Tocopherol': 'Vitamin_E',
+    }
+    if text in class_map:
+        base_class = class_map[text]
+    else:
+        base_class = text
+
+    if is_ether:
+        return f"Ether{base_class}"
+
+    return base_class
+
+def apply_ontology_mapping(df, name_col="Metabolite name", output_col="Ontology"):
+    df[output_col] = df[name_col].apply(map_ontology_from_lipid_name)
+    return df
 
 def get_charge(adduct):
     if adduct in ["[M+H]+", "[M+NH4]+", "[M+Na]+", "[M+K]+", "[M]+", "[M+H-H2O]+"]:

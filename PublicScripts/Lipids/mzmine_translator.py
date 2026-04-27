@@ -3,6 +3,7 @@ import re
 import pandas as pd
 import xml.etree.ElementTree as ET
 import numpy as np
+from PublicScripts.Lipids.LipidFunctions import map_ontology_from_lipid_name
 
 
 def parse_semicolon_array(text):
@@ -279,61 +280,6 @@ def _format_spectrum(mzs, intensities):
     return " ".join(f"{m:.5f}:{i:.1f}" for m, i in zip(mzs, intensities))
 
 
-def map_ontology_from_lipid_name(lipid_name):
-    """Map a lipid name to a lipid class label (e.g., PC, LPC, EtherPC)."""
-    if lipid_name is None:
-        return ""
-
-    text = str(lipid_name).strip()
-    if not text:
-        return ""
-
-    # Keep primary annotation when names include pipe-delimited aliases.
-    text = text.split(" ")[0].strip()
-
-    # Detect ether/plasmalogen notation before extracting the class token.
-    is_ether = (
-        text.startswith("O-")
-        or text.startswith("P-")
-        or text.startswith("O_")
-        or text.startswith("P_")
-        or text.startswith("ETHER")
-        or " ETHER" in text
-        or " P-" in text
-        or " O-" in text
-    )
-
-    # Output lipid class labels rather than broad ontology families.
-    class_map = {
-        'Cholesterol': 'CE',
-        'CoQ1': 'CoQ',
-        'CoQ2': 'CoQ',
-        'CoQ3': 'CoQ',
-        'CoQ4': 'CoQ',
-        'CoQ5': 'CoQ',
-        'CoQ6': 'CoQ',
-        'CoQ7': 'CoQ',
-        'CoQ8': 'CoQ',
-        'CoQ9': 'CoQ',
-        'CoQ10': 'CoQ',
-        'CoQ11': 'CoQ',
-        'CoQ12': 'CoQ',
-        'CoQ13': 'CoQ',
-        'PI-Cer': 'PI_Cer',
-        'Cholesterol(d7)': 'CE',
-        '25-hydroxycholecalciferol': 'Vitamin_D',
-        'PE-Cer': 'PE_Cer',
-        'Tocopherol': 'Vitamin_E',
-    }
-    if text in class_map:
-        base_class = class_map[text]
-    else:
-        base_class = text
-
-    if is_ether:
-        return f"Ether{base_class}"
-
-    return base_class
 
 
 def rows_to_dataframe(rows):
@@ -578,8 +524,8 @@ def run_all_xml_files(directory):
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
 
-    file = r"C:\Data\Lipidomics\test.xml"
-    file = r"Z:\Group Share\Annika\DDA_Compare\Stellar_Neg.xml"
+    # file = r"C:\Data\Lipidomics\test.xml"
+    # file = r"Z:\Group Share\Annika\DDA_Compare\Stellar_Neg.xml"
 
     run_all_xml_files(r"Z:\Group Share\Annika\DDA_Compare\mzmine")
     exit()

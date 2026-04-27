@@ -47,8 +47,13 @@ def filter_msp_entries(input_path, output_path, excluded_precursor="[M+HCOO]-"):
 if __name__ == "__main__":
     os.chdir(r"Z:\Group Share\Annika\DDA_Compare")
     in_file = "MSDIAL-TandemMassSpectralAtlas-VS69-Neg-RTP2_Fixed.msp"
-    in_file = "IQX_neg_OTOT_RTP2.msp"
-    in_file = "Apex_neg_OTOT_RTP2.msp"
-    out_file = os.path.splitext(in_file)[0] + "_no_hcoo.msp"
-    filter_msp_entries(in_file, out_file)
+    in_file = "MSDIAL-TandemMassSpectralAtlas-VS69-Pos-StellarRTP2.msp"
+    in_file = "MSDIAL-TandemMassSpectralAtlas-VS69-Pos-StellarRTP2-Apex2.msp"
+    # in_file = "IQX_neg_OTOT_RTP2.msp"
+    # in_file = "Apex_neg_OTOT_RTP2.msp"
+    # out_file = os.path.splitext(in_file)[0] + "_no_hcoo.msp"
+    # filter_msp_entries(in_file, out_file)
+
+    out_file = os.path.splitext(in_file)[0] + "_no_na.msp"
+    filter_msp_entries(in_file, out_file, excluded_precursor="[M+Na]+")
 
