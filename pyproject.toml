@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "UniDec"
-version = "8.1.0"
+version = "8.1.2"
 description = "Universal Deconvolution of Mass and Ion Mobility Spectra"
 readme = "README.md"
 authors = [{ name = "Michael Marty", email = "mtmarty@utexas.edu" }]

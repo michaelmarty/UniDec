@@ -8,7 +8,9 @@ import numpy as np
 import pandas as pd
 import rainbow as rb
 import matplotlib.pyplot as plt
-from matplotlib import colormaps, colors, rcParams
+from matplotlib import colormaps, rcParams
+import matplotlib.colors as mcolors
+from matplotlib.colorbar import ColorbarBase
 
 '''======================================================================'''
 G_FILENAME = "UIB1B_gdata.txt"
@@ -19,7 +21,7 @@ FIG_DIR = "Figures"
 
 '''======================================================================'''
 # Global color tuning (HSL Modifiers)
-global_LUM = 0.55  # brightness (1 = normal, <1 = darker, >1 = brighter)
+global_LUM = 0.8  # brightness (1 = normal, <1 = darker, >1 = brighter)
 global_SAT = 1.4  # saturation (1 = normal, >1 = more vivid)
 global_HUE = 0  # hue shift (0–1; cycles colors)
 
@@ -29,8 +31,8 @@ color_scheme = {
     "alpha": "winter_r",
     "beta": "cool",
     "gamma": "Wistia",
-    "gdata": "winter_r",
-    "rdata": "RdPu",
+    "gdata": "winter",
+    "rdata": "spring",
     "overlay": "cool",
 }
 
@@ -126,7 +128,7 @@ def nonlinearize(datatop, num_compressed, gap=20):
         out = out[~np.isnan(out).any(axis=1)]
         return out
 
-def calc_lock_index(data, lock_time =0.00333):
+def calc_lock_index(data, lock_time =0.003):
     times = data[:,0]
     diffs = np.abs(times - lock_time)
     lock_index = np.argmin(diffs)
@@ -134,7 +136,7 @@ def calc_lock_index(data, lock_time =0.00333):
     return lock_index
 
 def parse_lock_data(data, num_compressed, gap=20):
-    start_idx = calc_lock_index(data, lock_time = 0.00333)
+    start_idx = calc_lock_index(data, lock_time = 0.003)
 
     parseddata = nonlinearize(data[start_idx:], num_compressed, gap=gap)
 
@@ -150,7 +152,7 @@ def parse_lock_data(data, num_compressed, gap=20):
 
     return rdata, gdata
 
-def calc_percents(data, range1=[2.5, 3.5], range2=[8.2, 9.2]):
+def calc_percents(data, range1=[2.5, 3.5], range2=[10, 12]):
     """
     Calculates the percentage of signal area in two defined windows.
     Returns: (percent1, percent2)
@@ -168,7 +170,7 @@ def calc_percents(data, range1=[2.5, 3.5], range2=[8.2, 9.2]):
         percent1 = (s1 / total) * 100
         percent2 = (s2 / total) * 100
 
-        return percent1, percent2
+        return s1, s2, percent1, percent2
     except Exception as e:
         # Returns 0,0 if integration fails (e.g. empty data)
         # to prevent the dashboard from crashing.
@@ -195,7 +197,9 @@ def plot_subtraction_verification(path, original, blank, subtracted, channel_nam
     plt.legend(loc='upper right', fontsize='x-small')
     plt.tight_layout()
 
-    plt.savefig(os.path.join(path, f"Verify_Subtraction_{channel_name}.png"))
+    save_dir = topdir if topdir else path
+    fname = f"{os.path.basename(path)}_Verify_Subtraction_{channel_name}.png" if topdir else f"Verify_Subtraction_{channel_name}.png"
+    plt.savefig(os.path.join(save_dir, fname), dpi=300)
     plt.close()
 
 def extract_numeric_key(filename):
@@ -250,8 +254,8 @@ def analyze_UIB_samples(files, topdir, num_compressed=50):
             continue
 
         #Filter and Demultiplex
-        t_filtered = t_raw_data[t_raw_data[:, 0] > 0.003]
-        b_filtered = b_raw_data[b_raw_data[:, 0] > 0.003]
+        t_filtered = t_raw_data[t_raw_data[:, 0] > 0.005]
+        b_filtered = b_raw_data[b_raw_data[:, 0] > 0.005]
 
         tr_raw, tg_raw = parse_lock_data(t_filtered, num_compressed, gap=20)
         br, bg = parse_lock_data(b_filtered, num_compressed, gap=20)
@@ -278,7 +282,7 @@ def analyze_UIB_samples(files, topdir, num_compressed=50):
         # Title and save
         fig.suptitle(f"Demux Verification: {base_name}\n(Using Blank: {os.path.basename(blank_path)})", fontsize=12)
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-        plt.savefig(os.path.join(txt_out_dir, f"{base_name}_UIB1B_shift_diag.png"))
+        plt.savefig(os.path.join(current_path, f"{base_name}_UIB1B_shift_diag.png"))
         plt.close(fig)
 
         #Interpolation and Subtraction Logic
@@ -293,15 +297,15 @@ def analyze_UIB_samples(files, topdir, num_compressed=50):
         tr_sub, br_interp = subtract_background(tr_raw, br)
 
         #Ratio Calculation
-        g_p1, g_p2 = calc_percents(tg_sub)
-        r_p1, r_p2 = calc_percents(tr_sub)
+        g_r1, g_r2, g_p1, g_p2 = calc_percents(tg_sub)
+        r_r1, r_r2, r_p1, r_p2 = calc_percents(tr_sub)
 
         #Store Data for Summary CSV
         summary_data.append({
             "BaseName": base_name,
             "Time_Point": time_hours,
-            "Rep_Number": rep_number,
-            "Green_P1": g_p1, "Green_P2": g_p2,
+            "Rep_Number": rep_number, "Green_1_raw":g_r1, "Green_2_raw":g_r2,
+            "Green_P1": g_p1, "Green_P2": g_p2, "Red_1_raw":r_r1, "Red_2_raw":r_r2,
             "Red_P1": r_p1, "Red_P2": r_p2,
             "Used_Blank": os.path.basename(blank_path)
         })
@@ -324,7 +328,7 @@ def analyze_UIB_samples(files, topdir, num_compressed=50):
     if summary_data:
         summary_df = pd.DataFrame(summary_data)
         summary_df = summary_df.sort_values(by=["Time_Point", "Rep_Number"])
-        csv_path = os.path.join(topdir, "UIB_Analysis_Summary.csv")
+        csv_path = os.path.join(topdir, "Dimension_One_Summary.csv")
         summary_df.to_csv(csv_path, index=False)
         print(f"[SUCCESS] Summary report saved to: {csv_path}")
 
@@ -419,10 +423,12 @@ def plot_UIB_dashboard(analysis_results, topdir, sort_by='reps', kin_xaxis='reps
     for ax, title in zip([ax_raw_g, ax_raw_r, ax_sub_g, ax_sub_r, ax_kin_g, ax_kin_r], titles):
         ax.set_title(title, fontweight='bold', fontsize=14)
 
-    # Standard axis labels
+        # Standard axis labels
     for ax in [ax_raw_g, ax_raw_r, ax_sub_g, ax_sub_r]:
         ax.set_xlabel("Time (min)")
         ax.set_ylabel("Intensity")
+
+    plt.subplots_adjust(left=0.06, right=0.88, wspace=0.6, hspace=0.4, top=0.92, bottom=0.07)
 
     # Dynamic x-axis labels for Kinetics
     for ax in [ax_kin_g, ax_kin_r]:
@@ -435,10 +441,46 @@ def plot_UIB_dashboard(analysis_results, topdir, sort_by='reps', kin_xaxis='reps
             from matplotlib.ticker import MaxNLocator
             ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 
-    ax_raw_g.legend(loc='upper left', bbox_to_anchor=(1.05, 1), fontsize='small', title="Samples")
+    # 1. Setup Scales and Colors
+    norm = mcolors.Normalize(vmin=0, vmax=len(sorted_paths) - 1)
+    cmap_g = mcolors.ListedColormap(g_colors)
+    cmap_r = mcolors.ListedColormap(r_colors)
 
-    plt.tight_layout()
+    fig.canvas.draw()
+
+    # 3. Setup Scales
+    norm = mcolors.Normalize(vmin=0, vmax=len(sorted_paths) - 1)
+    cmap_g = mcolors.ListedColormap(g_colors)
+    cmap_r = mcolors.ListedColormap(r_colors)
+
+    # 2. Helper to create aligned colorbar
+    def add_aligned_cbar(parent_ax, cmap, title):
+        pos = parent_ax.get_position()
+
+        # Define cax using the actual rendered position of the subplot
+        # x0=pos.x1 + 0.005 puts it just barely to the right of the plot line
+        cax = fig.add_axes([pos.x1 + 0.005, pos.y0, 0.01, pos.height])
+
+        cb = ColorbarBase(cax, cmap=cmap, norm=norm)
+        cax.set_title(title, fontsize=10, fontweight='bold', pad=10)
+
+        indices = [0, len(sorted_paths) - 1]
+        labels = [f"t={analysis_results[sorted_paths[idx]]['hours']}h" for idx in indices]
+
+        cb.set_ticks(indices)
+        cb.set_ticklabels(labels, fontsize=9)
+        return cb
+
+    # 5. Attach the 4 bars
+    add_aligned_cbar(ax_raw_g, cmap_g, " " )
+    add_aligned_cbar(ax_raw_r, cmap_r, " " )
+    add_aligned_cbar(ax_sub_g, cmap_g, " " )
+    add_aligned_cbar(ax_sub_r, cmap_r, " " )
+
+    # 4. Final Layout Adjustment
+    # Increase wspace to prevent the G-bars from hitting the R-plot Y-labels
     plt.savefig(os.path.join(topdir, f"UIB_Dashboard_{kin_xaxis}.png"), dpi=300)
+    plt.savefig(os.path.join(topdir, f"UIB_Dashboard_{kin_xaxis}.pdf"), dpi=300)
     plt.show()
 
 def parse_array_to_xy(arr):
@@ -494,7 +536,6 @@ def parse_instrument_method(files):
             if len([l for l in tt.splitlines() if l.strip()]) >= 3:
                 safe = re.sub(r"[^\w\s\(\)\-\.]", "", mod_name).strip()
                 with open(os.path.join(out_dir, f"{safe}.txt"), "w", encoding="utf-8") as f: f.write(tt)
-
 
 def plot_instrument_timetables(files):
     COLOR_SCHEMES = color_scheme
@@ -599,7 +640,7 @@ def plot_instrument_timetables(files):
 
             # --- Valve Overlays (Vertical Lines) ---
             for v_time in valve_times:
-                ax_left.axvline(x=v_time, color='deepbluesky', linestyle=':', alpha=1, lw=1.5, zorder=1)
+                ax_left.axvline(x=v_time, color='deepskyblue', linestyle=':', alpha=1, lw=1.5, zorder=1)
                 # Position text slightly above the top of the plot
                 ax_left.text(v_time, ax_left.get_ylim()[1] * 1.02, f'{v_time}',
                              color='red', fontsize=8, ha='center', weight='bold')
@@ -628,67 +669,114 @@ def plot_instrument_timetables(files):
         plt.savefig(os.path.join(d, "instrument_method.png"), dpi=200)
         plt.close()
 
+def plot_individual_samples(files, figsize=(12, 10), save=True):
+    """
+    Standardizes plotting:
+    - No normalization for UIB subplot.
+    - Blank mapping/subtraction for non-UIB (FLD) channels.
+    - Peak integration for FLD (5-7m and 11-13m).
+    - Saves verification diagnostics and subtracted data.
+    """
+    sample_map = map_samples_to_blanks(files)
+    if not sample_map:
+        return
 
-def plot_individual_samples(files, topdir, figsize=(12, 8), save=True):
-    """
-    Creates a 2-row subplot for each sample directory.
-    Row 1: UIB Green & Red Overlay (with fills).
-    Row 2: FLD Raw Data (with fill).
-    """
-    for s_path in files:
+    # Define integration windows
+    windows = [(6, 8), (14, 16)]
+    results_log = []
+
+    for s_path, b_path in sample_map.items():
         sample_name = os.path.basename(s_path)
-        print(f"[PLOTTING] Individual Processing sample: {sample_name}")
 
-        # 1. Define targets and load data for THIS sample
-        # Mapping: {filename: (label, color_key, row_index)}
+        txt_out_dir = os.path.join(s_path, TXT_DIR)
+        os.makedirs(txt_out_dir, exist_ok=True)
+
         targets = {
-            "UIB1B_gdata.txt": ("Green Channel", "gdata", 0),
-            "UIB1B_rdata.txt": ("Red Channel", "rdata", 0),
-            "FLD1A_rawdata.txt": ("FLD Raw", "overlay", 1)  # Using overlay or FLD scheme
+            "UIB1B_gdata.txt": ("Green Channel (UIB)", 0, False, None),
+            "UIB1B_rdata.txt": ("Red Channel (UIB)", 0, False, None),
+            "FLD1A_rawdata.txt": ("FLD Channel", 1, True, "FLD1A_subdata.txt")
         }
 
-        fig, axes = plt.subplots(2, 1, figsize=figsize, sharex=False)
+        fig, axes = plt.subplots(2, 1, figsize=figsize, sharex=True)
         data_found = False
 
-        for fname, (label, c_key, row_idx) in targets.items():
-            # Check NPZ_DIR or TXT_DIR
-            ext = os.path.splitext(fname)[1].lower()
-            pref_dir = NPZ_DIR if ext in (".npz", ".npy") else TXT_DIR
-            target_file = os.path.join(s_path, pref_dir, fname)
+        for fname, (label, row_idx, subtract, export_name) in targets.items():
+            s_file = os.path.join(txt_out_dir, fname)
+            b_file = os.path.join(b_path, TXT_DIR, fname)
 
-            if not os.path.exists(target_file):
-                target_file = os.path.join(s_path, fname)  # Fallback
+            if not os.path.exists(s_file):
+                s_file = os.path.join(s_path, fname)
 
-            if os.path.exists(target_file):
-                try:
-                    # Loading
-                    if ext == ".npz":
-                        raw = np.load(target_file, allow_pickle=True)
-                        arr = raw[raw.files[0]] if hasattr(raw, 'files') else raw
-                    else:
-                        arr = np.loadtxt(target_file)
+            if not os.path.exists(s_file):
+                continue
 
-                    x, y = parse_array_to_xy(arr)
-                    if x is not None:
-                        data_found = True
-                        ax = axes[row_idx]
+            try:
+                s_raw = np.loadtxt(s_file)
+                sx, sy = s_raw[:, 0], s_raw[:, 1]
 
-                        # Get color from scheme
-                        color = get_filtered_colors(color_scheme.get(c_key, "viridis"), num_colors=1)[0]
+                if subtract and os.path.exists(b_file):
+                    b_raw = np.loadtxt(b_file)
+                    bx, by = b_raw[:, 0], b_raw[:, 1]
+                    interp_by = np.interp(sx, bx, by)
+                    sy = np.maximum(sy - interp_by, 0)
 
-                        # Plot line and Fill
-                        ax.plot(x, y, label=label, color=color, linewidth=1.2, zorder=2)
-                        ax.fill_between(x, y, color=color, alpha=0.15, zorder=1)
-                except Exception as e:
-                    print(f" [!] Error loading {fname} in {sample_name}: {e}")
+                    plot_subtraction_verification(s_path, s_raw, b_raw,
+                                                  np.column_stack((sx, sy)),
+                                                  label, interp_blank=interp_by)
+
+                    if export_name:
+                        np.savetxt(os.path.join(txt_out_dir, export_name),
+                                   np.column_stack((sx, sy)), header="time\tintensity")
+                    label += " (Sub)"
+
+                data_found = True
+                ax = axes[row_idx]
+                color = "green" if "Green" in label else ("red" if "Red" in label else "darkorchid")
+
+                # Plotting: Raw scale for UIB (row 0), Normalization optional for FLD (row 1)
+                ax.plot(sx, sy, label=label, color=color, linewidth=1.5)
+                ax.fill_between(sx, sy, color=color, alpha=0.1)
+
+                # --- Integration Logic for FLD (Row 1) ---
+                # --- Integration Logic for FLD (Row 1) ---
+                if row_idx == 1:
+                    integration_text = "Integrals:\n"
+                    # Prepare a dictionary for this specific sample
+                    sample_results = {"Sample": sample_name}
+
+                    for start, end in windows:
+                        mask = (sx >= start) & (sx <= end)
+                        try:
+                            area = np.trapezoid(sy[mask], sx[mask])
+                        except Exception:
+                            area = np.trapz(sy[mask], sx[mask])
+
+                        ax.fill_between(sx[mask], sy[mask], color=color, alpha=0.5)
+
+                        # Store data for plot and for CSV
+                        window_label = f"{start}-{end}m"
+                        integration_text += f"{window_label}: {area:.2f}\n"
+                        sample_results[window_label] = area
+
+                    # Add text box to plot
+                    ax.text(0.98, 0.5, integration_text, transform=ax.transAxes,
+                            verticalalignment='center', horizontalalignment='right',
+                            bbox=dict(boxstyle='round', facecolor='white', alpha=0.8), fontsize=9)
+
+                    # Append this sample's results to our master log
+                    results_log.append(sample_results)
+
+            except Exception as e:
+                print(f" [!] Error processing {fname} for {sample_name}: {e}")
+
 
         if not data_found:
             plt.close(fig)
             continue
 
-        # 2. Formatting
+        # Formatting
         axes[0].set_title(f"Sample: {sample_name} | Dimension 1", fontweight='bold')
-        axes[0].set_ylabel("UIB Voltage (mV)")
+        axes[0].set_ylabel("Voltage (mV)")
         axes[0].legend(loc='upper right', fontsize='small')
 
         axes[1].set_title(f"Sample: {sample_name} | Dimension 2", fontweight='bold')
@@ -697,16 +785,31 @@ def plot_individual_samples(files, topdir, figsize=(12, 8), save=True):
 
         plt.tight_layout()
 
-        # 3. Save Logic
         if save:
-            out_dir = os.path.join(topdir, "individual_plots")
-            os.makedirs(out_dir, exist_ok=True)
-            plt.savefig(os.path.join(out_dir, f"{sample_name}_report.png"), dpi=300)
-            plt.savefig(os.path.join(out_dir, f"{sample_name}_report.pdf"), dpi=300)
+            save_path = os.path.join(s_path, f"{sample_name}_report.png")
+            save_path2 = save_path.replace(".png", ".pdf")
+            plt.savefig(save_path2, dpi=300)
+            plt.savefig(save_path, dpi=300)
 
-        plt.show()
+            # Master Gallery copy
+            # master_dir = os.path.join(topdir, "Report_Gallery")
+            # os.makedirs(master_dir, exist_ok=True)
+            # plt.savefig(os.path.join(master_dir, f"{sample_name}_report.png"), dpi=300)
 
-def plot_overlay(files, topdir, read_files=None, figsize=(16, 7), save=True):
+        plt.close(fig)
+
+    if results_log:
+        import pandas as pd
+        df = pd.DataFrame(results_log)
+        # Reorder columns so 'Sample' is first
+        cols = ['Sample'] + [c for c in df.columns if c != 'Sample']
+        df = df[cols]
+
+        csv_path = os.path.join(os.path.dirname(files[0]), "Dimension_Two_Summary.csv")
+        df.to_csv(csv_path, index=False)
+        print(f" Exported integration results to: {csv_path}")
+
+def plot_multidetector_overlay(files, topdir, read_files=None, figsize=(16, 7), save=True):
     if not read_files:
         print("[plot_overlay] No files to read; aborting.")
         return
@@ -771,6 +874,7 @@ def plot_overlay(files, topdir, read_files=None, figsize=(16, 7), save=True):
         overlay_colors = get_filtered_colors(color_scheme.get("overlay", "viridis"), num_colors=len(current_traces))
         for idx, (x, y, label) in enumerate(current_traces):
             ax.plot(x, y, linewidth=0.8, alpha=0.3, label=f"{label} (Raw)", color=overlay_colors[idx], zorder=1)
+            ax.fill_between(x, y, color=overlay_colors[idx], alpha=0.5, zorder=1)
 
         #Handle UIB Overlays (Accessing the "hidden" loaded dependencies)
         if "UIB1B_rawdata" in rf:
@@ -799,6 +903,87 @@ def plot_overlay(files, topdir, read_files=None, figsize=(16, 7), save=True):
         fig.savefig(os.path.join(topdir, outname), dpi=300)
     plt.show()
 
+
+def plot_UIB_ridgelines_combined(analysis_results, topdir, sort_by='reps', v_step=1.0, scale_factor=0.8):
+    print(f"[PLOTTING] Generating Combined UIB Ridgeline Plot (Sorted by: {sort_by})...")
+
+    # 1. Sorting Logic
+    if sort_by == 'reps':
+        sort_key = lambda x: (analysis_results[x]['hours'], analysis_results[x].get('rep', 0))
+    else:
+        sort_key = lambda x: (analysis_results[x].get('rep', 0), analysis_results[x]['hours'])
+
+    sorted_paths = sorted(analysis_results.keys(), key=sort_key)
+    if not sorted_paths: return
+
+    fig, ax = plt.subplots(figsize=(14, 10))
+
+    # Colors
+    g_colors = get_filtered_colors(color_scheme['gdata'], len(sorted_paths))
+    r_colors = get_filtered_colors(color_scheme['rdata'], len(sorted_paths))
+
+    # 2. Plotting Loop
+    for i, p in enumerate(sorted_paths):
+        baseline = i * v_step
+        current_z = i
+        res = analysis_results[p]
+
+        # Green Channel
+        if res['tg_sub'].size > 0:
+            y_max = np.max(res['tg_sub'][:, 1])
+            y_norm = (res['tg_sub'][:, 1] / y_max * scale_factor) if y_max > 0 else 0
+            ax.plot(res['tg_sub'][:, 0], y_norm + baseline, color=g_colors[i], lw=1.5, zorder=current_z)
+            ax.fill_between(res['tg_sub'][:, 0], y_norm + baseline, baseline, color=g_colors[i], alpha=0.3,
+                            zorder=current_z)
+
+        # Red Channel
+        if res['tr_sub'].size > 0:
+            y_max_r = np.max(res['tr_sub'][:, 1])
+            y_norm_r = (res['tr_sub'][:, 1] / y_max_r * scale_factor) if y_max_r > 0 else 0
+            ax.plot(res['tr_sub'][:, 0], y_norm_r + baseline, color=r_colors[i], lw=1.5, zorder=current_z)
+            ax.fill_between(res['tr_sub'][:, 0], y_norm_r + baseline, baseline, color=r_colors[i], alpha=0.3,
+                            zorder=current_z)
+
+    # 3. Initial Formatting
+    ax.set_title(f"UIB Ridgeline Analysis (Sorted by {sort_by.capitalize()})", fontweight='bold', fontsize=16)
+    ax.set_xlabel("Time (min)", fontsize=12)
+    ax.set_yticks([])  # Hide standard Y-ticks; colorbar will provide the scale
+    for spine in ['top', 'right', 'left']:
+        ax.spines[spine].set_visible(False)
+
+    # 4. LOCK LAYOUT
+    plt.subplots_adjust(left=0.08, right=0.82, top=0.92, bottom=0.1)
+    fig.canvas.draw()
+
+    # 5. Add Aligned Dual Colorbars
+    pos = ax.get_position()
+    norm = mcolors.Normalize(vmin=0, vmax=len(sorted_paths) - 1)
+
+    # Green Bar
+    cax_g = fig.add_axes([pos.x1 + 0.01, pos.y0, 0.012, pos.height])
+    cb_g = ColorbarBase(cax_g, cmap=mcolors.ListedColormap(g_colors), norm=norm)
+    cax_g.set_title("G", fontsize=10, fontweight='bold')
+    cb_g.set_ticks([])  # USE THE COLORBAR OBJECT 'cb_g' HERE
+
+    # Red Bar
+    cax_r = fig.add_axes([pos.x1 + 0.06, pos.y0, 0.012, pos.height])
+    cb_r = ColorbarBase(cax_r, cmap=mcolors.ListedColormap(r_colors), norm=norm)
+    cax_r.set_title("R", fontsize=10, fontweight='bold')
+
+    # Annotations: First and Last
+    indices = [0, len(sorted_paths) - 1]
+    labels = [
+        f"t={analysis_results[sorted_paths[idx]]['hours']}h (r{analysis_results[sorted_paths[idx]].get('rep', 0)})" for
+        idx in indices]
+
+    cb_r.set_ticks(indices)  # USE THE COLORBAR OBJECT 'cb_r' HERE
+    cb_r.set_ticklabels(labels, fontsize=9)
+
+    # 6. Final Save
+    plt.savefig(os.path.join(topdir, f"UIB_Ridgelines_{sort_by}.png"), dpi=300)
+    plt.savefig(os.path.join(topdir, f"UIB_Ridgelines_{sort_by}.pdf"), dpi=300)
+    plt.show()
+
 def move_figures(files, topdir):
     print("[CLEANUP] Moving figures to subdirectories...")
     for d in files + [topdir]:
@@ -811,34 +996,29 @@ def move_figures(files, topdir):
 
 def main():
     rc_params_setup()
-    topdir = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\20260123"
+    topdir = r"Z:\Group Share\Dash\Current Data\Agilent LC Data\LXEngine\Kinetics Replicates\20260218 POPC_POPG_LX_FLMSP rep3"
     files = glob.glob(os.path.join(topdir, "*.D"))
     detector_files = ["UIB1B_rawdata.npz", "FLD1A_rawdata.npz"]
 
-    #extract_all_files(files)
+    extract_all_files(files)
     convert_acq_to_utf8(files)
     parse_instrument_method(files)
     plot_instrument_timetables(files)
-    plot_individual_samples(files, topdir, figsize=(12, 8), save=True)
+
     analysis_results = analyze_UIB_samples(files, topdir, num_compressed=50)
 
     # Visualization & cleanup using results
     if analysis_results:
-        plot_UIB_dashboard(analysis_results, topdir, figsize=(20, 12))
-
-        #plot_UIB_ridgelines(analysis_results, topdir, autoscale=True, base_offset=10)
+        plot_UIB_dashboard(analysis_results, topdir, sort_by='hours', kin_xaxis='hours', figsize=(20, 18)) #it is either 'reps' or 'hours'
+        plot_UIB_ridgelines_combined(analysis_results, topdir, sort_by='hours', v_step=1.0, scale_factor=0.8)
     else:
         print("[MAIN] No analysis results generated; skipping dashboard/ridgeline plots.")
 
-    plot_overlay(files, topdir, read_files=detector_files, figsize=(16, 7), save=True)
+    plot_multidetector_overlay(files, topdir, read_files=detector_files, figsize=(16, 7), save=True)
+    plot_individual_samples(files, figsize=(12, 10), save=True)
     move_figures(files, topdir)
 
-    print("HEKPipeline Complete!")
+    print("[Main] Pipeline Complete!")
 
 if __name__ == "__main__":
     main()
-
-
-
-
-

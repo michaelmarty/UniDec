@@ -2,7 +2,7 @@ import os
 from PublicScripts.Lipids.LipidFunctions import *
 
 # Set the working directory
-topdir = r"Z:\Group Share\Shivam\Reducing_FP\Final_results"
+topdir = r"Z:\Group Share\Shivam\IQX Stellar 3\FinalResults"
 os.chdir(topdir)
 
 # Set the results file names, should be the peak_master files from MS-DIAL
@@ -13,46 +13,38 @@ posfile = "Stellar_pos.csv"
 negxml = "Stellar_neg.xml"
 posxml = "Stellar_pos.xml"
 
-# Load the data
-negdf = pd.read_csv(negfile)
-posdf = pd.read_csv(posfile)
+mergeddf, posdf, negdf = cleanup_and_merge_msdial(posfile, negfile, posxml, negxml, rttol=0.2)
 
+print("posdf columns:", posdf.columns.tolist())
+print("negdf columns:", negdf.columns.tolist())
+
+print("'Ref Spec' in posdf:", "Ref Spec" in posdf.columns)
+print("'Ref Spec' in negdf:", "Ref Spec" in negdf.columns)
 # Cleanup the data
 # Drop if comment has "Low Quality" in it (case-insensitive). If no 'Comment' column exists, leave unchanged.
 if 'Comment' in posdf.columns:
     posdf = posdf[~posdf['Comment'].str.contains('Low Quality', case=False, na=False)]
     negdf = negdf[~negdf['Comment'].str.contains('Low Quality', case=False, na=False)]
 
-# Drop CL in positive mode
+# Drop CL and PS in positive mode
 posdf = posdf[~posdf["Ontology"].str.startswith("CL")]
+posdf = posdf[~posdf["Ontology"].str.startswith("PS")]
+print("POS adducts:")
+print(posdf["Adduct type"].value_counts())
 
-# Sort by Ontology and Name
-posdf = posdf.sort_values(by=["Ontology", "Metabolite name"]).reset_index(drop=True)
-negdf = negdf.sort_values(by=["Ontology", "Metabolite name"]).reset_index(drop=True)
-
+print("\nNEG adducts:")
+print(negdf["Adduct type"].value_counts())
 # Drop if simple dot product is below 0.45
 # posdf = posdf[posdf["Simple dot product"] > 0.45]
 # negdf = negdf[negdf["Simple dot product"] > 0.45]
 #
 # make_plots(posdf, negdf)
 
-# Load the reference spectra from XML
-refnegdf = parse_xml(negxml)
-refposdf = parse_xml(posxml)
-
-# Add reference spectra to the dataframes
-negdf = add_ref_from_xml(negdf, refnegdf)
-posdf = add_ref_from_xml(posdf, refposdf)
-
-# Merge positive and negative dataframes
-rttol = 0.1
-posdf, negdf = merge_pos_neg(posdf, negdf, rttol)
-
 # Save to output
-posfileout = posfile.replace(".csv", "_Ref.csv")
-posdf.to_csv(posfileout, index=False)
-negfileout = negfile.replace(".csv", "_Ref.csv")
-negdf.to_csv(negfileout, index=False)
+# posfileout = posfile.replace(".csv", "_Ref.csv")
+# posdf.to_csv(posfileout, index=False)
+# negfileout = negfile.replace(".csv", "_Ref.csv")
+# negdf.to_csv(negfileout, index=False)
 
 # Convert these to TransitionLists
 spectrumkey = "Ref Spec" # or "MS/MS spectrum" if experimental spectra are used, if so, a cutoff is recommended
@@ -77,3 +69,6 @@ if "Explicit Retention Time" in tldf.columns:
 tldf.to_csv("Combined_TransitionList.csv", index=False)
 # Print number of unique Molecule Names
 print("Number of unique Molecule Names:", tldf["Molecule Name"].nunique())
+
+print("postldf rows:", len(postldf))
+print("negtldf rows:", len(negtldf))

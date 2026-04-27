@@ -135,7 +135,7 @@ class ChromEngine(MetaUniDec):
         self.data.update_var_array()
         if export:
             self.data.export_hdf5(delete=True)
-        self.data.v1name = "timestart"
+        self.data.v1name = "timemid"
         self.data.v2name = "scanstart"
         self.data.import_vars(get_vnames=False)
 

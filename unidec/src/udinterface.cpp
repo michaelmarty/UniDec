@@ -44,11 +44,11 @@ DeconVec ConvertToCPPDecon(const Decon * deconC) {
     return deconVec;
 }
 
-extern "C" int run_unidec_core(Config config, Input inp, Decon *decon, const int verbose, const int autotune);
+extern "C" int run_unidec_core(Config config, Input inp, Decon *decon, const int verbose);
 
 // Main interface function to run deconvolution
 DeconVec RunDeconvolution(Config * config, InputVec * inputVec, int verbose) {
-    Input inputC = SetupInputs();
+    Input inputC = InitInputs();
     ConvertToCInput(inputVec, &inputC);
     PostImport(config);
     Decon deconC;

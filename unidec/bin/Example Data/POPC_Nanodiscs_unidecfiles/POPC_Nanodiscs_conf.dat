@@ -1,4 +1,4 @@
-version 8.0.3
+version 8.1.2
 imflag 0
 cdmsflag 0
 input C:\Python\UniDecDev\unidec\bin\Example Data\POPC_Nanodiscs_unidecfiles\POPC_Nanodiscs_input.dat
@@ -30,7 +30,7 @@ smooth 0.0
 mzbins 0.0
 peakwindow 50000.0
 peakthresh 0.1
-normthresh 0.0
+normthresh 0
 peakplotthresh 0.1
 plotsep 0.025
 intthresh 0.0
@@ -62,8 +62,8 @@ doubledec False
 CDslope 12.5
 CDzbins 1
 CDres 1.0
-CDScanStart -1.0
-CDScanEnd -1.0
+CDScanStart 0.0
+CDScanEnd 0.0
 CDprethresh 0.0
 HTksmooth 0.0
 CDScanCompress 0
@@ -112,6 +112,8 @@ tcal2 6.3597
 tcal3 0.0
 tcal4 0.0
 edc 1.57
+variablepw 0
+minratio 0.0
 kernel C:\Python\UniDec3\unidec_bin\Example Data\POPC_Nanodiscs_unidecfiles\POPC_Nanodiscs_mass.txt
 iso_meanpeakspacing_thresh 0.01
 iso_background_subtraction 0.0

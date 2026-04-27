@@ -482,6 +482,11 @@ class MetaUniDecBase(UniDecPres):
         self.eng.data.v2name = dlg.value
         self.export_vars()
 
+    def on_eic_integrate(self, e=None):
+        self.eng.peaks_eic_integrate()
+        self.view.peakpanel.clear_list()
+        self.view.peakpanel.add_data(self.eng.pks, show="area", show2="apexvar1")
+
     def on_charge_states_mud(self, e=None):
         self.on_charge_states(plot=self.view.plot1)
 
@@ -850,7 +855,7 @@ class UniDecApp(MetaUniDecBase):
         if dlg.ShowModal() == wx.ID_OK:
             self.view.SetStatusText("Opening", number=5)
             filename = dlg.GetFilename()
-            print("Openening: ", filename)
+            print("Opening: ", filename)
             if os.path.splitext(filename)[1] != ".hdf5":
                 print("Need HDF5 file")
                 return
@@ -871,7 +876,7 @@ class UniDecApp(MetaUniDecBase):
         if dlg.ShowModal() == wx.ID_OK:
             self.view.SetStatusText("Opening", number=5)
             filename = dlg.GetFilename()
-            print("Openening: ", filename)
+            print("Opening: ", filename)
             if os.path.splitext(filename)[1] != ".csv":
                 print("Need CSV file")
                 return
@@ -1339,7 +1344,7 @@ class UniDecApp(MetaUniDecBase):
 
         paths = FileDialogs.open_multiple_files_dialog(message="Choose data files in txt or mzml format")
         if paths is not None:
-            print("Openening: ", paths)
+            print("Opening: ", paths)
             self.add_files(paths)
 
     def on_additional_parameters(self, e=None):
@@ -1572,7 +1577,7 @@ class UniDecApp(MetaUniDecBase):
         dlg = wx.FileDialog(self.view, "Choose a data file in imzML format", '', "", "*.imzml*")
         if dlg.ShowModal() == wx.ID_OK:
             filename = dlg.GetFilename()
-            print("Openening: ", filename)
+            print("Opening: ", filename)
             if os.path.splitext(filename)[1].lower() != ".imzml":
                 print("Need imzml file")
                 return

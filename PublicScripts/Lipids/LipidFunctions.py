@@ -9,9 +9,122 @@ import networkx as nx
 import matchms as mms
 import matplotlib as mpl
 import mplcursors
+from unidec.tools import center_of_mass
+from rdkit import Chem
+from rdkit import DataStructs
+from rdkit.Chem import AllChem
+import rdkit.Chem.MACCSkeys as MACCSkeys
+import time
 
 # import warnings
 # warnings.filterwarnings("error")
+
+
+
+class_color_map = {
+    "PC": "#788BFF",
+    "OxPC": "#788BFF",
+    "PC O": "#BFD7FF",
+    "EtherPC": "#BFD7FF",
+    "LPC-O/P": "#27D3F5",
+    "LPC": "#3019E3",
+    "EtherLPC": "#27D3F5",
+    "PE": "#6017A9",
+    "PE-O": "#A276E5",
+    "EtherPE": "#A276E5",
+    "LPE": "#8F5CD2",
+    "EtherLPE": "#8F5CD2",
+    "PEtOH" : "#D291EF",
+    "PMeOH": "#D291EF",
+    "PG": "#356935",
+    "LPG": "#B1D8B1",
+    "LPS": "#FDF32F",
+    "PS": "#C89504",
+    "PA": "#95F4D4",
+    "LPA": "#42EBB3",
+    "PI": "#8FFBFF",
+    "EtherPI": "#8FFBFF",
+    "EtherDG": "#F4845F",
+    "EtherPS": "#C89504",
+    "LPI": "#00CAD1",
+    "CL": "#FFA200",
+    "MLCL": "#FFDAA5",
+    "DLCL": "#FFE6C2",
+    "Cer": "#AB30A1",
+    "Cer_NS": "#AB30A1",
+    "Cer_NDS": "#AB30A1",
+    "Cer_EODS": "#AB30A1",
+    "Cer_EOS": "#AB30A1",
+    "Cer_EBDS": "#AB30A1",
+    "Cer_AP": "#AB30A1",
+    "Cer_AS": "#AB30A1",
+    "CAR": "#AB30A1",
+    "HexCer": "#F708E3",
+    "HexCer_NS": "#F708E3",
+    "HexCer_NDS": "#F708E3",
+    "HexCer_HDS": "#F708E3",
+    "HexCer_AP": "#F708E3",
+    "HexCer_HS": "#F708E3",
+    "Hex2Cer": "#FF73FF",
+    "SM": "#FFDB73",
+    "ASM": "#FFDB73",
+    "CoQ": "#F25C54",
+    "MAG": "#F7B267",
+    "DG": "#F4845F",
+    "DAG": "#F4845F",
+    "TG": "#8F1458",
+    "TAG": "#8F1458",
+    "FA": "#FFA1DB",
+    "FAHFA": "#FF0000",
+    "CE": "#D10081",
+    "NAE": "#777777",
+    "ST": "#B40808",
+    "Standard": "#0D0D0D",
+    "Other": "#333333",
+    "GM3": "#FF73FF",
+    "HBMP": "#FFA200",
+    "SHexCer": "#F708E3",
+    "OxPI": "#8FFBFF",
+    "PI_Cer": "#8FFBFF",
+    "PE_Cer": "#6017A9",
+    "AHexBRS": "#FF73FF",
+    "AHexCAS": "#FF73FF",
+    "EtherPG": "#356935",
+    "OxPE": "#6017A9",
+    "AHexCer": "#FF73FF",
+    "EtherLPG": "#B1D8B1",
+    "EtherPG": "#356935",
+    "EtherTG": "#8F1458",
+    "BileAcid": "#FF8800",
+    # Red
+    "SL": "#B40808",
+    "LNAPE": "#8F5CD2",
+    "LNAPS": "#FDF32F",
+    "EtherDGDG": "#FFA200",
+    "EtherMGDG": "#FFA200",
+    "DGGA": "#FFA200",
+    "SQDG": "#FFA200",
+    "MGDG": "#FFA200",
+    "OxPS": "#C89504",
+    "DGDG" : "#FFA200",
+    "SHex": "#F708E3",
+    "Sph": "#AB30A1",
+    "ADGGA": "#FFA200",
+    "STSE" : "#B40808",
+    "GL": "#F7B267",
+}
+
+# python
+default_color = "#0D0D0D"
+lower_color_map = {k.strip().lower(): v for k, v in class_color_map.items()}
+
+def get_color_for_class(cls):
+    key = str(cls).strip().lower()
+    color = lower_color_map.get(key)
+    if color is None:
+        print(f"WARNING: No color found for class '{cls}'. Using default color.")
+        return default_color
+    return color
 
 posadducts = [
     ["[M+H]+", 1, 1.00782503207, True],
@@ -72,7 +185,10 @@ adduct_translator = np.array([["[M+H]+", "[M+H]", "+1", 1, "[M+H]1+"],
                               ["[M-CH3OO]-", "[M-CH3OO]", "-1", -1, "[M-CH3OO]1-"],
                               ["[M-2H]2-", "[M-2H]", "-2", -2, "[M-2H]2-"],
                               ["[M+CH3COO]-", "[M+CH3COO]", "-1", -1, "[M+CH3COO]1-"],
-                              ["[M+Na]+", "[M+Na]", "1", -1, "[M+Na]1+"]])
+                              ["[M+Na]+", "[M+Na]", "1", -1, "[M+Na]1+"],
+                              ["[M+H-H2O]+", "[M+H-H2O]", "+1", 1, "[M+H-H2O]1+"],
+                              ["[M7H2+H-H2O]+", "[M7H2+H-H2O]", "+1", 1, "[M7H2+H-H2O]1+"]
+                              ])
 
 class_nfattyacids = {
     "CL": 4,
@@ -104,6 +220,15 @@ class_nfattyacids = {
     "ST": 1,
     "TAG": 3
 }
+
+hg_simplifier = {"Cer_AP": "Cer", "Cer_HDS": "Cer", 'Cer_NDS': "Cer", 'Cer_NP': "Cer", 'Cer_NS': "Cer",
+                 "Cer_EODS" : "Cer", "Cer_EOS" : "Cer", "Cer_HS" : "Cer", "Cer_AS": "Cer", "Cer_ADS" : "Cer",
+                 "HexCer_AP": "HexCer", "HexCer_NDS": "HexCer", "HexCer_HS": "HexCer", "HexCer_NS": "HexCer",
+                 "HexCer_EOS": "HexCer", "HexCer_HDS": "HexCer", "AHexCer": "HexCer", "Hex2Cer": "HexCer",
+                 "Hex3Cer": "HexCer", "SHexCer": "HexCer", "ASM": "SM", "LNAPE":"PE", "LNAPS":"PS", "NAPE":"PE", "NAPS":"PS",
+                 "PE_Cer":"Cer",
+                 "PI_Cer":"Cer", "ADGGA":"GL", "GM3":"GL", "DGDG":"GL", "DGGA":"GL", "MGDG":"GL", "SQDG":"GL",
+                 "SHex":"SL", "STSE":"SL"}
 
 def msdialnames_to_LC(df):
     fixednames = []
@@ -264,20 +389,69 @@ def fix_d7(name, adduct):
 
 
 def count_tails(name, verbose=False):
+    if "CoQ" in name:
+        # Extract the number after CoQ
+        tus = int(name.replace("CoQ", "").strip())
+        tls = 5 * tus
+        # print("CoQ detected", tls, tus)
+        return "CoQ", tls, tus
+
     # Remove values of just a name or a name and then an adduct
     if " " not in name or ":" not in name:
         return "NA", -1, -1
 
+    tls = 0
+    tus = 0
+
+    if ";FA" in name or "(FA" in name:
+        # Extract the numbers after the FA and before )
+        fa_matches = re.findall(r'FA (\d+:\d+)', name)
+        for match in fa_matches:
+            try:
+                tl, tu = match.split(":")
+                tl = int(tl)
+                tu = int(tu)
+                tls += tl
+                tus += tu
+            except Exception as e:
+                if verbose:
+                    print("Unable to parse FA match: ", match, name)
+                continue
+        if "(FA" in name:
+            # Remove everything between ( and ) if it contains FA
+            cleanname = re.sub(r'\(FA \d+:\d+\)', '', name)
+        elif ";FA" in name:
+            # Remove everything after ;FA if it contains FA
+            cleanname = re.sub(r';FA \d+:\d+', '', name)
+    else:
+        cleanname = name
+
+    if "(O-" in name:
+        # Extract numbers after O- and before )
+        o_matches = re.findall(r'O-(\d+:\d+)', name)
+        for match in o_matches:
+            try:
+                tl, tu = match.split(":")
+                tl = int(tl)
+                tu = int(tu)
+                tls += tl
+                tus += tu
+            except Exception as e:
+                if verbose:
+                    print("Unable to parse O- match: ", match, name)
+                continue
+        # Remove everything between ( and ) if it contains O-
+        cleanname = re.sub(r'\(O-\d+:\d+\)', '', cleanname)
+
     try:
-        tname = name.split(" ")[1]
+        tname = cleanname.split(" ")[1]
     except Exception as e:
         print("Unable to parse tails: ", name)
         raise e
 
     # fas = tname.split("_")
     fas = re.split('_|/', tname)
-    tls = 0
-    tus = 0
+
     # Remove '' from fas
     for f in fas:
         if f == '':
@@ -290,6 +464,30 @@ def count_tails(name, verbose=False):
             f = f.replace(";O2", "")
         if ";O3" in f:
             f = f.replace(";O3", "")
+        if ";2O" in f:
+            f = f.replace(";2O", "")
+        if ";3O" in f:
+            f = f.replace(";3O", "")
+        if ";4O" in f:
+            f = f.replace(";4O", "")
+        if ";(2OH)" in f:
+            f = f.replace(";(2OH)", "")
+        if ";(3OH)" in f:
+            f = f.replace(";(3OH)", "")
+        if ";O" in f:
+            f = f.replace(";O", "")
+        if "N-" in f:
+            f = f.replace("N-", "")
+        if "-SN1" in f:
+            f = f.replace("-SN1", "")
+        if "-SN2" in f:
+            f = f.replace("-SN2", "")
+        if ";Hex" in f:
+            f = f.replace(";Hex", "")
+        if "(d7)" in f:
+            f = f.replace("(d7)", "")
+        if "(d9)" in f:
+            f = f.replace("(d9)", "")
 
         tl = f.split(":")[0]  # Get length
         try:
@@ -317,6 +515,11 @@ def count_tails(name, verbose=False):
         tus += tu
     tl = tls
     tu = tus
+
+    if tu == -1:
+        if verbose:
+            print("Unable to parse unsaturation: ", name, tname, fas)
+
     return tname, tl, tu
 
 
@@ -336,6 +539,7 @@ def set_tails(df, columnname="Molecule Name"):
     return df
 
 def set_basic_tail_names(df, columnname="Molecule Name"):
+    df = df.copy()
     tnames = []
     t1s = []
     t2s = []
@@ -489,9 +693,118 @@ def remove_specific_problems(df):
     return df
 
 
+def map_ontology_from_lipid_name(lipid_name):
+    """Map a lipid name to a lipid class label (e.g., PC, LPC, EtherPC)."""
+    if lipid_name is None:
+        return ""
+
+    text = str(lipid_name).strip()
+    if not text:
+        return ""
+
+    # Detect ether/plasmalogen notation before extracting the class token.
+    is_ether = (
+            text.startswith("O-")
+            or text.startswith("P-")
+            or text.startswith("O_")
+            or text.startswith("P_")
+            or text.startswith("ETHER")
+            or " ETHER" in text
+            or " P-" in text
+            or " O-" in text
+    )
+
+    if "SM" in text and "FA" in text:
+        return "ASM"
+
+    # Keep primary annotation when names include pipe-delimited aliases.
+    text = text.split(" ")[0].strip()
+
+    # Output lipid class labels rather than broad ontology families.
+    class_map = {
+        'Cholesterol': 'ST',
+        'CoQ1': 'CoQ',
+        'CoQ2': 'CoQ',
+        'CoQ3': 'CoQ',
+        'CoQ4': 'CoQ',
+        'CoQ5': 'CoQ',
+        'CoQ6': 'CoQ',
+        'CoQ7': 'CoQ',
+        'CoQ8': 'CoQ',
+        'CoQ9': 'CoQ',
+        'CoQ10': 'CoQ',
+        'CoQ11': 'CoQ',
+        'CoQ12': 'CoQ',
+        'CoQ13': 'CoQ',
+        'PI-Cer': 'PI_Cer',
+        'Cholesterol(d7)': 'ST',
+        '25-hydroxycholecalciferol': 'Vitamin_D',
+        'PE-Cer': 'PE_Cer',
+        'Tocopherol': 'Vitamin_E',
+    }
+
+    if text in class_map:
+        base_class = class_map[text]
+    else:
+        base_class = text
+
+    if is_ether:
+        return f"Ether{base_class}"
+
+    return base_class
+
+def apply_ontology_mapping(df, name_col="Metabolite name", output_col="Ontology"):
+    df[output_col] = df[name_col].apply(map_ontology_from_lipid_name)
+    return df
+
+def make_sum_comp(name):
+    if "_" or "/" in name:
+        specialpart = ""
+        if ";" in name:
+            specialpart = name.split(";")[1].strip()
+            # Split off / or _ after the name
+            specialpart = specialpart.split("/")[0].split("_")[0]
+            specialpart = ";" + specialpart
+
+        tname, tl, tu = count_tails(name, verbose=True)
+        hname = name.split(" ")[0]
+        newname = f"{hname} {tl}:{tu}"
+        name = newname + specialpart
+    return name
+
+
+def apply_sum_comp(df, namecol="Metabolite name", classcol="Ontology", adductcol="Adduct type"):
+    # Apply to all
+    # df["Sum Comp Name"] = df[namecol].apply(make_sum_comp)
+    # # Create name as "Sum Comp Name" + " | " + original name
+    # df = df.rename(columns={namecol: "Original Name"})
+    # df[namecol] = df["Sum Comp Name"] + " | " + df["Original Name"]
+    # df = df.drop(columns=["Sum Comp Name"])
+
+    mask = df[adductcol] == "[M+H]+"
+    mask2 = df[classcol] == "PC"
+    if mask.any() and mask2.any():
+        # Isolate PC [M+H]+ adducts
+        subdf = df[mask & mask2].copy()
+        subdf[namecol] = subdf[namecol].apply(make_sum_comp)
+        # Drop original PC [M+H]+ rows
+        df = df[~(mask & mask2)]
+        # Append modified PC [M+H]+ rows
+        df = pd.concat([df, subdf], ignore_index=True)
+
+    mask2 = df[classcol] == "SM"
+    if mask.any() and mask2.any():
+        # Isolate SM [M+H]+ adducts
+        subdf = df[mask & mask2].copy()
+        subdf[namecol] = subdf[namecol].apply(make_sum_comp)
+        # Drop original SM [M+H]+ rows
+        df = df[~(mask & mask2)]
+        # Append modified SM [M+H]+ rows
+        df = pd.concat([df, subdf], ignore_index=True)
+    return df
 
 def get_charge(adduct):
-    if adduct in ["[M+H]+", "[M+NH4]+", "[M+Na]+", "[M+K]+"]:
+    if adduct in ["[M+H]+", "[M+NH4]+", "[M+Na]+", "[M+K]+", "[M]+", "[M+H-H2O]+"]:
         return 1
     elif adduct in ["[M+2H]2+"]:
         return 2
@@ -536,7 +849,7 @@ def add_product_ions(row, cutoff=0.1, spectrumkey="Ref Spec"):
 
     return newrows
 
-def msdial_to_transitionlist(df, cutoff=0, spectrumkey="Ref Spec"):
+def msdial_to_transitionlist(df, cutoff=0, spectrumkey="Ref Spec", rtwindow=4, remove_precursors=True):
     # Drop all where "Ontology" is Others or Unknown
     # df = df[~df["Ontology"].isin(["Others", "Unknown"])]
     newdf = df.copy()
@@ -554,7 +867,7 @@ def msdial_to_transitionlist(df, cutoff=0, spectrumkey="Ref Spec"):
     newdf["Precursor Charge"] = charges
 
     # Set Explicit Retention Time Window to 4
-    newdf["Explicit Retention Time Window"] = 4
+    newdf["Explicit Retention Time Window"] = rtwindow
 
     # Sort by Molecule List Name and Molecule Name
     newdf = newdf.sort_values(by=["Molecule List Name", "Molecule Name"])
@@ -569,10 +882,64 @@ def msdial_to_transitionlist(df, cutoff=0, spectrumkey="Ref Spec"):
     proddf = pd.DataFrame(newrows)
 
     # Drop MS/MS spectrum column
-    proddf = proddf.drop(columns=[spectrumkey])
+    proddf = proddf.drop(columns=[spectrumkey], errors="ignore")
+    proddf = pd.DataFrame(newrows)
+
+    # If remove_precursors is True, drop rows where Product Mz is greater than 5 below Precursor Mz
+    if remove_precursors:
+        proddf = proddf[proddf["Product Mz"] < proddf["Precursor Mz"] - 5]
 
     return proddf
-    pass
+
+def cleanup_and_merge_msdial(posfile, negfile, posxml, negxml, rttol=0.2):
+    # Load the data
+    negdf = pd.read_csv(negfile)
+    posdf = pd.read_csv(posfile)
+
+    # Sort by Ontology and Name
+    posdf = posdf.sort_values(by=["Ontology", "Metabolite name"]).reset_index(drop=True)
+    negdf = negdf.sort_values(by=["Ontology", "Metabolite name"]).reset_index(drop=True)
+
+    # Load the reference spectra from XML
+    refnegdf = parse_xml(negxml)
+    refposdf = parse_xml(posxml)
+
+    # Add reference spectra to the dataframes
+    negdf = add_ref_from_xml(negdf, refnegdf)
+    posdf = add_ref_from_xml(posdf, refposdf)
+
+    # Merge positive and negative dataframes
+    posdf, negdf = merge_pos_neg(posdf, negdf, rttol)
+
+    # Create polarity columns and fill with "Positive" and "Negative"
+    posdf["Polarity"] = "Positive"
+    negdf["Polarity"] = "Negative"
+
+    # Concatenate the dataframes
+    mergeddf = pd.concat([posdf, negdf], ignore_index=True)
+
+    return mergeddf, posdf, negdf
+
+def cleanup_and_merge_mzmine(posfile, negfile, rttol=0.2):
+    # Load the data
+    negdf = pd.read_csv(negfile)
+    posdf = pd.read_csv(posfile)
+
+    # Sort by Ontology and Name
+    posdf = posdf.sort_values(by=["Ontology", "Metabolite name"]).reset_index(drop=True)
+    negdf = negdf.sort_values(by=["Ontology", "Metabolite name"]).reset_index(drop=True)
+
+    # Merge positive and negative dataframes
+    posdf, negdf = merge_pos_neg(posdf, negdf, rttol)
+
+    # Create polarity columns and fill with "Positive" and "Negative"
+    posdf["Polarity"] = "Positive"
+    negdf["Polarity"] = "Negative"
+
+    # Concatenate the dataframes
+    mergeddf = pd.concat([posdf, negdf], ignore_index=True)
+
+    return mergeddf, posdf, negdf
 
 
 def find_match_name(name, rt, refdf, rttol=0.1, verbose=False):
@@ -747,7 +1114,7 @@ def encode_headgroups(df, classname="Ontology", rtcol_name="Average Rt(min)"):
     encoding = {}
     for i, hg in enumerate(sorted_hgs):
         encoding[hg] = i + 1
-    print("Headgroup encoding:", encoding)
+    # print("Headgroup encoding:", encoding)
     # Add encoding column
     encodings = []
     for i, row in df.iterrows():
@@ -1568,42 +1935,42 @@ def network_analysis(df, mz_tol=0.01, title="", header="", add_all_cols=False):
     # Measure a variety of features of the graph
     strength = dict(G.degree(weight='weight'))  # s_i
     degree = dict(G.degree())  # unweighted degree
-    clust_w = nx.clustering(G, weight='weight')  # weighted clustering coeff
+    # clust_w = nx.clustering(G, weight='weight')  # weighted clustering coeff
     # betw = nx.betweenness_centrality(G, weight='distance')  # uses shortest-path distances
-    close = nx.closeness_centrality(G, distance='distance')  # distance-based closeness
-    pr = nx.pagerank(G, weight='weight')  # weighted PageRank
+    # close = nx.closeness_centrality(G, distance='distance')  # distance-based closeness
+    # pr = nx.pagerank(G, weight='weight')  # weighted PageRank
     tri = nx.triangles(G)  # triangle count per node
     # ev = nx.eigenvector_centrality(G, weight='weight', tol=1e-04)  # eigenvector centrality
     # ----- SAFETY GUARD FOR EMPTY / EDGELESS GRAPHS -----
-    if G.number_of_nodes() < 2 or G.number_of_edges() == 0:
-        ev = dict.fromkeys(G.nodes(), 0.0)
-    else:
-        try:
-            ev = nx.eigenvector_centrality(G, weight='weight', max_iter=1000)
-        except nx.PowerIterationFailedConvergence:
-            ev = dict.fromkeys(G.nodes(), 0.0)
+    # if G.number_of_nodes() < 2 or G.number_of_edges() == 0:
+    #     ev = dict.fromkeys(G.nodes(), 0.0)
+    # else:
+    #     try:
+    #         ev = nx.eigenvector_centrality(G, weight='weight', max_iter=1000)
+    #     except nx.PowerIterationFailedConvergence:
+    #         ev = dict.fromkeys(G.nodes(), 0.0)
 
     # Network features dict
     n_features = {
         'strength': strength,
         'degree': degree,
-        'clust_w': clust_w,
+        # 'clust_w': clust_w,
         # 'betw': betw,
-        'close': close,
-        'pr': pr,
+        # 'close': close,
+        # 'pr': pr,
         'tri': tri,
-        'ev': ev,
+        # 'ev': ev,
     }
 
     z_features = {
         'z_strength': robust_z(strength),
         'z_degree': robust_z(degree),
-        'z_clust_w': robust_z(clust_w),
+        # 'z_clust_w': robust_z(clust_w),
         # 'z_betw': robust_z(betw),
-        'z_close': robust_z(close),
-        'z_pr': robust_z(pr),
+        # 'z_close': robust_z(close),
+        # 'z_pr': robust_z(pr),
         'z_tri': robust_z(tri),
-        'z_ev': robust_z(ev),
+        # 'z_ev': robust_z(ev),
     }
 
     # Simple aggregate anomaly score A_i = sum |z_ik|
@@ -1643,6 +2010,143 @@ def network_analysis(df, mz_tol=0.01, title="", header="", add_all_cols=False):
     G.graph['Title'] = title
     return outdf, G
 
+def get_fingerprint(mols, fingerprinttype="morgan"):
+    mols = [Chem.RemoveAllHs(mol) for mol in mols]
+    if fingerprinttype == "morgan":
+        fps = [AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=1024, useChirality=False, useFeatures=True) for mol in mols]
+    elif fingerprinttype == "rdkit":
+        fps = [Chem.RDKFingerprint(mol) for mol in mols]
+    elif fingerprinttype == "sparse":
+        fpgen = AllChem.GetRDKitFPGenerator()
+        fps = [fpgen.GetSparseFingerprint(mol) for mol in mols]
+    elif fingerprinttype == "pattern":
+        fps = [Chem.PatternFingerprint(mol) for mol in mols]
+    elif fingerprinttype == "atompair":
+        fpgen = AllChem.GetAtomPairGenerator()
+        fps = [fpgen.GetSparseFingerprint(mol) for mol in mols]
+    elif fingerprinttype == "torsion":
+        fpgen = AllChem.GetTopologicalTorsionGenerator()
+        fps = [fpgen.GetSparseFingerprint(mol) for mol in mols]
+    elif fingerprinttype == "maccs":
+        fps = [MACCSkeys.GenMACCSKeys(mol) for mol in mols]
+    else:
+        raise ValueError(f"Unknown fingerprint type: {fingerprinttype}")
+    return fps
+
+def get_similarity(fp1, fp2, simtype="tanimoto"):
+    if simtype == "tanimoto":
+        sim = DataStructs.TanimotoSimilarity(fp1, fp2)
+    elif simtype == "dice":
+        sim = DataStructs.DiceSimilarity(fp1, fp2)
+    elif simtype == "cosine":
+        sim = DataStructs.CosineSimilarity(fp1, fp2)
+    elif simtype == "kulczynski":
+        sim = DataStructs.KulczynskiSimilarity(fp1, fp2)
+    elif simtype == "mcconnaughey":
+        sim = DataStructs.McConnaugheySimilarity(fp1, fp2)
+    elif simtype == "rogotgoldberg":
+        sim = DataStructs.RogotGoldbergSimilarity(fp1, fp2)
+    else:
+        raise ValueError(f"Unknown similarity type: {simtype}")
+    return sim
+
+def gen_smiles_similarity_matrix(smiles_list, smiles_list2=None, simtype="tanimoto", fingerprinttype="morgan"):
+    # Convert to mols
+    mols = [Chem.MolFromSmiles(s) for s in smiles_list]
+
+    # Convert to fingerprints
+    fps = get_fingerprint(mols, fingerprinttype=fingerprinttype)
+
+    # Get similarity matrix
+    if smiles_list2 is None:
+        similarity_matrix = np.zeros((len(fps), len(fps)))
+        for i in range(len(fps)):
+            similarity_matrix[i, i] = 1.0
+            for j in range(i + 1, len(fps)):
+                sim = get_similarity(fps[i], fps[j], simtype=simtype)
+                similarity_matrix[i, j] = sim
+                similarity_matrix[j, i] = sim
+    else:
+        mols2 = [Chem.MolFromSmiles(s) for s in smiles_list2]
+        # Loop over mol and set isotope to 0
+        for mol in mols:
+            for atom in mol.GetAtoms():
+                atom.SetIsotope(0)
+            # AllChem.MMFFOptimizeMolecule(mol)
+        for mol in mols2:
+            for atom in mol.GetAtoms():
+                atom.SetIsotope(0)
+            # AllChem.MMFFOptimizeMolecule(mol)
+
+
+        fps2 = get_fingerprint(mols2, fingerprinttype=fingerprinttype)
+        similarity_matrix = np.zeros((len(fps), len(fps2)))
+        for i in range(len(fps)):
+            for j in range(len(fps2)):
+                sim = get_similarity(fps[i], fps2[j], simtype=simtype)
+                similarity_matrix[i, j] = sim
+    return similarity_matrix
+
+
+def smiles_analysis(df, plot=False, cutoff=0.7, simtype="tanimoto", fingerprinttype="morgan"):
+    outdf = df.copy()
+
+    starttime = time.perf_counter()
+    # Create network graph from SMILES
+    smiles = df["SMILES"].dropna().unique()
+    similarity_matrix = gen_smiles_similarity_matrix(smiles, simtype=simtype, fingerprinttype=fingerprinttype)
+
+    print(f"Calculated similarity matrix, Time taken: {time.perf_counter() - starttime:.2f} seconds")
+    # Convert to network graph using a similarity threshold of 0.1
+    G = nx.Graph()
+    G.add_weighted_edges_from(
+        [(i, j, similarity_matrix[i, j]) for i in range(similarity_matrix.shape[0]) for j in
+         range(i, similarity_matrix.shape[1]) if
+         similarity_matrix[i, j] > cutoff])
+
+    # Add node labels
+    # Loop through df and find the index of each SMILES in the original df, then use that index to get the Metabolite name and add it to the label
+    labels = {i: smiles[i] for i in range(len(smiles))}
+    nx.relabel_nodes(G, labels, copy=False)
+
+    # Drop self-loops
+    G.remove_edges_from(nx.selfloop_edges(G))
+
+    # Measure a strength for each in the graph
+    strength = dict(G.degree(weight='weight'))
+
+    mapping = {}
+    # Set these as columns in df
+    for i, row in df.iterrows():
+        sval = row['SMILES']
+        if pd.isna(sval):
+            continue
+        mapping[sval] = "0~"+row['Metabolite name']
+
+        # Apply to outdf
+        outdf.at[i, "SMILES_strength"] = float(strength.get(sval, 0.0))
+
+        if sval in G:
+            # Apply to nodes in G
+            attrs = {}
+            attrs['Strength'] = strength.get(sval, 0.0)
+            attrs['Adduct type'] = row['Adduct type']
+            attrs['Class'] = row['Ontology']
+            attrs['Name'] = row['Metabolite name']
+            G.nodes[sval].update(attrs)
+    # G.graph['Title'] = title
+
+    # Adjust node names to be the Metabolite name instead of the SMILES
+    nx.relabel_nodes(G, mapping, copy=False)
+
+    print(f"Created SMILES network graph, Time taken: {time.perf_counter() - starttime:.2f} seconds")
+
+    if plot:
+        # Plot the network graph
+        network_plot(G, colortarget="Class")
+        plt.show()
+    return outdf
+
 def network_plot(G, axis=None, colortarget="z_Anomaly_Score"):
     if axis is None:
         fig, ax = plt.subplots(figsize=(8, 6))
@@ -1681,11 +2185,14 @@ def network_plot(G, axis=None, colortarget="z_Anomaly_Score"):
     else:
         cmap = mpl.cm.viridis
         # prepare label mapping
-        labels_text = {node: (
-            f"{node.split('~')[1]}\n"
-            f"{colortarget}: {G.nodes[node].get(colortarget, 0.0):.2f}\n"
-            f"Adduct: {G.nodes[node].get('Adduct type', 'N/A')}\n"
-        ) for node in node_list}
+        try:
+            labels_text = {node: (
+                f"{node.split('~')[1]}\n"
+                f"{colortarget}: {G.nodes[node].get(colortarget, 0.0):.2f}\n"
+                f"Adduct: {G.nodes[node].get('Adduct type', 'N/A')}\n"
+            ) for node in node_list}
+        except:
+            labels_text = {node: str(i) for i, node in enumerate(node_list)}
 
     norm = mpl.colors.Normalize(vmin=np.amin(colorvals), vmax=np.amax(colorvals))
 
@@ -1735,7 +2242,7 @@ def network_plot(G, axis=None, colortarget="z_Anomaly_Score"):
         sel.annotation.set_text(labels_text[node])
 
 
-def make_plots(posdf, negdf):
+def make_lipid_summary_plots(posdf, negdf):
 
     plt.figure(figsize=(8, 6))
     # Make plots of Average RT versus reference RT
@@ -1800,8 +2307,251 @@ def make_plots(posdf, negdf):
     plt.tight_layout()
     plt.show()
 
+def fix_inhomogeneous_rt(rtdata):
+    lengths = [len(rt[0]) for rt in rtdata]
+    # If all lengths are the same, return as is
+    if len(set(lengths)) == 1:
+        return np.array(rtdata)
+    # Otherwise, interpolate to min to max range
+    min_time = min([min(rt[0]) for rt in rtdata])
+    max_time = max([max(rt[0]) for rt in rtdata])
+    spacing = rtdata[0][0][1] - rtdata[0][0][0]
+    new_times = np.arange(min_time, max_time, spacing)
+    new_rtdata = []
+    for times, intensities in rtdata:
+        new_intensities = np.interp(new_times, times, intensities, left=0, right=0)
+        new_rtdata.append((new_times, new_intensities))
+    return np.array(new_rtdata)
+
+def get_rt(rtrows, tcol="Times", icol="Intensities", mode="apex"):
+    rtdata = []
+    for index, row in rtrows.iterrows():
+        times = [float(x) for x in row[tcol].split(",")]
+        intensities = [float(x) for x in row[icol].split(",")]
+        rtdata.append((times, intensities))
+    rtdata = fix_inhomogeneous_rt(rtdata)
+    times = rtdata[0,0]
+    summed_eic = np.sum(rtdata[:,1], axis=0)
+    rtsummed = np.transpose([times, summed_eic])
+
+    com_rt = center_of_mass(rtsummed, relative_cutoff=0.1)
+    if mode == "apex":
+        max_index = np.argmax(rtsummed[:,1])
+        max_pos = rtsummed[max_index,0]
+        com_rt = (max_pos, com_rt[1])
+
+    return float(com_rt[0]), float(com_rt[1])
+
+def update_rt(df, cdf, min_window=3.0, max_window=5.0, mode="apex", nstds=8, forcedrts=None):
+    # Find all unique molecule names in transition list
+    unique_names = df["Molecule Name"].unique()
+    outdf = df.copy()
+    # Set Explicity Retention Time and Window as floats to avoid dtype issues
+    outdf["Explicit Retention Time"] = outdf["Explicit Retention Time"].astype(float)
+    outdf["Explicit Retention Time Window"] = outdf["Explicit Retention Time Window"].astype(float)
+
+    for name in unique_names:
+        if forcedrts is not None and name in forcedrts:
+            outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time"] = forcedrts[name]
+            outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time Window"] = min_window
+            print(f"Manually setting {name} to RT: {forcedrts[name]:.2f} with window: {min_window:.2f}")
+            continue
+
+        # name = row["Molecule Name"]
+        rt_row = cdf[cdf["PeptideModifiedSequence"] == name]
+        # adduct = row["Precursor Adduct"][:-1]  # remove + or - at end
+        # rt_row = rt_row[rt_row["PrecursorCharge"] == adduct]
+        if not rt_row.empty:
+            # df.at[index, "Explicit Retention Time"] = rt_row["Retention Time (min)"].values[0]
+            # df.at[index, "Explicit Retention Time Window"] = rt_row["RT Window (min)"].values[0]
+            rt, window = get_rt(rt_row, mode=mode)
+            window = nstds * window
+            window = max(min_window, min(window, max_window))
+            outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time"] = rt
+            outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time Window"] = window
+            print(f"Updated RT for: {name} to {rt:.2f} +/- {window:.2f}")
+        else:
+            print(f"No RT found for: {name}")
+            outdf.loc[outdf["Molecule Name"] == name, "Explicit Retention Time Window"] = max_window
+    return outdf
 
 
-    #
+
+def tl_to_il(df):
+    il_df = pd.DataFrame()
+    il_df["Compound"] = df["Molecule Name"]
+    il_df["m/z"] = df["Precursor Mz"]
+    il_df["z"] = df["Precursor Charge"]
+
+    rts = df["Explicit Retention Time"].to_numpy()
+    rtwindows = df["Explicit Retention Time Window"].to_numpy()
+    il_df["t start (min)"] = rts - (rtwindows / 2)
+    b1 = il_df["t start (min)"] < 0
+    il_df.loc[b1, "t start (min)"] = 0.1
+    il_df["t stop (min)"] = rts + (rtwindows / 2)
+    # il_df["Retention Time (min)"] = rts
+    # il_df["RT Window (min)"] = rtwindows
+
+    # il_df["HCD Collision Energy/Energies (%)"] = 30  # Default value, can be adjusted
+
+    # Set polarity to be positive if charge is positive, negative if charge is negative
+    il_df["Polarity"] = il_df["z"].apply(lambda x: "Positive" if x > 0 else "Negative")
+
+    # Take abs of charge
+    il_df["z"] = il_df["z"].abs()
+
+    # Drop duplicates
+    il_df = il_df.drop_duplicates().reset_index(drop=True)
+    return il_df
+
+def derplicate_il(df, mztol=0.8):
+    good_rows = []
+    df = df.sort_values(by=["m/z"]).reset_index(drop=True)
+    # Group similar m/z and charge
+    groups = []
+    used = set()
+    for i, row in df.iterrows():
+        if i in used:
+            continue
+        group_indices = [i]
+        for j in range(i + 1, len(df)):
+            if j in used:
+                continue
+            other = df.loc[j]
+            mz_close = abs(row["m/z"] - other["m/z"]) <= mztol
+            same_charge = row["Polarity"] == other["Polarity"]
+            if mz_close and same_charge:
+                group_indices.append(j)
+        used.update(group_indices)
+        group = df.loc[group_indices]
+        groups.append(group)
+
+    for group in groups:
+        if len(group) == 1:
+            good_rows.append(group.iloc[0].to_dict())
+        else:
+            # print(group.to_string())
+            tstarts = group["t start (min)"].to_numpy()
+            tstops = group["t stop (min)"].to_numpy()
+            # Check if there are any overlaps
+            overlap = False
+            for i in range(len(group)):
+                for j in range(i + 1, len(group)):
+                    if not (tstops[i] < tstarts[j] or tstops[j] < tstarts[i]):
+                        overlap = True
+                        break
+                if overlap:
+                    break
+            if overlap:
+                startt = min(tstarts)
+                stopt = max(tstops)
+                combined_row = {
+                    "Compound": " & ".join(sorted(group["Compound"].astype(str).unique())),
+                    "m/z": group["m/z"].mean(),
+                    "z": group["z"].iloc[0],
+                    "t start (min)": startt,
+                    "t stop (min)": stopt,
+                    # "HCD Collision Energy/Energies (%)": group["HCD Collision Energy/Energies (%)"].iloc[0]
+                    "Polarity": group["Polarity"].iloc[0]
+                }
+                good_rows.append(combined_row)
+                # print("Overlap found, new combined row:")
+                # print(pd.Series(combined_row).to_string())
+            else:
+                for _, g in group.iterrows():
+                    good_rows.append(g.to_dict())
+                pass
+
+    outdata = pd.DataFrame(good_rows).reset_index(drop=True)
+    outdata["Retention Time (min)"] = (outdata["t start (min)"] + outdata["t stop (min)"]) / 2
+    outdata["RT Window (min)"] = outdata["t stop (min)"] - outdata["t start (min)"]
+
+    # Drop tstart and tstop columns
+    outdata = outdata.drop(columns=["t start (min)", "t stop (min)"])
+
+    return outdata
+
+def simplify_class_name(name):
+    if isinstance(name, str):
+        name = name.replace("Ox", "")
+        name = name.replace("Ether", "")
+        if name.startswith("L"):
+            name = name[1:]
+        if name.startswith("ML") or name.startswith("DL"):
+            name = name[2:]
+        if name in hg_simplifier.keys():
+            name = hg_simplifier[name]
+    return name
+
+def simplify_class_df(df, class_col="Ontology"):
+    df[class_col] = df[class_col].apply(simplify_class_name)
+    return df
+
+def mzrt_plot(df, class_col="Ontology", title="", simplify=True, write_file=False, labeln=False, rtcol="Average Rt(min)", mzcol="Average Mz"):
+    # ------------------------------
+    # Plot setup
+    # ------------------------------
+    mpl.rcParams['pdf.fonttype'] = 42
+    mpl.rcParams['ps.fonttype'] = 42
+    mpl.rcParams['font.family'] = 'Arial'
+    mpl.rcParams['font.size'] = 18
+
+    if simplify:
+        df = simplify_class_df(df, class_col=class_col)
+    else:
+        # Apply hg_simplifier to class_col for better color mapping
+        df[class_col] = df[class_col].apply(lambda x: hg_simplifier.get(x) if x in hg_simplifier.keys() else x)
+
+    # Legend order: alphabetical, but put Other last if present
+    unique_classes = sorted([c for c in df[class_col].unique() if c != "Other"])
+    if "Other" in df[class_col].unique():
+        unique_classes.append("Other")
+
+    # Build legend
+    custom_legend = [
+         mpl.lines.Line2D([0], [0], marker='o', color=get_color_for_class(cls), label=cls,
+               markerfacecolor=get_color_for_class(cls), linestyle='None', markersize=10)
+        for cls in unique_classes
+    ]
+
+    # Set Color column for plotting
+    df["Color"] = df[class_col].apply(get_color_for_class)
 
 
+    # ------------------------------
+    # Plot
+    # ------------------------------
+    plt.figure(figsize=(12, 8))
+    plt.scatter(df[rtcol], df[mzcol], c=df["Color"], s=80)
+
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+    plt.xlabel("Retention Time (min)")
+    plt.ylabel("m/z")
+    plt.title(title)
+    plt.xticks(np.arange(0.0, 18, 2.5))
+    plt.yticks(np.arange(0.0, 1600.1, 200))
+
+    if labeln:
+        # Add total number of lipids on the plot
+        total_lipids = len(df)
+        plt.text(
+            0.98, 0.98, f"Total lipids: {total_lipids}",
+            horizontalalignment='right',
+            verticalalignment='top',
+            transform=plt.gca().transAxes,
+            fontsize=20,
+            bbox=dict(facecolor='white', alpha=0.6, edgecolor='none', pad=5)
+        )
+
+    ncol = min(6, len(unique_classes))
+    plt.legend(handles=custom_legend, loc='upper center', bbox_to_anchor=(0.5, -0.1),
+               ncol=ncol, frameon=False)
+
+    plt.subplots_adjust(bottom=0.25)
+    plt.tight_layout()
+    if write_file:
+        plt.savefig(f"{title}_mzrt_plot.pdf", bbox_inches='tight')
+        plt.savefig(f"{title}_mzrt_plot.png", bbox_inches='tight', dpi=300)
+
+    plt.show()

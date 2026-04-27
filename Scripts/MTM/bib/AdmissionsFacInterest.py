@@ -141,7 +141,7 @@ def check_all_full(facinterest, faclist, flex=0):
     return True
 
 
-def monte_carlo(df, matriculation_range=[.4, .6], num=1000, limit=True, flex=0):
+def monte_carlo(df, matriculation_range=[.4, .6], num=1000, limit=True, flex=0, decision_column="Student Decision"):
     """Perform Monte Carlo simulation of faculty assignments based on matriculation rates."""
     faculty = df["Names"].str.split(",").explode().str.strip().unique()
     faculty = [f for f in faculty if f != ""]
@@ -154,10 +154,25 @@ def monte_carlo(df, matriculation_range=[.4, .6], num=1000, limit=True, flex=0):
         # Gaussian
         # matriculation_rate = np.random.normal(loc=(matriculation_range[0] + matriculation_range[1]) / 2,
         #     scale=(matriculation_range[1] - matriculation_range[0]) / 3 )
-        # Select students based on the matriculation rate
-        sampled_df = df.sample(frac=matriculation_rate, replace=True)
+
+        if decision_column in df.columns:
+            # If Student Decision column exists, add any where it is ACCEPT to the sampled_df regardless of matriculation rate
+            accepted_df = df[df[decision_column].str.strip().str.upper() == "ACCEPT"]
+            remaining_df = df[~df.index.isin(accepted_df.index)]
+            # Drop any where the Student Decision is DECLINE or DEFER from the remaining_df
+            remaining_df = remaining_df[~remaining_df[decision_column].str.strip().str.upper().isin(["DECLINE", "DEFER"])]
+
+            # Randomly sample the remaining students based on the matriculation rate
+            sampled_remaining_df = remaining_df.sample(frac=matriculation_rate, replace=True)
+            sampled_df = pd.concat([accepted_df, sampled_remaining_df])
+        else:
+            # Select students based on the matriculation rate
+            sampled_df = df.sample(frac=matriculation_rate, replace=True)
+
+        # print(sampled_df["LAST NAME"].tolist())
         # Randomly shuffle the sampled dataframe
         sampled_df = sampled_df.sample(frac=1).reset_index(drop=True)
+
         # For each student in the sampled_df, pick a random faculty
         faculty_list = []
         for _, row in sampled_df.iterrows():
@@ -257,11 +272,12 @@ def monte_carlo(df, matriculation_range=[.4, .6], num=1000, limit=True, flex=0):
     plt.bar(x2, failed_counts, color="#C44E52", alpha=0.7)
     plt.xticks(x2, failed_names, rotation=90)
     plt.xlabel("Faculty")
-    plt.ylabel("Percentage of Runs")
+    plt.ylabel("Average # of Students Failing Per Run")
     plt.title("Faculty Interest of Students Who Could Not Be Assigned")
 
 
     plt.tight_layout()
+    plt.savefig("Monte_Carlo_Faculty_Assignments.png", dpi=300)
     plt.show()
 
 def filter_df_visit(df, visitcol="Visit Date", natcol="Nationality"):
@@ -326,25 +342,25 @@ def division_bar_charts(df, division_col="DIV", visitcol="Visit Date", natcol="N
 
 if __name__ == "__main__":
     filepath = r"C:\Users\mm96978\OneDrive - The University of Texas at Austin\Attachments\Offers 2.4.26.xlsx"
+    filepath = r"C:\Users\mm96978\OneDrive - The University of Texas at Austin\Service\Recruiting\Data\Official Offers 4.3.26 .xlsx"
+    os.chdir(r"C:\Users\mm96978\OneDrive - The University of Texas at Austin\Service\Recruiting\Data")
     df = pd.read_excel(filepath, dtype=str)
-    division_bar_charts(df)
-    #
-    print(len(df))
+    # division_bar_charts(df)
+    # #
+    # print(len(df))
     df = filter_df_visit(df)
-    print(len(df))
-    outdf = filter_fac(df, facname="Ren")
-    print(len(facdf))
-    # Write to excel
-    outdf.to_excel(r"C:\Users\mm96978\OneDrive - The University of Texas at Austin\Attachments\Offers_Ren_2.4.26.xlsx", index=False)
-
+    # print(len(df))
+    # outdf = filter_fac(df, facname="Hsu")
+    # print(len(facdf))
+    # # Write to excel
+    # outdf.to_excel(r"C:\Users\mm96978\OneDrive - The University of Texas at Austin\Attachments\Offers_Hsu_2.4.26.xlsx", index=False)
+    # exit()
 
     # df.columns = ["col1", "col2"]
 
-
-
     names, counts1, df = compute_counts(df, c1name="SOP FAC", c2name="FAC Question")
 
-    monte_carlo(df, flex=0)
+    monte_carlo(df, flex=0, matriculation_range=[0.2, 0.4])
     exit()
 
     # Plot and save figure

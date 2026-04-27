@@ -59,8 +59,14 @@ int main(int argc, char *argv[])
 
 	if (config.metamode != -2)
 	{
+		if (config.dtsig < 1){
 		printf("MetaUniDec Run: %d\n", config.metamode);
 		result = run_metaunidec(argc, argv, config);
+		}
+		else {
+			printf("\n\n UniChrom Run: %d\n\n", config.metamode);
+			result = run_chromatogram(argc, argv, config);
+		}
 		return result;
 	}
 

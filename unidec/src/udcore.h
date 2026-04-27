@@ -16,71 +16,32 @@
 #include "udio.h"
 
 
-void check_ratios(const Config config, const Input inp, char * barr, const int numclose,
+void check_ratios(Config config, Input inp, char * barr, int numclose,
               const int *__restrict closeind,
               const float *__restrict blur);
 
-void adjust_ratios(const Config config, char * barr, const int numclose,
+void adjust_ratios(Config config, char * barr, int numclose,
               const int * closeind, float * blur);
 
-void blur_it(const int lengthmz,
-             const int numz,
-             const int numclose,
-             const int *__restrict closeind,
-             const float *__restrict closearray,
-             float *__restrict newblur,
-             const float *__restrict blur,
-             const char *__restrict barr);
+void blur_it(IntraDecon intra, float * newblur, const float * blur);
 
-void blur_it_mean(const int lengthmz,
-                  const int numz,
-                  const int numclose,
-                  const int *__restrict closeind,
-                  float *__restrict newblur,
-                  const float *__restrict blur,
-                  const char *__restrict barr,
-                  const float *__restrict closearray,
-                  const float zerolog);
+void blur_it_mean(IntraDecon intra, float * newblur, const float * blur, float zerolog);
 
-void blur_it_hybrid1(const int lengthmz,
-                     const int numz,
-                     const int zlength,
-                     const int mlength,
-                     const int *__restrict closeind,
-                     const int *__restrict closemind,
-                     const int *__restrict closezind,
-                     const float *__restrict mdist,
-                     const float *__restrict zdist,
-                     float *__restrict newblur,
-                     const float *__restrict blur,
-                     const char *__restrict barr,
-                     const float *__restrict closearray,
-                     const float zerolog);
+void blur_it_hybrid1(IntraDecon intra, int lengthmz, int numz, float * newblur, const float * blur,
+                     float zerolog);
 
-void blur_it_hybrid2(const int lengthmz,
-                     const int numz,
-                     const int zlength,
-                     const int mlength,
-                     const int *__restrict closeind,
-                     const int *__restrict closemind,
-                     const int *__restrict closezind,
-                     const float *__restrict mdist,
-                     const float *__restrict zdist,
-                     float *__restrict newblur,
-                     const float *__restrict blur,
-                     const char *__restrict barr,
-                     const float *__restrict closearray,
-                     const float zerolog);
+void blur_it_hybrid2(IntraDecon intra, int lengthmz, int numz, float * newblur, const float * blur,
+                     float zerolog);
 
-void blur_baseline(float *baseline, const int lengthmz, const float *dataMZ, const float mzsig, int mult,
+void blur_baseline(float *baseline, int lengthmz, const float *dataMZ, float mzsig, int mult,
                    int filterwidth);
 
-void midblur_baseline(float *baseline, const int lengthmz, const float *dataMZ, const float mzsig, int mult);
+void midblur_baseline(float *baseline, int lengthmz, const float *dataMZ, float mzsig, int mult);
 
-void convolve_simp(const int lengthmz, const int maxlength, const int *starttab, const int *endtab, const float *mzdist,
-                   const float *deltas, float *denom, const int speedyflag);
+void convolve_simp(int lengthmz, int maxlength, const int *starttab, const int *endtab, const float *mzdist,
+                   const float *deltas, float *denom, int speedyflag);
 
-void sum_deltas(const int lengthmz, const int numz, const float *__restrict blur, const char *__restrict barr,
+void sum_deltas(int lengthmz, int numz, const float *__restrict blur, const char *__restrict barr,
                 float *deltas);
 
 void apply_ratios(const int lengthmz, const int numz, const float *__restrict blur, const char *__restrict barr,
@@ -89,11 +50,8 @@ void apply_ratios(const int lengthmz, const int numz, const float *__restrict bl
 void deconvolve_baseline(const int lengthmz, const float *dataMZ, const float *dataInt, float *baseline,
                          const float mzsig);
 
-float deconvolve_iteration_speedy(const Config config, Decon *decon, const float *__restrict blur,
-                                  float *__restrict blur2,
-                                  const char *__restrict barr,
-                                  const float *__restrict dataInt,
-                                  float *baseline, const float *dataMZ);
+float deconvolve_iteration_speedy(Config config, Decon *decon, IntraDecon intra,
+                                  const float *dataMZ);
 
 void softargmax(float *blur, const int lengthmz, const int numz, const float beta);
 void softmax_peakwidth(const Config config, const Decon decon, float *blur, const char * barr, const float beta);
@@ -121,6 +79,7 @@ void MakePeakShape2D(const Config config, Decon *decon, const Input *inp, int ma
 void MakePeakShape1D(const Config config, Decon * decon, const float *dataMZ, int makereverse, const int inflateflag);
 int SetStartsEnds(const Config config, const Input *inp, int *starttab, int *endtab);
 int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, const int verbose);
+void SetUpBlur(Config config, Input inp, IntraDecon *intra, const int silent);
 float Reconvolve(const Config config, Decon *decon, const char *barr);
 void charge_scaling(float *blur, const int *nztab, const int lengthmz, const int numz);
 
