@@ -118,14 +118,14 @@ def dataset_split(df, rttol=0.2, rtcol="Average Rt(min)", namecol="Metabolite na
         write_dfs_to_excel(df)
     return df
 
-def outlier_setup_dda(df, mztol=0.3, write_output=True):
+def outlier_setup_dda(df, mztol=0.3, write_output=True, do_heads=True, do_tails=False):
     df = smiles_analysis(df)
 
     posdf = df[df["Polarity"] == "Positive"]
     negdf = df[df["Polarity"] == "Negative"]
 
     outdf = ot.outlier_analysis(posdf, negdf, tol=mztol, contribs=False, add_all_cols_heads=True,
-                                add_all_cols_tails=False, drop_cols=False, do_tails=False)
+                                add_all_cols_tails=False, drop_cols=False, do_tails=do_tails, do_heads=do_heads)
 
     if write_output:
         # Write out combined dataframe for reference

@@ -3,7 +3,7 @@ import re
 import pandas as pd
 import xml.etree.ElementTree as ET
 import numpy as np
-from PublicScripts.Lipids.LipidFunctions import map_ontology_from_lipid_name
+from PublicScripts.Lipids.LipidFunctions import map_ontology_from_lipid_name, apply_sum_comp
 
 
 def parse_semicolon_array(text):
@@ -502,6 +502,9 @@ def rows_to_msdial_dataframe(rows):
     ]
     extra_cols = [c for c in records[0].keys() if c not in msdial_cols] if records else []
     df = pd.DataFrame(records, columns=msdial_cols + extra_cols)
+
+    df = apply_sum_comp(df)
+
     return df
 
 def run_all_xml_files(directory):

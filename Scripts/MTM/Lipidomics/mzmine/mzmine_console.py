@@ -30,5 +30,5 @@ def run_mzmine_batch(batchfile):
 
 
 if __name__ == "__main__":
-    batchfile = r"\\marty-nas.cm.utexas.edu\MartyLab\Group Share\Annika\DDA_Compare\mzmine\ITIT_Pos_batch_no_na.mzbatch"
+    batchfile = r"\\marty-nas.cm.utexas.edu\MartyLab\Group Share\Annika\DDA_Compare\mzmine\Stellar_Pos_batch_no_na.mzbatch"
     run_mzmine_batch(batchfile)
