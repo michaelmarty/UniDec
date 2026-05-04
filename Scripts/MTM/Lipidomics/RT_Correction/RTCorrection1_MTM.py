@@ -13,27 +13,27 @@ def cleanup_df(df):
     df = df[~df['Name'].str.contains("low score", na=False)]
     return df
 
-os.chdir(r"Z:\Group Share\Annika\Stellar\Untargeted DDA\HEK Feb 2026\MSDial\5min\New folder")
+os.chdir(r"Z:\Group Share\Annika\Thermo Data")
 
-# posfile = r"Stellar_pos.csv"
-negfile = r"Neg_5mins_full.csv"
+posfile = r"Apex_HEKpos.csv"
+negfile = r"Apex_HEKneg.csv"
 
 limit = 5
 smooth= 1
 window = 0.5
 
-# posdf = pd.read_csv(posfile)
-# # posdf = cleanup_df(posdf)
-# print(posdf.columns)
-# # Grab relevant columns: Metabolite name, Average Rt(min), Reference RT, S/N average, Total score
-# posrtdf = posdf[['Metabolite name', 'Average Rt(min)', 'Reference RT', "S/N average", "Total score"]].reset_index(drop=True)
+posdf = pd.read_csv(posfile)
+# posdf = cleanup_df(posdf)
+print(posdf.columns)
+# Grab relevant columns: Metabolite name, Average Rt(min), Reference RT, S/N average, Total score
+posrtdf = posdf[['Metabolite name', 'Average Rt(min)', 'Reference RT', "S/N average", "Total score"]].reset_index(drop=True)
 
 negdf = pd.read_csv(negfile)
 # negdf = cleanup_df(negdf)
 negrtdf = negdf[['Metabolite name', 'Average Rt(min)', 'Reference RT', "S/N average", "Total score"]].reset_index(drop=True)
 
-# Contatenate dataframes
-# df = pd.concat([negrtdf, posrtdf])
+#Contatenate dataframes
+df = pd.concat([negrtdf, posrtdf])
 df = negrtdf
 
 # Append a line beyond this to force fit to go through these points

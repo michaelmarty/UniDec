@@ -55,7 +55,7 @@ def basic_class_network_analysis(df, tol=0.3):
 
 
 def outlier_analysis(posdf, negdf, tol=0.05, rttol=0.1, contribs=False, add_all_cols_heads=False,
-                     add_all_cols_tails=False, drop_cols=True, do_tails=True):
+                     add_all_cols_tails=False, drop_cols=True, do_tails=True, do_heads=True):
     if drop_cols:
         # Drop unnecessary columns if present
         for col in drop_columns:
@@ -69,10 +69,11 @@ def outlier_analysis(posdf, negdf, tol=0.05, rttol=0.1, contribs=False, add_all_
     posdf = assign_df_fragments(posdf, tol=tol)
     negdf = assign_df_fragments(negdf, tol=tol)
 
-    print("MSMS Networking Analysis...")
-    posdf, posgraphs = class_network_analysis(posdf, tol=tol, add_all_cols=add_all_cols_heads)
-    negdf, neggraphs = class_network_analysis(negdf, tol=tol, add_all_cols=add_all_cols_heads)
-    # headgraphs = posgraphs + neggraphs
+    if do_heads:
+        print("MSMS Networking Analysis...")
+        posdf, posgraphs = class_network_analysis(posdf, tol=tol, add_all_cols=add_all_cols_heads)
+        negdf, neggraphs = class_network_analysis(negdf, tol=tol, add_all_cols=add_all_cols_heads)
+        # headgraphs = posgraphs + neggraphs
 
     if do_tails:
         posdf, posgraphs = tail_network_analysis(posdf, min_count=5, mz_tol=tol, add_all_cols=add_all_cols_tails)

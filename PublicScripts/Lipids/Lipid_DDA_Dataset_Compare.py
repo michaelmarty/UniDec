@@ -5,13 +5,16 @@ from venn import venn
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
-def prep_datasets(topdir, datasets, min_count=None, drop_d7=True, write_output=True):
+def prep_datasets(topdir, datasets, min_count=None, drop_d7=True, write_output=True, dtype="msdial", rttol=0.2):
     os.chdir(topdir)
     dfs = []
     # Data sets
     for d in datasets:
-        mergeddf, posdf, negdf = cleanup_and_merge_msdial(f"{d}_pos.csv", f"{d}_neg.csv", f"{d}_pos.xml",
-                                                          f"{d}_neg.xml", rttol=0.2)
+        if dtype=="msdial":
+            mergeddf, posdf, negdf = cleanup_and_merge_msdial(f"{d}_pos.csv", f"{d}_neg.csv", f"{d}_pos.xml",
+                                                              f"{d}_neg.xml", rttol=rttol)
+        elif dtype=="mzmine":
+            mergeddf, posdf, negdf = cleanup_and_merge_mzmine(f"{d}_Pos_features_data_msdial.csv", f"{d}_Neg_features_data_msdial.csv", rttol=rttol)
         # Write out merged dataframes for reference
         # mergeddf.to_csv(f"{d}_Merged.csv", index=False)
         mergeddf["Dataset"] = d
@@ -115,14 +118,14 @@ def dataset_split(df, rttol=0.2, rtcol="Average Rt(min)", namecol="Metabolite na
         write_dfs_to_excel(df)
     return df
 
-def outlier_setup_dda(df, mztol=0.3, write_output=True):
+def outlier_setup_dda(df, mztol=0.3, write_output=True, do_heads=True, do_tails=False):
     df = smiles_analysis(df)
 
     posdf = df[df["Polarity"] == "Positive"]
     negdf = df[df["Polarity"] == "Negative"]
 
     outdf = ot.outlier_analysis(posdf, negdf, tol=mztol, contribs=False, add_all_cols_heads=True,
-                                add_all_cols_tails=False, drop_cols=False, do_tails=False)
+                                add_all_cols_tails=False, drop_cols=False, do_tails=do_tails, do_heads=do_heads)
 
     if write_output:
         # Write out combined dataframe for reference
