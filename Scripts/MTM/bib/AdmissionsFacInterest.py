@@ -342,13 +342,14 @@ def division_bar_charts(df, division_col="DIV", visitcol="Visit Date", natcol="N
 
 if __name__ == "__main__":
     filepath = r"C:\Users\mm96978\OneDrive - The University of Texas at Austin\Attachments\Offers 2.4.26.xlsx"
-    filepath = r"C:\Users\mm96978\OneDrive - The University of Texas at Austin\Service\Recruiting\Data\Official Offers 4.3.26 .xlsx"
-    os.chdir(r"C:\Users\mm96978\OneDrive - The University of Texas at Austin\Service\Recruiting\Data")
+    filepath = r"C:\Users\mm96978\OneDrive - The University of Texas at Austin\Service\Recruiting\Data\Official Offers 4.15.26 .xlsx"
+    filepath = r"C:\Users\marty\OneDrive - The University of Texas at Austin\Service\Recruiting\Data\Official Offers 4.15.26.xlsx"
+    os.chdir(r"C:\Users\marty\OneDrive - The University of Texas at Austin\Service\Recruiting\Data")
     df = pd.read_excel(filepath, dtype=str)
     # division_bar_charts(df)
     # #
     # print(len(df))
-    df = filter_df_visit(df)
+    # df = filter_df_visit(df)
     # print(len(df))
     # outdf = filter_fac(df, facname="Hsu")
     # print(len(facdf))
@@ -360,7 +361,7 @@ if __name__ == "__main__":
 
     names, counts1, df = compute_counts(df, c1name="SOP FAC", c2name="FAC Question")
 
-    monte_carlo(df, flex=0, matriculation_range=[0.2, 0.4])
+    monte_carlo(df, flex=0, matriculation_range=[0.0, 0.0])
     exit()
 
     # Plot and save figure
