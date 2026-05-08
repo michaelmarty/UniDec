@@ -590,7 +590,7 @@ void get_scan_scores(int argc, char* argv[], Config config)
 
 		Decon decon = InitDecon();
 		Input inp = InitInputs();
-		ReadInputs(argc, argv, &config, &inp);
+		ReadInputs(&config, &inp);
 		int status = ReadDecon(&config, inp, &decon);
 
 		if(status ==1){

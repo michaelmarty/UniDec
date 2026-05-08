@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Sequence, Tuple, Optional, List
+from typing import Sequence, Tuple, Optional
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -37,8 +37,32 @@ def read_mz_spectrum_file(file_path: str) -> pd.DataFrame:
     return df
 
 
-def _style_rc(font_name: str, font_size: int, tick_length: float, tick_width: float):
-    return {
+def plot_single_mz_spectrum(
+    dataset: str,
+    label: str,
+    second_label: Optional[str] = None,
+    x_range: Tuple[float, float] = (100.0, 2000.0),
+    color: str = "#2C7FB8",
+    normalize: bool = True,
+    norm_mode: str = "percent",  # "percent" or "unit"
+    y_min: Optional[float] = None,
+    y_max: Optional[float] = None,
+    font_name: str = "Arial",
+    font_size: int = 10,
+    figsize: Tuple[float, float] = (10, 4),
+    dpi: int = 300,
+    tick_length: float = 5.0,
+    tick_width: float = 1.0,
+    line_width: Optional[float] = None,
+    x_label: Optional[str] = None,
+    y_label: Optional[str] = None,
+    save: Optional[str] = None,
+    show: bool = False,
+):
+    if line_width is None:
+        line_width = 2.0
+
+    rc = {
         "font.family": font_name,
         "font.size": font_size,
         "axes.labelsize": font_size,
@@ -55,26 +79,6 @@ def _style_rc(font_name: str, font_size: int, tick_length: float, tick_width: fl
         "legend.handlelength": 2.0,
         "legend.handletextpad": 0.6,
     }
-
-
-def plot_single_mz_spectrum(
-    dataset: str,
-    label: str,
-    second_label: Optional[str] = None,
-    x_range: Tuple[float, float] = (100.0, 2000.0),
-    color: str = "#2C7FB8",
-    normalize: bool = True,
-    norm_mode: str = "percent",  # "percent" or "unit"
-    font_name: str = "Arial",
-    font_size: int = 10,
-    figsize: Tuple[float, float] = (10, 4),
-    dpi: int = 300,
-    tick_length: float = 5.0,
-    tick_width: float = 1.0,
-    save: Optional[str] = None,
-    show: bool = False,
-):
-    rc = _style_rc(font_name, font_size, tick_length, tick_width)
 
     df = read_mz_spectrum_file(dataset)
     if df is None or df.empty:
@@ -98,7 +102,7 @@ def plot_single_mz_spectrum(
     with plt.rc_context(rc):
         fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi)
 
-        ax.plot(x, y, color=color, linewidth=2.0, label=label)
+        ax.plot(x, y, color=color, linewidth=line_width, label=label)
 
         ax.set_xlim(*x_range)
         ax.margins(y=0)
@@ -108,18 +112,36 @@ def plot_single_mz_spectrum(
 
         if normalize:
             if norm_mode == "percent":
-                ax.set_ylim(0, 100)
-                ax.set_yticks([0, 50, 100])
-                ax.set_yticklabels(["0", "%", "100"])
+                clamp_lo, clamp_hi = 0.0, 100.0
             else:
-                ax.set_ylim(0, 1.0)
-                ax.set_yticks([0.0, 0.5, 1.0])
-                ax.set_yticklabels(["0", "0.5", "1.0"])
-            ax.set_ylabel("Normalized Intensity")
-        else:
-            ax.set_ylabel("Intensity (a.u.)")
+                clamp_lo, clamp_hi = 0.0, 1.0
 
-        ax.set_xlabel("m/z")
+            ymin = clamp_lo if y_min is None else max(clamp_lo, float(y_min))
+            ymax = clamp_hi if y_max is None else min(clamp_hi, float(y_max))
+            if ymax <= ymin:
+                ymin, ymax = clamp_lo, clamp_hi
+
+            ax.set_ylim(ymin, ymax)
+            mid = ymin + 0.5 * (ymax - ymin)
+            if norm_mode == "percent":
+                ax.set_yticks([ymin, mid, ymax])
+                ax.set_yticklabels([
+                    f"{ymin:.0f}",
+                    "%",
+                    f"{ymax:.0f}",
+                ])
+            else:
+                ax.set_yticks([ymin, mid, ymax])
+                ax.set_yticklabels([
+                    f"{ymin:.2g}",
+                    f"{mid:.2g}",
+                    f"{ymax:.2g}",
+                ])
+            ax.set_ylabel(y_label if y_label else "Normalized Intensity")
+        else:
+            ax.set_ylabel(y_label if y_label else "Intensity (a.u.)")
+
+        ax.set_xlabel(x_label if x_label else "m/z")
         ax.legend(loc="center left", bbox_to_anchor=(0.02, 0.5))
 
         place_second_label(ax, x, y, second_label, color, x_range, font_size)
@@ -134,25 +156,32 @@ def plot_single_mz_spectrum(
     return fig, ax
 
 
-def plot_mz_spectrum_offset_stack(
+def plot_mz_spectrum_stack(
     datasets: Sequence[str],
     labels: Sequence[str],
     second_labels: Sequence[Optional[str]],
     x_range: Tuple[float, float] = (100.0, 2000.0),
     colors: Optional[Sequence[str]] = None,
-    y_offset_step: float = 120.0,
-    y_tick_labels: Tuple[str, str, str] = ("0", "%", "100"),
+    y_min: Optional[float] = None,
+    y_max: Optional[float] = None,
     normalize: bool = True,
     norm_mode: str = "percent",  # "percent" or "unit"
     font_name: str = "Arial",
     font_size: int = 10,
     figsize: Tuple[float, float] = (10, 8),
     dpi: int = 300,
+    hspace: float = 0.6,
     tick_length: float = 5.0,
     tick_width: float = 1.0,
+    line_width: Optional[float] = None,
+    x_label: Optional[str] = None,
+    y_label: Optional[str] = None,
     save: Optional[str] = None,
     show: bool = False,
 ):
+    """
+    Stacked m/z spectra: one panel per dataset, no vertical offsets.
+    """
     n = len(datasets)
     if len(labels) != n:
         raise ValueError("labels length must match datasets length.")
@@ -160,11 +189,42 @@ def plot_mz_spectrum_offset_stack(
         second_labels = [None] * n
 
     colors = ensure_colors(colors, n, DEFAULT_MZ_COLORS)
+    if line_width is None:
+        line_width = 2.0
 
-    rc = _style_rc(font_name, font_size, tick_length, tick_width)
+    rc = {
+        "font.family": font_name,
+        "font.size": font_size,
+        "axes.labelsize": font_size,
+        "xtick.labelsize": font_size,
+        "ytick.labelsize": font_size,
+        "legend.fontsize": font_size,
+        "axes.linewidth": 1.2,
+        "xtick.major.size": tick_length,
+        "ytick.major.size": tick_length,
+        "xtick.major.width": tick_width,
+        "ytick.major.width": tick_width,
+        "legend.frameon": False,
+        "legend.borderpad": 0.2,
+        "legend.handlelength": 2.0,
+        "legend.handletextpad": 0.6,
+    }
 
     width_in = figsize[0] if figsize and len(figsize) > 0 else DEFAULT_WIDTH_IN
     target_h = compute_target_height(n_rows=n)
+
+    if normalize:
+        if norm_mode == "percent":
+            clamp_lo, clamp_hi = 0.0, 100.0
+        else:
+            clamp_lo, clamp_hi = 0.0, 1.0
+
+        ymin = clamp_lo if y_min is None else max(clamp_lo, float(y_min))
+        ymax = clamp_hi if y_max is None else min(clamp_hi, float(y_max))
+        if ymax <= ymin:
+            ymin, ymax = clamp_lo, clamp_hi
+    else:
+        ymin = ymax = None
 
     with plt.rc_context(rc):
         fig, axes = plt.subplots(n, 1, figsize=(width_in, target_h), sharex=True, dpi=dpi)
@@ -196,26 +256,33 @@ def plot_mz_spectrum_offset_stack(
                 y = y_raw
 
             ax = axes[i]
-            offset = i * y_offset_step
 
-            ax.plot(x, y + offset, color=color, linewidth=2.0, label=lab)
+            ax.plot(x, y, color=color, linewidth=line_width, label=lab)
 
             ax.set_xlim(*x_range)
             if normalize:
+                ax.set_ylim(ymin, ymax)
+                mid = ymin + 0.5 * (ymax - ymin)
                 if norm_mode == "percent":
-                    ax.set_ylim(offset, offset + 101.0)
-                    ax.set_yticks([offset, offset + 50, offset + 100])
-                    ax.set_yticklabels(["0", "%", "100"])
+                    ax.set_yticks([ymin, mid, ymax])
+                    ax.set_yticklabels([
+                        f"{ymin:.0f}",
+                        "%",
+                        f"{ymax:.0f}",
+                    ])
                 else:
-                    ax.set_ylim(offset, offset + 1.05)
-                    ax.set_yticks([offset, offset + 0.5, offset + 1.0])
-                    ax.set_yticklabels(["0", "0.5", "1.0"])
+                    ax.set_yticks([ymin, mid, ymax])
+                    ax.set_yticklabels([
+                        f"{ymin:.2g}",
+                        f"{mid:.2g}",
+                        f"{ymax:.2g}",
+                    ])
             else:
                 if y.size:
-                    ymin = float(np.nanmin(y))
-                    ymax = float(np.nanmax(y))
-                    ax.set_ylim(offset + ymin, offset + ymax)
-                    ax.set_yticks([offset + ymin, offset + ymax])
+                    ymin_auto = float(np.nanmin(y))
+                    ymax_auto = float(np.nanmax(y))
+                    ax.set_ylim(max(0.0, ymin_auto), ymax_auto * 1.05)
+                    ax.set_yticks([0.0, ymax_auto])
 
             ax.margins(y=0)
             ax.spines["top"].set_visible(False)
@@ -226,19 +293,21 @@ def plot_mz_spectrum_offset_stack(
 
             ax.legend(loc="center left", bbox_to_anchor=(0.02, 0.5))
 
-            place_second_label(ax, x, y + offset, sec_lab, color, x_range, font_size)
+            place_second_label(ax, x, y, sec_lab, color, x_range, font_size)
 
             if i < n - 1:
                 ax.tick_params(labelbottom=False)
+            else:
+                ax.set_xlabel(x_label if x_label else "m/z")
 
-        fig.supxlabel("m/z")
+        fig.supxlabel(x_label if x_label else "m/z")
         if normalize:
-            fig.supylabel("Normalized Intensity")
+            fig.supylabel(y_label if y_label else "Normalized Intensity")
         else:
-            fig.supylabel("Intensity (a.u.)")
+            fig.supylabel(y_label if y_label else "Intensity (a.u.)")
 
-        plt.tight_layout(rect=(0.08, 0.08, 0.98, 0.96), h_pad=0.6)
-        plt.subplots_adjust(hspace=0.55)
+        plt.tight_layout(rect=(0.08, 0.08, 0.98, 0.96), h_pad=hspace)
+        plt.subplots_adjust(hspace=hspace)
 
         if save:
             fig.savefig(save, dpi=dpi, bbox_inches="tight")

@@ -468,16 +468,16 @@ class main_controls(wx.Panel):
         gbox3b.Add(self.ctlsep, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
-        sb2 = wx.StaticBox(panel3b, label='Integration Range')
-        sbs2 = wx.StaticBoxSizer(sb2, orient=wx.HORIZONTAL)
-        self.ctlintlb = wx.TextCtrl(panel3b, value='', size=(75, -1))
-        self.ctlintub = wx.TextCtrl(panel3b, value='', size=(75, -1))
-        sbs2.Add(self.ctlintlb, flag=wx.LEFT | wx.EXPAND, border=5)
-        sbs2.Add(wx.StaticText(panel3b, label=' to '), 0, flag=wx.EXPAND)
-        sbs2.Add(self.ctlintub, flag=wx.LEFT | wx.EXPAND, border=5)
-        sbs2.Add(wx.StaticText(panel3b, label=' Da '), 0, flag=wx.EXPAND)
-        gbox3b.Add(sbs2, (i, 0), span=(1, 2), flag=wx.EXPAND)
-        i += 1
+        # sb2 = wx.StaticBox(panel3b, label='Integration Range')
+        # sbs2 = wx.StaticBoxSizer(sb2, orient=wx.HORIZONTAL)
+        # self.ctlintlb = wx.TextCtrl(panel3b, value='', size=(75, -1))
+        # self.ctlintub = wx.TextCtrl(panel3b, value='', size=(75, -1))
+        # sbs2.Add(self.ctlintlb, flag=wx.LEFT | wx.EXPAND, border=5)
+        # sbs2.Add(wx.StaticText(panel3b, label=' to '), 0, flag=wx.EXPAND)
+        # sbs2.Add(self.ctlintub, flag=wx.LEFT | wx.EXPAND, border=5)
+        # sbs2.Add(wx.StaticText(panel3b, label=' Da '), 0, flag=wx.EXPAND)
+        # gbox3b.Add(sbs2, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        # i += 1
 
         sb3 = wx.StaticBox(panel3b, label='Limits on # of Spectra')
         sbs3 = wx.StaticBoxSizer(sb3, orient=wx.HORIZONTAL)
@@ -635,14 +635,14 @@ class main_controls(wx.Panel):
                 self.ctlpeakcm.SetSelection(self.config.cmaps.index(u"rainbow"))
                 self.ctlspeccm.SetSelection(self.config.cmaps.index(u"rainbow"))
 
-            try:
-                x = float(self.config.integratelb)
-                y = float(self.config.integrateub)
-                self.ctlintlb.SetValue(str(x))
-                self.ctlintub.SetValue(str(y))
-            except (ValueError, TypeError):
-                self.ctlintlb.SetValue("")
-                self.ctlintub.SetValue("")
+            # try:
+            #     x = float(self.config.integratelb)
+            #     y = float(self.config.integrateub)
+            #     self.ctlintlb.SetValue(str(x))
+            #     self.ctlintub.SetValue(str(y))
+            # except (ValueError, TypeError):
+            #     self.ctlintlb.SetValue("")
+            #     self.ctlintub.SetValue("")
 
             try:
                 self.ctlcrossover.SetValue(str(self.config.crossover))
@@ -721,8 +721,8 @@ class main_controls(wx.Panel):
         self.config.numit = ud.string_to_int(self.ctlnumit.GetValue())
         self.config.nativezlb = ud.string_to_value(self.ctlminnativez.GetValue())
         self.config.nativezub = ud.string_to_value(self.ctlmaxnativez.GetValue())
-        self.config.integratelb = ud.string_to_value(self.ctlintlb.GetValue())
-        self.config.integrateub = ud.string_to_value(self.ctlintub.GetValue())
+        # self.config.integratelb = ud.string_to_value(self.ctlintlb.GetValue())
+        # self.config.integrateub = ud.string_to_value(self.ctlintub.GetValue())
 
         self.config.crossover = ud.string_to_value(self.ctlcrossover.GetValue())
         self.config.numtot = ud.string_to_value(self.ctlnumtot.GetValue())
@@ -870,12 +870,12 @@ class main_controls(wx.Panel):
         self.ctl2dcm.SetToolTip(wx.ToolTip("Set 2D plot color function"))
         self.ctlpeakcm.SetToolTip(wx.ToolTip("Set the color function for the peaks"))
         self.ctlspeccm.SetToolTip(wx.ToolTip("Set the color function for the spectra"))
-        self.ctlintlb.SetToolTip(wx.ToolTip(
-            "Controls range for integration.\nDefault is +/- Peak Detection Window."
-            "\nUses these boxes to manually set - and +"))
-        self.ctlintub.SetToolTip(wx.ToolTip(
-            "Controls range for integration.\nDefault is +/- Peak Detection Window."
-            "\nUses these boxes to manually set - and +"))
+        # self.ctlintlb.SetToolTip(wx.ToolTip(
+        #     "Controls range for integration.\nDefault is +/- Peak Detection Window."
+        #     "\nUses these boxes to manually set - and +"))
+        # self.ctlintub.SetToolTip(wx.ToolTip(
+        #     "Controls range for integration.\nDefault is +/- Peak Detection Window."
+        #     "\nUses these boxes to manually set - and +"))
         self.ctlnorm.SetToolTip(wx.ToolTip(
             "Sets normalization of mass data.\nMaximum will normalize so that the maximum value is 100%."
             "\nTotal will normalize so that the sum of all peaks is 100%"))

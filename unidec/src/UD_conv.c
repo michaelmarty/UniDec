@@ -28,7 +28,7 @@ int conv_main(int argc, char* argv[], Config config)
 {
 	printf("Running Convolution\n");
 	Input inp = InitInputs();
-	ReadInputs(argc, argv, &config, &inp);
+	ReadInputs(&config, &inp);
 	CalcMasses(&config, &inp);
 
 	char pfile[510];

@@ -366,6 +366,10 @@ class main_menu(wx.Menu):
         self.menutheomass = self.experimentalmenu.Append(wx.ID_ANY, "Plot Theoretical Mass")
         self.parent.Bind(wx.EVT_MENU, self.pres.plot_theo_mass, self.menutheomass)
 
+        self.experimentalmenu.AppendSeparator()
+        self.menulflag = self.experimentalmenu.Append(wx.ID_ANY, "Toggle Labeling of Peaks", "Toggle whether peaks are labeled or not")
+        self.parent.Bind(wx.EVT_MENU, self.pres.on_toggle_lflag, self.menulflag)
+
 
         #self.menupeakares = self.experimentalmenu.Append(wx.ID_ANY, "Label Peak Areas")
         #self.parent.Bind(wx.EVT_MENU, self.pres.on_label_integral, self.menupeakares)
@@ -396,7 +400,7 @@ class main_menu(wx.Menu):
         #                                                  "MUST RUN AS ADMINISTRATOR")
         # self.parent.Bind(wx.EVT_MENU, self.pres.register, self.menuRegister)
 
-        self.experimentalmenu.AppendSeparator()
+        # self.experimentalmenu.AppendSeparator()
 
         # Set Events for Menu Bar
 

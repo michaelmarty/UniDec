@@ -216,8 +216,6 @@ def GetStart(axes):
 class ZoomCommon:
     def __init__(self):
         self.active = True
-        self.lines = []
-        self.texts = []
         self.lflag = 0
         self.axes = []
         self.canvas = None
@@ -246,10 +244,12 @@ class ZoomCommon:
     def switch_label(self):
         self.lflag = (self.lflag + 1) % 2
         print("Plot Labels Switched to:", self.lflag)
+        self.parent.repaint()
 
-    def label(self):
-        self.texts = []
-        self.lines = []
+    def label(self, repaint=True):
+        # print("Labeling Peaks")
+        self.parent.labeltexts = []
+        self.parent.labellines = []
         for line in self.axes[0].lines:
             ydat = np.array(line.get_ydata())
             xdat = line.get_xdata()
@@ -275,24 +275,26 @@ class ZoomCommon:
                     text = self.axes[0].text(p[0], p[1] + 0.1 * ymax, str(val), horizontalalignment="center",
                                              verticalalignment="top")
                     line = self.axes[0].vlines(p[0], p[1], p[1] + 0.05 * ymax, linestyles="dashed")
-                    self.texts.append(text)
-                    self.lines.append(line)
-            self.canvas.draw()
+                    self.parent.labeltexts.append(text)
+                    self.parent.labellines.append(line)
+            if repaint:
+                self.canvas.draw()
             return
 
-    def kill_labels(self):
-        try:
-            for t in self.texts:
-                t.remove()
-            for l in self.lines:
-                l.remove()
-            self.texts = []
-            self.lines = []
+    def kill_labels(self, repaint=True):
+        # print("Removing Labels", self.parent.labeltexts)
+        for t in self.parent.labeltexts:
+            t.remove()
+        for l in self.parent.labellines:
+            l.remove()
+        self.parent.labeltexts = []
+        self.parent.labellines = []
+        if repaint:
             self.canvas.draw()
-        except:
-            pass
+
         if self.lflag == 1:
-            self.label()
+            self.label(repaint=repaint)
+
 
     def peakdetect(self, data, window=10., threshold=0.):
         peaks = []

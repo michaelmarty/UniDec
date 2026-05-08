@@ -5,18 +5,18 @@ import numpy as np
 # === USER SETTINGS ===
 font_name = "Arial"
 font_size = 10
-x_range = (150, 250)  # x-axis limits (in kDa)
+x_range = (50, 250)  # x-axis limits (in kDa)
 
 # === FILES TO PLOT ===
 files = [
-    r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\sfCherry - done\Short - done\20251106_EC_MSP1D1sfCherryS_CDMS_rep1_unidecfiles\20251106_EC_MSP1D1sfCherryS_CDMS_rep1_mass.txt",
-    r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\sfCherry - done\Short - done\20251106_EC_MSP1D1sfCherryS_NATIVE_rep1_unidecfiles\20251106_EC_MSP1D1sfCherryS_NATIVE_rep1_mass.txt"
+    r"Z:\Group Share\Estevan\Q Exactive Data\20260218\Mass Check\20260218_SC_EC_D1sfGFP_DMPC_AM2_try5_unidecfiles\20260218_SC_EC_D1sfGFP_DMPC_AM2_try5_mass.txt",
+    #r"Z:\Group Share\Estevan\Q Exactive Data\20251105\20251105_EC_D1T0(-)1to80_DMPC_pad600_.1gCDMS_2025-11-05-10-08-56_unidecfiles\20251105_EC_D1T0(-)1to80_DMPC_pad600_.1gCDMS_2025-11-05-10-08-56_mass.txt"
 ]
 
 # === LEGEND LABELS (one per file) ===
 labels = [
-    "MSP1D1sfCheryS CDMS",
-    "MSP1D1sfCherryS Native MS"
+    "MSP1D1-sfGFP DMPC + AM2",
+    #"MSP1D1 DMPC CD-MS"
 ]
 
 # === FIGURE SETUP ===
@@ -24,8 +24,8 @@ fig, ax = plt.subplots(1, 1, figsize=(6, 3), dpi=300)
 
 # === CUSTOM COLORS ===
 colors = [
-    "#A16084",  # color for file 1
-    "#CC79A7",  # color for file 2
+    "#68BB59",  # color for file 1
+    "#080808",  # color for file 2
 ]
 
 # Apply font settings globally

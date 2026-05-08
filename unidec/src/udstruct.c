@@ -117,7 +117,7 @@ void FreeIntraDecon(const IntraDecon intradecon) {
 void SetDefaultConfig(Config *config) {
     strcpy(config->infile, "default_data.txt");
     strcpy(config->outfile, "default_output");
-    strcpy(config->mfile, "default_mfile->txt");
+    strcpy(config->mfile, "default_mfile.txt");
     config->numit = 50;
     config->endz = 100;
     config->startz = 1;
@@ -430,8 +430,8 @@ void PrintHelp() {
     printf("\t\t\t\t\t\"driftlength\"=Length of drift cell\n");
     printf("\t\t\t\t\t\"tnaught\"=Dead time between IM cell and detector\n");
     printf("\t\t\t\t1=T-Wave Log Calibration\n");
-    printf("\t\t\t\t\t\"tcal1\"=Calibration paramter 1 (P1)\n");
-    printf("\t\t\t\t\t\"tcal2\"=Calibration parmater 2 (P2)\n");
+    printf("\t\t\t\t\t\"tcal1\"=Calibration parameter 1 (P1)\n");
+    printf("\t\t\t\t\t\"tcal2\"=Calibration parameter 2 (P2)\n");
     printf("\t\t\t\t\t\"EDC\"=Instrumental constant\n");
     printf("\t\t\t\t\tReduced CCS = Exp(P1 * log(Reduced Drift Time) + P2)\n");
     printf("\t\t\t\t2=T-Wave Linear Calibration\n");
@@ -567,4 +567,66 @@ void PrintConfig(Config config) {
     printf("\tdatanorm: %d \n", config.datanorm);
     printf("\tsilent: %d \n", config.silent);
     printf("\n");
+}
+
+Spectrum InitSpectrum() {
+    Spectrum spec;
+
+    // Allocate Config on heap
+    spec.config = (Config *)malloc(sizeof(Config));
+    if (spec.config == NULL) {
+        fprintf(stderr, "Error: Failed to allocate memory for Config\n");
+        exit(1);
+    }
+    SetDefaultConfig(spec.config);
+
+    // Allocate Input on heap
+    spec.inp = (Input *)malloc(sizeof(Input));
+    if (spec.inp == NULL) {
+        fprintf(stderr, "Error: Failed to allocate memory for Input\n");
+        free(spec.config);
+        exit(1);
+    }
+    *spec.inp = InitInputs();
+
+    // Allocate Decon on heap
+    spec.decon = (Decon *)malloc(sizeof(Decon));
+    if (spec.decon == NULL) {
+        fprintf(stderr, "Error: Failed to allocate memory for Decon\n");
+        free(spec.config);
+        free(spec.inp);
+        exit(1);
+    }
+    *spec.decon = InitDecon();
+
+    // Allocate IntraDecon on heap
+    spec.intra = (IntraDecon *)malloc(sizeof(IntraDecon));
+    if (spec.intra == NULL) {
+        fprintf(stderr, "Error: Failed to allocate memory for IntraDecon\n");
+        free(spec.config);
+        free(spec.inp);
+        free(spec.decon);
+        exit(1);
+    }
+    *spec.intra = InitIntraDecon();
+
+    return spec;
+}
+
+void FreeSpectrum(const Spectrum spec) {
+    if (spec.inp != NULL) {
+        FreeInputs(*spec.inp);
+        free(spec.inp);
+    }
+    if (spec.decon != NULL) {
+        FreeDecon(*spec.decon);
+        free(spec.decon);
+    }
+    if (spec.intra != NULL) {
+        FreeIntraDecon(*spec.intra);
+        free(spec.intra);
+    }
+    if (spec.config != NULL) {
+        free(spec.config);
+    }
 }

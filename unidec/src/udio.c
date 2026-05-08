@@ -227,7 +227,7 @@ int getfilelengthbin(const char *infile, const int size, const int width) {
 }
 
 
-void ReadInputs(int argc, char* argv[], Config* config, Input* inp)
+void ReadInputs(Config* config, Input* inp)
 {
 
 	if (config->filetype == 1) {
@@ -486,6 +486,43 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 		WritePeaks(config, decon);
 	}
 
+}
+
+
+void WriteGlobalOutputs(const Config config, const Decon decon, const float totaltime) {
+	//Writes a file with a number of key parameters such as error and number of significant parameters.
+	if (config.filetype == 0) {
+		FILE* out_ptr = NULL;
+		char outstring3[1024];
+		sprintf(outstring3, "%s_error.txt", config.outfile);
+		out_ptr = fopen(outstring3, "w");
+		if (out_ptr == 0) { printf("Error Opening %s\n", outstring3); exit(1); }
+		fprintf(out_ptr, "error = %f\n", decon.error);
+		fprintf(out_ptr, "time = %f\n", totaltime);
+		fprintf(out_ptr, "iterations = %d\n", decon.iterations);
+		fprintf(out_ptr, "uniscore = %f\n", decon.uniscore);
+		fprintf(out_ptr, "mzsig = %f\n", config.mzsig);
+		fprintf(out_ptr, "zzsig = %f\n", config.zsig);
+		fprintf(out_ptr, "beta = %f\n", config.beta);
+		fprintf(out_ptr, "psig = %f\n", config.psig);
+		fclose(out_ptr);
+		//printf("Stats and Error written to: %s\n", outstring3);
+	}
+	else {
+		write_attr_float(config.file_id, config.dataset, "error", decon.error);
+		write_attr_int(config.file_id, config.dataset, "iterations", decon.iterations);
+		write_attr_float(config.file_id, config.dataset, "time", totaltime);
+		write_attr_int(config.file_id, config.dataset, "length_mz", config.lengthmz);
+		write_attr_int(config.file_id, config.dataset, "length_mass", decon.mlen);
+		write_attr_float(config.file_id, config.dataset, "uniscore", decon.uniscore);
+		write_attr_float(config.file_id, config.dataset, "rsquared", decon.rsquared);
+		write_attr_float(config.file_id, config.dataset, "mzsig", config.mzsig);
+		write_attr_float(config.file_id, config.dataset, "zsig", config.zsig);
+		write_attr_float(config.file_id, config.dataset, "psig", config.psig);
+		write_attr_float(config.file_id, config.dataset, "beta", config.beta);
+		set_needs_grids(config.file_id);
+		//H5Fclose(config.file_id);
+	}
 }
 
 
