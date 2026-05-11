@@ -31,6 +31,7 @@ HTseqDict = {'2': '101', '3': '1110100', '4': '000100110101111', '5': '000010010
              '5S13': '1111100011011101010000100101100', '5S15': '1110001101110101000010010110011'
              }
 
+
 class HTEng:
     def __init__(self, *args, **kwargs):
         """
@@ -274,8 +275,8 @@ class HTEng:
             output, data = self.ftdecon(data, aFT=False, **kwargs)
         elif mode == "aFT":
             output, data = self.ftdecon(data, aFT=True, **kwargs)
-        elif mode == "PP":
-            output, data = self.ppdecon(data, **kwargs)
+        elif mode == "PP" or mode == "MRS":
+            output, data = self.mrs_decon(data, **kwargs)
         else:
             output, data = data
             print("Demultiplexing mode not recognized. Returning original data.", mode)
@@ -312,15 +313,15 @@ class HTEng:
         elif mode == "FT" or mode == "aFT":
             self.dtype = complex
             self.setup_ft(**kwargs)
-        elif mode == "PP":
+        elif mode == "PP" or mode == "MRS":
             self.dtype = float
-            self.setup_pp(**kwargs)
+            self.setup_mrs(**kwargs)
 
-    def setup_pp(self, cycleindex=None, **kwargs):
+    def setup_mrs(self, cycleindex=None, **kwargs):
         """
         Set up Peak Pooling Deconvolution
         """
-        if cycleindex is None or cycleindex <=0:
+        if cycleindex is None or cycleindex <= 0:
             self.get_cycle_time()
         else:
             self.cycleindex = cycleindex
@@ -328,21 +329,20 @@ class HTEng:
         self.ppskip = int(self.config.HTtimepad)
         print("Setting up Peak Pooling Deconvolution", self.cycleindex)
         # Create empty kernel
-        self.htkernel=np.zeros_like(self.fulltime)
+        self.htkernel = np.zeros_like(self.fulltime)
         # Set every cylceindex to 1
-        ncycles = math.floor(len(self.htkernel)/self.cycleindex)
+        ncycles = math.floor(len(self.htkernel) / self.cycleindex)
         if self.ppskip >= 0:
-            self.ppstartindex = self.ppskip*self.cycleindex
-        self.ppmaxindex = ncycles*self.cycleindex
+            self.ppstartindex = self.ppskip * self.cycleindex
+        self.ppmaxindex = ncycles * self.cycleindex
         print("Number of Cycles:", ncycles, "Skip", self.ppskip)
-        self.htkernel[self.ppstartindex:self.ppmaxindex:self.cycleindex]=1
+        self.htkernel[self.ppstartindex:self.ppmaxindex:self.cycleindex] = 1
         # Make fft of kernel for later use
         self.fftk = fft.rfft(self.htkernel[self.ppstartindex:self.ppmaxindex]).conj()
         self.decontime = self.fulltime[:self.cycleindex]
         self.deconscans = self.fullscans[:len(self.decontime)]
 
-
-    def ppdecon(self, data, **kwargs):
+    def mrs_decon(self, data, **kwargs):
         """
         Perform Peak Pooling Deconvolution
         """
@@ -358,7 +358,6 @@ class HTEng:
                 # print("Normalized")
         # Return demultiplexed data
         return output, data
-
 
     def htdecon(self, data, **kwargs):
         """
@@ -769,7 +768,7 @@ class UniChromCDEng(HTEng, UniDecCD):
         self.mz = None
         self.ztab = None
         self.sarray = None  # Params for swoop selection
-        self.cc = ChromatogramContainer() # Chromatograms
+        self.cc = ChromatogramContainer()  # Chromatograms
 
     def open_file(self, path, refresh=False):
         """
@@ -1621,17 +1620,17 @@ if __name__ == '__main__':
     eng.config.demultiplexmode = "PP"
     # np.savetxt("tic.txt", tic)
     data = np.loadtxt("tic.txt")
-    eng.fulltime = data[:,0]
-    eng.fulltic = data[:,1]
+    eng.fulltime = data[:, 0]
+    eng.fulltic = data[:, 1]
     print(len(eng.fulltic))
     eng.get_cycle_time()
     eng.setup_demultiplex()
     output, _ = eng.run_demultiplex(eng.fulltic, normalize=False)
 
     import matplotlib.pyplot as plt
+
     plt.plot(data[:, 0], data[:, 1], label="Raw TIC")
-    plt.plot(data[:eng.cycleindex,0], output, label="Demultiplexed")
-    plt.plot(data[:,0], eng.htkernel, label="HT Kernel")
+    plt.plot(data[:eng.cycleindex, 0], output, label="Demultiplexed")
+    plt.plot(data[:, 0], eng.htkernel, label="HT Kernel")
     plt.legend()
     plt.show()
-
