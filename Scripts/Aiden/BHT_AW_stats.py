@@ -37,7 +37,8 @@ def folder_handler(folder_name: str, und=8):
         print("fix me")
     return array_dict
 
-def comparison(array_dict, var="all", vers='sliding', fname=""):
+
+def comparison(array_dict, var="all", vers='standard', fname=""):
     """
     Does comparisons of each ion statistic and writes results for each into a file/group of files depending on
     :param array_dict:
@@ -51,10 +52,10 @@ def comparison(array_dict, var="all", vers='sliding', fname=""):
             print("Full Convergence Found")
             return True
         else:
-            if all(a["p-value (Mass)"] <= 0.05):
-                print("Failed by Mass Comparison")
-            else:
+            if all(a["p-value (Mass)"] >= 0.05):
                 print("Failed by FWHM Comparison")
+            else:
+                print("Failed by Mass Comparison")
             print("More Injections Needed")
             return False
     def sigma(a):
@@ -96,17 +97,21 @@ def comparison(array_dict, var="all", vers='sliding', fname=""):
                     (sigma(array_dict[i]["MassFWHM"])**2/standard_fwhm**2)
                 ).rename(columns={"MassFWHM": "F-statistic"})
                 pf = pd.DataFrame(st.f.cdf(fstat, dfn, dfd), columns=["p-value (FWHM)"])
-                p = pd.DataFrame(1- st.t.cdf(np.abs(t), dft), columns=["p-value (Mass)"])
+                # noinspection PyNoneFunctionAssignment
+                p = pd.DataFrame(1- st.t.cdf(np.abs(t), dft), columns=["p-value (Mass)"]
+                                 ).transform(lambda x: x*(i-1) if i>1 else x).clip(upper=1)
                 final = t.merge(p.merge(
                     fstat.merge(pf, left_index=True, right_index=True, how="outer"),
                     left_index=True, right_index=True, how="outer")
                                 , left_index=True, right_index=True, how="outer")
+                print(final)
                 if p_value(final):
                     f.write(f"Full Convergence Found at {i} injections for this species using an"
-                            f" independent student's t-test compared to {keys_list[-1]} injections"
+                            f" independent student's t-test with adjusted p-value compared to {keys_list[-1]} injections"
                             f" and an F-test for the ratio of variance\n")
                     f.write(str(final))
-                    break
+                    return
+            f.write("All comparisons yielded p-values below 0.05, more injections may be needed; or use a different reference value for indexing")
 
 
 def tolerant_index(array_dict, ref_mass=0, threshold=0):
@@ -161,6 +166,7 @@ def ppm(ref, actual):
     """
     return ((ref-actual)/ref)*(10**6)
 
+
 def converge_plot(array_dict: dict, ions=False,colors=None, ensemble=None):
     data = {}
     error = {}
@@ -180,6 +186,7 @@ def converge_plot(array_dict: dict, ions=False,colors=None, ensemble=None):
         ax[i].errorbar(x=data.keys(), y=data.values(), yerr=error.values(),fmt='o' ,ecolor='black', elinewidth=2, capsize=5, capthick=2)
     plt.show()
 
+
 def main():
     pmr1 = folder_handler("Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Protein Mix Rep 1")
     pmr2 = folder_handler("Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Protein Mix Rep 2")
@@ -189,8 +196,8 @@ def main():
     # converge_plot(pmavg)
     comparison(pmavg, "all", "standard", "protein_mix_")
     del pmr1, pmr2, pmr3, pmavg
-    # # Since there is an increase in inherent heterogeneity- will add a tolerance threshold for the 5 most abundant glycoforms and apply statistical testing to those.
-    # # For starters, will comb through until the first glycoform is found within 50 Da and the following 4 rows will be included for comparisons until Rabbit mAbs are used
+    # Since there is an increase in inherent heterogeneity- will add a tolerance threshold for the 5 most abundant glycoforms and apply statistical testing to those.
+    # For starters, will comb through until the first glycoform is found within 50 Da and the following 4 rows will be included for comparisons until Rabbit mAbs are used
     wmabr1 =  folder_handler("Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Waters mAb Rep 1", und=9)
     wmabr2 = folder_handler("Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Waters mAb Rep 2", und=9)
     wmabr3 = folder_handler("Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Waters mAb Rep 3", und=9)
@@ -201,6 +208,17 @@ def main():
     wmabavg = merge_replicates([wmabr1, wmabr2, wmabr3], select=select, length=5)
     # converge_plot(wmabavg)
     comparison(wmabavg, "all", "standard", "waters_mAb_")
+    del wmabavg, wmabr3, wmabr2, wmabr1
+    ahmab1 = folder_handler("Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Amgen Human IgG Rep 1", und=10)
+    ahmab2 = folder_handler("Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Amgen Human IgG Rep 2", und=10)
+    ahmab3 = folder_handler("Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Amgen Human IgG Rep 3", und=10)
+    select_r1 = tolerant_index(ahmab1, ref_mass=147997, threshold=25)
+    select_r2 = tolerant_index(ahmab2, ref_mass=147997, threshold=25)
+    select_r3 = tolerant_index(ahmab3, ref_mass=147997, threshold=25)
+    select = [select_r1, select_r2, select_r3]
+    ahmabavg = merge_replicates([ahmab1, ahmab2, ahmab3], select=select, length=4)
+    comparison(ahmabavg, fname="amgen_human_mab_")
+
 
 
 if __name__ == "__main__":
