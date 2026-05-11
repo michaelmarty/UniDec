@@ -3,13 +3,15 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+from scipy import stats as st
 
 
 def folder_handler(folder_name: str, und=8):
     """
     Function that iterates through a folder of .txt (or .dat) files from UniDecChromCD and returns an array of dictionaries.
     Assumes that the file name has the injection number after 8 sets of underscores... will fix eventually
-    :param folder_name:
+    :param: folder_name: str; file path of folder as a string
+    :param: und: int; number of underscores until you reach the injection number
     :return: array_dict: dict{key: pd.DataFrame}; a dictionary of arrays pooled from all of the files in the folder
     """
     file_queue = mq.Queue()
@@ -35,19 +37,76 @@ def folder_handler(folder_name: str, und=8):
         print("fix me")
     return array_dict
 
-def comparison(replicates: list, var="all", vers='sliding'):
+def comparison(array_dict, var="all", vers='sliding', fname=""):
     """
     Does comparisons of each ion statistic and writes results for each into a file/group of files depending on
-    :param replicates:
+    :param array_dict:
     :param var: str;
     :param vers: str; the version of comparison test required. Two options: sliding and standard. Sliding compares local variation whereas standard compares each value to the highest number of injections.
-    :return:
+    :param fname: str; name of the dataset
+    :return: f: file; writes a file containing the t-scores and p-values with which all three comparison variables converge (WIP)
     """
-    if vers == 'sliding':
-        pass
-    elif vers == 'standard':
-        pass
-    pass
+    def p_value(a):
+        if all(a["p-value (Mass)"] >= 0.05) and all(a["p-value (FWHM)"] >= 0.05):
+            print("Full Convergence Found")
+            return True
+        else:
+            if all(a["p-value (Mass)"] <= 0.05):
+                print("Failed by Mass Comparison")
+            else:
+                print("Failed by FWHM Comparison")
+            print("More Injections Needed")
+            return False
+    def sigma(a):
+        return a/(2*np.sqrt(2*np.log(2)))
+    part_path = "Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Analysis\\"
+    rest_path = fname + "results.txt"
+    final_path = os.path.join(part_path, rest_path)
+    keys_list = list(array_dict.keys())
+    with open(final_path, "w", encoding="utf-8") as f:
+        if vers == 'sliding':
+            for i in keys_list:
+                if i == 21:
+                    break
+                t = pd.DataFrame((array_dict[i]["Mass"]-array_dict[i+1]["Mass"])/np.sqrt((array_dict[i]["SEM Mass"]**2/i + array_dict[i+1]["SEM Mass"]**2/(i+1))), columns=["t-score"])
+                p = pd.DataFrame(1- st.norm.cdf(np.abs(t)), columns=["p-value"])
+                tp = t.merge(p, left_index=True, right_index=True, how="outer")
+                print(tp)
+                s = list(np.sqrt((array_dict[i]["SEM Mass"]**2/i + array_dict[i+1]["SEM Mass"]**2/(i+1))))
+                se = pd.DataFrame(s, columns=["Pooled SE"])
+                tpse = tp.merge(se, left_index=True, right_index=True, how="outer")
+                print(tpse)
+                print(f'Comparing {i} to {i+1}')
+        elif vers == 'standard':
+            standard_mass = array_dict[keys_list[-1]]["Mass"]
+            standard_error = array_dict[keys_list[-1]]["SEM Mass"]/np.sqrt(keys_list[-1])
+            standard_fwhm = sigma(array_dict[keys_list[-1]]["MassFWHM"])
+            for i in keys_list:
+                if i == 21:
+                    break
+                t = pd.DataFrame(
+                    (array_dict[i]["Mass"] - standard_mass)/np.sqrt((array_dict[i]["SEM Mass"]**2)/i + (standard_error ** 2)), columns=["t-score"])
+                dft = i + keys_list[-1] - 2
+                if i != 1:
+                    dfn = i-1
+                else:
+                    dfn = 1
+                dfd = keys_list[-1]-1
+                fstat = pd.DataFrame(
+                    (sigma(array_dict[i]["MassFWHM"])**2/standard_fwhm**2)
+                ).rename(columns={"MassFWHM": "F-statistic"})
+                pf = pd.DataFrame(st.f.cdf(fstat, dfn, dfd), columns=["p-value (FWHM)"])
+                p = pd.DataFrame(1- st.t.cdf(np.abs(t), dft), columns=["p-value (Mass)"])
+                final = t.merge(p.merge(
+                    fstat.merge(pf, left_index=True, right_index=True, how="outer"),
+                    left_index=True, right_index=True, how="outer")
+                                , left_index=True, right_index=True, how="outer")
+                if p_value(final):
+                    f.write(f"Full Convergence Found at {i} injections for this species using an"
+                            f" independent student's t-test compared to {keys_list[-1]} injections"
+                            f" and an F-test for the ratio of variance\n")
+                    f.write(str(final))
+                    break
 
 
 def tolerant_index(array_dict, ref_mass=0, threshold=0):
@@ -69,6 +128,8 @@ def merge_replicates(replicates: list, n=3, select=None, length = 0):
     Averages all of the injections for each replicate in a set and returns a single dictionary of averaged arrays with standard deviation
     :param replicates: list; list of array dictionaries to be merged
     :param n: int; number of replicates
+    :param select: list; (usually) a list of dictionaries containing the index of a reference mass within a set tolerance
+    :param length: number of masses after the selection index to include in the final dataframe (number of peaks)
     :return: array_dict: dict{key: pd.DataFrame}; key is the injection number and pd.DataFrame is the averaged array with standard deviation for each variable
     """
     array_dict = {}
@@ -125,10 +186,11 @@ def main():
     pmr3 = folder_handler("Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Protein Mix Rep 3")
     replicates = [pmr1, pmr2, pmr3]
     pmavg = merge_replicates(replicates)
-    converge_plot(pmavg)
+    # converge_plot(pmavg)
+    comparison(pmavg, "all", "standard", "protein_mix_")
     del pmr1, pmr2, pmr3, pmavg
-    # Since there is an increase in inherent heterogeneity- will add a tolerance threshold for the 5 most abundant glycoforms and apply statistical testing to those.
-    # For starters, will comb through until the first glycoform is found within 50 Da and the following 4 rows will be included for comparisons until Rabbit mAbs are used
+    # # Since there is an increase in inherent heterogeneity- will add a tolerance threshold for the 5 most abundant glycoforms and apply statistical testing to those.
+    # # For starters, will comb through until the first glycoform is found within 50 Da and the following 4 rows will be included for comparisons until Rabbit mAbs are used
     wmabr1 =  folder_handler("Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Waters mAb Rep 1", und=9)
     wmabr2 = folder_handler("Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Waters mAb Rep 2", und=9)
     wmabr3 = folder_handler("Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Waters mAb Rep 3", und=9)
@@ -137,7 +199,9 @@ def main():
     select_r3 = tolerant_index(wmabr3, 148220, 20)
     select = [select_r1, select_r2, select_r3]
     wmabavg = merge_replicates([wmabr1, wmabr2, wmabr3], select=select, length=5)
-    converge_plot(wmabavg)
+    # converge_plot(wmabavg)
+    comparison(wmabavg, "all", "standard", "waters_mAb_")
+
 
 if __name__ == "__main__":
     main()
