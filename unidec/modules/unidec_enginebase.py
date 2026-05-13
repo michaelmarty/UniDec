@@ -3,7 +3,6 @@ from unidec.modules.plotting import plot1d, plot2d
 import unidec.modules.unidecstructure as unidecstructure
 import time
 from unidec.modules.html_writer import *
-from unidec.UniDecImporter import ImporterFactory
 
 
 
