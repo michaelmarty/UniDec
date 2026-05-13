@@ -68,18 +68,19 @@ def merge_looper(file_dict):
             files = [f"{base}_{num}.raw" for num in subset]
             dmtfiles = [f"{base}_{num}.dmt" for num in subset]
             outfile = f"{base}_merged_{k}"
-            # Create a user-friendly subfolder like '1 injection', '2 injection', ...
-            k_folder = os.path.join(base_outdir, f"{k} injection")
-            os.makedirs(k_folder, exist_ok=True)
 
-            print(f"Merging {len(files)} files for base '{base}' into: {k_folder}")
+            # Save outputs directly under the base_outdir so the .npz and the
+            # corresponding "<outfile>_unidecfiles" folder live together and are
+            # not placed inside separate '1 injection', '2 injection', ... folders.
+            parent_save_dir = base_outdir
+            print(f"Merging {len(files)} files for base '{base}' into: {parent_save_dir} (outfile: {outfile})")
             try:
                 # Pass the parent directory so merge_files will create the unidecfiles
-                # folder inside the k_folder and save the .npz there.
-                merge_files(files, dmtfiles, outfile, parent_dir=k_folder)
-                outfiles.append(k_folder)
+                # folder inside the base_outdir and save the .npz there as well.
+                merge_files(files, dmtfiles, outfile, parent_dir=parent_save_dir)
+                outfiles.append(os.path.join(parent_save_dir, outfile))
             except Exception as e:
-                print(f"Error merging {outfile} into {k_folder}: {e}")
+                print(f"Error merging {outfile} into {parent_save_dir}: {e}")
     return outfiles
 
 def merge_files(rawlist, dmtlist, outfile, parent_dir=None):
@@ -146,7 +147,8 @@ if __name__ == "__main__":
 
     # Default folder (edit as needed). You can override by passing a folder
     # path as the first command-line argument.
-    folder = r"Z:\Group Share\BHT\Short Temp\Paper Data\STORIBoard Default DMT\Protein Mix 21 Injections Set 1"
+    # Use a raw string for Windows path to avoid escape-sequence warnings
+    folder = r"Z:\Group Share\BHT\Temp\Paper\DMT\Amgen IgM-like Fusion Protein 21 Injections Set 1"
     if len(sys.argv) > 1:
         folder = sys.argv[1]
 
