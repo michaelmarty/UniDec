@@ -2,16 +2,16 @@ import os
 from PublicScripts.Lipids.LipidFunctions import *
 
 # Set the working directory
-topdir = r"Z:\Group Share\Shivam\IQX Stellar 3\FinalResults"
+topdir = r"Z:\Group Share\Annika\IQ-X\AcquireX and Neo\AcquireX"
 os.chdir(topdir)
 
 # Set the results file names, should be the peak_master files from MS-DIAL
-negfile = "Stellar_neg.csv"
-posfile = "Stellar_pos.csv"
+negfile = "BrainNeg_AX.csv"
+posfile = "BrainPos_AX.csv"
 
 # Set the XML files with reference spectra
-negxml = "Stellar_neg.xml"
-posxml = "Stellar_pos.xml"
+negxml = "BrainNeg_AX.xml"
+posxml = "BrainPos_AX.xml"
 
 mergeddf, posdf, negdf = cleanup_and_merge_msdial(posfile, negfile, posxml, negxml, rttol=0.2)
 
@@ -66,7 +66,7 @@ if "Explicit Retention Time" in tldf.columns:
     tldf["Explicit Retention Time"] = tldf["Explicit Retention Time"] + 0.5
 
 # Write to csv
-tldf.to_csv("Combined_TransitionList.csv", index=False)
+tldf.to_csv("test.csv", index=False)
 # Print number of unique Molecule Names
 print("Number of unique Molecule Names:", tldf["Molecule Name"].nunique())
 
