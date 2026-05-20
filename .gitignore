@@ -86,3 +86,5 @@ unidec/src/UniDec
 unidec/src/out
 /unidec/src/Archive/dead_code.txt
 /Scripts/Aiden/farhana_cb2/
+unidec/src/CMakeFiles/
+/unidec/bin/Example Data/BSA_unidecfiles/BSA_mfile.dat

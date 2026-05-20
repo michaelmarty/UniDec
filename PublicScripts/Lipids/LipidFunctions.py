@@ -2527,7 +2527,7 @@ def mzrt_plot(df, class_col="Ontology", title="", simplify=True, write_file=Fals
     plt.gca().spines['top'].set_visible(False)
     plt.gca().spines['right'].set_visible(False)
     plt.xlabel("Retention Time (min)")
-    plt.ylabel("m/z")
+    plt.ylabel("m/z", fontstyle="italic")
     plt.title(title)
     plt.xticks(np.arange(0.0, 18, 2.5))
     plt.yticks(np.arange(0.0, 1600.1, 200))
