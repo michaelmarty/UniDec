@@ -37,7 +37,8 @@ def folder_handler(folder_name: str, und=8):
         print("fix me")
     return array_dict
 
-def comparison(array_dict, var="all", vers='sliding', fname=""):
+
+def comparison(array_dict, fname=""):
     """
     Does comparisons of each ion statistic and writes results for each into a file/group of files depending on
     :param array_dict:
@@ -47,14 +48,17 @@ def comparison(array_dict, var="all", vers='sliding', fname=""):
     :return: f: file; writes a file containing the t-scores and p-values with which all three comparison variables converge (WIP)
     """
     def p_value(a):
-        if all(a["p-value (Mass)"] >= 0.05) and all(a["p-value (FWHM)"] >= 0.05):
+        if all(a["p-value (Mass)"] > 0.05/20) and all(a["p-value (FWHM)"] > 0.05/20) and all(a["p-value (Area)"] > 0.05/20):
             print("Full Convergence Found")
             return True
         else:
-            if all(a["p-value (Mass)"] <= 0.05):
-                print("Failed by Mass Comparison")
+            if all(a["p-value (Mass)"] > 0.05/19):
+                if all(a["p-value (Area)"] > 0.05/19):
+                    print("Failed by FWHM Comparison")
+                else:
+                    print("Failed by Area Comparison")
             else:
-                print("Failed by FWHM Comparison")
+                print("Failed by Mass Comparison")
             print("More Injections Needed")
             return False
     def sigma(a):
@@ -64,49 +68,51 @@ def comparison(array_dict, var="all", vers='sliding', fname=""):
     final_path = os.path.join(part_path, rest_path)
     keys_list = list(array_dict.keys())
     with open(final_path, "w", encoding="utf-8") as f:
-        if vers == 'sliding':
-            for i in keys_list:
-                if i == 21:
-                    break
-                t = pd.DataFrame((array_dict[i]["Mass"]-array_dict[i+1]["Mass"])/np.sqrt((array_dict[i]["SEM Mass"]**2/i + array_dict[i+1]["SEM Mass"]**2/(i+1))), columns=["t-score"])
-                p = pd.DataFrame(1- st.norm.cdf(np.abs(t)), columns=["p-value"])
-                tp = t.merge(p, left_index=True, right_index=True, how="outer")
-                print(tp)
-                s = list(np.sqrt((array_dict[i]["SEM Mass"]**2/i + array_dict[i+1]["SEM Mass"]**2/(i+1))))
-                se = pd.DataFrame(s, columns=["Pooled SE"])
-                tpse = tp.merge(se, left_index=True, right_index=True, how="outer")
-                print(tpse)
-                print(f'Comparing {i} to {i+1}')
-        elif vers == 'standard':
-            standard_mass = array_dict[keys_list[-1]]["Mass"]
-            standard_error = array_dict[keys_list[-1]]["SEM Mass"]/np.sqrt(keys_list[-1])
-            standard_fwhm = sigma(array_dict[keys_list[-1]]["MassFWHM"])
-            for i in keys_list:
-                if i == 21:
-                    break
-                t = pd.DataFrame(
-                    (array_dict[i]["Mass"] - standard_mass)/np.sqrt((array_dict[i]["SEM Mass"]**2)/i + (standard_error ** 2)), columns=["t-score"])
-                dft = i + keys_list[-1] - 2
-                if i != 1:
-                    dfn = i-1
-                else:
-                    dfn = 1
-                dfd = keys_list[-1]-1
-                fstat = pd.DataFrame(
-                    (sigma(array_dict[i]["MassFWHM"])**2/standard_fwhm**2)
-                ).rename(columns={"MassFWHM": "F-statistic"})
-                pf = pd.DataFrame(st.f.cdf(fstat, dfn, dfd), columns=["p-value (FWHM)"])
-                p = pd.DataFrame(1- st.t.cdf(np.abs(t), dft), columns=["p-value (Mass)"])
-                final = t.merge(p.merge(
-                    fstat.merge(pf, left_index=True, right_index=True, how="outer"),
-                    left_index=True, right_index=True, how="outer")
-                                , left_index=True, right_index=True, how="outer")
-                if p_value(final):
-                    f.write(f"Full Convergence Found at {i} injections for this species using an"
-                            f" independent student's t-test compared to {keys_list[-1]} injections"
-                            f" and an F-test for the ratio of variance\n")
-                    f.write(str(final))
-                    break
+        standard_mass = array_dict[keys_list[-1]]["Mass"]
+        standard_error = array_dict[keys_list[-1]]["SEM Mass"] / np.sqrt(keys_list[-1])
+        standard_fwhm = sigma(array_dict[keys_list[-1]]["MassFWHM"])
+        for i in keys_list:
+            if i == 21:
+                break
+            dfarea = i + i + 1 - 2
+            tarea = pd.DataFrame((array_dict[i]["Area"] - array_dict[i + 1]["Area"]) / np.sqrt(
+                (array_dict[i]["SEM Area"] ** 2 / i + array_dict[i + 1]["SEM Area"] ** 2 / (i + 1))),
+                             columns=["t-score (Area)"])
+            parea = pd.DataFrame(1 - st.t.cdf(np.abs(tarea), dfarea), columns=["p-value (Area)"])
+            tmass = pd.DataFrame(
+                (array_dict[i]["Mass"] - standard_mass) / np.sqrt(
+                    (array_dict[i]["SEM Mass"] ** 2) / i + (standard_error ** 2)), columns=["t-score (Mass)"])
+            dft = i + keys_list[-1] - 2
+            if i != 1:
+                dfn = i - 1
+            else:
+                dfn = 1
+            dfd = keys_list[-1] - 1
+            fstat = pd.DataFrame(
+                (sigma(array_dict[i]["MassFWHM"]) ** 2 / standard_fwhm ** 2)
+            ).rename(columns={"MassFWHM": "F-statistic"})
+            pf = pd.DataFrame(st.f.cdf(fstat, dfn, dfd), columns=["p-value (FWHM)"])
+            p = pd.DataFrame(1 - st.t.cdf(np.abs(tmass), dft), columns=["p-value (Mass)"]
+                             )
+            final = tmass.merge(p.merge(tarea.merge(parea.merge(fstat.merge(pf,
+                left_index=True, right_index=True, how="outer"),
+                left_index=True, right_index=True, how="outer"),
+                left_index=True, right_index=True, how="outer"),
+                left_index=True, right_index=True, how= "outer"),
+                left_index=True, right_index=True, how="outer")
+            print(final)
+            if p_value(final):
+                f.write(f"Full Convergence Found at {i} injections for this species using an"
+                        f" independent student's t-test with a Bonferroni corrected alpha of {0.05 / (keys_list[-1] - 1)} compared to {keys_list[-1]} injections"
+                        f" and an F-test for the ratio of variance\n")
+                f.write(final.to_string())
+                return
+        f.write(
+            f"All comparisons yielded p-values below {0.05/20}, more injections may be needed; or use a different reference value for indexing\n"
+        )
+        f.write(
+            final.to_string()
+        )
 
 
 def tolerant_index(array_dict, ref_mass=0, threshold=0):
@@ -161,6 +167,7 @@ def ppm(ref, actual):
     """
     return ((ref-actual)/ref)*(10**6)
 
+
 def converge_plot(array_dict: dict, ions=False,colors=None, ensemble=None):
     data = {}
     error = {}
@@ -180,6 +187,7 @@ def converge_plot(array_dict: dict, ions=False,colors=None, ensemble=None):
         ax[i].errorbar(x=data.keys(), y=data.values(), yerr=error.values(),fmt='o' ,ecolor='black', elinewidth=2, capsize=5, capthick=2)
     plt.show()
 
+
 def main():
     pmr1 = folder_handler("Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Protein Mix Rep 1")
     pmr2 = folder_handler("Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Protein Mix Rep 2")
@@ -187,10 +195,10 @@ def main():
     replicates = [pmr1, pmr2, pmr3]
     pmavg = merge_replicates(replicates)
     # converge_plot(pmavg)
-    comparison(pmavg, "all", "standard", "protein_mix_")
+    comparison(pmavg, "protein_mix_")
     del pmr1, pmr2, pmr3, pmavg
-    # # Since there is an increase in inherent heterogeneity- will add a tolerance threshold for the 5 most abundant glycoforms and apply statistical testing to those.
-    # # For starters, will comb through until the first glycoform is found within 50 Da and the following 4 rows will be included for comparisons until Rabbit mAbs are used
+    # Since there is an increase in inherent heterogeneity- will add a tolerance threshold for the 5 most abundant glycoforms and apply statistical testing to those.
+    # For starters, will comb through until the first glycoform is found within 50 Da and the following 4 rows will be included for comparisons until Rabbit mAbs are used
     wmabr1 =  folder_handler("Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Waters mAb Rep 1", und=9)
     wmabr2 = folder_handler("Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Waters mAb Rep 2", und=9)
     wmabr3 = folder_handler("Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Waters mAb Rep 3", und=9)
@@ -200,7 +208,27 @@ def main():
     select = [select_r1, select_r2, select_r3]
     wmabavg = merge_replicates([wmabr1, wmabr2, wmabr3], select=select, length=5)
     # converge_plot(wmabavg)
-    comparison(wmabavg, "all", "standard", "waters_mAb_")
+    comparison(wmabavg, "waters_mAb_")
+    del wmabavg, wmabr3, wmabr2, wmabr1
+    ahmab1 = folder_handler("Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Amgen Human IgG Rep 1", und=10)
+    ahmab2 = folder_handler("Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Amgen Human IgG Rep 2", und=10)
+    ahmab3 = folder_handler("Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Amgen Human IgG Rep 3", und=10)
+    select_r1 = tolerant_index(ahmab1, ref_mass=147997, threshold=25)
+    select_r2 = tolerant_index(ahmab2, ref_mass=147997, threshold=25)
+    select_r3 = tolerant_index(ahmab3, ref_mass=147997, threshold=25)
+    select = [select_r1, select_r2, select_r3]
+    ahmabavg = merge_replicates([ahmab1, ahmab2, ahmab3], select=select, length=4)
+    comparison(ahmabavg, fname="amgen_human_mab_")
+    armabr1 = folder_handler("Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Amgen Rabbit IgG Rep 1", 10)
+    armabr2 = folder_handler("Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Amgen Rabbit IgG Rep 2", 10)
+    armabr3 = folder_handler("Z:\\Group Share\\BHT\\Temp\\Paper\\Stats\\Amgen Rabbit IgG Rep 3", 10)
+    select_r1 = tolerant_index(armabr1, ref_mass=143584, threshold=25)
+    select_r2 = tolerant_index(armabr2, ref_mass=143584, threshold=25)
+    select_r3 = tolerant_index(armabr3, ref_mass=143584, threshold=25)
+    select = [select_r1, select_r2, select_r3]
+    armabavg = merge_replicates([armabr1, armabr2, armabr3], select=select, length=9)
+    comparison(armabavg, fname="amgen_rabbit_mab_")
+    converge_plot(armabavg)
 
 
 if __name__ == "__main__":

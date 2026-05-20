@@ -2,11 +2,11 @@ import pandas as pd
 import os
 from PublicScripts.Lipids.LipidFunctions import tl_to_il, derplicate_il
 
-topdir = r"Z:\Group Share\Farhana\Stellar"
+topdir = r"Z:\Group Share\Annika\Stellar\Brain Library"
 os.chdir(topdir)
 
-tlpath = r"CleanedAdducts_AllDatasets_TransList_MM_Clean16.csv"
-outpath = r"HEKExtr_MM_IsoList_Clean16.csv"
+tlpath = r"Test_HEKLib_BrainTransList.csv"
+outpath = r"Test_HEKLib_BrainIsoList.csv"
 
 tldf = pd.read_csv(tlpath)
 
