@@ -366,18 +366,18 @@ float Gaus(const float x, const float x0, const float sig)
 //function to return a gaussian at a specific point
 float Lorentz(const float x, const float x0, const float sig)
 {
-    return powf(sig / 2, 2) / (powf(x - x0, 2) + powf(sig / 2, 2));
+    return powf(sig / 2.f, 2.f) / (powf(x - x0, 2.f) + powf(sig / 2.f, 2.f));
 }
 
 float SplitGL(const float x, const float y, const float sig)
 {
     if (y<x)
     {
-        return expf(-(powf(x - y, 2)) / (2 * sig*sig*0.180337f));
+        return expf(-(powf(x - y, 2.f)) / (2.f * sig* sig *0.180337f));
     }
     else
     {
-        return (sig / 2)*(sig / 2) / (powf((x - y), 2) + powf((sig / 2), 2));
+        return Lorentz(x, y, sig);
     }
 }
 
@@ -398,7 +398,7 @@ float PeakDist(const float x1, const float x2, const float y1, const float y2, c
         if (zpsfun == 1) {
             d2 = Lorentz(y1, y2, sig2);
         }
-        if (psfun == 2) {
+        if (zpsfun == 2) {
             d2 = SplitGL(-1*y1, -1*y2, sig2);
         }
     }
