@@ -120,7 +120,6 @@ default_isdf["Mass"] = (default_isdf["m/z (+)"] + default_isdf["m/z (-)"]) / 2.
 default_isdf["Concentration (uM)"] = default_isdf["Concentration (ug/mL)"] / default_isdf["Mass"]
 
 default_is_mapper = {"GM3": "PI", "PA": "PG", "PEtOH": "PG"}
-
 # print(default_isdf.to_string())
 # exit()
 
@@ -228,7 +227,7 @@ def split_names(df, mol_col="Molecule"):
     return df
 
 def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=True,
-                    conc_col="Concentration (uM)"):
+                    conc_col="Concentration (uM)", customisdf="Default"):
     adduct_col="Precursor Adduct" if "Precursor Adduct" in df.columns else "Adduct"
     mol_col = "Molecule"
     class_col = "Molecule List Name"
@@ -265,6 +264,7 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
         adducts = subdf[adduct_col].unique()
         for a in adducts:
             newrow = {"Molecule": m, "Molecule List Name": df[df[mol_col] == m][class_col].values[0],
+                      "MZ": mz_df[mz_df[mol_col] == m][mzcol].values[0],
                       "RT": rt_df[rt_df[mol_col] == m][rtcol].values[0],
                       "Adduct": a}
             for r in replicates:
@@ -298,7 +298,7 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
 
     if normalize_IS:
         print("Normalizing IS")
-        outdf = normalize_is(outdf, replicates, conc_col)
+        outdf = normalize_is(outdf, replicates, conc_col, isdf=customisdf)
         if len(outdf) == 0:
             raise ValueError("No data left after IS normalization. Check if IS compounds are present.")
         # Drop species that are 0 in all replicates after IS normalization
@@ -583,7 +583,13 @@ def dereplicate_adducts(normdf, replicates):
     return outdf
 
 
-def normalize_is(df, replicates, conc_col, isdf=default_isdf, dereplicate=True):
+def normalize_is(df, replicates, conc_col, isdf="Default", dereplicate=True):
+    if type(isdf) == str:
+        if isdf == "Default":
+            isdf = default_isdf
+        else:
+            raise ValueError(f"Invalid value for isdf: {isdf}. Must be 'Default' or a custom IS dataframe.")
+
     normdf = df.copy()
     classes = normdf["Molecule List Name"].unique()
     for r in replicates:
@@ -1236,7 +1242,7 @@ if __name__ == "__main__":
     #
     # exit()
 
-    normdf, classdf = compare_pipeline([file, file2], set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
+    normdf, classdf = compare_pipeline([file2, file], set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
                                        norm_tmm=False,
                   normalize_TIC=True, paired=False, bh_correction=True, plot_results=True, write_output=True,
                      fold_range=np.log2(2), otherthresh=0.03, set1_name="FT", set2_name="E", drop_lipids=["SM 35:1;2"])

@@ -185,7 +185,10 @@ adduct_translator = np.array([["[M+H]+", "[M+H]", "+1", 1, "[M+H]1+"],
                               ["[M-CH3OO]-", "[M-CH3OO]", "-1", -1, "[M-CH3OO]1-"],
                               ["[M-2H]2-", "[M-2H]", "-2", -2, "[M-2H]2-"],
                               ["[M+CH3COO]-", "[M+CH3COO]", "-1", -1, "[M+CH3COO]1-"],
-                              ["[M+Na]+", "[M+Na]", "1", -1, "[M+Na]1+"]])
+                              ["[M+Na]+", "[M+Na]", "1", -1, "[M+Na]1+"],
+                              ["[M+H-H2O]+", "[M+H-H2O]", "+1", 1, "[M+H-H2O]1+"],
+                              ["[M7H2+H-H2O]+", "[M7H2+H-H2O]", "+1", 1, "[M7H2+H-H2O]1+"]
+                              ])
 
 class_nfattyacids = {
     "CL": 4,
@@ -386,20 +389,69 @@ def fix_d7(name, adduct):
 
 
 def count_tails(name, verbose=False):
+    if "CoQ" in name:
+        # Extract the number after CoQ
+        tus = int(name.replace("CoQ", "").strip())
+        tls = 5 * tus
+        # print("CoQ detected", tls, tus)
+        return "CoQ", tls, tus
+
     # Remove values of just a name or a name and then an adduct
     if " " not in name or ":" not in name:
         return "NA", -1, -1
 
+    tls = 0
+    tus = 0
+
+    if ";FA" in name or "(FA" in name:
+        # Extract the numbers after the FA and before )
+        fa_matches = re.findall(r'FA (\d+:\d+)', name)
+        for match in fa_matches:
+            try:
+                tl, tu = match.split(":")
+                tl = int(tl)
+                tu = int(tu)
+                tls += tl
+                tus += tu
+            except Exception as e:
+                if verbose:
+                    print("Unable to parse FA match: ", match, name)
+                continue
+        if "(FA" in name:
+            # Remove everything between ( and ) if it contains FA
+            cleanname = re.sub(r'\(FA \d+:\d+\)', '', name)
+        elif ";FA" in name:
+            # Remove everything after ;FA if it contains FA
+            cleanname = re.sub(r';FA \d+:\d+', '', name)
+    else:
+        cleanname = name
+
+    if "(O-" in name:
+        # Extract numbers after O- and before )
+        o_matches = re.findall(r'O-(\d+:\d+)', name)
+        for match in o_matches:
+            try:
+                tl, tu = match.split(":")
+                tl = int(tl)
+                tu = int(tu)
+                tls += tl
+                tus += tu
+            except Exception as e:
+                if verbose:
+                    print("Unable to parse O- match: ", match, name)
+                continue
+        # Remove everything between ( and ) if it contains O-
+        cleanname = re.sub(r'\(O-\d+:\d+\)', '', cleanname)
+
     try:
-        tname = name.split(" ")[1]
+        tname = cleanname.split(" ")[1]
     except Exception as e:
         print("Unable to parse tails: ", name)
         raise e
 
     # fas = tname.split("_")
     fas = re.split('_|/', tname)
-    tls = 0
-    tus = 0
+
     # Remove '' from fas
     for f in fas:
         if f == '':
@@ -412,6 +464,30 @@ def count_tails(name, verbose=False):
             f = f.replace(";O2", "")
         if ";O3" in f:
             f = f.replace(";O3", "")
+        if ";2O" in f:
+            f = f.replace(";2O", "")
+        if ";3O" in f:
+            f = f.replace(";3O", "")
+        if ";4O" in f:
+            f = f.replace(";4O", "")
+        if ";(2OH)" in f:
+            f = f.replace(";(2OH)", "")
+        if ";(3OH)" in f:
+            f = f.replace(";(3OH)", "")
+        if ";O" in f:
+            f = f.replace(";O", "")
+        if "N-" in f:
+            f = f.replace("N-", "")
+        if "-SN1" in f:
+            f = f.replace("-SN1", "")
+        if "-SN2" in f:
+            f = f.replace("-SN2", "")
+        if ";Hex" in f:
+            f = f.replace(";Hex", "")
+        if "(d7)" in f:
+            f = f.replace("(d7)", "")
+        if "(d9)" in f:
+            f = f.replace("(d9)", "")
 
         tl = f.split(":")[0]  # Get length
         try:
@@ -439,6 +515,11 @@ def count_tails(name, verbose=False):
         tus += tu
     tl = tls
     tu = tus
+
+    if tu == -1:
+        if verbose:
+            print("Unable to parse unsaturation: ", name, tname, fas)
+
     return tname, tl, tu
 
 
@@ -612,6 +693,115 @@ def remove_specific_problems(df):
     return df
 
 
+def map_ontology_from_lipid_name(lipid_name):
+    """Map a lipid name to a lipid class label (e.g., PC, LPC, EtherPC)."""
+    if lipid_name is None:
+        return ""
+
+    text = str(lipid_name).strip()
+    if not text:
+        return ""
+
+    # Detect ether/plasmalogen notation before extracting the class token.
+    is_ether = (
+            text.startswith("O-")
+            or text.startswith("P-")
+            or text.startswith("O_")
+            or text.startswith("P_")
+            or text.startswith("ETHER")
+            or " ETHER" in text
+            or " P-" in text
+            or " O-" in text
+    )
+
+    if "SM" in text and "FA" in text:
+        return "ASM"
+
+    # Keep primary annotation when names include pipe-delimited aliases.
+    text = text.split(" ")[0].strip()
+
+    # Output lipid class labels rather than broad ontology families.
+    class_map = {
+        'Cholesterol': 'ST',
+        'CoQ1': 'CoQ',
+        'CoQ2': 'CoQ',
+        'CoQ3': 'CoQ',
+        'CoQ4': 'CoQ',
+        'CoQ5': 'CoQ',
+        'CoQ6': 'CoQ',
+        'CoQ7': 'CoQ',
+        'CoQ8': 'CoQ',
+        'CoQ9': 'CoQ',
+        'CoQ10': 'CoQ',
+        'CoQ11': 'CoQ',
+        'CoQ12': 'CoQ',
+        'CoQ13': 'CoQ',
+        'PI-Cer': 'PI_Cer',
+        'Cholesterol(d7)': 'ST',
+        '25-hydroxycholecalciferol': 'Vitamin_D',
+        'PE-Cer': 'PE_Cer',
+        'Tocopherol': 'Vitamin_E',
+    }
+
+    if text in class_map:
+        base_class = class_map[text]
+    else:
+        base_class = text
+
+    if is_ether:
+        return f"Ether{base_class}"
+
+    return base_class
+
+def apply_ontology_mapping(df, name_col="Metabolite name", output_col="Ontology"):
+    df[output_col] = df[name_col].apply(map_ontology_from_lipid_name)
+    return df
+
+def make_sum_comp(name):
+    if "_" or "/" in name:
+        specialpart = ""
+        if ";" in name:
+            specialpart = name.split(";")[1].strip()
+            # Split off / or _ after the name
+            specialpart = specialpart.split("/")[0].split("_")[0]
+            specialpart = ";" + specialpart
+
+        tname, tl, tu = count_tails(name, verbose=True)
+        hname = name.split(" ")[0]
+        newname = f"{hname} {tl}:{tu}"
+        name = newname + specialpart
+    return name
+
+
+def apply_sum_comp(df, namecol="Metabolite name", classcol="Ontology", adductcol="Adduct type"):
+    # Apply to all
+    # df["Sum Comp Name"] = df[namecol].apply(make_sum_comp)
+    # # Create name as "Sum Comp Name" + " | " + original name
+    # df = df.rename(columns={namecol: "Original Name"})
+    # df[namecol] = df["Sum Comp Name"] + " | " + df["Original Name"]
+    # df = df.drop(columns=["Sum Comp Name"])
+
+    mask = df[adductcol] == "[M+H]+"
+    mask2 = df[classcol] == "PC"
+    if mask.any() and mask2.any():
+        # Isolate PC [M+H]+ adducts
+        subdf = df[mask & mask2].copy()
+        subdf[namecol] = subdf[namecol].apply(make_sum_comp)
+        # Drop original PC [M+H]+ rows
+        df = df[~(mask & mask2)]
+        # Append modified PC [M+H]+ rows
+        df = pd.concat([df, subdf], ignore_index=True)
+
+    mask2 = df[classcol] == "SM"
+    if mask.any() and mask2.any():
+        # Isolate SM [M+H]+ adducts
+        subdf = df[mask & mask2].copy()
+        subdf[namecol] = subdf[namecol].apply(make_sum_comp)
+        # Drop original SM [M+H]+ rows
+        df = df[~(mask & mask2)]
+        # Append modified SM [M+H]+ rows
+        df = pd.concat([df, subdf], ignore_index=True)
+    return df
 
 def get_charge(adduct):
     if adduct in ["[M+H]+", "[M+NH4]+", "[M+Na]+", "[M+K]+", "[M]+", "[M+H-H2O]+"]:
@@ -717,6 +907,27 @@ def cleanup_and_merge_msdial(posfile, negfile, posxml, negxml, rttol=0.2):
     # Add reference spectra to the dataframes
     negdf = add_ref_from_xml(negdf, refnegdf)
     posdf = add_ref_from_xml(posdf, refposdf)
+
+    # Merge positive and negative dataframes
+    posdf, negdf = merge_pos_neg(posdf, negdf, rttol)
+
+    # Create polarity columns and fill with "Positive" and "Negative"
+    posdf["Polarity"] = "Positive"
+    negdf["Polarity"] = "Negative"
+
+    # Concatenate the dataframes
+    mergeddf = pd.concat([posdf, negdf], ignore_index=True)
+
+    return mergeddf, posdf, negdf
+
+def cleanup_and_merge_mzmine(posfile, negfile, rttol=0.2):
+    # Load the data
+    negdf = pd.read_csv(negfile)
+    posdf = pd.read_csv(posfile)
+
+    # Sort by Ontology and Name
+    posdf = posdf.sort_values(by=["Ontology", "Metabolite name"]).reset_index(drop=True)
+    negdf = negdf.sort_values(by=["Ontology", "Metabolite name"]).reset_index(drop=True)
 
     # Merge positive and negative dataframes
     posdf, negdf = merge_pos_neg(posdf, negdf, rttol)
@@ -2316,7 +2527,7 @@ def mzrt_plot(df, class_col="Ontology", title="", simplify=True, write_file=Fals
     plt.gca().spines['top'].set_visible(False)
     plt.gca().spines['right'].set_visible(False)
     plt.xlabel("Retention Time (min)")
-    plt.ylabel("m/z")
+    plt.ylabel("m/z", fontstyle="italic")
     plt.title(title)
     plt.xticks(np.arange(0.0, 18, 2.5))
     plt.yticks(np.arange(0.0, 1600.1, 200))
