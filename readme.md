@@ -238,6 +238,16 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 ## Change Log
 
+v.8.1.3
+
+Removed Integration Range box from MetaUniDec and UniChrom. It actually didn't do anything.
+
+Renamed peak pooling (PP) with UCCD to multiple runs summed (MRS) to be more descriptive.
+
+Fixed bug with SplitGL charge peak shape on UCD. 
+
+Fixed zipping and building bugs. Wasn't actually signed properly before.
+
 v.8.1.2
 
 Added a Toggle for peak labelling in the experimental menu. Made peak labelling more robust and immediately appear and disappear.

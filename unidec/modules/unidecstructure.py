@@ -11,7 +11,7 @@ import io
 
 __author__ = 'Michael.Marty'
 
-version = "8.1.2"
+version = "8.1.3"
 
 
 def ofile_reader(path):
@@ -295,7 +295,7 @@ class UniDecConfig(object):
         self.HToutputlb = -1
 
         self.demultiplexmode = "HT"
-        self.demultiplexchoices = ["HT", "mHT", "FT", "aFT", "PP"]
+        self.demultiplexchoices = ["HT", "mHT", "FT", "aFT", "MRS"]
         self.FTstart = 5
         self.FTend = 1000
         self.FTflatten = True

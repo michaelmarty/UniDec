@@ -29,7 +29,6 @@ default_conf.dat
 venv.*/
 UniDec.egg-info
 distpypi
-**/CmakeFiles/*
 
 unidec/src/x64/
 unidec/src/.vs/
@@ -86,5 +85,6 @@ unidec/src/Makefile
 unidec/src/UniDec
 unidec/src/out
 /unidec/src/Archive/dead_code.txt
-/unidec/src/CMakeFiles/
+/Scripts/Aiden/farhana_cb2/
+unidec/src/CMakeFiles/
 /unidec/bin/Example Data/BSA_unidecfiles/BSA_mfile.dat
