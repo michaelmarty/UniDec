@@ -2,26 +2,31 @@ import os
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
-def read_mzmine_batch_file(batchfile):
+def read_mzmine_batch_file(batchfile, verbose=False):
     tree = ET.parse(batchfile)
     batch = tree.getroot()
     steps = batch.findall("batchstep")
     for step in steps:
         module_name = step.attrib["module_name"]
-        print(f"Step: {module_name}")
+        if verbose:
+            print(f"Step: {module_name}")
         for param in step.findall("parameter"):
             name = param.attrib["name"]
             value = param.text
-            print(f"  {name}: {value}")
+            if verbose:
+                print(f"  {name}: {value}")
             if param.findall("parameter"):
-                print(f"    Sub-parameters for {name}:")
+                if verbose:
+                    print(f"    Sub-parameters for {name}:")
                 for subparam in param.findall("parameter"):
                     subname = subparam.attrib["name"]
                     subvalue = subparam.text
-                    print(f"      {subname}: {subvalue}")
+                    if verbose:
+                        print(f"      {subname}: {subvalue}")
             for fileparam in param.findall("file"):
                 filepath = fileparam.text
-                print(f"      File parameter {filepath}")
+                if verbose:
+                    print(f"      File parameter {filepath}")
 
     return tree
 
@@ -67,16 +72,21 @@ def create_duplicate_copy(batchfile, copy_suffix="_copy"):
     print(f"Created duplicate batch file: {new_path}")
     return str(new_path)
 
+if __name__ == "__main__":
+    topdir = r"\\marty-nas.cm.utexas.edu\MartyLab\Group Share\Annika\DDA_Compare\mzmine"
+    filelist = ["Stellar_Pos_batch.mzbatch", "OTOT_Pos_batch.mzbatch", "IQX_Pos_batch.mzbatch", "OTIT_Pos_batch.mzbatch", "ITIT_Pos_batch.mzbatch", "Apex_Pos_batch.mzbatch"]
+    os.chdir(topdir)
+    outfiles = []
 
-batchfile = r"\\marty-nas.cm.utexas.edu\MartyLab\Group Share\Annika\DDA_Compare\mzmine\Stellar_Pos_batch.mzbatch"
-outfile = batchfile.replace(".mzbatch", "_no_na.mzbatch")
-#
-# create_duplicate_copy(batchfile)
+    for batchfile in filelist:
+        outfile = batchfile.replace(".mzbatch", "_sumcomp.mzbatch")
+        tree = read_mzmine_batch_file(batchfile)
+        oldfile = get_spectral_library(tree)
+        newfile = oldfile.replace(".msp", "_sumcomp.msp")
+        tree = set_spectral_library(tree, newfile)
+        write_mzmine_batch_file(tree, outfile)
+        outfiles.append(outfile)
 
-
-
-tree = read_mzmine_batch_file(batchfile)
-oldfile = get_spectral_library(tree)
-newfile = oldfile.replace(".msp", "_no_na.msp")
-tree = set_spectral_library(tree, newfile)
-write_mzmine_batch_file(tree, outfile)
+    # Print outfiles in python list format for easy copy-pasting
+    print("Modified batch files:")
+    print("[" + ",\n ".join(f'"{f}"' for f in outfiles) + "]")

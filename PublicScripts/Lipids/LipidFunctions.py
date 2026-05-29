@@ -759,6 +759,11 @@ def apply_ontology_mapping(df, name_col="Metabolite name", output_col="Ontology"
 
 def make_sum_comp(name):
     if "_" or "/" in name:
+        prefix = ""
+        if "O-" in name:
+            prefix = "O-"
+        elif "P-" in name:
+            prefix = "P-"
         specialpart = ""
         if ";" in name:
             specialpart = name.split(";")[1].strip()
@@ -768,10 +773,23 @@ def make_sum_comp(name):
 
         tname, tl, tu = count_tails(name, verbose=True)
         hname = name.split(" ")[0]
-        newname = f"{hname} {tl}:{tu}"
+        newname = f"{hname} {prefix}{tl}:{tu}"
         name = newname + specialpart
     return name
 
+
+def get_new_name(name):
+    classname = name.split(" ", 1)[0]
+    tname, tl, tu = lf.count_tails(name, verbose=True)
+    newtname = str(tl) + ":" + str(tu)
+    prefix = ""
+    postfix = ""
+    if "O-" in name:
+        prefix = "O-"
+    if ";" in name:
+        print(name)
+
+    return f"{classname} {prefix}{newtname}{postfix}", newtname
 
 def apply_sum_comp(df, namecol="Metabolite name", classcol="Ontology", adductcol="Adduct type"):
     # Apply to all
