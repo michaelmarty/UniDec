@@ -8,7 +8,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 import matplotlib as mpl
 import io
-from PublicScripts.Lipids.LipidFunctions import simplify_class_df, get_color_for_class
+from PublicScripts.Lipids.LipidFunctions import simplify_class_name, get_color_for_class
 from copy import deepcopy
 from matplotlib.gridspec import GridSpec
 
@@ -36,12 +36,13 @@ Cer,C22:1 Ceramide-d7 (d18:1-d7/22:1),IS Cer 18:1;2(+[2]H7)/22:1,50,627.63,625.6
 Cer,C20:1 Ceramide-d7 (d18:1-d7/20:1),IS Cer 18:1;2(+[2]H7)/20:1,25,599.6,597.6,10,860746,[H][C@](/C=C/CCCCCCCCCCC(C([2H])(C([2H])([2H])[2H])[2H])([2H])[2H])(O)[C@@]([H])(NC(CCCCCCCCC/C=C\CCCCCCCC)=O)CO
 Cer,C18:1 Ceramide-d7 (d18:1-d7/18:1),IS Cer 18:1;2(+[2]H7)/18:1,50,571.57,569.57,9,860747,[H][C@](/C=C/CCCCCCCCCCC(C([2H])(C([2H])([2H])[2H])[2H])([2H])[2H])(O)[C@@]([H])(NC(CCCCCCC/C=C\CCCCCCCC)=O)CO
 Cer,C16:1 Ceramide-d7 (d18:1-d7/16:1),IS Cer 18:1;2(+[2]H7)/16:1,75,543.54,541.54,8,860748,[H][C@](/C=C/CCCCCCCCCCC(C([2H])(C([2H])([2H])[2H])[2H])([2H])[2H])(O)[C@@]([H])(NC(CCCCCCC/C=C\CCCCCC)=O)CO
-CL,14:0-14:0-14:0-14:0 CL,IS CL 14:0-14:0-14:0-14:0,15,1241.5,1239.5,12.6,750332,O=P([O-])(OC[C@]([H])(OC(CCCCCCCCCCCCC)=O)COC(CCCCCCCCCCCCC)=O)OCC([H])(O)COP([O-])(OC[C@]([H])(OC(CCCCCCCCCCCCC)=O)COC(CCCCCCCCCCCCC)=O)=O
+CL,18:2-18:2-18:2-18:2 CL-d5,IS CL(+[2]H5) 18:2_18:2_18:2_18:2,15,1454.9,1452.9963,10.6,791108,O=P([O-])(OC[C@@]([H])(OC(CCCCCCC/C=C\C/C=C\CCCCC)=O)COC(CCCCCCC/C=C\C/C=C\CCCCC)=O)OC([2H])([2H])C([2H])(O)C([2H])([2H])OP([O-])(OC[C@]([H])(OC(CCCCCCC/C=C\C/C=C\CCCCC)=O)COC(CCCCCCC/C=C\C/C=C\CCCCC)=O)=O.[NH4+].[NH4+]
 DG,17:0-22:4 DG-d5,IS DAG(+[2]H5) 17:0-22:4,25,664.59,662.59,10.9,800823,[2H][C@](OC(CCCCC/C=C\C/C=C\C/C=C\C/C=C\CCCCC)=O)(C(O)([2H])[2H])C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H]
 DG,17:0-18:1 DG-d5,IS DAG(+[2]H5) 17:0-18:1,75,614.57,612.57,11,800824,OC([C@]([2H])(OC(CCCCCCC/C=C\CCCCCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H]
 DG,17:0-20:3 DG-d5,IS DAG(+[2]H5) 17:0-20:3,50,638.57,636.57,10.7,800825,OC([C@]([2H])(OC(CCCCCC/C=C\C/C=C\C/C=C\CCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H]
 DG,17:0-16:1 DG-d5,IS DAG(+[2]H5) 16:1-17:0,50,586.54,584.54,10.2,800826,OC([C@]([2H])(OC(CCCCCCC/C=C\CCCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H]
 DG,17:0-14:1 DG-d5,IS DAG(+[2]H5) 14:1-17:0,25,558.51,556.51,9,800827,OC([C@]([2H])(OC(CCCCCCC/C=C\CCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H]
+LPA,17:0 Lyso PA-d5, IS LPA 18:1(+[2]H9), 446.3, 444.3, 1.75, 793074, [2H]C([2H])([2H])C([2H])([2H])C([2H])([2H])CCCC/C=C\CCCCCCC(=O)OC[C@H](O)COP([O-])([O-])=O.[Na+]
 LPC,17:0 Lyso PC-d5,IS LPC 17:0(+[2]H5),50,492.38,490.38,3,855679,[O-]P(OCC[N+](C)(C)C)(OC([C@]([2H])(O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
 LPC,19:0 Lyso PC-d5,IS LPC 19:0(+[2]H5),25,520.41,518.41,4,855778,[O-]P(OCC[N+](C)(C)C)(OC([C@]([2H])(O)C(OC(CCCCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
 LPC,15:0 Lyso PC-d5,IS LPC 15:0(+[2]H5),25,464.35,462.35,2,870309,[O-]P(OCC[N+](C)(C)C)(OC([C@]([2H])(O)C(OC(CCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
@@ -57,6 +58,7 @@ LPI,17:0 Lyso PI-d5,IS LPI(+[2]H5) 17:0,50,592.4,590.4,2.3,850108,[2H][C@](O)(C(
 LPS,15:0 Lyso PS-d5,IS LPS(+[2]H5) 15:0,25,489.3,487.3,1.9,858146,[O-]P(OC[C@](C([O-])=O)([H])[NH3+])(OC([C@]([2H])(O)C(OC(CCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
 LPS,19:0 Lyso PS-d5,IS LPS(+[2]H5) 19:0,25,545.4,543.4,3,858147,[O-]P(OC[C@](C([O-])=O)([H])[NH3+])(OC([C@]([2H])(O)C(OC(CCCCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
 LPS,17:0 Lyso PS-d5,IS LPS(+[2]H5) 17:0,50,517.3,515.3,2.3,858148,[O-]P(OC[C@](C([O-])=O)([H])[NH3+])(OC([C@]([2H])(O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
+PA,15:0-18:1 PA-d7,IS PA 15:0_18:1(+[2]H7), 668.5, 666.5, 5.6, 791642, CCCCCCCCCCCCCCC(=O)OC[C@H](COP([O-])([O-])=O)OC(=O)CCCCCCC/C=C\CCCCCC([2H])([2H])C([2H])([2H])C([2H])([2H])[2H]
 PC,17:0-22:4 PC-d5,IS PC(+[2]H5) 17:0-22:4,50,829.64,827.64,9.1,855678,[2H][C@](OC(CCCCC/C=C\C/C=C\C/C=C\C/C=C\CCCCC)=O)(C(OP(OCC[N+](C)(C)C)([O-])=O)([2H])[2H])C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H]
 PC,17:0-20:3 PC-d5,IS PC(+[2]H5) 17:0-20:3,100,803.62,801.62,8.9,855680,[O-]P(OCC[N+](C)(C)C)(OC([C@]([2H])(OC(CCCCCC/C=C\C/C=C\C/C=C\CCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
 PC,17:0-18:1 PC-d5,IS PC(+[2]H5) 17:0-18:1,150,779.62,777.62,9.2,855681,[O-]P(OCC[N+](C)(C)C)(OC([C@]([2H])(OC(CCCCCCC/C=C\CCCCCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
@@ -119,7 +121,7 @@ default_isdf["Mass"] = (default_isdf["m/z (+)"] + default_isdf["m/z (-)"]) / 2.
 # Calculate conc in uM from ug/mL using mass
 default_isdf["Concentration (uM)"] = default_isdf["Concentration (ug/mL)"] / default_isdf["Mass"]
 
-default_is_mapper = {"GM3": "PI", "PA": "PG", "PEtOH": "PG"}
+default_is_mapper = {"GM3": "PI", "PEtOH": "PG"}
 # print(default_isdf.to_string())
 # exit()
 
@@ -1033,15 +1035,15 @@ def compare_pipeline(files, set1, set2, mode="Products", drop_IS=True, normalize
                   normalize_TIC=True, norm_tmm=False,
                      paired=True, bh_correction=True, plot_results=True, heatplots=True,
                   piecharts=True, figsavepath=None, heatmap_cutoffs=True, write_output=True, fold_range=1.5,
-                     otherthresh=0.035, set1_name="Set 1", set2_name="Set 2", drop_lipids=[]):
+                     otherthresh=0.035, set1_name="Set 1", set2_name="Set 2", drop_lipids=[], drop_class=[]):
 
     dfs = []
     for filepath in files:
         df = pd.read_csv(filepath)
         os.chdir(os.path.dirname(filepath))
         dfs.append(df)
+    df = pd.concat(dfs)
 
-    df = pd.concat(dfs, ignore_index=True)
 
     if len(drop_lipids) > 0:
         df = df[~df["Molecule"].isin(drop_lipids)]
@@ -1049,6 +1051,11 @@ def compare_pipeline(files, set1, set2, mode="Products", drop_IS=True, normalize
 
     # Limit to molecule list name of pc for testing
     # df = df[df["Molecule List Name"] == "PC"]
+
+    if len(drop_class) > 0:
+        for cls in drop_class:
+            df = df[df["Molecule List Name"] != cls]
+            print(f"Dropped {len(drop_class)} class from the dataset: {cls}")
 
     normdf, replicates = sum_transitions(df, mode=mode, drop_IS=drop_IS, normalize_IS=normalize_IS,
                                          normalize_TIC=normalize_TIC)
@@ -1226,14 +1233,15 @@ def lipid_bar_chart_compare(df, classes=["PC"], ax=None, fontsize=8, s1name="Set
 
 
 if __name__ == "__main__":
-    file = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\Molecule Transition Results.csv"
-    file2 = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\Molecule Transition Results Chol.csv"
+    file = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\May 2026\Moleule Transition Results.csv"
+    # file2 = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\Molecule Transition Results Chol.csv"
     # file = r"C:\Users\marty\Downloads\Extr_US_MoleculeTransResults.csv"
 
     set1 = ["FT 1", "FT 2", "FT 3"]
     set2 = ["E 1", "E 2", "E 3"]
     set3 = ["Memb Extr 1", "Memb Extr 2", "Memb Extr 3"]
 
+    # set1 = ["Memb Extr 1", "Memb Extr 2", "Memb Extr 3"]
     # is_analysis(file)
     # exit()
 
@@ -1242,16 +1250,17 @@ if __name__ == "__main__":
     #
     # exit()
 
-    normdf, classdf = compare_pipeline([file2, file], set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
-                                       norm_tmm=False,
-                  normalize_TIC=True, paired=False, bh_correction=True, plot_results=True, write_output=True,
-                     fold_range=np.log2(2), otherthresh=0.03, set1_name="FT", set2_name="E", drop_lipids=["SM 35:1;2"])
+    normdf, classdf = compare_pipeline([file], set1, set2, mode="Products", drop_IS=True, normalize_IS=False,
+                                       norm_tmm=True,
+                  normalize_TIC=False, paired=False, bh_correction=True, plot_results=True, write_output=True,
+                     fold_range=np.log2(2), otherthresh=0.03, set1_name="FT", set2_name="E", drop_lipids=[],
+                                       drop_class=["TG"])
 
     exit()
     # Figure with pie 1 volcano pie 2 in a row
     plt.figure(figsize=(18, 6))
     ax1 = plt.subplot(1, 3, 1)
-    pie_chart(classdf, "Set1_Mean", ax=ax1, title="Membrane Extract", otherthresh=0.015)
+    pie_chart(classdf, "Set1_Mean", ax=ax1, title="FT", otherthresh=0.015)
     ax2 = plt.subplot(1, 3, 2)
     make_volcano_plot(normdf, title="Volcano Plot", ax=ax2, fold_range=np.log2(1.75), xlims=[-6, 6])
     ax3 = plt.subplot(1, 3, 3)

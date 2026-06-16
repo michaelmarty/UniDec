@@ -2,15 +2,14 @@ import matplotlib.pyplot as plt
 
 from PublicScripts.Lipids.SkylineResultsPlotter import *
 
-file = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\Molecule Transition Results_stats_working.xlsx"
-file = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\Molecule Transition Results Chol_stats.xlsx"
+file = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\May 2026\Moleule Transition Results.xlsx"
 
 classdf = pd.read_excel(file, sheet_name="Class Stats")
 normdf = pd.read_excel(file, sheet_name="Molecule Stats")
 
 set1 = ["FT 1", "FT 2", "FT 3"]
 set2 = ["E 1", "E 2", "E 3"]
-set3 = ["Memb Extr 1", "Memb Extr 2", "Memb Extr 3"]
+# set3 = ["Memb Extr 1", "Memb Extr 2", "Memb Extr 3"]
 
 # Figure with pie 1 volcano pie 2 in a row
 # plt.figure(figsize=(18, 6))

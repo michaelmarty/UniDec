@@ -54,18 +54,24 @@ pdbseq2 = ''.join(pdbseq["residue_name"])
 
 lname = "POPG"
 
-datafile = f"C:\VMD\CB2\CG\POPG5\gromacs\Interaction_{lname}\Dataset_{lname}\Dataset.csv"
+datafile = f"C:\\VMD\\CB2\\CG\\POPG5\\gromacs\\Interaction_{lname}\\Dataset_{lname}\\Dataset.csv"
+# datafile = f"C:\\VMD\\CB2\\AA\\POPG5\\namd\\Interaction_{lname}\\Dataset_{lname}\\Dataset.csv"
 
 
-pdboutput = os.path.join(dir, f"CB2_{lname}.pdb")
+pdboutput = os.path.join(dir, f"CB2_{lname}_cg_res.pdb")
 df = pd.read_csv(datafile)
 
-datacolumn = "Occupancy"
+datacolumn = "Residence Time"
+# datacolumn = "Occupancy"
 df = get_residue_number_and_name(df, column="Residue", mode=1)
 
 # Normalize datacolumn
 array = df[datacolumn]
-array /= 100
+
+if datacolumn == "Residence Time":
+    array /= np.amax(array)
+else:
+    array /= 100
 df[datacolumn] = array
 
 resnumbers = np.array(df["residue_number"])
