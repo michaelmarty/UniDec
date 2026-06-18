@@ -759,6 +759,11 @@ def apply_ontology_mapping(df, name_col="Metabolite name", output_col="Ontology"
 
 def make_sum_comp(name):
     if "_" or "/" in name:
+        prefix = ""
+        if "O-" in name:
+            prefix = "O-"
+        elif "P-" in name:
+            prefix = "P-"
         specialpart = ""
         if ";" in name:
             specialpart = name.split(";")[1].strip()
@@ -768,10 +773,13 @@ def make_sum_comp(name):
 
         tname, tl, tu = count_tails(name, verbose=True)
         hname = name.split(" ")[0]
-        newname = f"{hname} {tl}:{tu}"
+        newname = f"{hname} {prefix}{tl}:{tu}"
         name = newname + specialpart
     return name
 
+def add_sump_comp(name):
+    newname = make_sum_comp(name)
+    return newname + " | " + name
 
 def apply_sum_comp(df, namecol="Metabolite name", classcol="Ontology", adductcol="Adduct type"):
     # Apply to all
@@ -781,26 +789,39 @@ def apply_sum_comp(df, namecol="Metabolite name", classcol="Ontology", adductcol
     # df[namecol] = df["Sum Comp Name"] + " | " + df["Original Name"]
     # df = df.drop(columns=["Sum Comp Name"])
 
-    mask = df[adductcol] == "[M+H]+"
-    mask2 = df[classcol] == "PC"
+    # Take only LPC, SM, and PC with [M+CH3COO]- adducts and apply make_sum_comp to them
+    mask = df[adductcol] == "[M+CH3COO]-"
+    mask2 = df[classcol].isin(["LPC", "SM", "PC"])
     if mask.any() and mask2.any():
-        # Isolate PC [M+H]+ adducts
+        # Isolate LPC, SM, and PC [M+CH3COO]- adducts
         subdf = df[mask & mask2].copy()
-        subdf[namecol] = subdf[namecol].apply(make_sum_comp)
-        # Drop original PC [M+H]+ rows
+        subdf[namecol] = subdf[namecol].apply(add_sump_comp)
+        # Drop original LPC, SM, and PC [M+CH3COO]- rows
         df = df[~(mask & mask2)]
-        # Append modified PC [M+H]+ rows
+        # Append modified LPC, SM, and PC [M+CH3COO]- rows
         df = pd.concat([df, subdf], ignore_index=True)
 
-    mask2 = df[classcol] == "SM"
-    if mask.any() and mask2.any():
-        # Isolate SM [M+H]+ adducts
-        subdf = df[mask & mask2].copy()
-        subdf[namecol] = subdf[namecol].apply(make_sum_comp)
-        # Drop original SM [M+H]+ rows
-        df = df[~(mask & mask2)]
-        # Append modified SM [M+H]+ rows
-        df = pd.concat([df, subdf], ignore_index=True)
+
+    # mask = df[adductcol] == "[M+H]+"
+    # mask2 = df[classcol] == "PC"
+    # if mask.any() and mask2.any():
+    #     # Isolate PC [M+H]+ adducts
+    #     subdf = df[mask & mask2].copy()
+    #     subdf[namecol] = subdf[namecol].apply(make_sum_comp)
+    #     # Drop original PC [M+H]+ rows
+    #     df = df[~(mask & mask2)]
+    #     # Append modified PC [M+H]+ rows
+    #     df = pd.concat([df, subdf], ignore_index=True)
+    #
+    # mask2 = df[classcol] == "SM"
+    # if mask.any() and mask2.any():
+    #     # Isolate SM [M+H]+ adducts
+    #     subdf = df[mask & mask2].copy()
+    #     subdf[namecol] = subdf[namecol].apply(make_sum_comp)
+    #     # Drop original SM [M+H]+ rows
+    #     df = df[~(mask & mask2)]
+    #     # Append modified SM [M+H]+ rows
+    #     df = pd.concat([df, subdf], ignore_index=True)
     return df
 
 def get_charge(adduct):
@@ -2404,9 +2425,10 @@ def tl_to_il(df):
     il_df = il_df.drop_duplicates().reset_index(drop=True)
     return il_df
 
-def derplicate_il(df, mztol=0.8):
+def derplicate_il(df, mztol=0.3, rttol=1.0):
     good_rows = []
     df = df.sort_values(by=["m/z"]).reset_index(drop=True)
+    df["Retention Time (min)"] = (df["t start (min)"] + df["t stop (min)"]) / 2
     # Group similar m/z and charge
     groups = []
     used = set()
@@ -2418,9 +2440,17 @@ def derplicate_il(df, mztol=0.8):
             if j in used:
                 continue
             other = df.loc[j]
+
             mz_close = abs(row["m/z"] - other["m/z"]) <= mztol
+
             same_charge = row["Polarity"] == other["Polarity"]
-            if mz_close and same_charge:
+
+            rt_close = abs(
+                row["Retention Time (min)"] -
+                other["Retention Time (min)"]
+            ) <= rttol
+
+            if mz_close and same_charge and rt_close:
                 group_indices.append(j)
         used.update(group_indices)
         group = df.loc[group_indices]

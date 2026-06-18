@@ -111,9 +111,10 @@ class UniDec(UniDecEngine):
         if file_directory is None:
             file_directory = os.path.dirname(file_name)
             file_name = os.path.basename(file_name)
-        if '.d' not in file_directory and '.raw' not in file_directory:
-            file_path = os.path.join(file_directory, file_name)
-        else:
+
+        file_path = os.path.join(file_directory, file_name)
+
+        if not os.path.isfile(file_path) and ('.d' not in file_directory or '.raw' not in file_directory):
             try:
                 file_path = file_directory
             except:

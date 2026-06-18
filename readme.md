@@ -18,7 +18,9 @@ UniDec may be downloaded from [https://github.com/michaelmarty/UniDec/releases](
 This compiled version is compatible with 64-bit Windows. It a portable binary, so it does not need a conventional installation.
 Just unzip the folder, put it somewhere convenient, if you are still having issues 
 run the INSTALLER.cmd as administrator,(only have to do this once)
-then click the GUI_UniDec.exe file in the folder to launch.
+then click the GUI_UniDec.exe file in the folder to launch. 
+
+**If you are seeing issues loading Thermo data or having other bugs,** first delete the folder, then right click on the zip file. Select "Properties" and click "Unblock". Finally, unzip it again and launch it.
 
 To use the PDF report generator, install [MikTex](https://miktex.org) and select install packages automatically from the installation options. You may need to add this to your system path so that PDFLatex is found from the command line. 
 
@@ -237,6 +239,12 @@ The main GUI class is Launcher. You can launch the Launcher from the command lin
 Of course, using the pre-compiled version means you don't need to know Python at all and can just click the GUI_UniDec.exe icon to launch the program and get started. However you choose to do it, happy deconvolving!
 
 ## Change Log
+
+v.8.1.4
+
+Fixed bug where .d or .raw in file names could cause text files to fail to import.
+
+Added text about unblocking to the readme.
 
 v.8.1.3
 
