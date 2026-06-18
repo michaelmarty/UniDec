@@ -2425,9 +2425,10 @@ def tl_to_il(df):
     il_df = il_df.drop_duplicates().reset_index(drop=True)
     return il_df
 
-def derplicate_il(df, mztol=0.8):
+def derplicate_il(df, mztol=0.3, rttol=1.0):
     good_rows = []
     df = df.sort_values(by=["m/z"]).reset_index(drop=True)
+    df["Retention Time (min)"] = (df["t start (min)"] + df["t stop (min)"]) / 2
     # Group similar m/z and charge
     groups = []
     used = set()
@@ -2439,9 +2440,17 @@ def derplicate_il(df, mztol=0.8):
             if j in used:
                 continue
             other = df.loc[j]
+
             mz_close = abs(row["m/z"] - other["m/z"]) <= mztol
+
             same_charge = row["Polarity"] == other["Polarity"]
-            if mz_close and same_charge:
+
+            rt_close = abs(
+                row["Retention Time (min)"] -
+                other["Retention Time (min)"]
+            ) <= rttol
+
+            if mz_close and same_charge and rt_close:
                 group_indices.append(j)
         used.update(group_indices)
         group = df.loc[group_indices]
