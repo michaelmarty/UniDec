@@ -218,6 +218,16 @@ void RunIteration(const Config config, Decon *decon, IntraDecon * intra, const I
 		//printf("Point Smoothed %f\n", config.psig);
 	}
 
+	if (config.topncharges > 0 && iterations > config.zcutstartit)
+	{
+		highest_n_chargestates(decon->blur, config.lengthmz, config.numz, config.topncharges, config.zcutpercent);
+	}
+
+	if (config.zcutoff > 0 && iterations > config.zcutstartit)
+	{
+		clip_minor_chargestates(decon->blur, config.lengthmz, config.numz, config.zcutoff, config.zcutpercent);
+	}
+
 	//Run Blurs
 	if (config.zsig >= 0 && config.msig >= 0) {
 		blur_it_mean(*intra, decon->newblur, decon->blur, config.zerolog);
