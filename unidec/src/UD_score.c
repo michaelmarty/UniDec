@@ -518,7 +518,7 @@ int peaks_no_score(Config config, Decon* decon, const int silent) {
 		if (silent == 0) { printf("No peaks detected.\n"); }
 		return 0;
 	}
-
+	printf("Detected %d peaks. Settings: %f %f \n", plen, config.peakwin, config.peakthresh);
 	decon->peakx = realloc(decon->peakx, plen * sizeof(float));
 	decon->peaky = realloc(decon->peaky, plen * sizeof(float));
 	decon->dscores = calloc(plen, sizeof(float));

@@ -207,6 +207,10 @@ struct Config {
     int variablepw;
     float minratio;
     int normthresh;
+    int topncharges;
+    float zcutoff;
+    float zcutpercent;
+    int zcutstartit;
 };
 
 typedef struct Spectrum Spectrum;

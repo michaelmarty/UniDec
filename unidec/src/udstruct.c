@@ -208,6 +208,10 @@ void SetDefaultConfig(Config *config) {
     config->variablepw = 0;
     config->minratio = 0.0f;
     config->normthresh = 1;
+    config->topncharges = 0;
+    config->zcutoff = 0.0f;
+    config->zcutpercent = 0.0f;
+    config->zcutstartit = 3;
 }
 
 void PostImport(Config *config) {
@@ -354,6 +358,10 @@ Config LoadConfig(Config config, const char *filename) {
             // DoubleDec Parameters
             if (strstr(x, "doubledec") != NULL) { config.doubledec = strtol(y, &endptr, 10); }
             if (strstr(x, "kernel") != NULL) { strcpy(config.kernel, y); }
+            if (strstr(x, "topncharges") != NULL) { config.topncharges = strtol(y, &endptr, 10); }
+            if (strstr(x, "zcutoff") != NULL) { config.zcutoff = strtof(y, &endptr); }
+            if (strstr(x, "zcutpercent") != NULL) { config.zcutpercent = strtof(y, &endptr); }
+            if (strstr(x, "zcutstartit") != NULL) { config.zcutstartit = strtol(y, &endptr, 10); }
         }
         //printf("\n\n");
     }
@@ -442,7 +450,7 @@ void PrintHelp() {
     printf("\t\t\t\t\t\"tcal3\"=Calibration paramter 3 (P3)\n");
     printf("\t\t\t\t5=SLIM T-Wave 3rd Order Polynomial Calibration\n");
     printf("\t\t\t\t\t\"tcal4\"=Calibration parmater 4 (P4)\n");
-    printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@utexas.edu) commit date 2/26/2026\n");
+    printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@utexas.edu) commit date 6/23/2026\n");
     //printf("\nsize of: %d",sizeof(char));
 
     /*

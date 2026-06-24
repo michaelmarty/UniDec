@@ -57,6 +57,8 @@ void softargmax(float *blur, const int lengthmz, const int numz, const float bet
 void softmax_peakwidth(const Config config, const Decon decon, float *blur, const char * barr, const float beta);
 
 void point_smoothing(float *blur, const char *barr, const int lengthmz, const int numz, const int width);
+void highest_n_chargestates(float *blur, int lengthmz, int numz, int n, float zcutpercent);
+void clip_minor_chargestates(float *blur, int lengthmz, int numz, float zcutoff, float zcutpercent);
 float getfitdatspeedy(float *fitdat, const float *blur, const int lengthmz, const int numz,
                       const int maxlength, const float maxint,
                       const int *starttab,
