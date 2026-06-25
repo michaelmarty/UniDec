@@ -469,33 +469,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             gbox2b.Add(wx.StaticText(panel2b, label="Peak FWHM (ms): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
-        if self.config.imflag == 0:
-
-            self.ctlbeta = wx.TextCtrl(panel2b, value="", size=size1)
-            gbox2b.Add(wx.StaticText(panel2b, label="Beta: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-            gbox2b.Add(self.ctlbeta, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
-
-            self.ctltopn = wx.TextCtrl(panel2b, value="", size=size1)
-            gbox2b.Add(wx.StaticText(panel2b, label="Only Allow N Charges: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-            gbox2b.Add(self.ctltopn, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
-
-            self.ctlzcutoff = wx.TextCtrl(panel2b, value="", size=size1)
-            gbox2b.Add(wx.StaticText(panel2b, label="Require X Percentage: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-            gbox2b.Add(self.ctlzcutoff, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
-
-            self.ctlzcutpercent = wx.TextCtrl(panel2b, value="", size=size1)
-            gbox2b.Add(wx.StaticText(panel2b, label="Limit Smash Percent: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-            gbox2b.Add(self.ctlzcutpercent, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
-
-            self.ctlzcutstartit = wx.TextCtrl(panel2b, value="", size=size1)
-            gbox2b.Add(wx.StaticText(panel2b, label="Smash Start Index: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-            gbox2b.Add(self.ctlzcutstartit, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
-
         self.ctlzzsig = wx.TextCtrl(panel2b, value="", size=size1)
         gbox2b.Add(wx.StaticText(panel2b, label="Charge Smooth Width: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         gbox2b.Add(self.ctlzzsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -516,6 +489,33 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlcsig = wx.TextCtrl(panel2b, value="", size=size1)
             gbox2b.Add(wx.StaticText(panel2b, label="CCS Smooth Width: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
             gbox2b.Add(self.ctlcsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+        if self.config.imflag == 0:
+
+            self.ctlbeta = wx.TextCtrl(panel2b, value="", size=size1)
+            gbox2b.Add(wx.StaticText(panel2b, label="Beta: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox2b.Add(self.ctlbeta, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            self.ctltopn = wx.TextCtrl(panel2b, value="", size=size1)
+            gbox2b.Add(wx.StaticText(panel2b, label="Z Trim Top N Charges: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox2b.Add(self.ctltopn, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            self.ctlzcutoff = wx.TextCtrl(panel2b, value="", size=size1)
+            gbox2b.Add(wx.StaticText(panel2b, label="Z Trim Top X %: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox2b.Add(self.ctlzcutoff, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            self.ctlzcutpercent = wx.TextCtrl(panel2b, value="", size=size1)
+            gbox2b.Add(wx.StaticText(panel2b, label="Z Trim Cut Percent: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox2b.Add(self.ctlzcutpercent, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            self.ctlzcutstartit = wx.TextCtrl(panel2b, value="", size=size1)
+            gbox2b.Add(wx.StaticText(panel2b, label="Z Trim Start Iteration: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox2b.Add(self.ctlzcutstartit, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
         self.ctlnumit = wx.TextCtrl(panel2b, value='', size=size1)
@@ -985,7 +985,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.config.beta = ud.string_to_value(self.ctlbeta.GetValue())
             self.config.topncharges = ud.string_to_int(self.ctltopn.GetValue())
             self.config.zcutpercent = ud.string_to_value(self.ctlzcutpercent.GetValue())
-            self.config.zcutstartit = ud.string_to_value(self.ctlzcutstartit.GetValue())
+            self.config.zcutstartit = int(ud.string_to_value(self.ctlzcutstartit.GetValue()))
             self.config.zcutoff = ud.string_to_value(self.ctlzcutoff.GetValue())
             self.config.manualfileflag = int(self.ctlmanualassign.GetValue())
             self.config.linflag = self.ctlbintype.GetSelection()

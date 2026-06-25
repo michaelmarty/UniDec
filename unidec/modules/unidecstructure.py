@@ -597,7 +597,7 @@ class UniDecConfig(object):
         self.topncharges = 0
         self.zcutoff = 0
         self.zcutpercent = 0
-        self.zcutstartit = 0
+        self.zcutstartit = 3
         self.startz = 1
         self.endz = 50
         self.numz = 50

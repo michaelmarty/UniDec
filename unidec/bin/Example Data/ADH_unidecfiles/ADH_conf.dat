@@ -10,9 +10,10 @@ startz 1
 zzsig 1.0
 psig 10.0
 beta 0.0
-topncharges 0
-zcutoff 0.7
+topncharges 1
+zcutoff 0.0
 zcutpercent 0.0
+zcutstartit 3.0
 mzsig 16.73188
 psfun 2
 zpsfn 0
