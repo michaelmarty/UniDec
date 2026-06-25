@@ -563,7 +563,7 @@ void softmax_peakwidth(const Config config, const Decon decon, float *blur, cons
 
 void highest_n_chargestates(float *blur, const int lengthmz, const int numz, const int n, const float zcutpercent) {
     if (n <= 0 || n >= numz) { return; }
-    printf("Keeping only the highest %d charge states. Smashing with %f percent.\n", n, zcutpercent);
+    // printf("Keeping only the highest %d charge states. Smashing with %f percent.\n", n, zcutpercent);
 
     #pragma omp parallel for schedule(auto)
     for (int i = 0; i < lengthmz; i++) {
@@ -599,7 +599,7 @@ void highest_n_chargestates(float *blur, const int lengthmz, const int numz, con
 
 void clip_minor_chargestates(float *blur, const int lengthmz, const int numz, const float zcutoff, const float zcutpercent) {
     if (zcutoff <= 0.0f) { return; }
-    printf("Clipping charge states below %f. Smashing with %f percent.\n", zcutoff, zcutpercent);
+    // printf("Clipping charge states below %f. Smashing with %f percent.\n", zcutoff, zcutpercent);
 
     #pragma omp parallel for schedule(auto)
     for (int i = 0; i < lengthmz; i++) {

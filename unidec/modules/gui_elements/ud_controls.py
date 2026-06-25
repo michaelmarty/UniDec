@@ -470,6 +470,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             i += 1
 
         if self.config.imflag == 0:
+
             self.ctlbeta = wx.TextCtrl(panel2b, value="", size=size1)
             gbox2b.Add(wx.StaticText(panel2b, label="Beta: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
             gbox2b.Add(self.ctlbeta, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)

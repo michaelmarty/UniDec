@@ -413,9 +413,11 @@ void SetupOutputs(const Config config, Decon * decon, const IntraDecon intra, co
 		// Scores
 		// .......................................
 
-		//Note this will not execute if the mass axis is bad
-		float scorethreshold = 0;
-		decon->uniscore = score(config, decon, inp, scorethreshold, silent);
+		if (silent==0) {
+			//Note this will not execute if the mass axis is bad
+			float scorethreshold = 0;
+			decon->uniscore = score(config, decon, inp, scorethreshold, silent);
+		}
 
 		// Run DoubleDec if it's checked
 		if (config.doubledec) { // Use Python to confirm kernel file is selected
