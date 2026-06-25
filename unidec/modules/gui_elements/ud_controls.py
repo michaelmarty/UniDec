@@ -490,6 +490,11 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             gbox2b.Add(self.ctlzcutpercent, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
+            self.ctlzcutstartit = wx.TextCtrl(panel2b, value="", size=size1)
+            gbox2b.Add(wx.StaticText(panel2b, label="Smash Start Index: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox2b.Add(self.ctlzcutstartit, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
         self.ctlzzsig = wx.TextCtrl(panel2b, value="", size=size1)
         gbox2b.Add(wx.StaticText(panel2b, label="Charge Smooth Width: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         gbox2b.Add(self.ctlzzsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -832,6 +837,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 self.ctlbeta.SetValue(str(self.config.beta))
                 self.ctltopn.SetValue(str(self.config.topncharges))
                 self.ctlzcutpercent.SetValue(str(self.config.zcutpercent))
+                self.ctlzcutstartit.SetValue(str(self.config.zcutstartit))
                 self.ctlzcutoff.SetValue(str(self.config.zcutoff))
 
             self.ctlsmashflag.SetValue(self.config.smashflag)
@@ -978,6 +984,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.config.beta = ud.string_to_value(self.ctlbeta.GetValue())
             self.config.topncharges = ud.string_to_int(self.ctltopn.GetValue())
             self.config.zcutpercent = ud.string_to_value(self.ctlzcutpercent.GetValue())
+            self.config.zcutstartit = ud.string_to_value(self.ctlzcutstartit.GetValue())
             self.config.zcutoff = ud.string_to_value(self.ctlzcutoff.GetValue())
             self.config.manualfileflag = int(self.ctlmanualassign.GetValue())
             self.config.linflag = self.ctlbintype.GetSelection()

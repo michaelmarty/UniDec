@@ -340,6 +340,7 @@ class UniDecConfig(object):
             "topncharges": (self.topncharges, int),
             "zcutoff": (self.zcutoff, float),
             "zcutpercent": (self.zcutpercent, float),
+            "zcutstartit": (self.zcutstartit, float),
             "mzsig": (self.mzsig, float),
             "psfun": (self.psfun, int),
             "zpsfn": (self.psfunz, int),
@@ -595,6 +596,7 @@ class UniDecConfig(object):
         self.topncharges = 0
         self.zcutoff = 0
         self.zcutpercent = 0
+        self.zcutstartit = 0
         self.startz = 1
         self.endz = 50
         self.numz = 50
@@ -880,6 +882,8 @@ class UniDecConfig(object):
                             self.zcutoff = ud.string_to_value(line.split()[1])
                         if line.startswith("zcutpercent"):
                             self.zcutpercent = ud.string_to_value(line.split()[1])
+                        if line.startswith("zcutstartit"):
+                            self.zcutstartit = ud.string_to_value(line.split()[1])
                         if line.startswith("mzsig"):
                             self.mzsig = ud.string_to_value(line.split()[1])
                         if line.startswith("psfun"):
@@ -1112,7 +1116,7 @@ class UniDecConfig(object):
         cdict = {  # "input": self.infname, "output": self.outfname,
             "numit": self.numit, "version": self.version,
             "endz": self.endz, "startz": self.startz, "zzsig": self.zzsig, "psig": self.psig, "mzsig": self.mzsig,
-            "beta": self.beta, "topncharges": self.topncharges, "zcutoff": self.zcutoff, "zcutpercent": self.zcutpercent,
+            "beta": self.beta, "topncharges": self.topncharges, "zcutoff": self.zcutoff, "zcutpercent": self.zcutpercent, "zcutstartit": self.zcutstartit,
             "psfun": self.psfun, "psfunz": self.psfunz, "discreteplot": self.discreteplot, "massub": self.massub,
             "masslb": self.masslb,
             "msig": self.msig, "molig": self.molig, "massbins": self.massbins, "mtabsig": self.mtabsig,
@@ -1196,6 +1200,7 @@ class UniDecConfig(object):
         self.topncharges = read_attr(self.topncharges, "topncharges", config_group)
         self.zcutoff = read_attr(self.zcutoff, "zcutoff", config_group)
         self.zcutpercent = read_attr(self.zcutpercent, "zcutpercent", config_group)
+        self.zcutstartit = read_attr(self.zcutstartit, "zcutstartit", config_group)
         self.mzsig = read_attr(self.mzsig, "mzsig", config_group)
         self.psfun = read_attr(self.psfun, "psfun", config_group)
         self.psfunz = read_attr(self.psfunz, "psfunz", config_group)
