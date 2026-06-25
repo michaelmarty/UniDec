@@ -1,4 +1,4 @@
-version 8.1.2
+version 8.2.0
 imflag 0
 cdmsflag 0
 input C:\Python\UniDecDev\unidec\bin\Example Data\BSA_unidecfiles\BSA_input.dat
@@ -10,6 +10,10 @@ startz 1
 zzsig 1.0
 psig 1.0
 beta 0.0
+topncharges 0
+zcutoff 0.0
+zcutpercent 0.0
+zcutstartit 3.0
 mzsig 1.0
 psfun 0
 zpsfn 0
@@ -117,13 +121,13 @@ minratio 0.0
 kernel C:\Python\UniDec3\unidec\bin\Example Data\BSA_unidecfiles\BSA_mass.txt
 iso_meanpeakspacing_thresh 0.01
 iso_background_subtraction 0.0
-iso_adductmass 1.007276467
+iso_adduct_mass 1.007276467
 iso_mass_diff_c 1.0033
-iso_peakwindow 80.0
+iso_peak_window 80
 iso_phaseres 8
 iso_matchtol 5.0
 iso_minpeaks 3
-iso_peakthresh 0.0001
+iso_peak_thresh 0.0001
 iso_css_thresh 0.7
 iso_maxshift 3
 iso_mzwindowlb -1.05

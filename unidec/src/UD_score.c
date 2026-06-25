@@ -506,7 +506,7 @@ float score_from_peaks(const int plen, const float *peakx, const float *peaky, f
 	return uniscore;
 }
 
-int peaks_no_score(Config config, Decon* decon, const int silent) {
+int peaks_no_score(const Config config, Decon* decon, const int silent) {
 	decon->peakx = calloc(decon->mlen, sizeof(float));
 	decon->peaky = calloc(decon->mlen, sizeof(float));
 
@@ -518,7 +518,7 @@ int peaks_no_score(Config config, Decon* decon, const int silent) {
 		if (silent == 0) { printf("No peaks detected.\n"); }
 		return 0;
 	}
-
+	printf("Detected %d peaks. Settings: %f %f \n", plen, config.peakwin, config.peakthresh);
 	decon->peakx = realloc(decon->peakx, plen * sizeof(float));
 	decon->peaky = realloc(decon->peaky, plen * sizeof(float));
 	decon->dscores = calloc(plen, sizeof(float));
@@ -534,7 +534,7 @@ int peaks_no_score(Config config, Decon* decon, const int silent) {
 }
 
 
-float score(Config config, Decon *decon, Input inp, const float threshold, const int silent)
+float score(const Config config, Decon *decon, const Input inp, const float threshold, const int silent)
 {
 	//printf("Starting Score %f %f\n", config.peakwin, config.peakthresh);
 	int plen = peaks_no_score(config, decon, silent);

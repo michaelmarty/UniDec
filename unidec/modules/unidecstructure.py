@@ -11,7 +11,7 @@ import io
 
 __author__ = 'Michael.Marty'
 
-version = "8.1.3"
+version = "8.2.0"
 
 
 def ofile_reader(path):
@@ -203,6 +203,10 @@ class UniDecConfig(object):
         self.zzsig = 1
         self.psig = 1
         self.beta = 0
+        self.topncharges = 0
+        self.zcutoff = 0
+        self.zcutpercent = 0
+        self.zcutstartit = 3
         self.startz = 1
         self.endz = 50
         self.numz = 50
@@ -334,6 +338,10 @@ class UniDecConfig(object):
             "zzsig": (self.zzsig, float),
             "psig": (self.psig, float),
             "beta": (self.beta, float),
+            "topncharges": (self.topncharges, int),
+            "zcutoff": (self.zcutoff, float),
+            "zcutpercent": (self.zcutpercent, float),
+            "zcutstartit": (self.zcutstartit, float),
             "mzsig": (self.mzsig, float),
             "psfun": (self.psfun, int),
             "zpsfn": (self.psfunz, int),
@@ -586,6 +594,10 @@ class UniDecConfig(object):
         self.zzsig = 1
         self.psig = 1
         self.beta = 0
+        self.topncharges = 0
+        self.zcutoff = 0
+        self.zcutpercent = 0
+        self.zcutstartit = 3
         self.startz = 1
         self.endz = 50
         self.numz = 50
@@ -865,6 +877,14 @@ class UniDecConfig(object):
                             self.psig = ud.string_to_value(line.split()[1])
                         if line.startswith("beta"):
                             self.beta = ud.string_to_value(line.split()[1])
+                        if line.startswith("topncharges"):
+                            self.topncharges = ud.string_to_int(line.split()[1])
+                        if line.startswith("zcutoff"):
+                            self.zcutoff = ud.string_to_value(line.split()[1])
+                        if line.startswith("zcutpercent"):
+                            self.zcutpercent = ud.string_to_value(line.split()[1])
+                        if line.startswith("zcutstartit"):
+                            self.zcutstartit = ud.string_to_value(line.split()[1])
                         if line.startswith("mzsig"):
                             self.mzsig = ud.string_to_value(line.split()[1])
                         if line.startswith("psfun"):
@@ -1097,7 +1117,7 @@ class UniDecConfig(object):
         cdict = {  # "input": self.infname, "output": self.outfname,
             "numit": self.numit, "version": self.version,
             "endz": self.endz, "startz": self.startz, "zzsig": self.zzsig, "psig": self.psig, "mzsig": self.mzsig,
-            "beta": self.beta,
+            "beta": self.beta, "topncharges": self.topncharges, "zcutoff": self.zcutoff, "zcutpercent": self.zcutpercent, "zcutstartit": self.zcutstartit,
             "psfun": self.psfun, "psfunz": self.psfunz, "discreteplot": self.discreteplot, "massub": self.massub,
             "masslb": self.masslb,
             "msig": self.msig, "molig": self.molig, "massbins": self.massbins, "mtabsig": self.mtabsig,
@@ -1178,6 +1198,10 @@ class UniDecConfig(object):
         self.zzsig = read_attr(self.zzsig, "zzsig", config_group)
         self.psig = read_attr(self.psig, "psig", config_group)
         self.beta = read_attr(self.beta, "beta", config_group)
+        self.topncharges = read_attr(self.topncharges, "topncharges", config_group)
+        self.zcutoff = read_attr(self.zcutoff, "zcutoff", config_group)
+        self.zcutpercent = read_attr(self.zcutpercent, "zcutpercent", config_group)
+        self.zcutstartit = read_attr(self.zcutstartit, "zcutstartit", config_group)
         self.mzsig = read_attr(self.mzsig, "mzsig", config_group)
         self.psfun = read_attr(self.psfun, "psfun", config_group)
         self.psfunz = read_attr(self.psfunz, "psfunz", config_group)
@@ -1751,13 +1775,13 @@ class IsoDecConfig:  # (udstruct.UniDecConfig):
         outputstring = ""
         outputstring += "iso_meanpeakspacing_thresh " + str(self.meanpeakspacing_thresh) + "\n"
         outputstring += "iso_background_subtraction " + str(self.background_subtraction) + "\n"
-        outputstring += "iso_adductmass " + str(self.adductmass) + "\n"
+        outputstring += "iso_adduct_mass " + str(self.adductmass) + "\n"
         outputstring += "iso_mass_diff_c " + str(self.mass_diff_c) + "\n"
-        outputstring += "iso_peakwindow " + str(self.peakwindow) + "\n"
+        outputstring += "iso_peak_window " + str(self.peakwindow) + "\n"
         outputstring += "iso_phaseres " + str(self.phaseres) + "\n"
         outputstring += "iso_matchtol " + str(self.matchtol) + "\n"
         outputstring += "iso_minpeaks " + str(self.minpeaks) + "\n"
-        outputstring += "iso_peakthresh " + str(self.peakthresh) + "\n"
+        outputstring += "iso_peak_thresh " + str(self.peakthresh) + "\n"
         outputstring += "iso_css_thresh " + str(self.css_thresh) + "\n"
         outputstring += "iso_maxshift " + str(self.maxshift) + "\n"
         outputstring += "iso_mzwindowlb " + str(self.mzwindowlb) + "\n"
@@ -1817,11 +1841,11 @@ class IsoDecConfig:  # (udstruct.UniDecConfig):
                 self.meanpeakspacing_thresh = float(value)
             elif key == "iso_background_subtraction":
                 self.background_subtraction = float(value)
-            elif key == "iso_adductmass":
+            elif key == "iso_adduct_mass":
                 self.adductmass = float(value)
             elif key == "iso_mass_diff_c":
                 self.mass_diff_c = float(value)
-            elif key == "iso_peakwindow":
+            elif key == "iso_peak_window":
                 self.peakwindow = float(value)
             elif key == "iso_phaseres":
                 self.phaseres = int(value)
@@ -1829,7 +1853,7 @@ class IsoDecConfig:  # (udstruct.UniDecConfig):
                 self.matchtol = float(value)
             elif key == "iso_minpeaks":
                 self.minpeaks = int(value)
-            elif key == "iso_peakthresh":
+            elif key == "iso_peak_thresh":
                 self.peakthresh = float(value)
             elif key == "iso_css_thresh":
                 self.css_thresh = float(value)

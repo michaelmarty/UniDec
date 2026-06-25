@@ -560,6 +560,67 @@ void softmax_peakwidth(const Config config, const Decon decon, float *blur, cons
 }
 
 
+
+void highest_n_chargestates(float *blur, const int lengthmz, const int numz, const int n, const float zcutpercent) {
+    if (n <= 0 || n >= numz) { return; }
+    // printf("Keeping only the highest %d charge states. Smashing with %f percent.\n", n, zcutpercent);
+
+    #pragma omp parallel for schedule(auto)
+    for (int i = 0; i < lengthmz; i++) {
+        // Copy this mz point's charge intensities into a local scratch array
+        float *tmp = (float *) malloc((size_t) numz * sizeof(float));
+        if (!tmp) { continue; }
+        for (int j = 0; j < numz; j++) {
+            tmp[j] = blur[index2D(numz, i, j)];
+        }
+
+        // Partial insertion sort: find the nth largest value as threshold
+        // (only sort the first n elements fully — O(n*numz) which is fine for small numz)
+        for (int a = 0; a < n; a++) {
+            int maxidx = a;
+            for (int b = a + 1; b < numz; b++) {
+                if (tmp[b] > tmp[maxidx]) { maxidx = b; }
+            }
+            const float t = tmp[a]; tmp[a] = tmp[maxidx]; tmp[maxidx] = t;
+        }
+        const float threshold = tmp[n - 1]; // nth largest value
+
+        free(tmp);
+
+        // Zero out any charge state below the threshold
+        for (int j = 0; j < numz; j++) {
+            if (blur[index2D(numz, i, j)] < threshold) {
+                blur[index2D(numz, i, j)] = blur[index2D(numz, i, j)] * zcutpercent;
+            }
+        }
+    }
+}
+
+
+void clip_minor_chargestates(float *blur, const int lengthmz, const int numz, const float zcutoff, const float zcutpercent) {
+    if (zcutoff <= 0.0f) { return; }
+    // printf("Clipping charge states below %f. Smashing with %f percent.\n", zcutoff, zcutpercent);
+
+    #pragma omp parallel for schedule(auto)
+    for (int i = 0; i < lengthmz; i++) {
+        // Find the maximum charge state intensity for this mz point
+        float maxval = 0.0f;
+        for (int j = 0; j < numz; j++) {
+            const float v = blur[index2D(numz, i, j)];
+            if (v > maxval) { maxval = v; }
+        }
+
+        // Zero out any charge state below zcutoff * max
+        const float threshold = zcutoff * maxval;
+        for (int j = 0; j < numz; j++) {
+            if (blur[index2D(numz, i, j)] < threshold) {
+                blur[index2D(numz, i, j)] = blur[index2D(numz, i, j)] * zcutpercent;
+            }
+        }
+    }
+}
+
+
 void point_smoothing(float *blur, const char *barr, const int lengthmz, const int numz, const int width) {
     const int l = lengthmz * numz;
     const float fwidth = (float) width;

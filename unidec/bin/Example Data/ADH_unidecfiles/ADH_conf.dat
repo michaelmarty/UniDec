@@ -1,4 +1,4 @@
-version 8.1.2
+version 8.2.0
 imflag 0
 cdmsflag 0
 input C:\Python\UniDecDev\unidec\bin\Example Data\ADH_unidecfiles\ADH_input.dat
@@ -9,8 +9,12 @@ endz 50
 startz 1
 zzsig 1.0
 psig 10.0
-beta 50.0
-mzsig 10.0
+beta 0.0
+topncharges 1
+zcutoff 0.0
+zcutpercent 0.0
+zcutstartit 3.0
+mzsig 16.73188
 psfun 2
 zpsfn 0
 discreteplot 0
@@ -29,8 +33,8 @@ subtype 2
 smooth 0.0
 mzbins 1.0
 peakwindow 500.0
-peakthresh 3.0
-normthresh 0
+peakthresh 0.02
+normthresh 1
 peakplotthresh 0.1
 plotsep 0.025
 intthresh 0.0
@@ -117,13 +121,13 @@ minratio 0.0
 kernel C:\Python\UniDecDev\unidec\bin\Example Data\ADHclean_unidecfiles\ADHclean_mass.txt
 iso_meanpeakspacing_thresh 0.01
 iso_background_subtraction 0.0
-iso_adductmass 1.007276467
+iso_adduct_mass 1.007276467
 iso_mass_diff_c 1.0033
-iso_peakwindow 80.0
+iso_peak_window 80.0
 iso_phaseres 8
 iso_matchtol 5.0
 iso_minpeaks 3
-iso_peakthresh 0.0001
+iso_peak_thresh 0.0001
 iso_css_thresh 0.7
 iso_maxshift 3
 iso_mzwindowlb -1.05
