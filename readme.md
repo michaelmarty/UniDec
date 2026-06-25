@@ -240,7 +240,13 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 ## Change Log
 
-v.8.1.4
+v.8.2.0
+
+Added in new experimental charge restraint features.
+
+Added -c option to unidec command line arguments to allow for specifying a config file.
+
+Fixed major bug with parameters being mixed up between isotope mode and regular. Should fix any speed or negative mode issues.
 
 Fixed bug where .d or .raw in file names could cause text files to fail to import.
 

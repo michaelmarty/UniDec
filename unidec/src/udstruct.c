@@ -208,6 +208,10 @@ void SetDefaultConfig(Config *config) {
     config->variablepw = 0;
     config->minratio = 0.0f;
     config->normthresh = 1;
+    config->topncharges = 0;
+    config->zcutoff = 0.0f;
+    config->zcutpercent = 0.0f;
+    config->zcutstartit = 3;
 }
 
 void PostImport(Config *config) {
@@ -354,6 +358,10 @@ Config LoadConfig(Config config, const char *filename) {
             // DoubleDec Parameters
             if (strstr(x, "doubledec") != NULL) { config.doubledec = strtol(y, &endptr, 10); }
             if (strstr(x, "kernel") != NULL) { strcpy(config.kernel, y); }
+            if (strstr(x, "topncharges") != NULL) { config.topncharges = strtol(y, &endptr, 10); }
+            if (strstr(x, "zcutoff") != NULL) { config.zcutoff = strtof(y, &endptr); }
+            if (strstr(x, "zcutpercent") != NULL) { config.zcutpercent = strtof(y, &endptr); }
+            if (strstr(x, "zcutstartit") != NULL) { config.zcutstartit = strtol(y, &endptr, 10); }
         }
         //printf("\n\n");
     }
@@ -369,15 +377,13 @@ Config LoadConfig(Config config, const char *filename) {
 void PrintHelp() {
     printf(
         "\nUniDec: Universal Deconvolution of Mass and Ion Mobility Spectra\n\nWritten by Michael Marty\n\twith contributions from Erik Marklund and Andrew Baldwin\n");
-    printf("Copyright University of Oxford 2016 and University of Arizona 2017\n");
+    printf("Copyright University of Oxford 2014-2016 and University of Arizona 2016-2025 and University of Texas at Austin 2025-Present\n");
     printf("\nUniDec runs off a configuration text or hdf5 file.\nExample usage: UniDec.exe conf.txt\n");
     printf("Text configuration file should be written for each line: keyword argument\n");
     printf(
         "HDF5 files should consult the Python API source code for a model of directory and metadata construction.\n");
     printf("File names should include the path if not in the current directory\n");
     printf("\nPossible configuration keywords include:\n");
-    printf("\t\"imflag\" \tSelects between MS and IM-MS\n");
-    printf("\t\t\t\t0=MS\t1=IM-MS\n");
     printf("\t\"input\" \tInput text file name in x y form (MS) or x y z (IM-MS)\n");
     printf("\t\"output\" \tHeader for output file names\n");
     printf("\t\"numit\" \tNumber of iterations\n");
@@ -404,45 +410,14 @@ void PrintHelp() {
     printf("\t\"nativezlb\" \tLimits to native charge - this lower bound.\n");
     printf("\t\"manualfile\" \tManual assignments file: M/Zvalue window charge\n");
     printf("\t\"intthresh\" \tLimits to m/z values with intensities > threshold \n");
-    printf(
-        "\t\"isotopemode\" \t0=off 1=monoisotopic 2=average: Uses isotope distributions in deconvolution (MS Only)\n");
+    // printf(
+    //     "\t\"isotopemode\" \t0=off 1=monoisotopic 2=average: Uses isotope distributions in deconvolution (MS Only)\n");
     printf("\t\"orbimode\" \t0=off 1=on: Uses charge scaling by 1/z to scale intensities based on charge (MS Only)\n");
     printf("\t\"poolflag\" \tSpecifies how to transform from m/z to mass axis\n");
     printf("\t\t\t\t0=Integration\n");
     printf("\t\t\t\t1=Interpolation\n");
-    printf("\t\"speedy\" \tAllows faster convolution on linearized data (MS Only)\n");
-    printf("\t\t\t\t0=No speedup. Works for nonlinear data\n");
-    printf("\t\t\t\t1=Speedup! Works only for linearized data\n");
-    printf("\tIM-MS mode assumes linearized data and includes the following parameters:\n");
-    printf("\t\"csig\"   \tWidth of CCS smoothing\n");
-    printf("\t\"dtsig\"   \tFWHM or peak in drift time\n");
-    printf("\t\"ccsub\"   \tUpper bound on CCS\n");
-    printf("\t\"ccslb\"   \tLower bound on CCS\n");
-    printf("\t\"ccsbins\"   \tDensity of CCS sampling\n");
-    printf("\t\"ubnativeccs\"   \tLimits to native CCS + this upper bound.\n");
-    printf("\t\"lbnativeccs\"   \tLimits to native CCS - this lower bound.\n");
-    printf("\t\"zout\"   \tSpecific charge state to extract data from 3D final grid (optional).\n");
-    printf("\t\"twaveflag\"   \tType of equation for calculating CCS from drift time\n");
-    printf("\t\t\t\t0=Linear Cell\n");
-    printf("\t\t\t\t\t\"temp\"=Temperature in K\n");
-    printf("\t\t\t\t\t\"pressure\"=Pressure in Torr\n");
-    printf("\t\t\t\t\t\"volt\"=Drift voltage\n");
-    printf("\t\t\t\t\t\"driftlength\"=Length of drift cell\n");
-    printf("\t\t\t\t\t\"tnaught\"=Dead time between IM cell and detector\n");
-    printf("\t\t\t\t1=T-Wave Log Calibration\n");
-    printf("\t\t\t\t\t\"tcal1\"=Calibration parameter 1 (P1)\n");
-    printf("\t\t\t\t\t\"tcal2\"=Calibration parameter 2 (P2)\n");
-    printf("\t\t\t\t\t\"EDC\"=Instrumental constant\n");
-    printf("\t\t\t\t\tReduced CCS = Exp(P1 * log(Reduced Drift Time) + P2)\n");
-    printf("\t\t\t\t2=T-Wave Linear Calibration\n");
-    printf("\t\t\t\t\t Reduced CCS = P1 * Reduced Drift Time + P2\n");
-    printf("\t\t\t\t3=T-Wave Power Law Calibration\n");
-    printf("\t\t\t\t\tReduced CCS =P1 * (Reduced Drift Time ^ P2)\n");
-    printf("\t\t\t\t4=SLIM T-Wave 2nd Order Polynomial Calibration\n");
-    printf("\t\t\t\t\t\"tcal3\"=Calibration paramter 3 (P3)\n");
-    printf("\t\t\t\t5=SLIM T-Wave 3rd Order Polynomial Calibration\n");
-    printf("\t\t\t\t\t\"tcal4\"=Calibration parmater 4 (P4)\n");
-    printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@utexas.edu) commit date 2/26/2026\n");
+    printf("\t\t\t\t2=Smart blend of interpolation and integration\n");
+    printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@utexas.edu) commit date 6/25/2026\n");
     //printf("\nsize of: %d",sizeof(char));
 
     /*

@@ -48,7 +48,6 @@ class UniDecApp(UniDecPres):
         :return:
         """
         self.eng = unidec.UniDec(ignore_args=True)
-
         self.view = mainwindow.Mainwindow(self, "UniDec", self.eng.config)
 
         pub.subscribe(self.on_integrate, 'integrate')

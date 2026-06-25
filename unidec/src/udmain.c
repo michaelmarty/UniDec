@@ -218,6 +218,16 @@ void RunIteration(const Config config, Decon *decon, IntraDecon * intra, const I
 		//printf("Point Smoothed %f\n", config.psig);
 	}
 
+	if (config.topncharges > 0 && iterations > config.zcutstartit)
+	{
+		highest_n_chargestates(decon->blur, config.lengthmz, config.numz, config.topncharges, config.zcutpercent);
+	}
+
+	if (config.zcutoff > 0 && iterations > config.zcutstartit)
+	{
+		clip_minor_chargestates(decon->blur, config.lengthmz, config.numz, config.zcutoff, config.zcutpercent);
+	}
+
 	//Run Blurs
 	if (config.zsig >= 0 && config.msig >= 0) {
 		blur_it_mean(*intra, decon->newblur, decon->blur, config.zerolog);
@@ -403,9 +413,11 @@ void SetupOutputs(const Config config, Decon * decon, const IntraDecon intra, co
 		// Scores
 		// .......................................
 
-		//Note this will not execute if the mass axis is bad
-		float scorethreshold = 0;
-		decon->uniscore = score(config, decon, inp, scorethreshold, silent);
+		if (silent==0) {
+			//Note this will not execute if the mass axis is bad
+			float scorethreshold = 0;
+			decon->uniscore = score(config, decon, inp, scorethreshold, silent);
+		}
 
 		// Run DoubleDec if it's checked
 		if (config.doubledec) { // Use Python to confirm kernel file is selected
