@@ -208,10 +208,12 @@ void SetDefaultConfig(Config *config) {
     config->variablepw = 0;
     config->minratio = 0.0f;
     config->normthresh = 1;
-    config->topncharges = 0;
-    config->zcutoff = 0.0f;
-    config->zcutpercent = 0.0f;
-    config->zcutstartit = 3;
+    config->suppression_topn = 0;
+    config->suppression_topx = 0.0f;
+    config->suppression_percent = 0.0f;
+    config->suppression_startit = 3;
+    config->suppression_harmonic = 0;
+    config->suppression_satellite = 0;
 }
 
 void PostImport(Config *config) {
@@ -358,10 +360,12 @@ Config LoadConfig(Config config, const char *filename) {
             // DoubleDec Parameters
             if (strstr(x, "doubledec") != NULL) { config.doubledec = strtol(y, &endptr, 10); }
             if (strstr(x, "kernel") != NULL) { strcpy(config.kernel, y); }
-            if (strstr(x, "topncharges") != NULL) { config.topncharges = strtol(y, &endptr, 10); }
-            if (strstr(x, "zcutoff") != NULL) { config.zcutoff = strtof(y, &endptr); }
-            if (strstr(x, "zcutpercent") != NULL) { config.zcutpercent = strtof(y, &endptr); }
-            if (strstr(x, "zcutstartit") != NULL) { config.zcutstartit = strtol(y, &endptr, 10); }
+            if (strstr(x, "suppression_topn") != NULL) {config.suppression_topn = strtol(y, &endptr, 10);}
+            if (strstr(x, "suppression_topx") != NULL) {config.suppression_topx = strtof(y, &endptr);}
+            if (strstr(x, "suppression_percent") != NULL) {config.suppression_percent = strtof(y, &endptr);}
+            if (strstr(x, "suppression_startit") != NULL) {config.suppression_startit = strtol(y, &endptr, 10);}
+            if (strstr(x, "suppression_harmonic") != NULL) { config.suppression_harmonic = strtol(y, &endptr, 10); }
+            if (strstr(x, "suppression_satellite") != NULL) { config.suppression_satellite = strtol(y, &endptr, 10); }
         }
         //printf("\n\n");
     }

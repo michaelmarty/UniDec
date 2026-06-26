@@ -240,6 +240,12 @@ Of course, using the pre-compiled version means you don't need to know Python at
 
 ## Change Log
 
+v.8.2.1
+
+Added new harmonic and satellite suppression parameters, copied nearly exactly from 2015.
+
+Renamed other harmonic and satellite suppression parameters to be more descriptive.
+
 v.8.2.0
 
 Added in new experimental charge restraint features.

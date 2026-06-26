@@ -205,6 +205,7 @@ void RunIteration(const Config config, Decon *decon, IntraDecon * intra, const I
 	// 	adjust_ratios(config, barr, intra.numclose, closeind, decon.blur);
 	// }
 
+	// Softmax
 	if (config.beta > 0 && iterations > 0)
 	{
 		softargmax(decon->blur, config.lengthmz, config.numz, config.beta/intra->betafactor);
@@ -212,21 +213,32 @@ void RunIteration(const Config config, Decon *decon, IntraDecon * intra, const I
 		// softmax_peakwidth(config, decon, decon.blur, barr, config.beta/betafactor);
 	}
 
+	// Point Smoothing
 	if (config.psig >= 1 && iterations > 0)
 	{
 		point_smoothing(decon->blur, intra->barr, config.lengthmz, config.numz, abs((int)config.psig));
 		//printf("Point Smoothed %f\n", config.psig);
 	}
 
-	if (config.topncharges > 0 && iterations > config.zcutstartit)
-	{
-		highest_n_chargestates(decon->blur, config.lengthmz, config.numz, config.topncharges, config.zcutpercent);
+	// Suppression options
+	if (config.suppression_satellite > 0 && iterations > config.suppression_startit) {
+		suppression_satelite(decon->blur, config.lengthmz, config.numz, config.suppression_satellite);
 	}
 
-	if (config.zcutoff > 0 && iterations > config.zcutstartit)
-	{
-		clip_minor_chargestates(decon->blur, config.lengthmz, config.numz, config.zcutoff, config.zcutpercent);
+	if (config.suppression_harmonic > 0 && iterations > config.suppression_startit) {
+		suppression_harmonic(decon->blur, config.lengthmz, config.numz, inp.nztab);
 	}
+
+	if (config.suppression_topn > 0 && iterations > config.suppression_startit)
+	{
+		highest_n_chargestates(decon->blur, config.lengthmz, config.numz, config.suppression_topn, config.suppression_percent);
+	}
+
+	if (config.suppression_topx > 0 && iterations > config.suppression_startit)
+	{
+		clip_minor_chargestates(decon->blur, config.lengthmz, config.numz, config.suppression_topx, config.suppression_percent);
+	}
+
 
 	//Run Blurs
 	if (config.zsig >= 0 && config.msig >= 0) {
