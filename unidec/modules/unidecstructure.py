@@ -203,10 +203,14 @@ class UniDecConfig(object):
         self.zzsig = 1
         self.psig = 1
         self.beta = 0
-        self.topncharges = 0
-        self.zcutoff = 0
-        self.zcutpercent = 0
-        self.zcutstartit = 3
+
+        self.suppression_topn = 0
+        self.suppression_topx = 0
+        self.suppression_percent = 0
+        self.suppression_startit = 3
+        self.suppression_harmonic = 0
+        self.suppression_satellite = 0
+
         self.startz = 1
         self.endz = 50
         self.numz = 50
@@ -338,10 +342,12 @@ class UniDecConfig(object):
             "zzsig": (self.zzsig, float),
             "psig": (self.psig, float),
             "beta": (self.beta, float),
-            "topncharges": (self.topncharges, int),
-            "zcutoff": (self.zcutoff, float),
-            "zcutpercent": (self.zcutpercent, float),
-            "zcutstartit": (self.zcutstartit, float),
+            "suppression_topn": (self.suppression_topn, int),
+            "suppression_topx": (self.suppression_topx, float),
+            "suppression_percent": (self.suppression_percent, float),
+            "suppression_startit": (self.suppression_startit, int),
+            "suppression_harmonic": (self.suppression_harmonic, int),
+            "suppression_satellite": (self.suppression_satellite, int),
             "mzsig": (self.mzsig, float),
             "psfun": (self.psfun, int),
             "zpsfn": (self.psfunz, int),
@@ -594,10 +600,12 @@ class UniDecConfig(object):
         self.zzsig = 1
         self.psig = 1
         self.beta = 0
-        self.topncharges = 0
-        self.zcutoff = 0
-        self.zcutpercent = 0
-        self.zcutstartit = 3
+        self.suppression_topn = 0
+        self.suppression_topx = 0
+        self.suppression_percent = 0
+        self.suppression_startit = 3
+        self.suppression_harmonic = 0
+        self.suppression_satellite = 0
         self.startz = 1
         self.endz = 50
         self.numz = 50
@@ -877,14 +885,26 @@ class UniDecConfig(object):
                             self.psig = ud.string_to_value(line.split()[1])
                         if line.startswith("beta"):
                             self.beta = ud.string_to_value(line.split()[1])
-                        if line.startswith("topncharges"):
-                            self.topncharges = ud.string_to_int(line.split()[1])
-                        if line.startswith("zcutoff"):
-                            self.zcutoff = ud.string_to_value(line.split()[1])
-                        if line.startswith("zcutpercent"):
-                            self.zcutpercent = ud.string_to_value(line.split()[1])
-                        if line.startswith("zcutstartit"):
-                            self.zcutstartit = ud.string_to_value(line.split()[1])
+                        if line.startswith("suppression_topn"):
+                            self.suppression_topn = ud.string_to_int(line.split()[1])
+                        # if line.startswith("topncharges"):
+                        #     self.suppression_topn = ud.string_to_int(line.split()[1])
+                        if line.startswith("suppression_topx"):
+                            self.suppression_topx = ud.string_to_value(line.split()[1])
+                        # if line.startswith("zcutoff"):
+                        #     self.suppression_topx = ud.string_to_value(line.split()[1])
+                        if line.startswith("suppression_percent"):
+                            self.suppression_percent = ud.string_to_value(line.split()[1])
+                        # if line.startswith("zcutpercent"):
+                        #     self.suppression_percent = ud.string_to_value(line.split()[1])
+                        if line.startswith("suppression_startit"):
+                            self.suppression_startit = ud.string_to_int(line.split()[1])
+                        # if line.startswith("zcutstartit"):
+                        #     self.suppression_startit = ud.string_to_int(line.split()[1])
+                        if line.startswith("suppression_harmonic"):
+                            self.suppression_harmonic = ud.string_to_int(line.split()[1])
+                        if line.startswith("suppression_satellite"):
+                            self.suppression_satellite = ud.string_to_int(line.split()[1])
                         if line.startswith("mzsig"):
                             self.mzsig = ud.string_to_value(line.split()[1])
                         if line.startswith("psfun"):
@@ -1117,7 +1137,9 @@ class UniDecConfig(object):
         cdict = {  # "input": self.infname, "output": self.outfname,
             "numit": self.numit, "version": self.version,
             "endz": self.endz, "startz": self.startz, "zzsig": self.zzsig, "psig": self.psig, "mzsig": self.mzsig,
-            "beta": self.beta, "topncharges": self.topncharges, "zcutoff": self.zcutoff, "zcutpercent": self.zcutpercent, "zcutstartit": self.zcutstartit,
+            "beta": self.beta, "suppression_topn": self.suppression_topn, "suppression_topx": self.suppression_topx,
+            "suppression_percent": self.suppression_percent, "suppression_startit": self.suppression_startit,
+            "suppression_harmonic": self.suppression_harmonic, "suppression_satellite": self.suppression_satellite,
             "psfun": self.psfun, "psfunz": self.psfunz, "discreteplot": self.discreteplot, "massub": self.massub,
             "masslb": self.masslb,
             "msig": self.msig, "molig": self.molig, "massbins": self.massbins, "mtabsig": self.mtabsig,
@@ -1198,10 +1220,16 @@ class UniDecConfig(object):
         self.zzsig = read_attr(self.zzsig, "zzsig", config_group)
         self.psig = read_attr(self.psig, "psig", config_group)
         self.beta = read_attr(self.beta, "beta", config_group)
-        self.topncharges = read_attr(self.topncharges, "topncharges", config_group)
-        self.zcutoff = read_attr(self.zcutoff, "zcutoff", config_group)
-        self.zcutpercent = read_attr(self.zcutpercent, "zcutpercent", config_group)
-        self.zcutstartit = read_attr(self.zcutstartit, "zcutstartit", config_group)
+        # self.suppression_topn = read_attr(self.suppression_topn, "topncharges", config_group)
+        self.suppression_topn = read_attr(self.suppression_topn, "suppression_topn", config_group)
+        # self.suppression_topx = read_attr(self.suppression_topx, "zcutoff", config_group)
+        self.suppression_topx = read_attr(self.suppression_topx, "suppression_topx", config_group)
+        # self.suppression_percent = read_attr(self.suppression_percent, "zcutpercent", config_group)
+        self.suppression_percent = read_attr(self.suppression_percent, "suppression_percent", config_group)
+        # self.suppression_startit = read_attr(self.suppression_startit, "zcutstartit", config_group)
+        self.suppression_startit = read_attr(self.suppression_startit, "suppression_startit", config_group)
+        self.suppression_harmonic = read_attr(self.suppression_harmonic, "suppression_harmonic", config_group)
+        self.suppression_satellite = read_attr(self.suppression_satellite, "suppression_satellite", config_group)
         self.mzsig = read_attr(self.mzsig, "mzsig", config_group)
         self.psfun = read_attr(self.psfun, "psfun", config_group)
         self.psfunz = read_attr(self.psfunz, "psfunz", config_group)
@@ -1386,6 +1414,26 @@ class UniDecConfig(object):
         # Check Native Z range
         if self.nativezub <= self.nativezlb:
             warning = "Max native z offset is less or equal to Min native z offset\nFix native z offset range."
+            badest = 1
+
+        # Check topn parameter
+        if self.suppression_topn > self.endz-self.startz:
+            warning = "The Top N Charges parameter is too large.\n Set to less than total number of charge states"
+            badest = 1
+
+        # Check topx
+        if self.suppression_topx < 0 or self.suppression_topx >= 1:
+            warning = "The Z cutoff (Top X%) parameter is out of range.\n Set to 0<= x < 1"
+            badest = 1
+
+        # Check suppression_startit
+        if self.suppression_startit >= self.numit:
+            warning = "The Z cutoff start iteration parameter is too large.\n Set to less than total number of iterations"
+            badest = 1
+
+        # Check suppression_percent
+        if self.suppression_percent < 0 or self.suppression_percent >= 1:
+            warning = "The Z cutoff percent parameter is out of range.\n Set to 0<= x < 1"
             badest = 1
 
         # Check peak width
