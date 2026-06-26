@@ -2425,7 +2425,7 @@ def tl_to_il(df):
     il_df = il_df.drop_duplicates().reset_index(drop=True)
     return il_df
 
-def derplicate_il(df, mztol=0.3, rttol=1.0):
+def derplicate_il(df, mztol=0.4, rttol=3.0):
     good_rows = []
     df = df.sort_values(by=["m/z"]).reset_index(drop=True)
     df["Retention Time (min)"] = (df["t start (min)"] + df["t stop (min)"]) / 2

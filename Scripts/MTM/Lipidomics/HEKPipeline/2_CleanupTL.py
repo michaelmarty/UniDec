@@ -3,11 +3,11 @@ import pandas as pd
 import PublicScripts.Lipids.LipidFragPrediction as lfp
 from PublicScripts.Lipids.LipidFunctions import rename_overlapping_species
 
-topdir = r"Z:\Group Share\Annika\IQ-X\AcquireX and Neo\AcquireX"
+topdir = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\CurrentData"
 os.chdir(topdir)
 
-filepath = r"Brain_PosNeg_TransList.csv"
-outfile = filepath.replace("_TransList.csv", "_TransList_Clean1.csv")
+filepath = r"Fixed_UltimateSplash_TransList_Clean4.csv"
+outfile = filepath.replace("_Clean4.csv", "_UdpdatedAdducts.csv")
 
 df = pd.read_csv(filepath)
 
