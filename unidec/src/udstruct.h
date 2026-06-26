@@ -207,6 +207,12 @@ struct Config {
     int variablepw;
     float minratio;
     int normthresh;
+    int suppression_topn;
+    float suppression_topx;
+    int suppression_harmonic;
+    int suppression_satellite;
+    float suppression_percent;
+    int suppression_startit;
 };
 
 typedef struct Spectrum Spectrum;

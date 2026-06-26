@@ -16,6 +16,7 @@ rem test wheel
     rem install wheel with: pip install .\distpypi\UniDec-8.0.0-py3-none-any.whl
     rem test with: python -m unidec.IsoDec .\unidec\bin\TestSpectra\test_2.txt -precentroided
     rem test UniDec with: python -m unidec .\unidec\bin\TestSpectra\test_1.txt
+    rem deactivate venv with: deactivate
 rem python -m twine upload --repository testpypi .\distpypi\* --config-file .pypirc (check that old wheels are deleted)
 rem redo last line with pypi instead of testpypi
 rem install with: pip install unidec and test in venv

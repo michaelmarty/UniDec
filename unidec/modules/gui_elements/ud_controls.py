@@ -469,12 +469,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             gbox2b.Add(wx.StaticText(panel2b, label="Peak FWHM (ms): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
-        if self.config.imflag == 0:
-            self.ctlbeta = wx.TextCtrl(panel2b, value="", size=size1)
-            gbox2b.Add(wx.StaticText(panel2b, label="Beta: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-            gbox2b.Add(self.ctlbeta, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
-
         self.ctlzzsig = wx.TextCtrl(panel2b, value="", size=size1)
         gbox2b.Add(wx.StaticText(panel2b, label="Charge Smooth Width: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         gbox2b.Add(self.ctlzzsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -496,6 +490,51 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             gbox2b.Add(wx.StaticText(panel2b, label="CCS Smooth Width: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
             gbox2b.Add(self.ctlcsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
+
+        if self.config.imflag == 0:
+
+            self.ctlbeta = wx.TextCtrl(panel2b, value="", size=size1)
+            gbox2b.Add(wx.StaticText(panel2b, label="Beta: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox2b.Add(self.ctlbeta, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            self.ctlsuppressiontopn = wx.TextCtrl(panel2b, value="", size=size1)
+            gbox2b.Add(wx.StaticText(panel2b, label="Suppression Top N Charges: "), (i, 0),
+                       flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox2b.Add(self.ctlsuppressiontopn, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            self.ctlsuppressiontopx = wx.TextCtrl(panel2b, value="", size=size1)
+            gbox2b.Add(wx.StaticText(panel2b, label="Suppression Top X %: "), (i, 0),
+                       flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox2b.Add(self.ctlsuppressiontopx, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            self.ctlsuppressionsatellite = wx.TextCtrl(panel2b, value="", size=size1)
+            gbox2b.Add(wx.StaticText(panel2b, label="Suppression Satellites: "), (i, 0),
+                       flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox2b.Add(self.ctlsuppressionsatellite, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            gbox2b.Add(wx.StaticText(panel2b, label="Suppression Harmonics: "), (i, 0),
+                       flag=wx.ALIGN_CENTER_VERTICAL)
+            self.ctlsuppressionharmonic = wx.CheckBox(panel2b, label="")
+            gbox2b.Add(self.ctlsuppressionharmonic, (i, 1), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            self.ctlsuppressionpercent = wx.TextCtrl(panel2b, value="", size=size1)
+            gbox2b.Add(wx.StaticText(panel2b, label="Suppression Cut Percent: "), (i, 0),
+                       flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox2b.Add(self.ctlsuppressionpercent, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+            self.ctlsuppressionstartit = wx.TextCtrl(panel2b, value="", size=size1)
+            gbox2b.Add(wx.StaticText(panel2b, label="Suppression Start Iteration: "), (i, 0),
+                       flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox2b.Add(self.ctlsuppressionstartit, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+
 
         self.ctlnumit = wx.TextCtrl(panel2b, value='', size=size1)
         gbox2b.Add(wx.StaticText(panel2b, label='Maximum # of Iterations: '), (i, 0),
@@ -815,6 +854,12 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 self.ctlbintype.SetSelection(int(self.config.linflag))
                 self.ctlpsig.SetValue(str(self.config.psig))
                 self.ctlbeta.SetValue(str(self.config.beta))
+                self.ctlsuppressiontopn.SetValue(str(self.config.suppression_topn))
+                self.ctlsuppressionpercent.SetValue(str(self.config.suppression_percent))
+                self.ctlsuppressionstartit.SetValue(str(self.config.suppression_startit))
+                self.ctlsuppressiontopx.SetValue(str(self.config.suppression_topx))
+                self.ctlsuppressionsatellite.SetValue(str(self.config.suppression_satellite))
+                self.ctlsuppressionharmonic.SetValue(bool(self.config.suppression_harmonic))
 
             self.ctlsmashflag.SetValue(self.config.smashflag)
             self.ctldiscrete.SetValue(self.config.discreteplot)
@@ -958,6 +1003,12 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.config.datanorm = int(self.ctldatanorm.GetValue())
             self.config.psig = ud.string_to_value(self.ctlpsig.GetValue())
             self.config.beta = ud.string_to_value(self.ctlbeta.GetValue())
+            self.config.suppression_topn = ud.string_to_int(self.ctlsuppressiontopn.GetValue())
+            self.config.suppression_percent = ud.string_to_value(self.ctlsuppressionpercent.GetValue())
+            self.config.suppression_startit = ud.string_to_int(self.ctlsuppressionstartit.GetValue())
+            self.config.suppression_topx = ud.string_to_value(self.ctlsuppressiontopx.GetValue())
+            self.config.suppression_satellite = ud.string_to_int(self.ctlsuppressionsatellite.GetValue())
+            self.config.suppression_harmonic = int(self.ctlsuppressionharmonic.GetValue())
             self.config.manualfileflag = int(self.ctlmanualassign.GetValue())
             self.config.linflag = self.ctlbintype.GetSelection()
             if self.config.mzbins == 0:
@@ -1118,6 +1169,12 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlbeta.SetToolTip(wx.ToolTip(
                 "Parameter for defining the degree of Softmax distribution applied to the charge state vectors."
                 "\n0 will shut it off."))
+            self.ctlsuppressiontopn.SetToolTip(wx.ToolTip("Keep only the top N charge states during suppression."))
+            self.ctlsuppressiontopx.SetToolTip(wx.ToolTip("Suppress charge states below this fraction of the local maximum."))
+            self.ctlsuppressionpercent.SetToolTip(wx.ToolTip("Multiplier applied to suppressed charge states."))
+            self.ctlsuppressionstartit.SetToolTip(wx.ToolTip("Iteration number after which suppression starts."))
+            self.ctlsuppressionsatellite.SetToolTip(wx.ToolTip("Integer setting for satellite peak suppression."))
+            self.ctlsuppressionharmonic.SetToolTip(wx.ToolTip("Enable harmonic suppression."))
             self.ctlpselect.SetToolTip(wx.ToolTip(
                 "Select whether to smooth nearby data points to have similar charge assignments"))
             self.ctlbselect.SetToolTip(wx.ToolTip(
