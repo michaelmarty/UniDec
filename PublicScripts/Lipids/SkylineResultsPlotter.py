@@ -253,7 +253,7 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
                                   "[M5H2+H]":"[M+H]", "[M5H2-H]":"[M-H]",
                                   "[M5H2+CH3COO]": "[M+CH3COO]", "[M5H2-CH3COO]": "[M-CH3COO]",
                                   "[M9H2+H]": "[M+H]", "[M9H2-H]": "[M-H]",
-                                  "[M7H2+H-H2O]": "[M+H-H2O]",
+                                  "[M7H2+H-H2O]": "[M+H-H2O]", "[M5H2+NH4]": "[M+NH4]",
                                   "[M9H2+CH3COO]": "[M+CH3COO]", "[M9H2-CH3COO]": "[M-CH3COO]"}})
 
     rtcol = "RT" if "RT" in df.columns else "Retention Time"
@@ -291,12 +291,17 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
                 elif mode == "All":
                     pass
 
+                # if m == "IS LPE(+[2]H5) 17:0":
+                #     print(f"DEBUG: Subset for {m} {a} {r}:")
+                #     print(subset)
+
                 total_area = subset["Area"].sum()
                 newrow[r] = total_area
             if normalize_IS:
                 # If any IS values have a zero in any replicate, skip this IS compound
                 if any(newrow[r] == 0 for r in replicates) and m.startswith("IS"):
                     print(f"WARNING: Removing IS compound {m} with adduct {a} because it is 0")
+                    # print(newrow)
                     continue
             newrows.append(newrow)
 
