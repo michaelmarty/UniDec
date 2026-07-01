@@ -439,7 +439,7 @@ def predict_tail_fragments(tail, hgfrags=[], hgbases=[], hgnls=[], adduct="[M-H]
         num_carbons = int(parts[0])
         num_double_bonds = int(parts[1])
     except ValueError:
-        print("Error parsing tail:", tail)
+        print("Error parsing tail:", tail, parts)
         return fragments, nls
 
     acylmass = num_carbons * mass_ch2 - mass_h + 2 * mass_o - (num_double_bonds * 2 * mass_h)

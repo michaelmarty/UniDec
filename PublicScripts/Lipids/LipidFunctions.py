@@ -554,7 +554,6 @@ def set_basic_tail_names(df, columnname="Molecule Name"):
         except Exception as e:
             tname = name
             print("Error parsing basic tail name:", name)
-
         t5 = ""
         if tname[0] == "(":
             # Extract stuff inside parentheses
@@ -779,7 +778,7 @@ def make_sum_comp(name):
 
 def add_sump_comp(name):
     newname = make_sum_comp(name)
-    return newname + " | " + name
+    return newname + "|" + name
 
 def apply_sum_comp(df, namecol="Metabolite name", classcol="Ontology", adductcol="Adduct type"):
     # Apply to all
