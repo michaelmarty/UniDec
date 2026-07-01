@@ -2516,6 +2516,39 @@ def simplify_class_df(df, class_col="Ontology"):
     df[class_col] = df[class_col].apply(simplify_class_name)
     return df
 
+def parse_spec_string(spec_string, threshold=0, norm=False):
+    # Parse a string of the form "m/z:intensity m/z:intensity,..." into a numpy array
+    if pd.isna(spec_string):
+        return np.array([]).reshape(0, 2)
+    pairs = spec_string.split(" ")
+    data = []
+    for pair in pairs:
+        try:
+            mz, intensity = pair.split(":")
+            data.append([float(mz), float(intensity)])
+        except ValueError:
+            continue
+    data = np.array(data)
+    # Apply threshold
+    data = data[data[:, 1] > threshold * np.amax(data[:, 1])]
+
+    if norm:
+        data[:, 1] = data[:, 1] / np.amax(data[:, 1])
+    return data
+
+def match_frag_to_spec(spec_data, frag_mz, mz_tol=0.05):
+    # spec_data is a numpy array of shape (n, 2) with columns [m/z, intensity]
+    # frag_mz is a float
+    # mz_tol is a float
+    if spec_data.size == 0:
+        return None
+    mz_diff = np.abs(spec_data[:, 0] - frag_mz)
+    min_diff_index = np.argmin(mz_diff)
+    if mz_diff[min_diff_index] <= mz_tol:
+        return True
+    else:
+        return False
+
 def mzrt_plot(df, class_col="Ontology", title="", simplify=True, write_file=False, labeln=False, rtcol="Average Rt(min)", mzcol="Average Mz"):
     # ------------------------------
     # Plot setup

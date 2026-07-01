@@ -3,6 +3,10 @@ import os
 from io import StringIO
 from PublicScripts.Lipids.LipidFragPrediction import *
 from PublicScripts.Lipids.MatchPlotting import *
+from PublicScripts.Lipids.LipidFunctions import parse_spec_string, fix_adduct, match_frag_to_spec
+import numpy as np
+import ms_entropy as me
+
 # Define CSV
 
 lipid_data = """
@@ -29,8 +33,8 @@ LPI	[M-H]	HG, FA1
 LPS	[M-H]	HG, FA1
 PA	[M-H]	HG, FA1, FA2
 PC	[M+H]	HG(184)
-PC O	[M+CH3COO]	HG, FA1, FA2
-PC	[M+CH3COO]	HG, FA1, FA2
+PC O	[M+CH3COO]	HG(224), FA1, FA2
+PC	[M+CH3COO]	HG(224), FA1, FA2
 PC O	[M+H]	HG(184)
 PE	[M+H]	HG, FA1, FA2
 PE	[M-H]	HG, FA1, FA2
@@ -48,6 +52,104 @@ TG	[M+NH4]	FA1, FA2, FA3
 
 lipid_df = pd.read_csv(StringIO(lipid_data), sep="\t")
 
+def calc_spectral_entropy(spectrum):
+    entropy = me.calculate_spectral_entropy(spectrum, clean_spectrum=False)
+    return entropy
+
+def spectral_entropy_score(spec1, spec2, tol=0.7):
+    # unweighted_similarity = me.calculate_unweighted_entropy_similarity(np.array(spec1), np.array(spec2), clean_spectra=False)
+    # print(f"Unweighted entropy similarity: {unweighted_similarity}.")
+
+    # Calculate entropy similarity.
+    similarity = me.calculate_entropy_similarity(np.array(spec1), np.array(spec2), ms2_tolerance_in_da=tol)
+    return similarity
+
+def get_hg_frag(lipid_class, adduct, fragname):
+    # Get row from hgdf_default that matches lipid_class and adduct
+    row = hgdf_default[(hgdf_default["CompoundClass"] == lipid_class) & (hgdf_default["Adduct"] == fix_adduct(adduct, 1, 0))]
+    if row.empty:
+        print(f"No matching row found for {lipid_class} with adduct {adduct}.")
+        return None
+
+    if "HGNL" in fragname:
+        vals = row["HeadgroupNL_mz"].values[0]
+    elif "HG" in fragname:
+        vals = row["HeadgroupFragment_mz"].values[0]
+    else:
+        raise ValueError(f"Fragment name {fragname} not recognized.")
+
+    if vals == "":
+        print(f"No values found for {lipid_class} with adduct {adduct} and fragment {fragname}.")
+        return None
+    vals = vals.split(",")
+    fragnum = fragname.split("(")[-1].split(")")[0] if "(" in fragname else None
+    if fragnum is None:
+        print(f"No fragment number specified in {fragname}.")
+        return None
+
+    for v in vals:
+        if v.startswith(fragnum):
+            return float(v)
+
+    print(f"No matching fragment number {fragnum} found in values {vals} for {lipid_class} with adduct {adduct}.")
+    return None
+
+
+
+def check_fragments(df, ldf=None):
+    if ldf is None:
+        ldf = lipid_df
+
+    # Loop through each row in the input DataFrame
+    results = []
+    for index, row in df.iterrows():
+        lipid_class = row["Ontology"]
+        adduct = row["Adduct type"]
+        # Clean adduct
+        adduct = fix_adduct(adduct, 0, 1)
+
+        matched_correctly = "Unknown"
+
+        # Match ldf to get required fragments
+        required_frags = ldf[(ldf["Class"] == lipid_class) & (ldf["Adduct"] == adduct)]["Required Frags"].values
+        if len(required_frags) == 0:
+            print(f"No required fragments found for {lipid_class} with adduct {adduct}.")
+            continue
+
+
+        tol = row["Tolerance"]
+        spec = parse_spec_string(row["MS/MS spectrum"], threshold=0.01, norm=True)
+        ref_spec = parse_spec_string(row["Ref Spec"], threshold=0.01, norm=True)
+
+        for f in required_frags[0].split(","):
+            f = f.strip()
+            if "HG" in f:
+                frag = get_hg_frag(lipid_class, adduct, f)
+                matched_frag = match_frag_to_spec(spec, frag, tol)
+                matched_ref = match_frag_to_spec(ref_spec, frag, tol)
+
+                if matched_frag and matched_ref:
+                    matched_correctly = "Yes"
+                elif not matched_frag and matched_ref:
+                    matched_correctly = "No"
+                elif matched_frag and not matched_ref:
+                    matched_correctly = "Yes but Ref Failed"
+                else:
+                    matched_correctly = "No and Ref Failed"
+
+                print(f"HG fragment for {lipid_class} with adduct {adduct}: {frag}", matched_frag, matched_ref)
+
+        # print("Score based on Spectral Entropy:", spectral_entropy_score(spec, ref_spec, tol=tol))
+        #
+        # butterfly_plot(spec, ref_spec, title=row["Metabolite name"])
+
+        results.append(matched_correctly)
+
+    df["Matched Required Fragments"] = results
+    return df
+
+
+
 
 
 if __name__ == "__main__":
@@ -59,17 +161,11 @@ if __name__ == "__main__":
     df = df[df["Ontology"] == "PC"]
     print("Filtered PC DataFrame:")
 
-    df = set_tolcol(df, "Dataset", lr_keywords=["IT", "Stellar"], hrtol=0.05, lrtol=0.7)
+    df = set_tolcol(df)
 
-    df = assign_df_fragments(df, tolcol="Tolerance")
+    df = check_fragments(df)
+
+    # df = assign_df_fragments(df, tolcol="Tolerance", auto_tolcol=True)
 
     # Write df to test output
-    df.to_excel("PC_Fragment_Assignment.xlsx", index=False)
-
-    # Filter to print out Match_Grade starts with F
-    bad = df[df["Match_Grade"].str.startswith("F")]
-    print("Bad Matches:")
-    print(bad.to_string())
-    for i, row in bad.iterrows():
-        print(f"Metabolite: {row['Metabolite name']}, Dataset: {row['Dataset']}, Match_Grade: {row['Match_Grade']}")
-        plot_spec_match(row)
+    df.to_excel("Combined_Fragment_Assignment.xlsx", index=False)
