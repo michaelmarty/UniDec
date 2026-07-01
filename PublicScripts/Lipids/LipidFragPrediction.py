@@ -777,13 +777,32 @@ def merge_lists(fraglist, nllist):
     return fraglist, nllist
 
 
-def assign_df_fragments(df, hgdf=None, verbose=False, tol=0.05):
+def set_tolcol(df, dcol="Dataset", lr_keywords = ["IT", "Stellar"], hrtol=0.05, lrtol=0.7):
+    # Set a new column Tolerance based on the dataset name
+    tolcol = []
+    for i, row in df.iterrows():
+        dname = row[dcol]
+        if any([kw in dname for kw in lr_keywords]):
+            tolcol.append(lrtol)
+        else:
+            tolcol.append(hrtol)
+
+    df["Tolerance"] = tolcol
+    return df
+
+
+def assign_df_fragments(df, hgdf=None, verbose=False, tol=0.05, tolcol=None):
     if "T1" not in df.columns:
         df = set_basic_tail_names(df, columnname="Metabolite name")
 
     outrows = []
     for i, row in df.iterrows():
-        row = assign_ref_match(row, tol=tol, hgdf=hgdf, verbose=verbose)
+        if tolcol is None:
+            tolval = tol
+        else:
+            tolval = row[tolcol]
+
+        row = assign_ref_match(row, tol=tolval, hgdf=hgdf, verbose=verbose)
         outrows.append(row)
 
     return pd.DataFrame(outrows)

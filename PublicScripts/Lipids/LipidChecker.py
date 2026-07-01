@@ -2,7 +2,7 @@ import pandas as pd
 import os
 from io import StringIO
 from PublicScripts.Lipids.LipidFragPrediction import *
-
+from PublicScripts.Lipids.MatchPlotting import *
 # Define CSV
 
 lipid_data = """
@@ -59,7 +59,17 @@ if __name__ == "__main__":
     df = df[df["Ontology"] == "PC"]
     print("Filtered PC DataFrame:")
 
-    df = assign_df_fragments(df)
+    df = set_tolcol(df, "Dataset", lr_keywords=["IT", "Stellar"], hrtol=0.05, lrtol=0.7)
+
+    df = assign_df_fragments(df, tolcol="Tolerance")
 
     # Write df to test output
     df.to_excel("PC_Fragment_Assignment.xlsx", index=False)
+
+    # Filter to print out Match_Grade starts with F
+    bad = df[df["Match_Grade"].str.startswith("F")]
+    print("Bad Matches:")
+    print(bad.to_string())
+    for i, row in bad.iterrows():
+        print(f"Metabolite: {row['Metabolite name']}, Dataset: {row['Dataset']}, Match_Grade: {row['Match_Grade']}")
+        plot_spec_match(row)
