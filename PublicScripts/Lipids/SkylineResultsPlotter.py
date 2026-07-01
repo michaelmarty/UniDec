@@ -114,7 +114,7 @@ default_isdf["Lipid"] = default_isdf["Lipid"].str.replace("TAG", "TG")
 default_isdf["Lipid"] = default_isdf["Lipid"].str.replace("DAG", "DG")
 default_isdf["Lipid"] = default_isdf["Lipid"].str.replace("SHexCer", "HexCer")
 default_isdf["Lipid"] = default_isdf["Lipid"].str.replace("Hex2Cer", "HexCer")
-# print(default_isdf.to_string())
+print(default_isdf.to_string())
 
 # Drop last two columns
 # default_isdf = default_isdf.iloc[:, :-2]
