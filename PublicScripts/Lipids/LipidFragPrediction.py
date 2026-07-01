@@ -791,9 +791,13 @@ def set_tolcol(df, dcol="Dataset", lr_keywords = ["IT", "Stellar"], hrtol=0.05, 
     return df
 
 
-def assign_df_fragments(df, hgdf=None, verbose=False, tol=0.05, tolcol=None):
+def assign_df_fragments(df, hgdf=None, verbose=False, tol=0.05, tolcol=None, auto_tolcol=False):
     if "T1" not in df.columns:
         df = set_basic_tail_names(df, columnname="Metabolite name")
+
+    if auto_tolcol:
+        df = set_tolcol(df)
+        tolcol = "Tolerance"
 
     outrows = []
     for i, row in df.iterrows():
