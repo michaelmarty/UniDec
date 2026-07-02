@@ -329,7 +329,8 @@ acelated_classes = ["AHexCer", "ASM"]
 adduct_nls = {"[M+CH3COO]-": [60.02], "[M+HCOO]-": [46.01], "[M+NH4]+": [17.0266, 35.037]}
 
 
-def predict_tail_fragments(tail, hgfrags=[], hgbases=[], hgnls=[], adduct="[M-H]-", classname="", mode="negative"):
+def predict_tail_fragments(tail, hgfrags=[], hgbases=[], hgnls=[],
+                           adduct="[M-H]-", classname="", mode="negative"):
     # If hgfrags is a string, split by comma
     if isinstance(hgfrags, str):
         hgfrags = hgfrags.split(",")

@@ -45,7 +45,7 @@ PI	[M-H]	HG(241), HG(297), FA1(+O), FA2(+O)
 PS	[M-H]	HGNL(87), FA1(+O), FA2(+O)
 SM	[M+CH3COO]	HGNL(74), HG(168)
 SM	[M+H]	HG(184)
-TG	[M+NH4]	FA1(+O), FA2(+O), FA3(+O)
+TG	[M+NH4]	NLFA1(+O), NLFA2(+O), NLFA3(+O)
 """
 # Read the CSV data into a pandas DataFrame
 
@@ -97,6 +97,11 @@ def get_hg_frag(lipid_class, adduct, fragname):
     return None
 
 def get_tail_frag(row, fragname):
+    nlmode = False
+    if fragname[:2] == "NL":
+        nlmode=True
+        fragname=fragname[2:]
+
     index = int(fragname.split("FA")[-1].split("(")[0]) - 1
     tail_col = f"T{index + 1}"
     if tail_col not in row.keys():
@@ -108,10 +113,29 @@ def get_tail_frag(row, fragname):
         print(f"No tail information found for {row['Metabolite name']} at {tail_col}.")
         return None
 
-    tail_frags, tail_nls = predict_tail_fragments(tail, adduct=row["Adduct type"])
-    if "FA(+O)" in tail_frags.keys():
-        print("Fragment found:", tail_frags["FA(+O)"], tail)
-        return tail_frags["FA(+O)"]
+    adduct = row["Adduct type"]
+    lclass = row["Ontology"]
+    if adduct[-1] == "+":
+        polarity = "positive"
+    elif adduct[-1] == "-":
+        polarity = "negative"
+    else:
+        print(f"Adduct {adduct} does not have a recognized polarity for {row['Metabolite name']}.")
+        return None
+
+    tail_frags, tail_nls = predict_tail_fragments(tail, adduct=adduct, classname=lclass, mode=polarity)
+
+    # Drop the number after the FA in the fragname to match keys in tail_frags
+    fragname_key = "FA" + fragname[3:]
+
+    if fragname_key in tail_frags.keys():
+        if nlmode:
+            frag = tail_nls[fragname_key]
+        else:
+            frag = tail_frags[fragname_key]
+
+        print("Fragment found:", frag, tail)
+        return frag
 
 
 def get_match_result(spec, ref_spec, frag, tol):
@@ -196,7 +220,11 @@ def check_fragments(df, ldf=None, plot_individual=False):
                     matches += f"{f}: Not Found; "
                     mbool = False
                     continue
-                matched_correctly, match_bool = get_match_result(spec, ref_spec, frag, tol)
+
+                if "NLFA" in f:
+                    matched_correctly, match_bool = get_match_result(spec_to_nl(spec, mz), spec_to_nl(ref_spec, mz), frag, tol)
+                else:
+                    matched_correctly, match_bool = get_match_result(spec, ref_spec, frag, tol)
                 mbool = mbool and match_bool
 
                 print(f"FA fragment for {lipid_class} with adduct {adduct}: {frag}", matched_correctly)
@@ -235,7 +263,7 @@ if __name__ == "__main__":
     df = pd.read_excel(filepath)
 
     # Filter to Ontology == PC
-    # df = df[df["Ontology"] == "Cer"]
+    df = df[df["Ontology"] == "TG"]
     # print("Filtered PC DataFrame:")
 
     df = set_tolcol(df)
