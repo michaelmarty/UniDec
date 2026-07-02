@@ -2549,6 +2549,15 @@ def match_frag_to_spec(spec_data, frag_mz, mz_tol=0.05):
     else:
         return False
 
+def spec_to_nl(spec_data, precursor_mz):
+    # spec_data is a numpy array of shape (n, 2) with columns [m/z, intensity]
+    # precursor_mz is a float
+    if spec_data.size == 0:
+        return np.array([]).reshape(0, 2)
+    nl_data = np.copy(spec_data)
+    nl_data[:, 0] = precursor_mz - spec_data[:, 0]
+    return nl_data
+
 def mzrt_plot(df, class_col="Ontology", title="", simplify=True, write_file=False, labeln=False, rtcol="Average Rt(min)", mzcol="Average Mz"):
     # ------------------------------
     # Plot setup
@@ -2617,3 +2626,28 @@ def mzrt_plot(df, class_col="Ontology", title="", simplify=True, write_file=Fals
         plt.savefig(f"{title}_mzrt_plot.png", bbox_inches='tight', dpi=300)
 
     plt.show()
+
+def write_colored_excel(df, column, filename, color_map=None):
+    # Create a Pandas Excel writer using XlsxWriter as the engine.
+    with pd.ExcelWriter(filename, engine='xlsxwriter') as writer:
+        # Convert the dataframe to an XlsxWriter Excel object.
+        df.to_excel(writer, sheet_name='Sheet1', index=False)
+
+        # Get the xlsxwriter workbook and worksheet objects.
+        workbook = writer.book
+        worksheet = writer.sheets['Sheet1']
+
+        # Define a default color map if none is provided
+        if color_map is None:
+            unique_values = df[column].unique()
+            colors = plt.cm.get_cmap('tab20', len(unique_values)).colors
+            color_map = {val: colors[i] for i, val in enumerate(unique_values)}
+
+        # Apply formatting based on the column values
+        for row_num, value in enumerate(df[column], start=1):  # start=1 to skip header
+            color = color_map.get(value, (1, 1, 1))  # Default to white if not found
+            color = mpl.colors.to_hex(color)
+            hex_color = '#%02x%02x%02x' % (int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16))
+            cell_format = workbook.add_format({'bg_color': hex_color})
+            worksheet.write(row_num, df.columns.get_loc(column), value, cell_format)
+
