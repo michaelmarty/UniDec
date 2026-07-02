@@ -192,44 +192,55 @@ def check_fragments(df, ldf=None, plot_individual=False):
             continue
 
         matches = ""
-        mbool = True
+        mbool = False
 
-        for f in required_frags[0].split(","):
-            f = f.strip()
-            if "HG" in f:
-                frag = get_hg_frag(lipid_class, adduct, f)
-                if frag is None:
-                    print(f"Could not find fragment for {lipid_class} with adduct {adduct} and fragment {f}.")
-                    matches += f"{f}: Not Found; "
-                    mbool = False
-                    continue
-                if "HGNL" in f:
-                    matched_correctly, match_bool = get_match_result(spec_to_nl(spec, mz), spec_to_nl(ref_spec, mz), frag, tol)
-                else:
-                    matched_correctly, match_bool = get_match_result(spec, ref_spec, frag, tol)
-                mbool = mbool and match_bool
+        for frags in required_frags:
+            matches_sub = ""
+            mbool_sub=True
+            for f in frags.split(","):
+                f = f.strip()
+                if "HG" in f:
+                    frag = get_hg_frag(lipid_class, adduct, f)
+                    if frag is None:
+                        print(f"Could not find fragment for {lipid_class} with adduct {adduct} and fragment {f}.")
+                        matches_sub += f"{f}: Not Found; "
+                        mbool_sub = False
+                        continue
+                    if "HGNL" in f:
+                        matched_correctly, match_bool = get_match_result(spec_to_nl(spec, mz), spec_to_nl(ref_spec, mz), frag, tol)
+                    else:
+                        matched_correctly, match_bool = get_match_result(spec, ref_spec, frag, tol)
+                    mbool_sub = mbool_sub and match_bool
 
-                print(f"HG fragment for {lipid_class} with adduct {adduct}: {frag}", matched_correctly)
+                    print(f"HG fragment for {lipid_class} with adduct {adduct}: {frag}", matched_correctly)
 
-                matches += f"{f}: {matched_correctly}; "
+                    matches_sub += f"{f}: {matched_correctly}; "
 
-            if "FA" in f:
-                frag = get_tail_frag(row, f)
-                if frag is None:
-                    print(f"Could not find fragment for {lipid_class} with adduct {adduct} and fragment {f}.")
-                    matches += f"{f}: Not Found; "
-                    mbool = False
-                    continue
+                if "FA" in f:
+                    frag = get_tail_frag(row, f)
+                    if frag is None:
+                        print(f"Could not find fragment for {lipid_class} with adduct {adduct} and fragment {f}.")
+                        matches_sub += f"{f}: Not Found; "
+                        mbool_sub = False
+                        continue
 
-                if "NLFA" in f:
-                    matched_correctly, match_bool = get_match_result(spec_to_nl(spec, mz), spec_to_nl(ref_spec, mz), frag, tol)
-                else:
-                    matched_correctly, match_bool = get_match_result(spec, ref_spec, frag, tol)
-                mbool = mbool and match_bool
+                    if "NLFA" in f:
+                        matched_correctly, match_bool = get_match_result(spec_to_nl(spec, mz), spec_to_nl(ref_spec, mz), frag, tol)
+                    else:
+                        matched_correctly, match_bool = get_match_result(spec, ref_spec, frag, tol)
+                    mbool_sub = mbool_sub and match_bool
 
-                print(f"FA fragment for {lipid_class} with adduct {adduct}: {frag}", matched_correctly)
+                    print(f"FA fragment for {lipid_class} with adduct {adduct}: {frag}", matched_correctly)
 
-                matches += f"{f}: {matched_correctly}; "
+                    matches_sub += f"{f}: {matched_correctly}; "
+
+            if mbool_sub:
+                mbool = mbool_sub
+                matches = matches_sub
+                continue
+
+            if matches=="":
+                matches+=matches_sub
 
         # print("Score based on Spectral Entropy:", spectral_entropy_score(spec, ref_spec, tol=tol))
         #
@@ -269,7 +280,7 @@ if __name__ == "__main__":
     df = set_tolcol(df)
     df = set_basic_tail_names(df, "Metabolite name")
 
-    df = check_fragments(df, plot_individual=True)
+    df = check_fragments(df, plot_individual=False)
 
     print_check_results(df)
 
