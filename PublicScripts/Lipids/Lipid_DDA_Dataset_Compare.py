@@ -126,7 +126,8 @@ def outlier_setup_dda(df, mztol=0.3, write_output=True, do_heads=True, do_tails=
     negdf = df[df["Polarity"] == "Negative"]
 
     outdf = ot.outlier_analysis(posdf, negdf, tol=mztol, contribs=False, add_all_cols_heads=True,
-                                add_all_cols_tails=False, drop_cols=False, do_tails=do_tails, do_heads=do_heads)
+                                add_all_cols_tails=False, drop_cols=False, do_tails=do_tails, do_heads=do_heads,
+                                auto_tolcol=True)
 
     if write_output:
         # Write out combined dataframe for reference
