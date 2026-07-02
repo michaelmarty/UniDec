@@ -37,7 +37,7 @@ CAR	[M]+	positive	85.03
 CASE	[M+NH4]+	positive	383.37	
 CE	[M+NH4]+	positive		18.01
 CL	[M+NH4]+	positive		17.03
-CL	[M-H]-	negative	153	
+CL	[M-H]-	negative	152.995834	
 CerP	[M+H]+	positive		18.01,79.97,97.98,115.99
 CerP	[M-H]-	negative	78.96,96.97	18.01
 Cer_ADS	[M+CH3COO]-	negative		60.02,78.03,92.05,108.04
@@ -82,7 +82,7 @@ DGDG	[M+NH4]+	positive		341.13,359.14
 DGGA	[M+NH4]+	positive		211.07
 DGTS	[M+H]+	positive	144.1,236.15	
 DHSph	[M+H]+	positive	81.07,95.09	18.01,36.02,48.02
-DLCL	[M-H]-	negative	153	
+DLCL	[M-H]-	negative	152.995834	
 EtherDG	[M+NH4]+	positive		35.04
 EtherDGDG	[M+CH3COO]-	negative		60.02
 EtherDGDG	[M+HCOO]-	negative		46.01
@@ -92,7 +92,7 @@ EtherLPC	[M+HCOO]-	negative	78.96,168.04	60.02,149.11
 EtherLPC	[M+H]+	positive	86.1,104.11,125.0,184.07	
 EtherLPE	[M+H]+	positive		154.03,172.04
 EtherLPE	[M-H]-	negative	78.96,140.01	
-EtherLPG	[M-H]-	negative	78.96,153.0,171.01	228.04
+EtherLPG	[M-H]-	negative	78.96,152.995834,171.01	228.04
 EtherMGDG	[M+CH3COO]-	negative		60.02
 EtherMGDG	[M+HCOO]-	negative		46.01
 EtherMGDG	[M+NH4]+	positive		197.09
@@ -102,7 +102,7 @@ EtherPC	[M+CH3COO]-	negative	224.07	74.04
 EtherPC	[M+HCOO]-	negative	224.07	60.02
 EtherPC	[M+H]+	positive	184.07	183.07
 EtherPE	[M+H]+	positive		141.02
-EtherPG	[M-H]-	negative	153	
+EtherPG	[M-H]-	negative	152.995834	
 EtherPI	[M-H]-	negative	241.01	
 EtherPS	[M-H]-	negative		87.03
 EtherSMGDG	[M-H]-	negative	96.96,241.0	
@@ -142,23 +142,23 @@ HexCer_NS	[M+H]+	positive		162.05,180.06,198.07
 HexCer_NS	[M-H]-	negative	179.06	162.05
 LDGCC	[M+H]+	positive	104.11,132.1	
 LDGTS	[M+H]+	positive	144.1,218.14,236.15	18.01
-LNAPE	[M-H]-	negative	153	
-LNAPS	[M-H]-	negative	153	
-LPA	[M-H]-	negative	78.96,153.0	
+LNAPE	[M-H]-	negative	152.995834	
+LNAPS	[M-H]-	negative	152.995834	
+LPA	[M-H]-	negative	78.96,152.995834	
 LPC	[M+CH3COO]-	negative	224.07	74.04
 LPC	[M+HCOO]-	negative	224.07	60.02
 LPC	[M+H]+	positive	184.07,104.1070	18.01
 LPC	[M+Na]+	positive	86.1,104.11	59.07
 LPE	[M+H]+	positive		141.02
 LPE	[M-H]-	negative	196.04	
-LPG	[M-H]-	negative	153.0,227.03,245.04	228.04
-LPI	[M-H]-	negative	78.96,153.0,241.01,315.05	316.06
-LPS	[M-H]-	negative	78.96,153.0	87.03,241.04
+LPG	[M-H]-	negative	152.995834,227.03,245.04	228.04
+LPI	[M-H]-	negative	78.96,152.995834,241.01,315.05	316.06
+LPS	[M-H]-	negative	78.96,152.995834	87.03,241.04
 MG	[M+NH4]+	positive		17.0,35.01
 MGDG	[M+CH3COO]-	negative	253.09	60.02
 MGDG	[M+HCOO]-	negative	253.09	46.01
 MGDG	[M+NH4]+	positive		197.09
-MLCL	[M-H]-	negative	153	
+MLCL	[M-H]-	negative	152.995834	
 NAGly	[M+H]+	positive	76.04	
 NAGly	[M+NH4]+	positive	76.04	17.03
 NAGly	[M-H]-	negative	74.02	
@@ -170,7 +170,7 @@ OxPC	[M+HCOO]-	negative	224.07	60.02
 OxPE	[M-H]-	negative	196.04	
 OxPI	[M-H]-	negative	241.01,297.04	
 OxPS	[M-H]-	negative		87.03
-PA	[M-H]-	negative	153	
+PA	[M-H]-	negative	152.995834	
 PC	[M+CH3COO]-	negative	224.07	74.04
 PC	[M+HCOO]-	negative	224.07	60.02
 PC	[M+H]+	positive	184.07	

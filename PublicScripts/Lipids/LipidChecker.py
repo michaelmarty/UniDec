@@ -14,7 +14,7 @@ Class	Adduct	Required Frags
 Cer\t[M+H]	FA1(+O), FA2(+O)
 Cer\t[M-H]	FA1(+O), FA2(+O)
 Cer\t[M+CH3COO]	FA1(+O), FA2(+O)
-CL\t[M-H]	FA1(+O), FA2(+O), FA3(+O), FA4(+O), HG(153)
+CL\t[M-H]	FA1(+O), FA2(+O), FA3(+O), FA4(+O), HG(152)
 CoQ	[M+H]	HG(197)
 DG	[M+NH4]	FA1(+O), FA2(+O)
 FAHFA	[M-H]	FA1(+O)
@@ -22,16 +22,16 @@ GM3	[M-H]	HG(290), HGNL(-290)
 HexCer	[M+H]	HGNL(162), FA1(+O)
 HexCer	[M-H]	HG, FA1(+O)
 HexCer	[M+CH3COO]	HG, FA1(+O)
-LPA	[M-H]	HG(153)
+LPA	[M-H]	HG(152)
 LPC	[M+H]	HG(184)
 LPC	[M+CH3COO]	HG(224), FA1(+O)
 LPC O	[M+CH3COO]	HG(168)
 LPC O	[M+H]	HG(184)
 LPE	[M-H]	HG(196), FA1(+O)
-LPG	[M-H]	HG(153), FA1(+O)
-LPI	[M-H]	HG(153), FA1(+O)
-LPS	[M-H]	HG(153), FA1(+O)
-PA	[M-H]	HG(153), FA1(+O), FA2(+O)
+LPG	[M-H]	HG(152), FA1(+O)
+LPI	[M-H]	HG(152), FA1(+O)
+LPS	[M-H]	HG(152), FA1(+O)
+PA	[M-H]	HG(152), FA1(+O), FA2(+O)
 PC	[M+H]	HG(184)
 PC	[M+CH3COO]	HG(224), HGNL(74), FA1(+O), FA2(+O)
 EtherPC	[M+CH3COO]	HG(224), FA1(+O), FA2(+O)
@@ -40,14 +40,12 @@ PE	[M+H]	HGNL(141), FA1(+O), FA2(+O)
 PE	[M-H]	HG(196), FA1(+O), FA2(+O)
 EtherPE	[M+H]	HGNL(141), FA1(+O), FA2(+O)
 EtherPE	[M-H]	HG, FA1(+O), FA2(+O)
-PG	[M-H]	HG(153), FA1(+O), FA2(+O)
+PG	[M-H]	HG(152), FA1(+O), FA2(+O)
 PI	[M-H]	HG(241), HG(297), FA1(+O), FA2(+O)
 PS	[M-H]	HGNL(87), FA1(+O), FA2(+O)
 SM	[M+CH3COO]	HGNL(74), HG(168)
 SM	[M+H]	HG(184)
 TG	[M+NH4]	FA1(+O), FA2(+O), FA3(+O)
-
-
 """
 # Read the CSV data into a pandas DataFrame
 
@@ -136,7 +134,7 @@ def get_match_result(spec, ref_spec, frag, tol):
     return matched_correctly, match_bool
 
 
-def check_fragments(df, ldf=None):
+def check_fragments(df, ldf=None, plot_individual=False):
     if ldf is None:
         ldf = lipid_df
 
@@ -207,7 +205,8 @@ def check_fragments(df, ldf=None):
 
         # print("Score based on Spectral Entropy:", spectral_entropy_score(spec, ref_spec, tol=tol))
         #
-        # butterfly_plot(spec, ref_spec, title=row["Metabolite name"])
+        if plot_individual:
+            butterfly_plot(spec, ref_spec, title=row["Metabolite name"])
 
         results.append(matches)
         bresults.append(mbool)
@@ -236,7 +235,7 @@ if __name__ == "__main__":
     df = pd.read_excel(filepath)
 
     # Filter to Ontology == PC
-    # df = df[df["Ontology"] == "CL"]
+    # df = df[df["Ontology"] == "Cer"]
     # print("Filtered PC DataFrame:")
 
     df = set_tolcol(df)
