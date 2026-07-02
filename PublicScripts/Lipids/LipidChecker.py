@@ -45,7 +45,7 @@ PI	[M-H]	HG(241), HG(297), FA1(+O), FA2(+O)
 PS	[M-H]	HGNL(87), FA1(+O), FA2(+O)
 SM	[M+CH3COO]	HGNL(74), HG(168)
 SM	[M+H]	HG(184)
-TG	[M+NH4]	NLFA1(+O), NLFA2(+O), NLFA3(+O)
+TG	[M+NH4]	NLFA1(+O+H2O), NLFA2(+O+H2O), NLFA3(+O+H2O)
 """
 # Read the CSV data into a pandas DataFrame
 
@@ -233,7 +233,7 @@ def check_fragments(df, ldf=None, plot_individual=False):
 
         # print("Score based on Spectral Entropy:", spectral_entropy_score(spec, ref_spec, tol=tol))
         #
-        if plot_individual:
+        if plot_individual and not mbool:
             butterfly_plot(spec, ref_spec, title=row["Metabolite name"])
 
         results.append(matches)
@@ -269,7 +269,7 @@ if __name__ == "__main__":
     df = set_tolcol(df)
     df = set_basic_tail_names(df, "Metabolite name")
 
-    df = check_fragments(df)
+    df = check_fragments(df, plot_individual=True)
 
     print_check_results(df)
 
@@ -279,5 +279,4 @@ if __name__ == "__main__":
     # df.to_excel("Combined_Fragment_Assignment.xlsx", index=False)
 
     write_colored_excel(df, "Overall Match Status", "Combined_Fragment_Assignment_Colored.xlsx", color_map={True: "lightgreen", False: "lightcoral"})
-
 
