@@ -127,14 +127,14 @@ def get_tail_frag(row, fragname):
 
     # Drop the number after the FA in the fragname to match keys in tail_frags
     fragname_key = "FA" + fragname[3:]
+    if nlmode:
+        tdict = tail_nls
+    else:
+        tdict = tail_frags
 
-    if fragname_key in tail_frags.keys():
-        if nlmode:
-            frag = tail_nls[fragname_key]
-        else:
-            frag = tail_frags[fragname_key]
-
-        print("Fragment found:", frag, tail)
+    if fragname_key in tdict.keys():
+        frag = tdict[fragname_key]
+        # print("Fragment found:", frag, tail)
         return frag
 
 
