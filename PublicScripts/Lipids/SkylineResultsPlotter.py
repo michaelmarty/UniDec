@@ -1242,13 +1242,13 @@ def lipid_bar_chart_compare(df, classes=["PC"], ax=None, fontsize=8, s1name="Set
 
 
 if __name__ == "__main__":
-    file = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\BB vs DC\Molecule Transition Results.csv"
+    file = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\BB vs DC\Molecule Transition Results3.csv"
     # file2 = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\Molecule Transition Results Chol.csv"
     # file = r"C:\Users\marty\Downloads\Extr_US_MoleculeTransResults.csv"
 
-    set1 = ["FT BB 1", "FT BB 2", "FT BB 3"]
-    set2 = ["E BB 1", "E BB 2", "E BB 3"]
-    set3 = ["Memb Extr 1", "Memb Extr 2", "Memb Extr 3"]
+    set1 = ["FT DC 1", "FT DC 2", "FT DC 3"]
+    set2 = ["E DC 1", "E DC 2", "E DC 3"]
+    set1 = ["Memb Extr 1", "Memb Extr 2", "Memb Extr 3"]
 
     # set1 = ["Memb Extr 1", "Memb Extr 2", "Memb Extr 3"]
     # is_analysis(file)

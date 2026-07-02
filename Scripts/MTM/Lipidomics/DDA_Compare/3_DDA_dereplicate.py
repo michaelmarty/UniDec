@@ -4,7 +4,7 @@ from PublicScripts.Lipids.Lipid_DDA_Dataset_Compare import *
 
 
 topdir = r"Z:\Group Share\Shivam\DDA"
-topdir = r"Z:\Group Share\Shivam\IQX Stellar 3\FinalResults"
+topdir = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\Final Results\DDA Pipeline"
 os.chdir(topdir)
 
 df = pd.read_csv("Combined_DDA_RT_Corrected.csv")

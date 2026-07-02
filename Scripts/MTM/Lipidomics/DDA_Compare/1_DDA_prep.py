@@ -2,10 +2,10 @@ import os
 from PublicScripts.Lipids.LipidFunctions import *
 
 topdir = r"Z:\Group Share\Shivam\DDA"
-topdir = r"Z:\Group Share\Shivam\IQX Stellar 3\FinalResults"
+topdir = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\Final Results\DDA Pipeline"
 os.chdir(topdir)
 
-datasets = ["ITIT", "OTIT", "OTOT", "Stellar", "AX", "Stellarboth"]
+datasets = ["ITIT", "OTIT", "OTOT", "Stellar", "Stellarboth"]
 
 dfs = []
 # Data sets

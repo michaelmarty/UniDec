@@ -5,10 +5,10 @@ from PublicScripts.Lipids.LipidFunctions import smiles_analysis
 
 
 topdir = r"Z:\Group Share\Shivam\DDA"
-topdir = r"Z:\Group Share\Shivam\IQX Stellar 3\FinalResults"
+topdir = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\Final Results\DDA Pipeline"
 os.chdir(topdir)
 
-filepath = r"Combined_DDA_Full1.xlsx"
+filepath = r"Combined_DDA_Full.xlsx"
 df = pd.read_excel(filepath)
 
 df = smiles_analysis(df)

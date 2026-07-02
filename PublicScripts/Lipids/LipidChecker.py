@@ -41,7 +41,7 @@ PI	[M-H]	HG, FA1, FA2
 PS	[M-H]	HG, FA1, FA2
 SM	[M+CH3COO]	HG
 SM	[M+H]	HG(184)
-TG	[M+NH4]	FA1, FA2, FA3
+TG	[M+NH4]	NLFA1(+O+H2O), NLFA2(+O+H2O), NLFA3(+O+H2O)
 
 """
 # Read the CSV data into a pandas DataFrame
@@ -51,15 +51,15 @@ lipid_df = pd.read_csv(StringIO(lipid_data), sep="\t")
 
 
 if __name__ == "__main__":
-    filepath = r"Z:\Group Share\Annika\DDA_Compare\mzmine\Combined_DDA_Full.xlsx"
+    filepath = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\Final Results\DDA Pipeline\Lipid Checker\Combined_DDA_Full.xlsx"
     os.chdir(os.path.dirname(filepath))
     df = pd.read_excel(filepath)
-
-    # Filter to Ontology == PC
-    df = df[df["Ontology"] == "PC"]
-    print("Filtered PC DataFrame:")
+    #
+    # # Filter to Ontology == PC
+    df = df[df["Ontology"] == "TG"]
+    print("Filtered TG DataFrame:")
 
     df = assign_df_fragments(df)
 
     # Write df to test output
-    df.to_excel("PC_Fragment_Assignment.xlsx", index=False)
+    df.to_excel("Fragment_Assignment.xlsx", index=False)
