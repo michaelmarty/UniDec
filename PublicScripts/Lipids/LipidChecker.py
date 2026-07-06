@@ -12,7 +12,8 @@ import ms_entropy as me
 
 lipid_data = """
 Class	Adduct	Required Frags
-Cer\t[M+H]	FA1(+O), FA2(+O)
+Cer\t[M+H]	FA1(+O-H2O), FA1(+O-2H2O), FA1(+O-CH4O2)
+Cer\t[M+H]	FA1(+O-H2O), FA1(+O-2H2O), FA1(+O-3H2O)
 Cer\t[M-H]	FA1(+O), FA2(+O)
 Cer\t[M+CH3COO]	FA1(+O-H2O), FA1(+O-SL)
 CL\t[M-H]	FA1(+O), FA2(+O), FA3(+O), FA4(+O), HG(152)
@@ -326,6 +327,7 @@ def print_check_results(df):
 
 if __name__ == "__main__":
     filepath = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\Final Results\DDA Pipeline\Lipid Checker\Combined_DDA_Full.xlsx"
+    filepath = r"Z:\Group Share\Annika\DDA_Compare\mzmine\Combined_DDA_Full.xlsx"
     os.chdir(os.path.dirname(filepath))
     df = pd.read_excel(filepath)
 
