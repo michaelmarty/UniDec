@@ -118,11 +118,11 @@ def get_tail_frag(row, fragname):
 
     tail = row[tail_col]
 
-    print("DEBUG")
-    print("Metabolite:", row["Metabolite name"])
-    print("Required frag:", fragname)
-    print("Tail col:", tail_col)
-    print("Tail value:", repr(tail))
+    # print("DEBUG")
+    # print("Metabolite:", row["Metabolite name"])
+    # print("Required frag:", fragname)
+    # print("Tail col:", tail_col)
+    # print("Tail value:", repr(tail))
 
     if pd.isna(tail):
         print(f"No tail information found for {row['Metabolite name']} at {tail_col}.")
@@ -153,8 +153,8 @@ def get_tail_frag(row, fragname):
     else:
         tdict = tail_frags
 
-    print("fragname_key:", fragname_key)
-    print("Available keys:", list(tdict.keys()))
+    # print("fragname_key:", fragname_key)
+    # print("Available keys:", list(tdict.keys()))
 
     if fragname_key in tdict.keys():
         return tdict[fragname_key]
@@ -238,8 +238,8 @@ def check_fragments(df, ldf=None, plot_individual=False):
             continue
 
         tol = row["Tolerance"]
-        spec = parse_spec_string(row["MS/MS spectrum"], threshold=0.001, norm=True)
-        ref_spec = parse_spec_string(row["Ref Spec"], threshold=0.001, norm=True)
+        spec = parse_spec_string(row["MS/MS spectrum"], threshold=0.01, norm=True)
+        ref_spec = parse_spec_string(row["Ref Spec"], threshold=0.01, norm=True)
 
         if len(spec) == 0 or len(ref_spec) == 0:
             print(f"Empty spectrum for {row['Metabolite name']}. Skipping.")
@@ -330,7 +330,7 @@ if __name__ == "__main__":
     df = pd.read_excel(filepath)
 
     # Filter to Ontology == PC
-    df = df[df["Ontology"] == "TG"]
+    df = df[df["Ontology"] == "Cer"]
     # print("Filtered PC DataFrame:")
 
     df = set_tolcol(df)
