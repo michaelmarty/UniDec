@@ -11,7 +11,8 @@ import ms_entropy as me
 
 lipid_data = """
 Class	Adduct	Required Frags
-Cer\t[M+H]	FA1(+O), FA2(+O)
+Cer\t[M+H]	FA1(+O-H2O), FA1(+O-2H2O), FA1(+O-CH4O2)
+Cer\t[M+H]	FA1(+O-H2O), FA1(+O-2H2O), FA1(+O-3H2O)
 Cer\t[M-H]	FA1(+O), FA2(+O)
 Cer\t[M+CH3COO]	FA1(+O), FA2(+O)
 CL\t[M-H]	FA1(+O), FA2(+O), FA3(+O), FA4(+O), HG(152)
@@ -274,7 +275,7 @@ if __name__ == "__main__":
     df = pd.read_excel(filepath)
 
     # Filter to Ontology == PC
-    df = df[df["Ontology"] == "TG"]
+    df = df[df["Ontology"] == "Cer"]
     # print("Filtered PC DataFrame:")
 
     df = set_tolcol(df)

@@ -656,7 +656,10 @@ def predict_tail_fragments(tail, hgfrags=[], hgbases=[], hgnls=[],
     elif mode == "positive":
         fragments["FA(+OH)"] = mass + mass_h
         fragments["FA(-H)"] = mass - mass_h2o + mass_h
-        fragments["FA(+OH-OH)"] = mass - mass_h2o + 2 * mass_h
+        fragments["FA(+O-H2O)"] = mass - mass_h2o + 2 * mass_h
+        fragments["FA(+O-2H2O)"] = mass - 2 * mass_h2o + 2 * mass_h
+        fragments["FA(+O-3H2O)"] = mass - 3 * mass_h2o + 2 * mass_h
+        fragments["FA(+O-CH4O2)"] = mass + 2 * mass_h - mass_c - 2 * mass_o - 4 * mass_h
         fragments["FA(+G)"] = mass + mass_glycerol - mass_h2o + mass_h
         fragments["FA(+G-OH)"] = mass + mass_glycerol - 2 * mass_h2o + 2 * mass_h
         fragments["FA(+GP)"] = mass + mass_glycerol + mass_phosphate - 2 * mass_h2o + 3 * mass_h
@@ -673,6 +676,23 @@ def predict_tail_fragments(tail, hgfrags=[], hgbases=[], hgnls=[],
         nls["FA(-H)"] = mass - mass_h2o + mass_h
         nls["FA(+O+H2O)"] = mass + mass_h2o
         nls["FA(+OH+H2O)"] = mass + mass_h2o + mass_h
+
+        # For Ceramides
+        # fragments["FA(+SL)"] = mass + mass_slfrag - mass_o
+        # fragments["FA(+SL-H2O)"] = mass + mass_slfrag - mass_h2o - mass_o
+        # fragments["FA(+SL-2H2O)"] = mass + mass_slfrag - 2 * mass_h2o - mass_o
+        # fragments["FA(+O+NC2H3O3)"] = mass + 3 * mass_h + 2 * mass_c + mass_n + 3 * mass_o
+        # fragments["FA(+O+CHO)"] = mass + mass_c + mass_o + mass_h
+        #
+        # fragments["FA(+NH+C2H2+H3O)"] = mass - mass_o + mass_n + 3 * mass_h + 2 * mass_c + mass_h2o + mass_h
+        # fragments["FA(+NH+C3H4O+H3O)"] = mass - mass_o + mass_n + 5 * mass_h + 3 * mass_c + mass_o + mass_h2o + mass_h
+        # fragments["FA(A)"] = acylmass
+        # fragments["FA(+O)"] = mass
+        # fragments["FA(A+OH)"] = acylmass + mass_o + mass_h
+        # fragments["FA(A+CO2H2)"] = acylmass + 2 * mass_o + mass_c + 2 * mass_h
+        # fragments["FA(-O)"] = mass - mass_o
+        # # nls["FA(-H)"] = mass - mass_o
+        # fragments["FA(A-2CHO)"] = acylmass - mass_o - 2 * mass_c + mass_h
 
         for hgbase in hgbases:
             hgbase = float(hgbase)
