@@ -330,8 +330,11 @@ if __name__ == "__main__":
     df = pd.read_excel(filepath)
 
     # Filter to Ontology == PC
-    df = df[df["Ontology"] == "EtherPE"]
+    df = df[df["Ontology"] == "Cer"]
     # print("Filtered PC DataFrame:")
+    if len(df) == 0:
+        print("No rows found for Ontology == Cer. Exiting.")
+        exit()
 
     df = set_tolcol(df)
     df = set_basic_tail_names(df, "Metabolite name")
