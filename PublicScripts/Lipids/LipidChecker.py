@@ -14,7 +14,7 @@ lipid_data = """
 Class	Adduct	Required Frags
 Cer\t[M+H]	FA1(+O), FA2(+O)
 Cer\t[M-H]	FA1(+O), FA2(+O)
-Cer\t[M+CH3COO]	FA1(+O), FA2(+O)
+Cer\t[M+CH3COO]	FA1(+O-H2O), FA1(+O-SL)
 CL\t[M-H]	FA1(+O), FA2(+O), FA3(+O), FA4(+O), HG(152)
 CoQ	[M+H]	HG(197)
 DG	[M+NH4]	FA1(+O), FA2(+O)

@@ -1082,7 +1082,7 @@ def skyline_tail_namer(tldf):
 
 if __name__ == "__main__":
     cname = "Cer"
-    adduct = "[M+H]"
+    adduct = "[M+CH3COO]"
     tails = ["18:1;2O"]
     fragdict, nldict = gen_fragdict(cname, adduct, tails)
     print("Fragments:")
