@@ -12,8 +12,7 @@ import ms_entropy as me
 
 lipid_data = """
 Class	Adduct	Required Frags
-Cer\t[M+H]	FA1(+O-H2O), FA1(+O-2H2O), FA1(+O-CH4O2)
-Cer\t[M+H]	FA1(+O-H2O), FA1(+O-2H2O), FA1(+O-3H2O)
+Cer\t[M+H]	FA1(+O), FA2(+O)
 Cer\t[M-H]	FA1(+O), FA2(+O)
 Cer\t[M+CH3COO]	FA1(+O), FA2(+O)
 CL\t[M-H]	FA1(+O), FA2(+O), FA3(+O), FA4(+O), HG(152)
@@ -40,8 +39,9 @@ EtherPC	[M+CH3COO]	HG(224), FA1(+O), FA2(+O), FA1(+O-C2H4), FA2(+O-C2H4)
 EtherPC	[M+H]	HG(184)
 PE	[M+H]	HGNL(141), FA1(+OH-OH), FA2(+OH-OH)
 PE	[M-H]	HG(196), FA1(+O), FA2(+O)
-EtherPE	[M+H]	HGNL(141), FA1(+OH-OH), FA2(+OH-OH)
+EtherPE	[M+H]	HGNL(141), FA1(+OH), FA2(+OH)
 EtherPE	[M-H]	FA1(+O), FA2(+O), NLFA1(-H), NLFA2(-H)
+EtherPE [M+CH3COO]	FA1(+O), FA2(+O)
 PG	[M-H]	HG(152), FA1(+O), FA2(+O)
 PI	[M-H]	HG(241), HG(297), FA1(+O), FA2(+O)
 PS	[M-H]	HGNL(87), FA1(+O), FA1+GP, FA2+GP
@@ -118,11 +118,11 @@ def get_tail_frag(row, fragname):
 
     tail = row[tail_col]
 
-    # print("DEBUG")
-    # print("Metabolite:", row["Metabolite name"])
-    # print("Required frag:", fragname)
-    # print("Tail col:", tail_col)
-    # print("Tail value:", repr(tail))
+    print("DEBUG")
+    print("Metabolite:", row["Metabolite name"])
+    print("Required frag:", fragname)
+    print("Tail col:", tail_col)
+    print("Tail value:", repr(tail))
 
     if pd.isna(tail):
         print(f"No tail information found for {row['Metabolite name']} at {tail_col}.")
@@ -153,8 +153,8 @@ def get_tail_frag(row, fragname):
     else:
         tdict = tail_frags
 
-    # print("fragname_key:", fragname_key)
-    # print("Available keys:", list(tdict.keys()))
+    print("fragname_key:", fragname_key)
+    print("Available keys:", list(tdict.keys()))
 
     if fragname_key in tdict.keys():
         return tdict[fragname_key]
@@ -238,8 +238,8 @@ def check_fragments(df, ldf=None, plot_individual=False):
             continue
 
         tol = row["Tolerance"]
-        spec = parse_spec_string(row["MS/MS spectrum"], threshold=0.01, norm=True)
-        ref_spec = parse_spec_string(row["Ref Spec"], threshold=0.01, norm=True)
+        spec = parse_spec_string(row["MS/MS spectrum"], threshold=0.001, norm=True)
+        ref_spec = parse_spec_string(row["Ref Spec"], threshold=0.001, norm=True)
 
         if len(spec) == 0 or len(ref_spec) == 0:
             print(f"Empty spectrum for {row['Metabolite name']}. Skipping.")
@@ -325,19 +325,19 @@ def print_check_results(df):
 
 
 if __name__ == "__main__":
-    filepath = r"Z:\Group Share\Annika\DDA_Compare\mzmine\Combined_DDA_Full.xlsx"
+    filepath = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\Final Results\DDA Pipeline\Lipid Checker\Combined_DDA_Full.xlsx"
     os.chdir(os.path.dirname(filepath))
     df = pd.read_excel(filepath)
 
     # Filter to Ontology == PC
-    df = df[df["Ontology"] == "Cer"]
+    df = df[df["Ontology"] == "EtherPE"]
     # print("Filtered PC DataFrame:")
 
     df = set_tolcol(df)
     df = set_basic_tail_names(df, "Metabolite name")
 
+    # df = check_fragments(df, plot_individual=True)
     df = check_fragments(df, plot_individual=False)
-
     print_check_results(df)
 
     # df = assign_df_fragments(df, tolcol="Tolerance", auto_tolcol=True)
