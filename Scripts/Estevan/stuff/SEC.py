@@ -5,7 +5,7 @@ import numpy as np
 import os
 
 # === SETTINGS ===
-file_path = r"D:\UTAustin Summer 2025\xlsx files\NDtry1 002_D1T0minus_1to80_DMPC 001.xlsx"  # ⬅️ Paste your Excel path here
+file_path = r"D:\UTAustin Summer 2025\xlsx files\NDtry1 002_D1T0minus_1to80_DMPC 001.xlsx"
 
 # === PLOT CONFIG ===
 mpl.rcParams['font.size'] = 12

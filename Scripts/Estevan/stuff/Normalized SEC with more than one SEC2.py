@@ -4,11 +4,11 @@ import matplotlib as mpl
 import os
 
 # === SETTINGS ===
-mau_file = r"D:\UTAustin Summer 2025\xlsx files\.5percent_DDM_rep2_mAU.xlsx"
-mv_file = r"D:\UTAustin Summer 2025\xlsx files\.5percent_DDM_rep2_mV.xlsx"
+mau_file = r"D:\UT Summer 2026\CB2 mAU_mV\CB_nolysis_Total_SEC_mAU.xlsx"
+mv_file = r"D:\UT Summer 2026\CB2 mAU_mV\CB2_nolysis_total_SEC_mV.xlsx"
 
-mau_label = "AqpZ (mAU)"
-mv_label = "AqpZ (mV)"
+mau_label = "no lysis SEC (mAU)"
+mv_label = "no lysis SEC (mV)"
 
 # === PLOT CONFIG ===
 mpl.rcParams.update({
@@ -92,7 +92,7 @@ if df_mv is not None:
              label=mv_label, linewidth=1.3, alpha=0.8)
 
 # === STYLE ===
-ax1.set_xlim(0, 26)
+ax1.set_xlim(0, 30)
 ax1.set_ylim(0, 1)
 ax2.set_ylim(0, 1)
 

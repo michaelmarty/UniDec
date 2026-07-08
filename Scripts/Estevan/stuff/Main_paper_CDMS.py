@@ -10,21 +10,23 @@ x_range = (0, 500)  # x-axis limits
 
 # === FILES TO PLOT ===
 files = [
-r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\Mass txt files\20251105_EC_D1T0(-)1to80_DMPC_amberlite.1gCDMS_2025-11-05-09-54-42_mass.txt",
-    r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\Mass txt files\20251106_EC_D1sfCheryshort_1to80_DMPC_CDMS_2025-11-06-10-42-05_mass.txt",
-    r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\Mass txt files\20251103_EC_D1sfGFP422uM_BCA_1to65_DMPC_CDMS_2025-11-03-02-17-06_mass.txt",
-    #r"Z:\Group Share\Estevan\Aiden\Replicates\FluroND\Halo-Tag - done\20251204_EC_D1Halo_1to80_DMPC_rep3cdms_2025-12-04-11-13-01_unidecfiles\20251204_EC_D1Halo_1to80_DMPC_rep3cdms_2025-12-04-11-13-01_mass.txt",
-    #r"Z:\Group Share\Estevan\Aiden\Replicates\FluroND\sfGFP - done\E3T0\20251209_EC_E3sfGFP_1to160_DMPC_run_twoCDMS_2025-12-09-01-33-49_unidecfiles\20251209_EC_E3sfGFP_1to160_DMPC_run_twoCDMS_2025-12-09-01-33-49_mass.txt"
+r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\sfCherry - done\Long - done\20251208_EC_D1cherryLong_1to90_DMPC_rep2_cdms_2025-12-08-12-09-32_unidecfiles\20251208_EC_D1cherryLong_1to90_DMPC_rep2_cdms_2025-12-08-12-09-32_mass.txt",
+    r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\mCherry - done\20251202_EC_MSP1D1mCherry_CDMS_rep1_unidecfiles\20251202_EC_MSP1D1mCherry_CDMS_rep1_mass.txt",
+    r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\mBlueberry - done\20251111_EC_MSP1D1mBlueberry__CMS_rep2_unidecfiles\20251111_EC_MSP1D1mBlueberry__CMS_rep2_mass.txt",
+    r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\Halo-Tag - done\20251204_EC_D1Halo_1to80_DMPC_rep2cdms_2025-12-04-09-52-12_unidecfiles\20251204_EC_D1Halo_1to80_DMPC_rep2cdms_2025-12-04-09-52-12_mass.txt",
+    r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\sfGFP - done\E3T0\20251205_EC_MSP1E3D1sfGFP_CDMS_rep1_unidecfiles\20251205_EC_MSP1E3D1sfGFP_CDMS_rep1_mass.txt",
+r"Z:\Group Share\Estevan\Q Exactive Data\Paper Revision E3T3\20251205_EC_E3t3_1to150DMPC_cdms_2025-12-05-11-07-52_unidecfiles\20251205_EC_E3t3_1to150DMPC_cdms_2025-12-05-11-07-52_mass.txt"
     # Add your file paths here
 ]
 
 # === MAIN LEGEND LABELS (one per file) ===
 labels = [
-"MSP1D1",
-    "MSP1D1-sfCherryS",
-"MSP1D1-sfGFP",
-#"MSP1D1-HaloTag",
-    #"MSP1E3D1-sfGFP"
+"MSP1D1-sfCherryL",
+    "MSP1D1-mCherry",
+"MSP1D1-mBlueberry2",
+"MSP1D1-HaloTag",
+    "MSP1E3D1-sfGFP",
+    "MSP1E3D1"
     # Add your legend labels here
 ]
 
@@ -33,8 +35,9 @@ second_labels = [
 "166 ± 23 DMPC per Nanodisc",
     "159 ± 10 DMPC per Nanodisc",
     "180 ± 16 DMPC per Nanodisc",
-    #"146 ± 14 DMPC per Nanodisc",
-    #"360 ± 20 DMPC per Nanodisc",
+    "146 ± 14 DMPC per Nanodisc",
+    "360 ± 20 DMPC per Nanodisc",
+"364 ± 47 DMPC per Nanodisc",
     # Add your second legend labels here, e.g. "FWHM", "Peak"
 ]
 
@@ -45,11 +48,12 @@ if len(files) == 1:
 
 # === CUSTOM COLORS (dark viridis subset) ===
 colors = [
-    "#080808",  # deep purple
+    "#CC79A7",  # deep purple
     "#CC79A7",  # dark blue
-    "#00A9A5",
-    #"#7A7A7A",# blue-green
-   # "#00A9A5"
+    "#2C7FBB",
+    "#7A7A7A",# blue-green
+   "#00A9A5",
+"#3A3A3A"
 ]
 
 # === Y-OFFSET SETTINGS ===

@@ -20,44 +20,47 @@ rcParams['font.weight'] = 200
 rcParams['font.sans-serif'] = "Arial"
 rcParams['axes.titleweight'] = 700
 rcParams['axes.titlesize'] = 16
-rcParams['axes.linewidth'] = 2
+rcParams['axes.linewidth'] = 1
 rcParams['xtick.major.width'] = 1
 rcParams['ytick.major.width'] = 1
 
 # === FILES TO PLOT ===
 files = [
-    r"E:\SEPAX demo data\D1t0minus_1to80_DMPC_1point5mLflowrate 001.csv",
-    r"E:\SEPAX demo data\03292026_MSP1D1_1to85_DMPG 001.csv",
-    r"E:\SEPAX demo data\03292026_MSP1D1_sfCherryS_1to80_DMPC 002.csv",
-    r"E:\SEPAX demo data\03292026_msp1d1_sfCherryS_1tp85_DMPG 001.csv",
-    #r"D:\UT Spring 2026\general lab data\Raw Akta Files\03302026_MSP1D1_DMPC_1to2_ASYN 001.csv",
-    #r"D:\UT Spring 2026\general lab data\Raw Akta Files\03302026_MSP1D1_DMPG_2to1_AsyntoDISC 001.csv",
-    #r"D:\UT Spring 2026\general lab data\Raw Akta Files\03292026_MSP1D1_sfCherryS_1to80_DMPC 002.csv",
-    #r"D:\UT Spring 2026\general lab data\Raw Akta Files\03292026_msp1d1_sfCherryS_1tp85_DMPG 001.csv",
+     r"D:\UT Summer 2026\Akta raw files\07012026_sfCherry_aqpz_flowthrough 001.csv",
+     #r"E:\FLND AKTA files\XLSX chromatograms\MSP1E3D1 DMPC nanodisc Rep 1.csv",
+    #r"E:\FLND AKTA files\XLSX chromatograms\D1sfGFP_1to80_DMPC.xlsx",
+    #r"E:\FLND AKTA files\XLSX chromatograms\D1sfCherrySHORT_1to80_DMPC.xlsx",
+    #r"E:\FLND AKTA files\XLSX chromatograms\D1sfCherryLONG_1to80_DMPC.xlsx",
+    #r"E:\FLND AKTA files\XLSX chromatograms\D1mCheery_1to80DMPC.xlsx",
+    #r"E:\FLND AKTA files\XLSX chromatograms\d1bLUEBERRY_1TO80_dmpc.xlsx",
+    #r"E:\FLND AKTA files\XLSX chromatograms\D1HaloTag_1to90_DMPC.xlsx",
+#r"E:\FLND AKTA files\XLSX chromatograms\E3sfGFP_1to150_DMPC.xlsx",
 ]
 
 # === LEGEND LABELS ===
 sample_labels = [
-    "DMPC Nanodisc",
-    "DMPG Nanodisc",
-    "sfCherry-DMPC Nanodisc",
-    "sfCherry-DMPC Nanodisc",
-    #"DMPC disc + Asyn",
-    #"DMPG disc + Asyn",
-    #"Cherry DMPC disc + Asyn",
-    #"Cherry DMPG disc + Asyn"
+     "MSP1E3D1-sfCherry3C:AqpZ: FT",
+     #"MSP1E3D1",
+    #"MSP1D1-sfGFP",
+    #"MSP1D1-sfCherryS",
+    #"MSP1D1-sfCherryL",
+    #"MSP1D1-mCherry",
+    #"MSP1D1-mBlueberry2",
+    #"MSP1D1-HaloTag",
+#"MSP1E3D1-sfGFP",
 ]
 
 # === CUSTOM HEX COLORS ===
 colors = [
     "#333333",
-    "#333333",
-    "#333333",
-    "#333333",
+    #"#333333",
+    #"#00A9A5",
+    #"#C76BA0",
+    #"#C76BA0",
     #"#C76BA0",
     #"#2C7FB8",
     #"#7A7A7A",
-   # "#00A9A5",
+#"#00A9A5",
 ]
 
 # -----------------------
@@ -173,7 +176,7 @@ for i, (file, label) in enumerate(zip(files, sample_labels)):
     df = df.dropna()
 
     # Exclude anything after 20 mL to avoid air peaks
-    df = df[df["ml"] <= 20.0]
+    df = df[df["ml"] <= 30.0]
     if df.empty:
         print(f"Warning: no data <= 20 mL for file: {file}. Skipping plot for this file.")
         continue
@@ -222,7 +225,7 @@ for i, (file, label) in enumerate(zip(files, sample_labels)):
     # Axis formatting
     axes[i].set_ylim(0, 1.08)
     axes[i].margins(y=0)
-    axes[i].set_xlim(0, 20)
+    axes[i].set_xlim(10, 18)
 
     axes[i].spines["top"].set_visible(False)
     axes[i].spines["right"].set_visible(False)
