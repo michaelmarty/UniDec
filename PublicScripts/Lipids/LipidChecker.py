@@ -11,44 +11,50 @@ import ms_entropy as me
 # Define CSV
 
 lipid_data = """
-Class	Adduct	Required Frags
-Cer\t[M+H]	FA1(+O-H2O), FA1(+O-2H2O), FA1(+O-CH4O2)
-Cer\t[M+H]	FA1(+O-H2O), FA1(+O-2H2O), FA1(+O-3H2O)
-Cer\t[M-H]	FA1(+O), FA2(+O)
-Cer\t[M+CH3COO]	FA1(+O-H2O), FA1(+O-SL)
-CL\t[M-H]	FA1(+O), FA2(+O), FA3(+O), FA4(+O), HG(152)
-CoQ	[M+H]	HG(197)
-DG	[M+NH4]	FA1(+O), FA2(+O)
-FAHFA	[M-H]	FA1(+O)
-GM3	[M-H]	HG(290), HGNL(-290)
-HexCer	[M+H]	HGNL(162), FA1(+O)
-HexCer	[M-H]	HG, FA1(+O)
-HexCer	[M+CH3COO]	HG, FA1(+O)
-LPA	[M-H]	HG(152)
-LPC	[M+H]	HG(184)
-LPC	[M+CH3COO]	HG(224), FA1(+O)
-LPC O	[M+CH3COO]	HG(168)
-LPC O	[M+H]	HG(184)
-LPE	[M-H]	HG(196), FA1(+O)
-LPG	[M-H]	HG(152), FA1(+O)
-LPI	[M-H]	HG(152), FA1(+O), HG(241)
-LPS	[M-H]	HG(152), FA1(+O)
-PA	[M-H]	HG(152), FA1(+O), FA2(+O)
-PC	[M+H]	HG(184)
-PC	[M+CH3COO]	HG(224), HGNL(74), FA1(+O), FA2(+O)
-EtherPC	[M+CH3COO]	HG(224), FA1(+O), FA2(+O), FA1(+O-C2H4), FA2(+O-C2H4) 
-EtherPC	[M+H]	HG(184)
-PE	[M+H]	HGNL(141), FA1(+OH-OH), FA2(+OH-OH)
-PE	[M-H]	HG(196), FA1(+O), FA2(+O)
-EtherPE	[M+H]	HGNL(141), FA1(+OH), FA2(+OH)
-EtherPE	[M-H]	FA1(+O), FA2(+O), NLFA1(-H), NLFA2(-H)
-EtherPE [M+CH3COO]	FA1(+O), FA2(+O)
-PG	[M-H]	HG(152), FA1(+O), FA2(+O)
-PI	[M-H]	HG(241), HG(297), FA1(+O), FA2(+O)
-PS	[M-H]	HGNL(87), FA1(+O), FA1+GP, FA2+GP
-SM	[M+CH3COO]	HGNL(74), HG(168)
-SM	[M+H]	HG(184)
-TG	[M+NH4]	NLFA1(+O+H2O), NLFA2(+O+H2O), NLFA3(+O+H2O)
+Class	Adduct	Required Frags	Disqualifying Frags
+Cer\t[M+H]	FA1(+O-H2O), FA1(+O-2H2O), FA1(+O-CH4O2)	
+Cer\t[M+H]	FA1(+O-H2O), FA1(+O-2H2O), FA1(+O-3H2O)	
+Cer	[M-H]	FA1(+O-SL)	
+Cer	[M-H]	FA1(+O-SL+C2H2)	
+Cer	[M-H]	FA1(+O-SL), FA2(+O-H2O)	
+Cer	[M-H]	FA1(+O-SL+C2H2), FA2(+O-H2O)	
+Cer\t[M+CH3COO]	 FA1(+O-SL), FA2(+O-H2O)	
+Cer\t[M+CH3COO]	 FA1(+O-SL), FA2(+O)	
+CL\t[M-H]	FA1(+O), FA2(+O), FA3(+O), FA4(+O), HG(152)	
+CoQ	[M+H]	HG(197)	
+DG	[M+NH4]	FA1(+G-OH), FA2(+G-OH)	
+FAHFA	[M-H]	FA1(+O)	
+GM3	[M-H]	HG(290), HGNL(291)	
+HexCer	[M+H]	FA1(+O-H2O), FA1(+O-2H2O)	
+HexCer	[M+H]	FA1(+O-H2O), FA1(+O-CH4O2)	
+HexCer	[M-H]	FA1(+O-SL), FA2(+O-H2O)	
+HexCer	[M+CH3COO]	FA1(+O-SL), FA2(+O-H2O)	
+Hex2Cer	[M+H]	HGNL(342)	
+LPA	[M-H]	HG(152)	
+LPC	[M+H]	HG(184)	
+LPC	[M+CH3COO]	HG(224), FA1(+O)	
+EtherLPC	[M+CH3COO]	HG(168)	
+EtherLPC	[M+H]	HG(184)	
+LPE	[M-H]	HG(196), FA1(+O)	
+LPG	[M-H]	HG(152), FA1(+O)	
+LPI	[M-H]	HG(152), FA1(+O), HG(241)	
+LPS	[M-H]	HG(152), FA1(+O)	
+PA	[M-H]	HG(152), FA1(+O), FA2(+O)	
+PC	[M+H]	HG(184)	
+PC	[M+CH3COO]	HG(224), HGNL(74), FA1(+O), FA2(+O)	
+EtherPC	[M+CH3COO]	HG(224), FA1(+O), FA2(+O), FA1(+O-C2H4), FA2(+O-C2H4) 	
+EtherPC	[M+H]	HG(184)	
+PE	[M+H]	HGNL(141)	
+PE	[M-H]	HG(196), FA1(+O), FA2(+O)	
+EtherPE	[M+H]	HGNL(141)	
+EtherPE	[M-H]	FA2(+O), NLFA2(-H)	
+PG	[M-H]	HG(152), FA1(+O), FA2(+O)	
+PI	[M-H]	HG(241), FA1(+O), FA2(+O)	
+PS  [M+H]	HGNL(185)	
+PS	[M-H]	HGNL(87), FA1(+O), FA2(+O)	
+SM	[M+CH3COO]	HGNL(74), HG(168)	FA1(+O), FA2(+O)
+SM	[M+H]	HG(184)	FA1(+O), FA2(+O)
+TG	[M+NH4]	NLFA1(+O+H2O), NLFA2(+O+H2O), NLFA3(+O+H2O)	
 """
 # Read the CSV data into a pandas DataFrame
 
@@ -215,6 +221,49 @@ def get_match_result(spec, ref_spec, frag, tol):
     return matched_correctly, match_bool
 
 
+def check_disqualifying_fragments(row, lipid_class, adduct, bad_frags, spec, ref_spec, mz, tol):
+    """
+    Returns:
+        bad_matches_text: string describing disqualifying fragments found
+        has_bad_fragment: True if any disqualifying fragment is present in the sample spectrum
+    """
+    if pd.isna(bad_frags) or str(bad_frags).strip() == "":
+        return "", False
+
+    bad_matches_text = ""
+    has_bad_fragment = False
+
+    for f in str(bad_frags).split(","):
+        f = f.strip()
+        if f == "":
+            continue
+
+        frag = None
+
+        if "HG" in f:
+            frag = get_hg_frag(lipid_class, adduct, f)
+
+        elif "FA" in f:
+            frag = get_tail_frag(row, f)
+
+        if frag is None:
+            bad_matches_text += f"{f}: Not Found; "
+            continue
+
+        if "HGNL" in f or "NLFA" in f:
+            matched_frag = match_frag_to_spec(spec_to_nl(spec, mz), frag, tol)
+        else:
+            matched_frag = match_frag_to_spec(spec, frag, tol)
+
+        if matched_frag:
+            bad_matches_text += f"{f}: Present - Disqualifies ID; "
+            has_bad_fragment = True
+        else:
+            bad_matches_text += f"{f}: Not Present; "
+
+    return bad_matches_text, has_bad_fragment
+
+
 def check_fragments(df, ldf=None, plot_individual=False):
     if ldf is None:
         ldf = lipid_df
@@ -222,6 +271,7 @@ def check_fragments(df, ldf=None, plot_individual=False):
     # Loop through each row in the input DataFrame
     results = []
     bresults = []
+    bad_results = []
     for index, row in df.iterrows():
         lipid_class = row["Ontology"].strip()
         adduct = row["Adduct type"]
@@ -231,21 +281,24 @@ def check_fragments(df, ldf=None, plot_individual=False):
 
         # Match ldf to get required fragments
         required_frags = ldf[(ldf["Class"] == lipid_class) & (ldf["Adduct"] == adduct)]["Required Frags"].values
+        disqualifying_frags = ldf[(ldf["Class"] == lipid_class) & (ldf["Adduct"] == adduct)]["Disqualifying Frags"].values
 
         if len(required_frags) == 0:
             print(f"No required fragments found for {lipid_class} with adduct {adduct}.")
             results.append("No required fragments found for this type")
             bresults.append(False)
+            bad_results.append("")
             continue
 
         tol = row["Tolerance"]
-        spec = parse_spec_string(row["MS/MS spectrum"], threshold=0.001, norm=True)
-        ref_spec = parse_spec_string(row["Ref Spec"], threshold=0.001, norm=True)
+        spec = parse_spec_string(row["MS/MS spectrum"], threshold=0.01, norm=True)
+        ref_spec = parse_spec_string(row["Ref Spec"], threshold=0.01, norm=True)
 
         if len(spec) == 0 or len(ref_spec) == 0:
             print(f"Empty spectrum for {row['Metabolite name']}. Skipping.")
             results.append("Empty spectrum")
             bresults.append(False)
+            bad_results.append("")
             continue
 
         matches = ""
@@ -299,16 +352,46 @@ def check_fragments(df, ldf=None, plot_individual=False):
             if matches=="":
                 matches+=matches_sub
 
+        # Check disqualifying fragments
+        bad_match_text = ""
+        has_bad_fragment = False
+
+        if "Disqualifying Frags" in ldf.columns and len(disqualifying_frags) > 0:
+            for bad_frags in disqualifying_frags:
+                bad_sub_text, bad_sub_bool = check_disqualifying_fragments(
+                    row,
+                    lipid_class,
+                    adduct,
+                    bad_frags,
+                    spec,
+                    ref_spec,
+                    mz,
+                    tol
+                )
+
+                bad_match_text += bad_sub_text
+
+                if bad_sub_bool:
+                    has_bad_fragment = True
+
+        if has_bad_fragment:
+            mbool = False
+            matches += " DISQUALIFYING FRAGMENTS FOUND: " + bad_match_text
+
         # print("Score based on Spectral Entropy:", spectral_entropy_score(spec, ref_spec, tol=tol))
         #
         if plot_individual and not mbool:
             butterfly_plot(spec, ref_spec, title=row["Metabolite name"])
+            plt.show()
 
         results.append(matches)
         bresults.append(mbool)
+        bad_results.append(bad_match_text)
+
 
 
     df["Matched Required Fragments"] = results
+    df["Disqualifying Fragment Check"] = bad_results
     df["Overall Match Status"] = bresults
     return df
 
@@ -326,18 +409,24 @@ def print_check_results(df):
 
 
 if __name__ == "__main__":
-    filepath = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\Final Results\DDA Pipeline\Lipid Checker\Combined_DDA_Full.xlsx"
-    filepath = r"Z:\Group Share\Annika\DDA_Compare\mzmine\Combined_DDA_Full.xlsx"
+    filepath = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\Final Results\DDA Pipeline\Lipid Checker\Combined_DDA_Full_Copy.xlsx"
+
+    # filepath = r"Z:\Group Share\Annika\DDA_Compare\mzmine\Combined_DDA_Full.xlsx"
     os.chdir(os.path.dirname(filepath))
     df = pd.read_excel(filepath)
 
-    # Filter to Ontology == PC
-    df = df[df["Ontology"] == "Cer"]
-    # print("Filtered PC DataFrame:")
-    if len(df) == 0:
-        print("No rows found for Ontology == Cer. Exiting.")
-        exit()
+    # Filter to Ontology == TG
+    df = df[df["Ontology"] == "SM"]
 
+    # Drop TG sodium adducts completely before checking fragments
+    df["Clean Adduct"] = df["Adduct type"].apply(lambda x: fix_adduct(x, 0, 1))
+    df = df[df["Clean Adduct"] != "[M+Na]"]
+    df = df[df["Clean Adduct"] != "[M+HCOO]"]
+    # df = df[df["Clean Adduct"] == "[M+CH3COO]"]
+    # df = df[df["Clean Adduct"] == "[M+H]"]
+    df = df.drop(columns=["Clean Adduct"])
+
+    print("Rows after dropping [M+Na]:", len(df))
     df = set_tolcol(df)
     df = set_basic_tail_names(df, "Metabolite name")
 
@@ -351,4 +440,3 @@ if __name__ == "__main__":
     # df.to_excel("Combined_Fragment_Assignment.xlsx", index=False)
 
     write_colored_excel(df, "Overall Match Status", "Combined_Fragment_Assignment_Colored.xlsx", color_map={True: "lightgreen", False: "lightcoral"})
-
