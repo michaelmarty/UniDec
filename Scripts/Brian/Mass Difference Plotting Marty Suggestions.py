@@ -15,7 +15,7 @@ DEFAULT_MASS_TOLERANCE = 50.0
 HIGHLIGHT_INJECTION = 21
 MASS_CENTROID_COLUMN_INDEX = 6
 MASS_CENTROID_COLUMN_NUMBER = MASS_CENTROID_COLUMN_INDEX + 1
-Y_TICK_INTERVALS_PER_SIDE = 2
+Y_TICK_INTERVALS = 4
 
 
 def clean_path(path_string):
@@ -309,9 +309,9 @@ def get_nice_tick_step(raw_step):
 
 def set_centroid_axis_limits(ax, data, theoretical_mass):
     """
-    Center the y-axis on theoretical mass and end the axis on tick marks.
+    Set y-axis limits from the plotted data and theoretical mass.
     """
-    y_values = []
+    y_values = [float(theoretical_mass)]
 
     if data['mean']:
         means = np.asarray(data['mean'], dtype=float)
@@ -319,18 +319,21 @@ def set_centroid_axis_limits(ax, data, theoretical_mass):
         y_values.extend((means - ses).tolist())
         y_values.extend((means + ses).tolist())
 
-    max_deviation = max(
-        [abs(value - theoretical_mass) for value in y_values],
-        default=0.0
-    )
-    padding = max(max_deviation * 0.08, max(abs(theoretical_mass), 1) * 0.00005, 1)
-    half_span = max_deviation + padding
+    y_min = min(y_values)
+    y_max = max(y_values)
+    y_span = y_max - y_min
+    padding = max(y_span * 0.08, max(abs(theoretical_mass), 1) * 0.00005, 1)
 
-    tick_step = get_nice_tick_step(half_span / Y_TICK_INTERVALS_PER_SIDE)
-    tick_offsets = np.arange(-Y_TICK_INTERVALS_PER_SIDE, Y_TICK_INTERVALS_PER_SIDE + 1)
-    ticks = theoretical_mass + (tick_offsets * tick_step)
+    padded_min = y_min - padding
+    padded_max = y_max + padding
+    padded_span = padded_max - padded_min
 
-    ax.set_ylim(ticks[0], ticks[-1])
+    tick_step = get_nice_tick_step(padded_span / Y_TICK_INTERVALS)
+    axis_min = np.floor(padded_min / tick_step) * tick_step
+    axis_max = np.ceil(padded_max / tick_step) * tick_step
+    ticks = np.arange(axis_min, axis_max + tick_step * 0.5, tick_step)
+
+    ax.set_ylim(axis_min, axis_max)
     ax.set_yticks(ticks)
     # Show full Da values as integers instead of scientific notation or offsets.
     ax.yaxis.set_major_formatter(StrMethodFormatter('{x:.0f}'))
