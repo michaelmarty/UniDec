@@ -1,32 +1,66 @@
-import csv
+"""
+Read UniDec *_peakparam.dat files from replicate folders, match mass centroids
+to user-provided theoretical masses, and plot mean centroid +/- SEM by injection.
+"""
+
+import re
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
+from matplotlib.ticker import StrMethodFormatter
 from pathlib import Path
 
 
-PEAK_REFERENCE_FILE_COUNT = 3
-TARGET_INJECTION_REFERENCE = 21
+DEFAULT_MASS_TOLERANCE = 50.0
+HIGHLIGHT_INJECTION = 21
+MASS_CENTROID_COLUMN_INDEX = 6
+MASS_CENTROID_COLUMN_NUMBER = MASS_CENTROID_COLUMN_INDEX + 1
+Y_TICK_INTERVALS = 4
 
 
 def clean_path(path_string):
     """
-    Clean a path string by removing quotes and extra whitespace
-    Handles both single and double quotes from Windows copy-paste
+    Normalize a path pasted from Windows Explorer or the terminal.
     """
-    # Strip whitespace
     path_string = path_string.strip()
 
-    # Remove surrounding quotes (both single and double)
     if (path_string.startswith('"') and path_string.endswith('"')) or \
             (path_string.startswith("'") and path_string.endswith("'")):
         path_string = path_string[1:-1]
 
-    # Strip again in case there was whitespace inside quotes
-    path_string = path_string.strip()
+    return path_string.strip()
 
-    return path_string
+
+def prompt_for_positive_int(prompt):
+    """
+    Prompt until the user enters a positive integer.
+    """
+    while True:
+        try:
+            value = int(input(prompt))
+            if value > 0:
+                return value
+            print("Please enter a positive number.")
+        except ValueError:
+            print("Please enter a valid integer.")
+
+
+def prompt_for_positive_float(prompt, default=None):
+    """
+    Prompt until the user enters a positive float.
+    """
+    while True:
+        raw_value = input(prompt).strip()
+        if not raw_value and default is not None:
+            return float(default)
+
+        try:
+            value = float(raw_value)
+            if value > 0:
+                return value
+            print("Please enter a positive value.")
+        except ValueError:
+            print("Please enter a valid number.")
 
 
 def prompt_for_paths(count, prompt_name):
@@ -48,32 +82,15 @@ def prompt_for_paths(count, prompt_name):
 
 def get_user_inputs():
     """
-    Get all user inputs for the analysis
+    Get all user inputs needed for the analysis.
     """
     print("=" * 80)
     print("DAT FILE MASS ANALYSIS")
     print("=" * 80)
 
-    # Get number of replicates
-    while True:
-        try:
-            num_reps = int(input("\nEnter the number of replicate folders: "))
-            if num_reps > 0:
-                break
-            else:
-                print("Please enter a positive number.")
-        except ValueError:
-            print("Please enter a valid integer.")
-
-    # Get folder paths
+    num_reps = prompt_for_positive_int("\nEnter the number of replicate folders: ")
     folders = prompt_for_paths(num_reps, "replicate folders")
 
-    # Get peak text file paths used for the horizontal mean/SEM reference line
-    peak_reference_files = prompt_for_paths(
-        PEAK_REFERENCE_FILE_COUNT, "reference peak files"
-    )
-
-    # Get output folder
     print("\nEnter the output folder path:")
     print("(Tip: You can copy-paste paths from Windows Explorer - quotes will be handled automatically)")
     output_folder = input("  Output folder: ")
@@ -82,46 +99,24 @@ def get_user_inputs():
         output_folder = "."  # Current directory as default
         print(f"  Using current directory: {output_folder}")
 
-    # Get number of theoretical masses
-    while True:
-        try:
-            num_masses = int(input("\nEnter the number of theoretical masses to track: "))
-            if num_masses > 0:
-                break
-            else:
-                print("Please enter a positive number.")
-        except ValueError:
-            print("Please enter a valid integer.")
-
-    # Get theoretical masses with names
+    num_masses = prompt_for_positive_int("\nEnter the number of theoretical masses to track: ")
     theoretical_masses = {}
     print(f"\nEnter {num_masses} theoretical mass values with their names:")
     for i in range(num_masses):
         print(f"\n  Mass {i + 1}:")
-        name = input("    Name (e.g., 'Cytochrome C'): ").strip()
         while True:
-            try:
-                mass_value = float(input("    Theoretical mass (Da): "))
-                if mass_value > 0:
-                    theoretical_masses[name] = mass_value
-                    break
-                else:
-                    print("    Please enter a positive mass value.")
-            except ValueError:
-                print("    Please enter a valid number.")
-
-    # Get mass tolerance
-    while True:
-        try:
-            mass_tolerance = float(input("\nEnter mass tolerance for matching (Da) [default: 50]: ").strip() or "50")
-            if mass_tolerance > 0:
+            name = input("    Name (e.g., 'Cytochrome C'): ").strip()
+            if name:
                 break
-            else:
-                print("Please enter a positive tolerance value.")
-        except ValueError:
-            print("Please enter a valid number.")
+            print("    Please enter a name.")
 
-    # Summary
+        theoretical_masses[name] = prompt_for_positive_float("    Theoretical mass (Da): ")
+
+    mass_tolerance = prompt_for_positive_float(
+        f"\nEnter mass tolerance for matching (Da) [default: {DEFAULT_MASS_TOLERANCE:g}]: ",
+        DEFAULT_MASS_TOLERANCE,
+    )
+
     print("\n" + "=" * 80)
     print("CONFIGURATION SUMMARY")
     print("=" * 80)
@@ -129,9 +124,6 @@ def get_user_inputs():
     print("\nReplicate folders:")
     for i, folder in enumerate(folders, 1):
         print(f"  {i}. {folder}")
-    print("\nReference peak files:")
-    for i, peak_file in enumerate(peak_reference_files, 1):
-        print(f"  {i}. {peak_file}")
     print(f"\nOutput folder: {output_folder}")
     print(f"\nMass tolerance: {mass_tolerance} Da")
     print("\nTheoretical masses:")
@@ -149,56 +141,55 @@ def get_user_inputs():
         else:
             print("Please enter 'yes' or 'no'.")
 
-    return folders, peak_reference_files, output_folder, theoretical_masses, mass_tolerance
+    return folders, output_folder, theoretical_masses, mass_tolerance
+
+
+def standard_error(values):
+    """
+    Calculate SEM; one value has no spread, so SEM is zero.
+    """
+    return float(np.std(values, ddof=1) / np.sqrt(len(values))) if len(values) > 1 else 0.0
 
 
 def read_dat_file(filepath):
     """
-    Read a DAT file and return a pandas DataFrame
+    Read one UniDec DAT file into a DataFrame.
     """
     try:
-        df = pd.read_csv(filepath, sep=r'\s+', encoding='utf-8')
-        return df
+        return pd.read_csv(filepath, sep=r'\s+', encoding='utf-8')
     except Exception as e:
         print(f"Error reading {filepath}: {e}")
         return None
 
 
-def read_peak_masses(filepath):
+def get_mass_centroids(df, filepath):
     """
-    Read a UTF-8 comma-separated UniDec peaks text file and return first-column masses.
+    Return numeric values from the 7th peakparam DAT column: mass centroid.
     """
-    masses = []
-    try:
-        with open(filepath, "r", encoding="utf-8-sig", newline="") as handle:
-            reader = csv.reader(handle)
-            for row_num, row in enumerate(reader, start=1):
-                if not row or not row[0].strip():
-                    continue
-                try:
-                    masses.append(float(row[0].strip()))
-                except ValueError:
-                    print(
-                        f"Warning: Could not parse first-column mass in "
-                        f"{filepath} line {row_num}: {row[0]}"
-                    )
-    except Exception as e:
-        print(f"Error reading reference peak file {filepath}: {e}")
+    if df.shape[1] <= MASS_CENTROID_COLUMN_INDEX:
+        print(
+            f"Warning: Expected at least {MASS_CENTROID_COLUMN_NUMBER} columns "
+            f"for mass centroid in {filepath}; found {df.shape[1]}"
+        )
+        return pd.Series(dtype=float)
 
-    return masses
+    centroids = pd.to_numeric(df.iloc[:, MASS_CENTROID_COLUMN_INDEX], errors='coerce').dropna()
+    if centroids.empty:
+        print(f"Warning: No numeric mass centroid values found in {filepath}")
+
+    return centroids
 
 
-def match_mass_to_theoretical(measured_mass, theoretical_masses, tolerance=50):
+def match_centroid_to_theoretical(mass_centroid, theoretical_masses, tolerance=50):
     """
-    Match a measured mass to the closest theoretical mass within tolerance
-    Returns the theoretical mass value and the name, or (None, None) if no match
+    Return the closest theoretical mass to this centroid, or (None, None).
     """
-    min_diff = float('inf')
     matched_theoretical = None
     matched_name = None
+    min_diff = float("inf")
 
     for name, theo_mass in theoretical_masses.items():
-        diff = abs(measured_mass - theo_mass)
+        diff = abs(mass_centroid - theo_mass)
         if diff < min_diff and diff <= tolerance:
             min_diff = diff
             matched_theoretical = theo_mass
@@ -207,47 +198,18 @@ def match_mass_to_theoretical(measured_mass, theoretical_masses, tolerance=50):
     return matched_theoretical, matched_name
 
 
-def match_peak_masses_to_theoretical(peak_masses, theoretical_masses, tolerance=50):
-    """
-    Match each theoretical protein to the closest peak mass within tolerance.
-    """
-    matches = {}
-    for name, theo_mass in theoretical_masses.items():
-        best_mass = None
-        best_diff = float("inf")
-        for peak_mass in peak_masses:
-            diff = abs(peak_mass - theo_mass)
-            if diff < best_diff and diff <= tolerance:
-                best_diff = diff
-                best_mass = peak_mass
-
-        if best_mass is not None:
-            matches[name] = best_mass
-
-    return matches
-
-
 def extract_injection_number(filename):
     """
-    Extract the injection number from the filename
+    Extract the injection number from names like '*merged_21_peakparam.dat'.
     Example: ...merged_21_peakparam.dat -> 21
     """
-    try:
-        # Split by 'merged_' and take the part after it
-        parts = filename.split('merged_')
-        if len(parts) > 1:
-            # Get the number before '_peakparam.dat'
-            num_str = parts[1].split('_')[0]
-            return int(num_str)
-    except:
-        pass
-    return None
+    match = re.search(r"merged_(\d+)_", filename)
+    return int(match.group(1)) if match else None
 
 
 def process_all_data(folders, theoretical_masses, mass_tolerance=50):
     """
-    Process all DAT files from all folders
-    Returns a dictionary with structure: {injection_num: {rep_num: {mass_name: measured_mass}}}
+    Return nested data as {injection_num: {rep_num: {mass_name: centroid}}}.
     """
     all_data = {}
 
@@ -277,109 +239,49 @@ def process_all_data(folders, theoretical_masses, mass_tolerance=50):
             if df is None or df.empty:
                 continue
 
-            if 'Mass' not in df.columns:
-                print(f"Warning: No 'Mass' column found in {dat_file}")
+            mass_centroids = get_mass_centroids(df, dat_file)
+            if mass_centroids.empty:
                 continue
 
-            # Initialize data structure
-            if inj_num not in all_data:
-                all_data[inj_num] = {}
+            rep_data = all_data.setdefault(inj_num, {}).setdefault(rep_idx, {})
 
-            if rep_idx not in all_data[inj_num]:
-                all_data[inj_num][rep_idx] = {}
-
-            # Match each measured mass to theoretical masses. If multiple peaks match the
-            # same protein in a file, keep the closest measured mass.
-            measured_masses = pd.to_numeric(df['Mass'], errors='coerce').dropna()
-            for measured_mass in measured_masses:
-                theo_mass, mass_name = match_mass_to_theoretical(
-                    measured_mass, theoretical_masses, mass_tolerance
+            # If multiple peaks match the same protein, keep the closest one.
+            for mass_centroid in mass_centroids:
+                theo_mass, mass_name = match_centroid_to_theoretical(
+                    mass_centroid, theoretical_masses, mass_tolerance
                 )
 
                 if theo_mass is not None:
-                    current_mass = all_data[inj_num][rep_idx].get(mass_name)
-                    if current_mass is None or abs(measured_mass - theo_mass) < abs(current_mass - theo_mass):
-                        all_data[inj_num][rep_idx][mass_name] = float(measured_mass)
+                    current_centroid = rep_data.get(mass_name)
+                    current_diff = (
+                        abs(current_centroid - theo_mass)
+                        if current_centroid is not None
+                        else float("inf")
+                    )
+                    if abs(mass_centroid - theo_mass) < current_diff:
+                        rep_data[mass_name] = float(mass_centroid)
 
     return all_data
 
 
-def calculate_reference_peak_statistics(peak_reference_files, theoretical_masses, mass_tolerance=50):
-    """
-    Calculate mean mass and SEM for each protein from the reference peak files.
-    """
-    reference_values = {mass_name: [] for mass_name in theoretical_masses.keys()}
-
-    for peak_file in peak_reference_files:
-        peak_path = Path(peak_file)
-        if not peak_path.exists():
-            print(f"Warning: Reference peak file does not exist: {peak_file}")
-            continue
-
-        peak_masses = read_peak_masses(peak_path)
-        if not peak_masses:
-            print(f"Warning: No parseable masses found in reference peak file: {peak_file}")
-            continue
-
-        matches = match_peak_masses_to_theoretical(
-            peak_masses, theoretical_masses, mass_tolerance
-        )
-        for mass_name, measured_mass in matches.items():
-            reference_values[mass_name].append(measured_mass)
-
-        missing_names = sorted(set(theoretical_masses.keys()) - set(matches.keys()))
-        for mass_name in missing_names:
-            print(
-                f"Warning: No reference peak matched {mass_name} within "
-                f"{mass_tolerance} Da in {peak_file}"
-            )
-
-    reference_stats = {}
-    for mass_name, values in reference_values.items():
-        if values:
-            mean_val = float(np.mean(values))
-            se_val = float(np.std(values, ddof=1) / np.sqrt(len(values))) if len(values) > 1 else 0.0
-            reference_stats[mass_name] = {
-                'mean': mean_val,
-                'se': se_val,
-                'n': len(values),
-                'values': values,
-            }
-        else:
-            reference_stats[mass_name] = {
-                'mean': None,
-                'se': None,
-                'n': 0,
-                'values': [],
-            }
-
-    return reference_stats
-
-
 def calculate_statistics(all_data, theoretical_masses, num_replicates):
     """
-    Calculate mean and standard error for each injection number and mass
-    Returns DataFrames for plotting
+    Calculate mean and standard error for each injection number and centroid.
     """
     results = {mass_name: {'injections': [], 'mean': [], 'se': []}
                for mass_name in theoretical_masses.keys()}
 
-    # Get sorted injection numbers
-    injection_numbers = sorted(all_data.keys())
-
-    for inj_num in injection_numbers:
+    for inj_num in sorted(all_data.keys()):
         for mass_name in theoretical_masses.keys():
-            # Collect values from all replicates
             values = []
             for rep_num in range(1, num_replicates + 1):
-                if rep_num in all_data[inj_num]:
-                    if mass_name in all_data[inj_num][rep_num]:
-                        values.append(all_data[inj_num][rep_num][mass_name])
+                rep_values = all_data[inj_num].get(rep_num, {})
+                if mass_name in rep_values:
+                    values.append(rep_values[mass_name])
 
             if values:
-                mean_val = np.mean(values)
-                # Standard error = std / sqrt(n)
-                se_val = np.std(values, ddof=1) / np.sqrt(len(values)) if len(values) > 1 else 0
+                mean_val = float(np.mean(values))
+                se_val = standard_error(values)
 
                 results[mass_name]['injections'].append(inj_num)
                 results[mass_name]['mean'].append(mean_val)
@@ -388,11 +290,28 @@ def calculate_statistics(all_data, theoretical_masses, num_replicates):
     return results
 
 
-def set_mass_axis_limits(ax, data, reference_stats):
+def get_nice_tick_step(raw_step):
     """
-    Set y-axis limits around measured masses and reference mean +/- SEM.
+    Round a raw tick interval up to a readable 1, 2, 5, or 10 multiple.
     """
-    y_values = []
+    if raw_step <= 1:
+        return 1.0
+
+    magnitude = 10 ** np.floor(np.log10(raw_step))
+    normalized_step = raw_step / magnitude
+
+    for candidate in (1, 2, 5, 10):
+        if normalized_step <= candidate:
+            return float(candidate * magnitude)
+
+    return float(10 * magnitude)
+
+
+def set_centroid_axis_limits(ax, data, theoretical_mass):
+    """
+    Set y-axis limits from the plotted data and theoretical mass.
+    """
+    y_values = [float(theoretical_mass)]
 
     if data['mean']:
         means = np.asarray(data['mean'], dtype=float)
@@ -400,24 +319,30 @@ def set_mass_axis_limits(ax, data, reference_stats):
         y_values.extend((means - ses).tolist())
         y_values.extend((means + ses).tolist())
 
-    if reference_stats and reference_stats['mean'] is not None:
-        ref_mean = reference_stats['mean']
-        ref_se = reference_stats['se'] or 0.0
-        y_values.extend([ref_mean - ref_se, ref_mean + ref_se])
+    y_min = min(y_values)
+    y_max = max(y_values)
+    y_span = y_max - y_min
+    padding = max(y_span * 0.08, max(abs(theoretical_mass), 1) * 0.00005, 1)
 
-    if not y_values:
-        return
+    padded_min = y_min - padding
+    padded_max = y_max + padding
+    padded_span = padded_max - padded_min
 
-    ymin = min(y_values)
-    ymax = max(y_values)
-    y_span = ymax - ymin
-    padding = max(y_span * 0.08, max(abs(ymax), 1) * 0.00005, 1)
-    ax.set_ylim(ymin - padding, ymax + padding)
+    tick_step = get_nice_tick_step(padded_span / Y_TICK_INTERVALS)
+    axis_min = np.floor(padded_min / tick_step) * tick_step
+    axis_max = np.ceil(padded_max / tick_step) * tick_step
+    ticks = np.arange(axis_min, axis_max + tick_step * 0.5, tick_step)
+
+    ax.set_ylim(axis_min, axis_max)
+    ax.set_yticks(ticks)
+    # Show full Da values as integers instead of scientific notation or offsets.
+    ax.yaxis.set_major_formatter(StrMethodFormatter('{x:.0f}'))
+    ax.yaxis.get_offset_text().set_visible(False)
 
 
-def get_injection_reference_stats(data, injection_number):
+def get_highlight_band(data, injection_number):
     """
-    Get plotted mean and SEM values for one injection number.
+    Get the plotted mean and SEM values for one injection number.
     """
     for injection, mean_val, se_val in zip(data['injections'], data['mean'], data['se']):
         if injection == injection_number:
@@ -425,47 +350,9 @@ def get_injection_reference_stats(data, injection_number):
     return None, None
 
 
-def add_reference_mean_sem_line(ax, ref_mean, ref_se, color, label):
+def plot_results(results, theoretical_masses, output_folder):
     """
-    Draw one dashed reference line centered on the mean with +/- SEM thickness.
-    """
-    if ref_se <= 0:
-        ax.axhline(
-            ref_mean,
-            color=color,
-            linestyle='--',
-            linewidth=2.5,
-            label=label,
-            zorder=1
-        )
-        return
-
-    dash_width = 0.045
-    gap_width = dash_width
-    x_start = 0.0
-    first_dash = True
-    while x_start < 1.0:
-        width = min(dash_width, 1.0 - x_start)
-        ax.add_patch(
-            Rectangle(
-                (x_start, ref_mean - ref_se),
-                width,
-                2 * ref_se,
-                transform=ax.get_yaxis_transform(),
-                facecolor=color,
-                edgecolor='none',
-                label=label if first_dash else None,
-                zorder=1,
-                clip_on=True
-            )
-        )
-        first_dash = False
-        x_start += dash_width + gap_width
-
-
-def plot_results(results, theoretical_masses, reference_stats, output_folder):
-    """
-    Create stacked line plots with error bars
+    Create stacked line plots with error bars.
     """
     # Set font to Arial
     plt.rcParams['font.family'] = 'Arial'
@@ -485,38 +372,33 @@ def plot_results(results, theoretical_masses, reference_stats, output_folder):
         axes = [axes]
 
     # Add main title with larger font
-    fig.suptitle('Measured Mass vs Number of Injections',
+    fig.suptitle('Measured Mass Centroid vs Number of Injections',
                  fontsize=24, fontweight='bold', y=0.98)
 
     # Use a single consistent color for the marker points and lines across all subplots
     point_color = plt.get_cmap('tab10')(0)  # first color from the tab10 colormap
-    reference_color = plt.get_cmap('tab10')(3)
-    injection_reference_color = plt.get_cmap('tab10')(2)
+    highlight_color = plt.get_cmap('tab10')(2)
 
     for idx, (mass_name, theo_mass) in enumerate(theoretical_masses.items()):
         ax = axes[idx]
         data = results[mass_name]
-        reference = reference_stats.get(mass_name)
-        show_legend = False
+        show_legend = True
 
-        if reference and reference['mean'] is not None:
-            ref_mean = reference['mean']
-            ref_se = reference['se'] or 0.0
-            add_reference_mean_sem_line(
-                ax,
-                ref_mean,
-                ref_se,
-                reference_color,
-                f'Reference mean +/- SEM (n={reference["n"]})'
-            )
-            show_legend = True
+        ax.axhline(
+            theo_mass,
+            color='black',
+            linestyle='-',
+            linewidth=1.8,
+            label='Theoretical mass',
+            zorder=1.5
+        )
 
-        inj_mean, inj_se = get_injection_reference_stats(data, TARGET_INJECTION_REFERENCE)
+        inj_mean, inj_se = get_highlight_band(data, HIGHLIGHT_INJECTION)
         if inj_mean is not None and inj_se > 0:
             ax.axhspan(
                 inj_mean - inj_se, inj_mean + inj_se,
-                facecolor=injection_reference_color, alpha=0.45, linewidth=0,
-                label=f'{TARGET_INJECTION_REFERENCE} injections mean +/- SEM',
+                facecolor=highlight_color, alpha=0.45, linewidth=0,
+                label=f'{HIGHLIGHT_INJECTION} injections mean +/- SEM',
                 zorder=1
             )
             show_legend = True
@@ -534,7 +416,7 @@ def plot_results(results, theoretical_masses, reference_stats, output_folder):
             # Set x-axis to show integer values
             ax.set_xticks(data['injections'])
 
-        set_mass_axis_limits(ax, data, reference)
+        set_centroid_axis_limits(ax, data, theo_mass)
 
         # Remove top and right spines
         ax.spines['top'].set_visible(False)
@@ -552,7 +434,7 @@ def plot_results(results, theoretical_masses, reference_stats, output_folder):
             ax.legend(frameon=False, fontsize=12, loc='best')
 
     # Add unified y-axis label with larger font
-    fig.text(0.04, 0.5, 'Mass (Da)',
+    fig.text(0.04, 0.5, 'Mass Centroid (Da)',
              va='center', rotation='vertical', fontsize=24, fontweight='bold')
 
     plt.tight_layout(rect=(0.06, 0, 1, 0.97))  # Adjust layout to make room for y-label and title
@@ -562,7 +444,7 @@ def plot_results(results, theoretical_masses, reference_stats, output_folder):
     output_path.mkdir(parents=True, exist_ok=True)
 
     # Save as PDF with editable text
-    output_file = output_path / 'mass_analysis.pdf'
+    output_file = output_path / 'mass_centroid_analysis.pdf'
     plt.savefig(output_file, dpi=300, bbox_inches='tight',
                 transparent=True, format='pdf')
     plt.show()
@@ -571,38 +453,30 @@ def plot_results(results, theoretical_masses, reference_stats, output_folder):
     print("Format: PDF (300 DPI, transparent, 16:9 aspect ratio, editable text)")
 
 
-def create_summary_table(results, theoretical_masses, reference_stats):
+def create_summary_table(results, theoretical_masses):
     """
-    Create a summary table of the results
+    Print a summary table of the results.
     """
     print("\n" + "=" * 80)
-    print("SUMMARY TABLE: Mean Measured Masses (Da)")
+    print("SUMMARY TABLE: Mean Mass Centroids (Da)")
     print("=" * 80)
 
     for mass_name, theo_mass in theoretical_masses.items():
         print(f"\n{mass_name} (Theoretical: {theo_mass:.2f} Da)")
         print("-" * 60)
-        print(f"{'Injections':<12} {'Mean Mass (Da)':<18} {'Std Error (Da)':<18}")
+        print(f"{'Injections':<12} {'Mean Centroid (Da)':<20} {'Std Error (Da)':<18}")
         print("-" * 60)
 
         data = results[mass_name]
         for inj, mean_val, se_val in zip(data['injections'], data['mean'], data['se']):
-            print(f"{inj:<12} {mean_val:<18.4f} {se_val:<18.4f}")
-
-        reference = reference_stats.get(mass_name)
-        if reference and reference['mean'] is not None:
-            print(
-                f"Reference peak files: mean={reference['mean']:.4f} Da, "
-                f"SEM={reference['se']:.4f} Da, n={reference['n']}"
-            )
-        else:
-            print("Reference peak files: no matched masses")
+            print(f"{inj:<12} {mean_val:<20.4f} {se_val:<18.4f}")
 
 
-# Main execution
-if __name__ == "__main__":
-    # Get user inputs
-    folders, peak_reference_files, output_folder, theoretical_masses, mass_tolerance = get_user_inputs()
+def main():
+    """
+    Run the interactive analysis workflow.
+    """
+    folders, output_folder, theoretical_masses, mass_tolerance = get_user_inputs()
 
     print("\n" + "=" * 80)
     print("Starting DAT file analysis...")
@@ -616,16 +490,17 @@ if __name__ == "__main__":
     else:
         # Calculate statistics
         results = calculate_statistics(all_data, theoretical_masses, len(folders))
-        reference_stats = calculate_reference_peak_statistics(
-            peak_reference_files, theoretical_masses, mass_tolerance
-        )
 
         # Create summary table
-        create_summary_table(results, theoretical_masses, reference_stats)
+        create_summary_table(results, theoretical_masses)
 
         # Plot results
-        plot_results(results, theoretical_masses, reference_stats, output_folder)
+        plot_results(results, theoretical_masses, output_folder)
 
         print("\n" + "=" * 80)
         print("Analysis complete!")
         print("=" * 80)
+
+
+if __name__ == "__main__":
+    main()
