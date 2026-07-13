@@ -12,45 +12,48 @@ import ms_entropy as me
 
 lipid_data = """
 Class	Adduct	Required Frags	Disqualifying Frags
-Cer\t[M+H]	FA1(+O-H2O), FA1(+O-2H2O), FA1(+O-CH4O2)	
-Cer\t[M+H]	FA1(+O-H2O), FA1(+O-2H2O), FA1(+O-3H2O)	
+	
+Cer	[M+H]	FA1(+O-H2O), FA1(+O-2H2O), FA1(+O-CH4O2)	
+Cer	[M+H]	FA1(+O-H2O), FA1(+O-2H2O), FA1(+O-3H2O)	
 Cer	[M-H]	FA1(+O-SL)	
 Cer	[M-H]	FA1(+O-SL+C2H2)	
 Cer	[M-H]	FA1(+O-SL), FA2(+O-H2O)	
 Cer	[M-H]	FA1(+O-SL+C2H2), FA2(+O-H2O)	
-Cer\t[M+CH3COO]	 FA1(+O-SL), FA2(+O-H2O)	
-Cer\t[M+CH3COO]	 FA1(+O-SL), FA2(+O)	
-CL\t[M-H]	FA1(+O), FA2(+O), FA3(+O), FA4(+O), HG(152)	
+Cer	[M+CH3COO]	FA1(+O-SL), FA2(+O-H2O)	
+Cer	[M+CH3COO]	FA1(+O-SL), FA2(+O)	
+CL	[M-H]	FA1(+O), FA2(+O), FA3(+O), FA4(+O), HG(153)	
 CoQ	[M+H]	HG(197)	
 DG	[M+NH4]	FA1(+G-OH), FA2(+G-OH)	
-FAHFA	[M-H]	FA1(+O)	
+FAHFA	[M-H]	FA1(+O)	HG(153), HG(171), HG(196), HG(241)
 GM3	[M-H]	HG(290), HGNL(291)	
-HexCer	[M+H]	FA1(+O-H2O), FA1(+O-2H2O)	
 HexCer	[M+H]	FA1(+O-H2O), FA1(+O-CH4O2)	
+HexCer	[M+H]	FA1(+O), FA1(+O-H2O), FA1(+O-3H2O)	
 HexCer	[M-H]	FA1(+O-SL), FA2(+O-H2O)	
+HexCer	[M-H]	FA2(+O-CH2O), FA2(+O)	
 HexCer	[M+CH3COO]	FA1(+O-SL), FA2(+O-H2O)	
-Hex2Cer	[M+H]	HGNL(342)	
-LPA	[M-H]	HG(152)	
+Hex2Cer	[M+H]	HGNL(342), FA1(+O-H2O), FA1(+O-CH4O2)	
+Hex2Cer	[M+CH3COO]	HG(179), HGNL(222), HGNL(384)	
+LPA	[M-H]	HG(153)	
 LPC	[M+H]	HG(184)	
 LPC	[M+CH3COO]	HG(224), FA1(+O)	
 EtherLPC	[M+CH3COO]	HG(168)	
 EtherLPC	[M+H]	HG(184)	
 LPE	[M-H]	HG(196), FA1(+O)	
-LPG	[M-H]	HG(152), FA1(+O)	
-LPI	[M-H]	HG(152), FA1(+O), HG(241)	
-LPS	[M-H]	HG(152), FA1(+O)	
-PA	[M-H]	HG(152), FA1(+O), FA2(+O)	
+LPG	[M-H]	HG(153), FA1(+O)	
+LPI	[M-H]	HG(153), FA1(+O), HG(241)	
+LPS	[M-H]	HG(153), FA1(+O)	
+PA	[M-H]	HG(153), FA1(+O), FA2(+O)	
 PC	[M+H]	HG(184)	
 PC	[M+CH3COO]	HG(224), HGNL(74), FA1(+O), FA2(+O)	
-EtherPC	[M+CH3COO]	HG(224), FA1(+O), FA2(+O), FA1(+O-C2H4), FA2(+O-C2H4) 	
+EtherPC	[M+CH3COO]	HG(224), FA1(+O), FA2(+O), FA1(+O-C2H4), FA2(+O-C2H4)	
 EtherPC	[M+H]	HG(184)	
 PE	[M+H]	HGNL(141)	
 PE	[M-H]	HG(196), FA1(+O), FA2(+O)	
 EtherPE	[M+H]	HGNL(141)	
 EtherPE	[M-H]	FA2(+O), NLFA2(-H)	
-PG	[M-H]	HG(152), FA1(+O), FA2(+O)	
+PG	[M-H]	HG(153), FA1(+O), FA2(+O)	
 PI	[M-H]	HG(241), FA1(+O), FA2(+O)	
-PS  [M+H]	HGNL(185)	
+PS	[M+H]	HGNL(185)	
 PS	[M-H]	HGNL(87), FA1(+O), FA2(+O)	
 SM	[M+CH3COO]	HGNL(74), HG(168)	FA1(+O), FA2(+O)
 SM	[M+H]	HG(184)	FA1(+O), FA2(+O)
@@ -61,7 +64,13 @@ TG	[M+NH4]	NLFA1(+O+H2O), NLFA2(+O+H2O), NLFA3(+O+H2O)
 lipid_df = pd.read_csv(StringIO(lipid_data), sep="\t", index_col=False)
 # Strip whitespace from classes
 lipid_df["Class"] = lipid_df["Class"].str.strip()
+lipid_df = pd.read_csv(StringIO(lipid_data), sep="\t", index_col=False)
 
+for col in lipid_df.columns:
+    if lipid_df[col].dtype == "object":
+        lipid_df[col] = lipid_df[col].str.strip()
+
+print(lipid_df[lipid_df["Class"].astype(str).str.contains("Hex2", na=False)].to_string(index=False))
 
 def calc_spectral_entropy(spectrum):
     entropy = me.calculate_spectral_entropy(spectrum, clean_spectrum=False)
@@ -76,8 +85,23 @@ def spectral_entropy_score(spec1, spec2, tol=0.7):
     return similarity
 
 def get_hg_frag(lipid_class, adduct, fragname):
+    # Direct numeric HG/HGNL support.
+    # This lets disqualifiers like HG(153), HG(171), HG(196), HG(241)
+    # work even for lipid classes like FAHFA that do not have entries
+    # in hgdf_default.
+    if "(" in fragname and ")" in fragname:
+        fragnum = fragname.split("(")[-1].split(")")[0]
+        try:
+            return float(fragnum)
+        except ValueError:
+            pass
+
     # Get row from hgdf_default that matches lipid_class and adduct
-    row = hgdf_default[(hgdf_default["CompoundClass"] == lipid_class) & (hgdf_default["Adduct"] == fix_adduct(adduct, 1, 0))]
+    row = hgdf_default[
+        (hgdf_default["CompoundClass"] == lipid_class) &
+        (hgdf_default["Adduct"] == fix_adduct(adduct, 1, 0))
+    ]
+
     if row.empty:
         print(f"No matching row found for {lipid_class} with adduct {adduct}.")
         return None
@@ -92,8 +116,10 @@ def get_hg_frag(lipid_class, adduct, fragname):
     if vals == "":
         print(f"No values found for {lipid_class} with adduct {adduct} and fragment {fragname}.")
         return None
+
     vals = vals.split(",")
     fragnum = fragname.split("(")[-1].split(")")[0] if "(" in fragname else None
+
     if fragnum is None:
         print(f"No fragment number specified in {fragname}.")
         return None
@@ -395,6 +421,146 @@ def check_fragments(df, ldf=None, plot_individual=False):
     df["Overall Match Status"] = bresults
     return df
 
+
+def get_tail_carbons(tail):
+    """
+    Extracts carbon count from tail strings like:
+    18:1;O2
+    16:0
+    24:1;O
+    """
+    if pd.isna(tail):
+        return np.nan
+
+    tail = str(tail).strip()
+
+    if tail == "":
+        return np.nan
+
+    match = re.match(r"^(\d+):", tail)
+
+    if match is None:
+        return np.nan
+
+    return float(match.group(1))
+
+
+def get_tail_unsaturation(tail):
+    """
+    Extracts unsaturation count from tail strings like:
+    18:1;O2
+    16:0
+    24:1;O
+    """
+    if pd.isna(tail):
+        return np.nan
+
+    tail = str(tail).strip()
+
+    if tail == "":
+        return np.nan
+
+    match = re.match(r"^\d+:(\d+)", tail)
+
+    if match is None:
+        return np.nan
+
+    return float(match.group(1))
+
+
+def flag_weird_sm_tails(
+    df,
+    min_backbone_carbons=16,
+    max_backbone_carbons=20,
+    max_acyl_carbons=26,
+    max_backbone_unsaturation=2,
+    max_acyl_unsaturation=3,
+    min_total_carbons=30,
+    max_total_unsaturation=4
+):
+    """
+    For SM:
+    Speciated rows contain "|", e.g.:
+        SM 34:1;O2|SM 18:1;O2/16:0
+
+    For speciated SMs:
+        T1 = sphingoid backbone
+        T2 = N-acyl tail
+
+    For non-speciated/sum SMs:
+        T1 usually contains the sum composition, e.g. 42:5;O2.
+        Apply only total carbon and total unsaturation sanity rules.
+    """
+
+    sm_mask = df["Ontology"].astype(str).str.strip() == "SM"
+    speciated_sm_mask = sm_mask & df["Metabolite name"].astype(str).str.contains(r"\|", na=False)
+    sum_sm_mask = sm_mask & ~df["Metabolite name"].astype(str).str.contains(r"\|", na=False)
+
+    backbone_carbons = df["T1"].apply(get_tail_carbons)
+    acyl_carbons = df["T2"].apply(get_tail_carbons)
+
+    backbone_unsaturation = df["T1"].apply(get_tail_unsaturation)
+    acyl_unsaturation = df["T2"].apply(get_tail_unsaturation)
+
+    too_small_backbone = speciated_sm_mask & (backbone_carbons < min_backbone_carbons)
+    too_large_backbone = speciated_sm_mask & (backbone_carbons > max_backbone_carbons)
+    too_large_acyl = speciated_sm_mask & (acyl_carbons > max_acyl_carbons)
+
+    too_unsat_backbone = speciated_sm_mask & (backbone_unsaturation > max_backbone_unsaturation)
+    too_unsat_acyl = speciated_sm_mask & (acyl_unsaturation > max_acyl_unsaturation)
+
+    too_small_sum_sm = sum_sm_mask & (backbone_carbons < min_total_carbons)
+    too_unsat_sum_sm = sum_sm_mask & (backbone_unsaturation > max_total_unsaturation)
+
+    flagged = (
+        too_small_backbone |
+        too_large_backbone |
+        too_large_acyl |
+        too_unsat_backbone |
+        too_unsat_acyl |
+        too_small_sum_sm |
+        too_unsat_sum_sm
+    )
+
+    df.loc[flagged, "Overall Match Status"] = False
+
+    df.loc[too_small_backbone, "Matched Required Fragments"] = (
+        df.loc[too_small_backbone, "Matched Required Fragments"].astype(str)
+        + f" FLAGGED: speciated SM backbone T1 carbon count < {min_backbone_carbons};"
+    )
+
+    df.loc[too_large_backbone, "Matched Required Fragments"] = (
+        df.loc[too_large_backbone, "Matched Required Fragments"].astype(str)
+        + f" FLAGGED: speciated SM backbone T1 carbon count > {max_backbone_carbons};"
+    )
+
+    df.loc[too_large_acyl, "Matched Required Fragments"] = (
+        df.loc[too_large_acyl, "Matched Required Fragments"].astype(str)
+        + f" FLAGGED: speciated SM acyl tail T2 carbon count > {max_acyl_carbons};"
+    )
+
+    df.loc[too_unsat_backbone, "Matched Required Fragments"] = (
+        df.loc[too_unsat_backbone, "Matched Required Fragments"].astype(str)
+        + f" FLAGGED: speciated SM backbone T1 unsaturation > {max_backbone_unsaturation};"
+    )
+
+    df.loc[too_unsat_acyl, "Matched Required Fragments"] = (
+        df.loc[too_unsat_acyl, "Matched Required Fragments"].astype(str)
+        + f" FLAGGED: speciated SM acyl tail T2 unsaturation > {max_acyl_unsaturation};"
+    )
+
+    df.loc[too_small_sum_sm, "Matched Required Fragments"] = (
+        df.loc[too_small_sum_sm, "Matched Required Fragments"].astype(str)
+        + f" FLAGGED: non-speciated SM total carbon count < {min_total_carbons};"
+    )
+
+    df.loc[too_unsat_sum_sm, "Matched Required Fragments"] = (
+        df.loc[too_unsat_sum_sm, "Matched Required Fragments"].astype(str)
+        + f" FLAGGED: non-speciated SM total unsaturation > {max_total_unsaturation};"
+    )
+
+    return df
+
 def print_check_results(df):
     # For each unique class, print the percentage of Overall Match Status that are True
     for lipid_class in df["Ontology"].unique():
@@ -409,14 +575,14 @@ def print_check_results(df):
 
 
 if __name__ == "__main__":
-    filepath = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\Final Results\DDA Pipeline\Lipid Checker\Combined_DDA_Full_Copy.xlsx"
+    filepath = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\Final Results\DDA Pipeline\Combined_DDA_Full.xlsx"
 
     # filepath = r"Z:\Group Share\Annika\DDA_Compare\mzmine\Combined_DDA_Full.xlsx"
     os.chdir(os.path.dirname(filepath))
     df = pd.read_excel(filepath)
 
     # Filter to Ontology == TG
-    df = df[df["Ontology"] == "SM"]
+    # df = df[df["Ontology"] == "HexCer"]
 
     # Drop TG sodium adducts completely before checking fragments
     df["Clean Adduct"] = df["Adduct type"].apply(lambda x: fix_adduct(x, 0, 1))
@@ -432,8 +598,18 @@ if __name__ == "__main__":
 
     # df = check_fragments(df, plot_individual=True)
     df = check_fragments(df, plot_individual=False)
-    print_check_results(df)
 
+    df = flag_weird_sm_tails(
+        df,
+        min_backbone_carbons=16,
+        max_backbone_carbons=20,
+        max_acyl_carbons=26,
+        max_backbone_unsaturation=2,
+        max_acyl_unsaturation=3,
+        min_total_carbons=30,
+        max_total_unsaturation=4
+    )
+    print_check_results(df)
     # df = assign_df_fragments(df, tolcol="Tolerance", auto_tolcol=True)
 
     # Write df to test output

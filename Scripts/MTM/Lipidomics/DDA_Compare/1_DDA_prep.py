@@ -5,7 +5,7 @@ topdir = r"Z:\Group Share\Shivam\DDA"
 topdir = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\Final Results\DDA Pipeline"
 os.chdir(topdir)
 
-datasets = ["ITIT", "OTIT", "OTOT", "Stellar", "Stellarboth"]
+datasets = ["ITIT", "OTIT", "OTOT", "Stellar", "Stellarboth", "AX", "Apex_AX"]
 
 dfs = []
 # Data sets
