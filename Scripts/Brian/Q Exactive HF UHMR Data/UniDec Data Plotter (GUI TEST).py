@@ -1,17 +1,30 @@
 """Modern GUI for plotting UniDec two-column text exports."""
 
+import colorsys
 from dataclasses import dataclass
 from pathlib import Path
 import sys
 from typing import Optional
+from urllib.parse import unquote, urlparse
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+from tkinter import colorchooser, filedialog, messagebox, ttk
 
 import matplotlib as mpl
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.colors import is_color_like, to_hex
 from matplotlib.figure import Figure
 from matplotlib.ticker import ScalarFormatter
+
+# Drag and drop is optional; the GUI must still launch without tkinterdnd2.
+try:
+    from tkinterdnd2 import DND_FILES, TkinterDnD
+
+    DND_AVAILABLE = True
+except Exception:
+    DND_FILES = None
+    TkinterDnD = None
+    DND_AVAILABLE = False
 
 
 FIGURE_SIZE = (16, 9)
@@ -21,6 +34,42 @@ TICK_SIZE = 12
 TICK_WIDTH = 2
 STAGGER_STEP_NORMALIZED = 0.1
 STAGGER_STEP_FRACTION = 0.1
+DEFAULT_SINGLE_DATASET_COLOR = "#000000"
+DATASET_EDITOR_WIDTH = 1120
+DATASET_EDITOR_HEIGHT = 460
+DATASET_EDITOR_MIN_WIDTH = 940
+DATASET_EDITOR_MIN_HEIGHT = 340
+COLOR_DIALOG_WIDTH = 360
+COLOR_DIALOG_HEIGHT = 210
+DATA_FILETYPES = (
+    ("Text data files", "*.txt *.dat"),
+    ("All files", "*.*"),
+)
+DROP_READY_STATUS = "Ready. Drop data files onto the window to add them."
+DROP_UNAVAILABLE_STATUS = "Ready. File drag and drop is unavailable in this Tk session."
+DROP_NOT_INSTALLED_STATUS = "Ready. Install tkinterdnd2 to enable file drag and drop."
+DEFAULT_DATASET_COLORS = (
+    "#1f77b4",
+    "#ff7f0e",
+    "#2ca02c",
+    "#d62728",
+    "#9467bd",
+    "#8c564b",
+    "#e377c2",
+    "#7f7f7f",
+    "#bcbd22",
+    "#17becf",
+    "#393b79",
+    "#637939",
+    "#8c6d31",
+    "#843c39",
+    "#7b4173",
+    "#3182bd",
+    "#31a354",
+    "#756bb1",
+    "#e6550d",
+    "#636363",
+)
 
 THEMES = {
     "Light": {
@@ -76,6 +125,7 @@ class Dataset:
     path: Path
     values: np.ndarray
     legend_label: Optional[str] = None
+    color: Optional[str] = None
 
 
 @dataclass
@@ -84,6 +134,7 @@ class DatasetInput:
 
     path: str = ""
     legend_label: str = ""
+    color: str = ""
 
 
 @dataclass(frozen=True)
@@ -144,7 +195,26 @@ PLOT_CONFIG_BY_NAME = {config.name: config for config in PLOT_CONFIGS}
 
 
 def clean_file_path(raw_path):
-    return Path(raw_path.strip().strip('"').strip("'"))
+    """Accept normal paths and file:// URLs produced by some drag/drop sources."""
+    path_text = raw_path.strip().strip('"').strip("'")
+    parsed = urlparse(path_text)
+    if parsed.scheme == "file":
+        path_text = unquote(parsed.path)
+        if sys.platform.startswith("win") and path_text.startswith("/") and len(path_text) > 2:
+            if path_text[2] == ":":
+                path_text = path_text[1:]
+
+    return Path(path_text)
+
+
+def parse_drop_file_paths(root, raw_data):
+    """Parse Tk drop payloads while preserving spaces inside file paths."""
+    try:
+        raw_paths = list(root.splitlist(raw_data))
+    except Exception:
+        raw_paths = raw_data.split()
+
+    return [clean_file_path(raw_path) for raw_path in raw_paths if raw_path.strip()]
 
 
 def clean_output_stem(raw_stem):
@@ -171,6 +241,65 @@ def compact_display_name(raw_path, max_length=36):
     head_length = (max_length - 3) // 2
     tail_length = max_length - 3 - head_length
     return f"{name[:head_length]}...{name[-tail_length:]}"
+
+
+def default_dataset_color(dataset_number, single_dataset=False):
+    """Return stable, non-repeating defaults for any number of datasets."""
+    if single_dataset:
+        return DEFAULT_SINGLE_DATASET_COLOR
+
+    color_index = dataset_number - 1
+    if color_index < len(DEFAULT_DATASET_COLORS):
+        return DEFAULT_DATASET_COLORS[color_index]
+
+    # Golden-ratio spacing keeps generated colors separated after the fixed palette.
+    hue = ((dataset_number - 1) * 0.618033988749895) % 1.0
+    return to_hex(colorsys.hsv_to_rgb(hue, 0.68, 0.78))
+
+
+def normalize_color_text(raw_color):
+    """Validate color text and convert it to canonical #rrggbb form."""
+    color = raw_color.strip()
+    if not color:
+        return ""
+
+    hex_digits = "0123456789abcdefABCDEF"
+    if not color.startswith("#") and len(color) in (3, 4, 6, 8):
+        if all(character in hex_digits for character in color):
+            color = f"#{color}"
+
+    if not is_color_like(color):
+        raise ValueError(f"Invalid color: {raw_color}")
+
+    return to_hex(color)
+
+
+def normalize_dataset_color(raw_color, dataset_number):
+    if not raw_color.strip():
+        return None
+
+    try:
+        return normalize_color_text(raw_color)
+    except ValueError as exc:
+        raise UserInputError(
+            f"Dataset {dataset_number} color is not a valid Matplotlib color:\n{raw_color}"
+        ) from exc
+
+
+def get_dataset_plot_color(dataset, dataset_number, single_dataset):
+    if dataset.color:
+        return dataset.color
+
+    return default_dataset_color(dataset_number, single_dataset=single_dataset)
+
+
+def get_empty_drop_target_input(target_row):
+    """Only an empty target row should be replaced by dropped files."""
+    target_input = getattr(target_row, "dataset_input", None)
+    if target_input is not None and target_input.path.strip():
+        return None
+
+    return target_input
 
 
 def detect_system_theme():
@@ -245,7 +374,9 @@ def get_intensity_values(dataset):
 def normalize_intensity(intensity, dataset_number):
     max_intensity = np.max(intensity)
     if max_intensity <= 0:
-        raise ValueError(f"Cannot normalize dataset {dataset_number}; maximum intensity is {max_intensity}.")
+        raise ValueError(
+            f"Cannot normalize dataset {dataset_number}; maximum intensity is {max_intensity}."
+        )
     return intensity / max_intensity
 
 
@@ -274,10 +405,16 @@ def plot_datasets(ax, config, datasets, options):
             intensity = intensity + ((dataset_number - 1) * stagger_offset_step)
 
         plotted_intensities.append(intensity)
+        color = get_dataset_plot_color(dataset, dataset_number, single_dataset)
         if single_dataset:
-            ax.plot(get_x_values(dataset, config), intensity, color="black")
+            ax.plot(get_x_values(dataset, config), intensity, color=color)
         else:
-            ax.plot(get_x_values(dataset, config), intensity, label=dataset.legend_label)
+            ax.plot(
+                get_x_values(dataset, config),
+                intensity,
+                color=color,
+                label=dataset.legend_label,
+            )
 
     return all_raw_intensities, plotted_intensities
 
@@ -377,48 +514,280 @@ def build_fixed_output_figure(config, datasets, options):
     return figure
 
 
+class DatasetColorDialog:
+    """Modal color picker that exposes a direct hex field alongside Tk's chooser."""
+
+    def __init__(self, app, parent, initial_color):
+        self.app = app
+        self.result = None
+        self.fallback_color = normalize_color_text(initial_color)
+        self.hex_var = tk.StringVar(value=self.fallback_color)
+        self.status_var = tk.StringVar()
+
+        colors = THEMES[self.app.theme_var.get()]
+        self.window = tk.Toplevel(parent)
+        self.window.title("Select Dataset Color")
+        self.window.resizable(False, False)
+        self.window.configure(bg=colors["app_bg"])
+        self.window.transient(parent)
+        self.window.protocol("WM_DELETE_WINDOW", self.cancel)
+
+        self.build_layout()
+        self.hex_var.trace_add("write", self.update_preview)
+        self.update_preview()
+        self.app.position_window_at_parent(
+            self.window,
+            parent,
+            COLOR_DIALOG_WIDTH,
+            COLOR_DIALOG_HEIGHT,
+        )
+
+        self.window.bind("<Return>", lambda _event: self.apply())
+        self.window.bind("<Escape>", lambda _event: self.cancel())
+        self.window.grab_set()
+        self.hex_entry.focus_set()
+        self.hex_entry.select_range(0, tk.END)
+        self.window.wait_window()
+
+    def build_layout(self):
+        frame = ttk.Frame(self.window, style="Panel.TFrame", padding=14)
+        frame.grid(row=0, column=0, sticky="nsew")
+        frame.columnconfigure(1, weight=1)
+
+        ttk.Label(frame, text="Preview", style="Field.TLabel").grid(
+            row=0,
+            column=0,
+            sticky="w",
+            padx=(0, 10),
+        )
+        self.preview = tk.Label(frame, width=12, height=2, relief="solid", borderwidth=1)
+        self.preview.grid(row=0, column=1, sticky="w")
+
+        ttk.Label(frame, text="Hex code", style="Field.TLabel").grid(
+            row=1,
+            column=0,
+            sticky="w",
+            padx=(0, 10),
+            pady=(12, 0),
+        )
+        self.hex_entry = ttk.Entry(frame, textvariable=self.hex_var, width=16)
+        self.hex_entry.grid(row=1, column=1, sticky="ew", pady=(12, 0))
+
+        ttk.Button(frame, text="System Picker", command=self.open_system_picker).grid(
+            row=2,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            pady=(12, 0),
+        )
+
+        ttk.Label(frame, textvariable=self.status_var, style="Field.TLabel").grid(
+            row=3,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            pady=(8, 0),
+        )
+
+        buttons = ttk.Frame(frame, style="Surface.TFrame")
+        buttons.grid(row=4, column=0, columnspan=2, sticky="ew", pady=(12, 0))
+        buttons.columnconfigure(0, weight=1)
+        ttk.Button(buttons, text="Auto", command=self.use_auto).grid(row=0, column=0, sticky="w")
+        ttk.Button(buttons, text="Cancel", command=self.cancel).grid(row=0, column=1, padx=(8, 0))
+        self.apply_button = ttk.Button(
+            buttons,
+            text="Apply",
+            style="Primary.TButton",
+            command=self.apply,
+        )
+        self.apply_button.grid(row=0, column=2, padx=(8, 0))
+
+    def get_current_color(self):
+        try:
+            return normalize_color_text(self.hex_var.get())
+        except ValueError:
+            return ""
+
+    def update_preview(self, *_args):
+        colors = THEMES[self.app.theme_var.get()]
+        selected_color = self.get_current_color()
+        if selected_color:
+            self.preview.configure(bg=selected_color, text="")
+            self.status_var.set("")
+            self.apply_button.configure(state="normal")
+        else:
+            self.preview.configure(bg="#ef4444", fg="#ffffff", text="!")
+            self.status_var.set("Enter a valid color such as #1f77b4.")
+            self.apply_button.configure(state="disabled")
+
+        self.preview.configure(
+            highlightbackground=colors["border"],
+            highlightcolor=colors["border"],
+            highlightthickness=1,
+        )
+
+    def open_system_picker(self):
+        selected_color = colorchooser.askcolor(
+            color=self.get_current_color() or self.fallback_color,
+            title="Select Dataset Color",
+            parent=self.window,
+        )[1]
+        if selected_color:
+            self.hex_var.set(to_hex(selected_color))
+            self.window.lift()
+
+    def use_auto(self):
+        self.close("")
+
+    def apply(self):
+        selected_color = self.get_current_color()
+        if not selected_color:
+            self.update_preview()
+            return
+
+        self.close(selected_color)
+
+    def close(self, result=None):
+        self.result = result
+        self.window.destroy()
+
+    def cancel(self):
+        self.close()
+
+
 class DatasetRow:
+    """A single editable row in the Manage Datasets window."""
+
     def __init__(self, app, parent, dataset_input):
         self.app = app
         self.dataset_input = dataset_input
+        self.dataset_index = 1
         self.frame = ttk.Frame(parent, style="Dataset.TFrame", padding=(0, 2))
         self.path_var = tk.StringVar(value=dataset_input.path)
         self.label_var = tk.StringVar(value=dataset_input.legend_label)
+        self.color_var = tk.StringVar(value=dataset_input.color)
 
         self.index_label = ttk.Label(self.frame, width=3, anchor="center", style="Index.TLabel")
         self.path_entry = ttk.Entry(self.frame, textvariable=self.path_var)
-        self.browse_button = ttk.Button(self.frame, text="Browse", style="Dataset.TButton", command=self.browse)
+        self.browse_button = ttk.Button(
+            self.frame,
+            text="Browse",
+            style="Dataset.TButton",
+            command=self.browse,
+        )
         self.label_entry = ttk.Entry(self.frame, textvariable=self.label_var)
-        self.remove_button = ttk.Button(self.frame, text="Remove", style="Dataset.TButton", command=self.remove)
+        self.color_swatch = tk.Label(self.frame, width=3, relief="solid", borderwidth=1)
+        self.color_entry = ttk.Entry(self.frame, textvariable=self.color_var, width=11)
+        self.color_button = ttk.Button(
+            self.frame,
+            text="Pick",
+            style="Dataset.TButton",
+            command=self.choose_color,
+        )
+        self.remove_button = ttk.Button(
+            self.frame,
+            text="Remove",
+            style="Dataset.TButton",
+            command=self.remove,
+        )
 
-        self.index_label.grid(row=0, column=0, sticky="ew", padx=(0, 8))
-        self.path_entry.grid(row=0, column=1, sticky="ew", padx=(0, 8))
-        self.browse_button.grid(row=0, column=2, sticky="ew", padx=(0, 8))
-        self.label_entry.grid(row=0, column=3, sticky="ew", padx=(0, 8))
-        self.remove_button.grid(row=0, column=4, sticky="ew")
+        row_widgets = (
+            (self.index_label, 0, (0, 8)),
+            (self.path_entry, 1, (0, 8)),
+            (self.browse_button, 2, (0, 8)),
+            (self.label_entry, 3, (0, 8)),
+            (self.color_swatch, 4, (0, 6)),
+            (self.color_entry, 5, (0, 8)),
+            (self.color_button, 6, (0, 8)),
+            (self.remove_button, 7, 0),
+        )
+        for widget, column, padx in row_widgets:
+            widget.grid(row=0, column=column, sticky="ew", padx=padx)
 
         self.frame.columnconfigure(1, weight=1)
         self.frame.columnconfigure(3, weight=1)
 
-        self.path_var.trace_add("write", self.on_field_changed)
-        self.label_var.trace_add("write", self.on_field_changed)
+        for variable in (self.path_var, self.label_var, self.color_var):
+            variable.trace_add("write", self.on_field_changed)
+
+        self.register_drop_targets()
+        self.update_color_swatch()
+
+    def register_drop_targets(self):
+        drop_callback = lambda event, row=self: self.app.on_files_dropped(event, target_row=row)
+        self.app.register_drop_targets(
+            self.frame,
+            self.path_entry,
+            self.browse_button,
+            self.label_entry,
+            self.color_swatch,
+            self.color_entry,
+            self.color_button,
+            self.remove_button,
+            callback=drop_callback,
+        )
 
     def on_field_changed(self, *_args):
         self.sync_to_input()
+        self.update_color_swatch()
         self.app.update_dataset_summary()
 
     def browse(self):
         self.app.browse_for_row(self)
 
+    def choose_color(self):
+        dialog = DatasetColorDialog(self.app, self.frame.winfo_toplevel(), self.get_display_color())
+        if dialog.result is not None:
+            self.color_var.set(dialog.result)
+
     def clear(self):
         self.path_var.set("")
         self.label_var.set("")
+        self.color_var.set("")
         self.sync_to_input()
         self.app.update_dataset_summary()
 
     def sync_to_input(self):
         self.dataset_input.path = self.path_var.get()
         self.dataset_input.legend_label = self.label_var.get()
+        self.dataset_input.color = self.color_var.get()
+
+    def get_display_color(self):
+        raw_color = self.color_var.get().strip()
+        if raw_color:
+            try:
+                return normalize_color_text(raw_color)
+            except ValueError:
+                return "#ef4444"
+
+        return default_dataset_color(
+            self.dataset_index,
+            single_dataset=self.app.get_active_dataset_count() <= 1,
+        )
+
+    def color_is_invalid(self):
+        raw_color = self.color_var.get().strip()
+        if not raw_color:
+            return False
+
+        try:
+            normalize_color_text(raw_color)
+        except ValueError:
+            return True
+
+        return False
+
+    def update_color_swatch(self):
+        colors = THEMES[self.app.theme_var.get()]
+        invalid_color = self.color_is_invalid()
+        self.color_swatch.configure(
+            bg=self.get_display_color(),
+            fg="#ffffff" if invalid_color else colors["text_primary"],
+            text="!" if invalid_color else "",
+            highlightbackground=colors["border"],
+            highlightcolor=colors["border"],
+            highlightthickness=1,
+        )
 
     def grid(self, row):
         self.frame.grid(row=row, column=0, sticky="ew", pady=(0, 4))
@@ -430,12 +799,16 @@ class DatasetRow:
         self.frame.destroy()
 
     def update_index(self, index, labels_enabled):
+        self.dataset_index = index
         self.index_label.configure(text=str(index))
         self.label_entry.configure(state="normal" if labels_enabled else "disabled")
+        self.update_color_swatch()
         self.remove_button.configure(text="Clear" if len(self.app.dataset_rows) == 1 else "Remove")
 
 
 class UniDecDataPlotterApp:
+    """Tkinter application shell for data selection, previewing, and saving plots."""
+
     def __init__(self, root):
         self.root = root
         self.root.title("UniDec Data Plotter")
@@ -463,29 +836,39 @@ class UniDecDataPlotterApp:
         self.dataset_summary_var = tk.StringVar()
         self.dataset_detail_var = tk.StringVar()
         self.status_var = tk.StringVar(value="Ready.")
+        self.drag_drop_enabled = False
 
         self.configure_ttk_style()
         self.build_layout()
+        self.drag_drop_enabled = self.enable_drag_and_drop()
         self.update_dataset_summary()
         self.update_zoom_labels()
         self.update_zoom_state()
         self.draw_empty_preview()
+        self.set_initial_status()
+
+    def set_initial_status(self):
+        if self.drag_drop_enabled:
+            self.status_var.set(DROP_READY_STATUS)
+        elif DND_AVAILABLE:
+            self.status_var.set(DROP_UNAVAILABLE_STATUS)
+        else:
+            self.status_var.set(DROP_NOT_INSTALLED_STATUS)
 
     def configure_ttk_style(self):
         colors = THEMES[self.theme_var.get()]
         self.root.configure(bg=colors["app_bg"])
 
-        default_font = ("Segoe UI", 10)
-        heading_font = ("Segoe UI Semibold", 11)
-        title_font = ("Segoe UI Semibold", 18)
-
         self.style.configure(
             ".",
-            font=default_font,
+            font=("Segoe UI", 10),
             background=colors["app_bg"],
             foreground=colors["text_primary"],
         )
+
         self.style.configure("App.TFrame", background=colors["app_bg"])
+        for style_name in ("Surface.TFrame", "Dataset.TFrame"):
+            self.style.configure(style_name, background=colors["panel_bg"])
         self.style.configure(
             "Panel.TFrame",
             background=colors["panel_bg"],
@@ -493,35 +876,28 @@ class UniDecDataPlotterApp:
             borderwidth=1,
             relief="solid",
         )
-        self.style.configure("Surface.TFrame", background=colors["panel_bg"])
-        self.style.configure("Dataset.TFrame", background=colors["panel_bg"])
-        self.style.configure(
-            "Header.TLabel",
-            background=colors["panel_bg"],
-            foreground=colors["text_primary"],
-            font=title_font,
-        )
-        self.style.configure(
-            "Section.TLabel",
-            background=colors["panel_bg"],
-            foreground=colors["text_primary"],
-            font=heading_font,
-        )
-        self.style.configure(
-            "Field.TLabel",
-            background=colors["panel_bg"],
-            foreground=colors["text_secondary"],
-        )
-        self.style.configure(
-            "Index.TLabel",
-            background=colors["panel_bg"],
-            foreground=colors["text_secondary"],
-        )
-        self.style.configure(
-            "Status.TLabel",
-            background=colors["app_bg"],
-            foreground=colors["text_secondary"],
-        )
+
+        label_styles = {
+            "Header.TLabel": (
+                colors["text_primary"],
+                ("Segoe UI Semibold", 18),
+                colors["panel_bg"],
+            ),
+            "Section.TLabel": (
+                colors["text_primary"],
+                ("Segoe UI Semibold", 11),
+                colors["panel_bg"],
+            ),
+            "Field.TLabel": (colors["text_secondary"], None, colors["panel_bg"]),
+            "Index.TLabel": (colors["text_secondary"], None, colors["panel_bg"]),
+            "Status.TLabel": (colors["text_secondary"], None, colors["app_bg"]),
+        }
+        for style_name, (foreground, font, background) in label_styles.items():
+            options = {"background": background, "foreground": foreground}
+            if font is not None:
+                options["font"] = font
+            self.style.configure(style_name, **options)
+
         self.style.configure(
             "TCheckbutton",
             background=colors["panel_bg"],
@@ -532,6 +908,7 @@ class UniDecDataPlotterApp:
             foreground=[("disabled", colors["disabled_text"])],
             background=[("active", colors["panel_bg"])],
         )
+
         self.style.configure(
             "TEntry",
             fieldbackground=colors["input_bg"],
@@ -563,30 +940,21 @@ class UniDecDataPlotterApp:
             selectbackground=[("readonly", colors["input_bg"])],
             selectforeground=[("readonly", colors["text_primary"])],
         )
-        self.style.configure(
-            "TButton",
-            padding=(10, 6),
-            background=colors["button_bg"],
-            foreground=colors["text_primary"],
-            bordercolor=colors["border"],
-        )
-        self.style.configure(
-            "Dataset.TButton",
-            padding=(8, 3),
-            background=colors["button_bg"],
-            foreground=colors["text_primary"],
-            bordercolor=colors["border"],
-        )
-        self.style.map(
-            "TButton",
-            background=[("active", colors["button_active"]), ("disabled", colors["app_bg"])],
-            foreground=[("disabled", colors["disabled_text"])],
-        )
-        self.style.map(
-            "Dataset.TButton",
-            background=[("active", colors["button_active"]), ("disabled", colors["app_bg"])],
-            foreground=[("disabled", colors["disabled_text"])],
-        )
+
+        for style_name, padding in (("TButton", (10, 6)), ("Dataset.TButton", (8, 3))):
+            self.style.configure(
+                style_name,
+                padding=padding,
+                background=colors["button_bg"],
+                foreground=colors["text_primary"],
+                bordercolor=colors["border"],
+            )
+            self.style.map(
+                style_name,
+                background=[("active", colors["button_active"]), ("disabled", colors["app_bg"])],
+                foreground=[("disabled", colors["disabled_text"])],
+            )
+
         self.style.configure(
             "Primary.TButton",
             padding=(14, 8),
@@ -626,14 +994,40 @@ class UniDecDataPlotterApp:
         status.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(12, 0))
 
     def build_controls(self, parent):
-        header = ttk.Frame(parent, style="Surface.TFrame")
-        header.grid(row=0, column=0, sticky="ew")
-        header.columnconfigure(0, weight=1)
+        for row, builder in enumerate(
+            (
+                self.build_header_controls,
+                self.build_plot_type_controls,
+                self.build_dataset_controls,
+                self.build_plot_options_controls,
+                self.build_output_controls,
+                self.build_action_controls,
+            )
+        ):
+            builder(parent, row)
+
+    def create_control_section(self, parent, row, pady=(18, 0), column_weights=(1,)):
+        section = ttk.Frame(parent, style="Surface.TFrame")
+        section.grid(row=row, column=0, sticky="ew", pady=pady)
+        for column, weight in enumerate(column_weights):
+            section.columnconfigure(column, weight=weight)
+        return section
+
+    def build_header_controls(self, parent, row):
+        header = self.create_control_section(parent, row, pady=0)
 
         ttk.Label(header, text="UniDec Data Plotter", style="Header.TLabel").grid(
-            row=0, column=0, sticky="w"
+            row=0,
+            column=0,
+            sticky="w",
         )
-        ttk.Label(header, text="Theme", style="Field.TLabel").grid(row=0, column=1, sticky="e", padx=(12, 8))
+        ttk.Label(header, text="Theme", style="Field.TLabel").grid(
+            row=0,
+            column=1,
+            sticky="e",
+            padx=(12, 8),
+        )
+
         self.theme_combo = ttk.Combobox(
             header,
             textvariable=self.theme_var,
@@ -644,11 +1038,14 @@ class UniDecDataPlotterApp:
         self.theme_combo.grid(row=0, column=2, sticky="e")
         self.theme_combo.bind("<<ComboboxSelected>>", self.on_theme_changed)
 
-        plot_type_frame = ttk.Frame(parent, style="Surface.TFrame")
-        plot_type_frame.grid(row=1, column=0, sticky="ew", pady=(18, 0))
-        plot_type_frame.columnconfigure(0, weight=1)
+    def build_plot_type_controls(self, parent, row):
+        plot_type_frame = self.create_control_section(parent, row)
+        ttk.Label(plot_type_frame, text="Plot type", style="Field.TLabel").grid(
+            row=0,
+            column=0,
+            sticky="w",
+        )
 
-        ttk.Label(plot_type_frame, text="Plot type", style="Field.TLabel").grid(row=0, column=0, sticky="w")
         self.plot_type_combo = ttk.Combobox(
             plot_type_frame,
             textvariable=self.plot_type_var,
@@ -658,37 +1055,44 @@ class UniDecDataPlotterApp:
         self.plot_type_combo.grid(row=1, column=0, sticky="ew", pady=(5, 0))
         self.plot_type_combo.bind("<<ComboboxSelected>>", self.on_plot_type_changed)
 
-        datasets = ttk.Frame(parent, style="Surface.TFrame")
-        datasets.grid(row=2, column=0, sticky="ew", pady=(18, 0))
-        datasets.columnconfigure(0, weight=1)
-        datasets.columnconfigure(1, weight=0)
+    def build_dataset_controls(self, parent, row):
+        self.datasets_frame = self.create_control_section(parent, row)
+        self.datasets_frame.columnconfigure(0, weight=1)
 
-        ttk.Label(datasets, text="Datasets", style="Section.TLabel").grid(row=0, column=0, sticky="w")
-        ttk.Button(datasets, text="Manage Datasets", command=self.open_dataset_editor).grid(
+        ttk.Label(self.datasets_frame, text="Datasets", style="Section.TLabel").grid(
+            row=0,
+            column=0,
+            sticky="w",
+        )
+        ttk.Button(
+            self.datasets_frame,
+            text="Manage Datasets",
+            command=self.open_dataset_editor,
+        ).grid(
             row=0,
             column=1,
             padx=(8, 0),
         )
-        ttk.Label(datasets, textvariable=self.dataset_summary_var, style="Field.TLabel").grid(
+        ttk.Label(
+            self.datasets_frame,
+            textvariable=self.dataset_summary_var,
+            style="Field.TLabel",
+        ).grid(
             row=1,
             column=0,
             columnspan=2,
             sticky="w",
             pady=(8, 0),
         )
-        ttk.Label(datasets, textvariable=self.dataset_detail_var, style="Field.TLabel", wraplength=460).grid(
-            row=2,
-            column=0,
-            columnspan=2,
-            sticky="ew",
-            pady=(3, 0),
-        )
+        ttk.Label(
+            self.datasets_frame,
+            textvariable=self.dataset_detail_var,
+            style="Field.TLabel",
+            wraplength=460,
+        ).grid(row=2, column=0, columnspan=2, sticky="ew", pady=(3, 0))
 
-        self.options_frame = ttk.Frame(parent, style="Surface.TFrame")
-        options = self.options_frame
-        options.grid(row=3, column=0, sticky="ew", pady=(16, 0))
-        options.columnconfigure(0, weight=1)
-        options.columnconfigure(1, weight=1)
+    def build_plot_options_controls(self, parent, row):
+        options = self.create_control_section(parent, row, pady=(16, 0), column_weights=(1, 1))
 
         ttk.Label(options, text="Options", style="Section.TLabel").grid(
             row=0, column=0, columnspan=2, sticky="w", pady=(0, 8)
@@ -696,7 +1100,11 @@ class UniDecDataPlotterApp:
         ttk.Checkbutton(options, text="Normalize intensity", variable=self.normalize_var).grid(
             row=1, column=0, columnspan=2, sticky="w", pady=(0, 6)
         )
-        self.stagger_check = ttk.Checkbutton(options, text="Stagger overlay traces", variable=self.stagger_var)
+        self.stagger_check = ttk.Checkbutton(
+            options,
+            text="Stagger overlay traces",
+            variable=self.stagger_var,
+        )
         self.stagger_check.grid(row=2, column=0, columnspan=2, sticky="w", pady=(0, 6))
         ttk.Checkbutton(
             options,
@@ -705,27 +1113,45 @@ class UniDecDataPlotterApp:
             command=self.update_zoom_state,
         ).grid(row=3, column=0, columnspan=2, sticky="w", pady=(0, 10))
 
-        self.zoom_start_label = ttk.Label(options, textvariable=self.zoom_start_label_var, style="Field.TLabel")
-        self.zoom_start_label.grid(row=4, column=0, sticky="w", padx=(0, 8))
-        self.zoom_end_label = ttk.Label(options, textvariable=self.zoom_end_label_var, style="Field.TLabel")
-        self.zoom_end_label.grid(row=4, column=1, sticky="w")
-
+        self.zoom_start_label = ttk.Label(
+            options,
+            textvariable=self.zoom_start_label_var,
+            style="Field.TLabel",
+        )
+        self.zoom_end_label = ttk.Label(
+            options,
+            textvariable=self.zoom_end_label_var,
+            style="Field.TLabel",
+        )
         self.zoom_start_entry = ttk.Entry(options, textvariable=self.zoom_start_var)
-        self.zoom_start_entry.grid(row=5, column=0, sticky="ew", padx=(0, 8), pady=(5, 0))
         self.zoom_end_entry = ttk.Entry(options, textvariable=self.zoom_end_var)
+
+        self.zoom_start_label.grid(row=4, column=0, sticky="w", padx=(0, 8))
+        self.zoom_end_label.grid(row=4, column=1, sticky="w")
+        self.zoom_start_entry.grid(row=5, column=0, sticky="ew", padx=(0, 8), pady=(5, 0))
         self.zoom_end_entry.grid(row=5, column=1, sticky="ew", pady=(5, 0))
 
-        self.output_frame = ttk.Frame(parent, style="Surface.TFrame")
-        output = self.output_frame
-        output.grid(row=4, column=0, sticky="ew", pady=(14, 0))
-        output.columnconfigure(0, weight=1)
+    def build_output_controls(self, parent, row):
+        output = self.create_control_section(parent, row, pady=(14, 0))
 
-        ttk.Label(output, text="Output", style="Section.TLabel").grid(row=0, column=0, columnspan=3, sticky="w")
+        ttk.Label(output, text="Output", style="Section.TLabel").grid(
+            row=0,
+            column=0,
+            columnspan=3,
+            sticky="w",
+        )
         ttk.Label(output, text="Output folder", style="Field.TLabel").grid(
             row=1, column=0, columnspan=2, sticky="w", pady=(8, 0)
         )
         self.output_dir_entry = ttk.Entry(output, textvariable=self.output_dir_var)
-        self.output_dir_entry.grid(row=2, column=0, columnspan=2, sticky="ew", padx=(0, 8), pady=(5, 0))
+        self.output_dir_entry.grid(
+            row=2,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=(0, 8),
+            pady=(5, 0),
+        )
         ttk.Button(output, text="Browse", command=self.browse_output_folder).grid(
             row=2, column=2, sticky="ew", pady=(5, 0)
         )
@@ -743,12 +1169,8 @@ class UniDecDataPlotterApp:
             row=5, column=1, sticky="w", pady=(10, 0)
         )
 
-        self.actions_frame = ttk.Frame(parent, style="Surface.TFrame")
-        actions = self.actions_frame
-        actions.grid(row=5, column=0, sticky="ew", pady=(16, 0))
-        actions.columnconfigure(0, weight=1)
-        actions.columnconfigure(1, weight=1)
-
+    def build_action_controls(self, parent, row):
+        actions = self.create_control_section(parent, row, pady=(16, 0), column_weights=(1, 1))
         ttk.Button(actions, text="Preview Plot", command=self.preview_plot).grid(
             row=0, column=0, sticky="ew", padx=(0, 8)
         )
@@ -757,7 +1179,12 @@ class UniDecDataPlotterApp:
         )
 
     def build_preview(self, parent):
-        ttk.Label(parent, text="Preview", style="Section.TLabel").grid(row=0, column=0, sticky="w", pady=(0, 8))
+        ttk.Label(parent, text="Preview", style="Section.TLabel").grid(
+            row=0,
+            column=0,
+            sticky="w",
+            pady=(0, 8),
+        )
 
         colors = THEMES[self.theme_var.get()]
         self.figure = Figure(figsize=FIGURE_SIZE, dpi=100, facecolor=colors["plot_bg"])
@@ -812,13 +1239,58 @@ class UniDecDataPlotterApp:
                 highlightbackground=colors["border"],
             )
         if hasattr(self, "canvas_widget"):
-            self.canvas_widget.configure(bg=colors["panel_bg"], highlightbackground=colors["panel_bg"])
+            self.canvas_widget.configure(
+                bg=colors["panel_bg"],
+                highlightbackground=colors["panel_bg"],
+            )
+
+        for row in self.dataset_rows:
+            row.update_color_swatch()
 
         if hasattr(self, "figure") and self.figure.axes and not self.figure.axes[0].lines:
             self.draw_empty_preview()
 
+    def enable_drag_and_drop(self):
+        return self.register_drop_targets(self.root, self.datasets_frame, self.canvas_widget)
+
+    def register_drop_target(self, widget, callback=None):
+        if not DND_AVAILABLE or widget is None or not hasattr(widget, "drop_target_register"):
+            return False
+
+        drop_callback = callback or self.on_files_dropped
+        try:
+            widget.drop_target_register(DND_FILES)
+            widget.dnd_bind("<<Drop>>", drop_callback)
+        except Exception:
+            return False
+
+        return True
+
+    def register_drop_targets(self, *widgets, callback=None):
+        registered = False
+        for widget in widgets:
+            registered = self.register_drop_target(widget, callback) or registered
+        return registered
+
+    def on_files_dropped(self, event, target_row=None):
+        paths = parse_drop_file_paths(self.root, event.data)
+        file_paths = [path for path in paths if path.is_file()]
+        if not file_paths:
+            self.status_var.set("Drop data files, not folders.")
+            return
+
+        target_input = get_empty_drop_target_input(target_row)
+        added_count = self.add_dataset_paths(file_paths, target_input=target_input)
+        self.status_var.set(f"Added {added_count} dataset file(s) from drop.")
+
     def dataset_editor_is_open(self):
         return self.dataset_editor_window is not None and self.dataset_editor_window.winfo_exists()
+
+    def position_window_at_parent(self, window, parent, width, height):
+        parent.update_idletasks()
+        x_position = max(parent.winfo_x(), 0)
+        y_position = max(parent.winfo_y(), 0)
+        window.geometry(f"{width}x{height}+{x_position}+{y_position}")
 
     def open_dataset_editor(self):
         if self.dataset_editor_is_open():
@@ -830,54 +1302,80 @@ class UniDecDataPlotterApp:
 
         self.sync_dataset_editor_rows()
         colors = THEMES[self.theme_var.get()]
-        self.dataset_editor_window = tk.Toplevel(self.root)
-        self.dataset_editor_window.title("Manage Datasets")
-        self.dataset_editor_window.geometry("920x420")
-        self.dataset_editor_window.minsize(760, 320)
-        self.dataset_editor_window.configure(bg=colors["app_bg"])
-        self.dataset_editor_window.transient(self.root)
-        self.dataset_editor_window.protocol("WM_DELETE_WINDOW", self.close_dataset_editor)
-        self.dataset_editor_window.columnconfigure(0, weight=1)
-        self.dataset_editor_window.rowconfigure(1, weight=1)
+        self.dataset_editor_window = self.create_dataset_editor_window(colors)
+        header = self.build_dataset_editor_header(self.dataset_editor_window)
+        list_panel = self.build_dataset_editor_list_panel(self.dataset_editor_window, colors)
+        self.register_drop_targets(
+            self.dataset_editor_window,
+            header,
+            list_panel,
+            self.dataset_rows_canvas,
+            self.dataset_rows_frame,
+        )
+        self.refresh_dataset_rows()
 
-        header = ttk.Frame(self.dataset_editor_window, style="Panel.TFrame", padding=(14, 12))
+    def create_dataset_editor_window(self, colors):
+        window = tk.Toplevel(self.root)
+        window.title("Manage Datasets")
+        self.position_window_at_parent(
+            window,
+            self.root,
+            DATASET_EDITOR_WIDTH,
+            DATASET_EDITOR_HEIGHT,
+        )
+        window.minsize(DATASET_EDITOR_MIN_WIDTH, DATASET_EDITOR_MIN_HEIGHT)
+        window.configure(bg=colors["app_bg"])
+        window.transient(self.root)
+        window.protocol("WM_DELETE_WINDOW", self.close_dataset_editor)
+        window.columnconfigure(0, weight=1)
+        window.rowconfigure(1, weight=1)
+        return window
+
+    def build_dataset_editor_header(self, parent):
+        header = ttk.Frame(parent, style="Panel.TFrame", padding=(14, 12))
         header.grid(row=0, column=0, sticky="ew", padx=14, pady=(14, 10))
         header.columnconfigure(0, weight=1)
         ttk.Label(header, text="Datasets", style="Section.TLabel").grid(row=0, column=0, sticky="w")
-        ttk.Button(header, text="Add Files", command=self.add_files).grid(row=0, column=1, padx=(8, 0))
-        ttk.Button(header, text="Add Row", command=self.add_dataset_row).grid(row=0, column=2, padx=(8, 0))
-        ttk.Button(header, text="Close", command=self.close_dataset_editor).grid(row=0, column=3, padx=(8, 0))
+        header_buttons = (
+            ("Add Files", self.add_files),
+            ("Add Row", self.add_dataset_row),
+            ("Close", self.close_dataset_editor),
+        )
+        for column, (text, command) in enumerate(header_buttons, start=1):
+            ttk.Button(header, text=text, command=command).grid(row=0, column=column, padx=(8, 0))
+        return header
 
-        list_panel = ttk.Frame(self.dataset_editor_window, style="Panel.TFrame", padding=14)
+    def build_dataset_editor_list_panel(self, parent, colors):
+        list_panel = ttk.Frame(parent, style="Panel.TFrame", padding=14)
         list_panel.grid(row=1, column=0, sticky="nsew", padx=14, pady=(0, 14))
         list_panel.columnconfigure(0, weight=1)
         list_panel.rowconfigure(1, weight=1)
+        self.build_dataset_editor_column_labels(list_panel)
+        self.build_dataset_rows_canvas(list_panel, colors)
+        return list_panel
 
-        column_labels = ttk.Frame(list_panel, style="Surface.TFrame")
+    def build_dataset_editor_column_labels(self, parent):
+        column_labels = ttk.Frame(parent, style="Surface.TFrame")
         column_labels.grid(row=0, column=0, sticky="ew", pady=(0, 6))
-        column_labels.columnconfigure(1, weight=1)
+        column_labels.columnconfigure(1, weight=2)
         column_labels.columnconfigure(3, weight=1)
-        ttk.Label(column_labels, text="#", width=3, anchor="center", style="Field.TLabel").grid(
-            row=0,
-            column=0,
-            sticky="ew",
-            padx=(0, 8),
+        labels = (
+            ("#", 0, {"width": 3, "anchor": "center"}, {"sticky": "ew"}),
+            ("File path", 1, {}, {"sticky": "w"}),
+            ("", 2, {}, {}),
+            ("Legend label", 3, {}, {"sticky": "w"}),
+            ("Color", 4, {}, {"columnspan": 3, "sticky": "w"}),
         )
-        ttk.Label(column_labels, text="File path", style="Field.TLabel").grid(
-            row=0,
-            column=1,
-            sticky="w",
-            padx=(0, 8),
-        )
-        ttk.Label(column_labels, text="", style="Field.TLabel").grid(row=0, column=2, padx=(0, 8))
-        ttk.Label(column_labels, text="Legend label", style="Field.TLabel").grid(
-            row=0,
-            column=3,
-            sticky="w",
-            padx=(0, 8),
-        )
+        for text, column, label_options, grid_options in labels:
+            ttk.Label(column_labels, text=text, style="Field.TLabel", **label_options).grid(
+                row=0,
+                column=column,
+                padx=(0, 8),
+                **grid_options,
+            )
 
-        dataset_list = ttk.Frame(list_panel, style="Surface.TFrame")
+    def build_dataset_rows_canvas(self, parent, colors):
+        dataset_list = ttk.Frame(parent, style="Surface.TFrame")
         dataset_list.grid(row=1, column=0, sticky="nsew")
         dataset_list.columnconfigure(0, weight=1)
         dataset_list.rowconfigure(0, weight=1)
@@ -909,10 +1407,12 @@ class UniDecDataPlotterApp:
         self.dataset_rows_frame.bind("<Configure>", lambda _event: self.refresh_dataset_viewport())
         self.dataset_rows_canvas.bind(
             "<Configure>",
-            lambda event: self.dataset_rows_canvas.itemconfigure(self.dataset_rows_window, width=event.width),
+            lambda event: self.dataset_rows_canvas.itemconfigure(
+                self.dataset_rows_window,
+                width=event.width,
+            ),
         )
         self.bind_mousewheel(self.dataset_rows_canvas)
-        self.refresh_dataset_rows()
 
     def bind_mousewheel(self, canvas):
         canvas.bind(
@@ -974,23 +1474,73 @@ class UniDecDataPlotterApp:
 
         return Path.home()
 
+    def get_active_dataset_inputs(self):
+        return [
+            dataset_input
+            for dataset_input in self.dataset_inputs
+            if dataset_input.path.strip()
+        ]
+
+    def get_active_dataset_count(self):
+        return len(self.get_active_dataset_inputs())
+
+    def assign_path_to_dataset_input(self, dataset_input, path):
+        previous_stem = (
+            clean_file_path(dataset_input.path).stem
+            if dataset_input.path.strip()
+            else ""
+        )
+        previous_label = dataset_input.legend_label.strip()
+
+        dataset_input.path = str(path)
+        if not previous_label or previous_label == previous_stem:
+            dataset_input.legend_label = path.stem
+
+    def add_dataset_paths(self, paths, target_input=None):
+        self.sync_dataset_editor_rows()
+        if target_input is not None and target_input not in self.dataset_inputs:
+            target_input = None
+
+        blank_inputs = [
+            dataset_input
+            for dataset_input in self.dataset_inputs
+            if not dataset_input.path.strip() and dataset_input is not target_input
+        ]
+
+        added_count = 0
+        for raw_path in paths:
+            path = Path(raw_path)
+            if target_input is not None and added_count == 0:
+                dataset_input = target_input
+            elif blank_inputs:
+                dataset_input = blank_inputs.pop(0)
+            else:
+                dataset_input = DatasetInput()
+                self.dataset_inputs.append(dataset_input)
+
+            self.assign_path_to_dataset_input(dataset_input, path)
+            added_count += 1
+
+        self.update_dataset_summary()
+        self.refresh_dataset_rows()
+        if self.dataset_editor_is_open():
+            self.dataset_editor_window.after_idle(self.scroll_dataset_rows_to_bottom)
+
+        return added_count
+
     def browse_for_row(self, row):
         path = filedialog.askopenfilename(
             title="Select UniDec data file",
-            filetypes=(
-                ("Text data files", "*.txt *.dat"),
-                ("All files", "*.*"),
-            ),
+            filetypes=DATA_FILETYPES,
         )
         if not path:
             return
 
         selected_path = Path(path)
-        row.path_var.set(str(selected_path))
-        if not row.label_var.get().strip():
-            row.label_var.set(selected_path.stem)
-
         row.sync_to_input()
+        self.assign_path_to_dataset_input(row.dataset_input, selected_path)
+        row.path_var.set(row.dataset_input.path)
+        row.label_var.set(row.dataset_input.legend_label)
         self.update_dataset_summary()
         self.status_var.set(f"Selected {selected_path.name}.")
 
@@ -1007,39 +1557,15 @@ class UniDecDataPlotterApp:
         self.status_var.set(f"Output folder set to {selected_dir}.")
 
     def add_files(self):
-        self.sync_dataset_editor_rows()
         paths = filedialog.askopenfilenames(
             title="Select UniDec data files",
-            filetypes=(
-                ("Text data files", "*.txt *.dat"),
-                ("All files", "*.*"),
-            ),
+            filetypes=DATA_FILETYPES,
         )
         if not paths:
             return
 
-        blank_inputs = [
-            dataset_input
-            for dataset_input in self.dataset_inputs
-            if not dataset_input.path.strip()
-        ]
-        for raw_path in paths:
-            path = Path(raw_path)
-            if blank_inputs:
-                dataset_input = blank_inputs.pop(0)
-            else:
-                dataset_input = DatasetInput()
-                self.dataset_inputs.append(dataset_input)
-
-            dataset_input.path = str(path)
-            if not dataset_input.legend_label.strip():
-                dataset_input.legend_label = path.stem
-
-        self.update_dataset_summary()
-        self.refresh_dataset_rows()
-        if self.dataset_editor_is_open():
-            self.dataset_editor_window.after_idle(self.scroll_dataset_rows_to_bottom)
-        self.status_var.set(f"Added {len(paths)} dataset file(s).")
+        added_count = self.add_dataset_paths(paths)
+        self.status_var.set(f"Added {added_count} dataset file(s).")
 
     def add_dataset_row(self):
         self.sync_dataset_editor_rows()
@@ -1100,16 +1626,15 @@ class UniDecDataPlotterApp:
         self.dataset_rows = []
 
     def update_dataset_summary(self):
-        active_inputs = [
-            dataset_input
-            for dataset_input in self.dataset_inputs
-            if dataset_input.path.strip()
-        ]
+        active_inputs = self.get_active_dataset_inputs()
         dataset_count = len(active_inputs)
 
         if dataset_count == 0:
             self.dataset_summary_var.set("No datasets selected.")
-            self.dataset_detail_var.set("Use Manage Datasets to choose UniDec text exports.")
+            if self.drag_drop_enabled:
+                self.dataset_detail_var.set("Drop UniDec text exports here or use Manage Datasets.")
+            else:
+                self.dataset_detail_var.set("Use Manage Datasets to choose UniDec text exports.")
         elif dataset_count == 1:
             self.dataset_summary_var.set("1 dataset selected.")
             self.dataset_detail_var.set(compact_display_name(active_inputs[0].path, max_length=54))
@@ -1128,6 +1653,9 @@ class UniDecDataPlotterApp:
             self.stagger_var.set(False)
             self.stagger_check.configure(state="disabled")
 
+        for row in self.dataset_rows:
+            row.update_color_swatch()
+
     def scroll_dataset_rows_to_bottom(self):
         if not self.dataset_editor_is_open():
             return
@@ -1145,11 +1673,7 @@ class UniDecDataPlotterApp:
 
     def collect_datasets(self):
         self.sync_dataset_editor_rows()
-        active_inputs = [
-            dataset_input
-            for dataset_input in self.dataset_inputs
-            if dataset_input.path.strip()
-        ]
+        active_inputs = self.get_active_dataset_inputs()
         if not active_inputs:
             raise UserInputError("Add at least one dataset file.")
 
@@ -1164,8 +1688,11 @@ class UniDecDataPlotterApp:
             legend_label = None
             if multiple_datasets:
                 legend_label = dataset_input.legend_label.strip() or path.stem
+            color = normalize_dataset_color(dataset_input.color, index)
 
-            datasets.append(Dataset(path=path, values=values, legend_label=legend_label))
+            datasets.append(
+                Dataset(path=path, values=values, legend_label=legend_label, color=color)
+            )
 
         return datasets
 
@@ -1252,7 +1779,10 @@ class UniDecDataPlotterApp:
 
 
 def main():
-    root = tk.Tk()
+    try:
+        root = TkinterDnD.Tk() if DND_AVAILABLE else tk.Tk()
+    except tk.TclError:
+        root = tk.Tk()
     UniDecDataPlotterApp(root)
     root.mainloop()
 
