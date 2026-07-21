@@ -5,7 +5,7 @@ import matplotlib as mpl
 
 
 # os.chdir("C:\\Users\\marty\\University of Arizona\\martylab - Documents\\Papers\\IsoDec\\Figures")
-os.chdir("D:\\Johnny\\University of Arizona\\martylab - Documents\\Papers\\IsoDec\\Figures\\")
+# os.chdir("D:\\Johnny\\University of Arizona\\martylab - Documents\\Papers\\IsoDec\\Figures\\")
 # Create plot to show two linear layers connected, the first with 200 nodes and the second with 50
 
 # Set backend to Agg
@@ -30,6 +30,6 @@ plt.gca().xaxis.set_visible(False)
 plt.gca().yaxis.set_visible(False)
 plt.xticks([])
 plt.yticks([])
-plt.savefig("nn_schematic_200.png", dpi=300, transparent=True)
-plt.savefig("nn_schematic_200.pdf", dpi=300, transparent=True)
+# plt.savefig("nn_schematic_200.png", dpi=300, transparent=True)
+# plt.savefig("nn_schematic_200.pdf", dpi=300, transparent=True)
 plt.show()
