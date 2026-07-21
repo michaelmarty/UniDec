@@ -2,7 +2,7 @@ import pandas as pd
 import os
 from PublicScripts.Lipids.LipidFunctions import update_rt
 
-topdir = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\RT Shifting"
+topdir = r"Z:\Group Share\Estevan\Lipid Stuffs"
 os.chdir(topdir)
 
 tlpath = r"HEK_TransList_Clean2.csv"
@@ -30,7 +30,7 @@ forcedrts = {"Cer 44:1;2|Cer 18:1;2/26:0": 12.0, "Cer 44:1;2|Cer 20:1;2/24:0": 1
 
 
 
-forcedrts = {"LPI 16:1": 1.2
+forcedrts = {
              }
 df = update_rt(df, cdf, mode="apex", min_window=1, max_window=2.0, nstds=8, forcedrts=forcedrts)
 

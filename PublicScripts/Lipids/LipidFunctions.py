@@ -2651,3 +2651,383 @@ def write_colored_excel(df, column, filename, color_map=None):
             cell_format = workbook.add_format({'bg_color': hex_color})
             worksheet.write(row_num, df.columns.get_loc(column), value, cell_format)
 
+
+def get_tail_carbons(tail):
+    """
+    Extracts carbon count from tail strings like:
+    18:1;O2
+    16:0
+    24:1;O
+    """
+    if pd.isna(tail):
+        return np.nan
+
+    tail = str(tail).strip()
+
+    if tail == "":
+        return np.nan
+
+    match = re.match(r"^(\d+):", tail)
+
+    if match is None:
+        return np.nan
+
+    return float(match.group(1))
+
+
+def get_tail_unsaturation(tail):
+    """
+    Extracts unsaturation count from tail strings like:
+    18:1;O2
+    16:0
+    24:1;O
+    """
+    if pd.isna(tail):
+        return np.nan
+
+    tail = str(tail).strip()
+
+    if tail == "":
+        return np.nan
+
+    match = re.match(r"^\d+:(\d+)", tail)
+
+    if match is None:
+        return np.nan
+
+    return float(match.group(1))
+
+
+def flag_weird_lipids(
+    df,
+    lipid_col="Metabolite name",
+    class_col="Ontology",
+    adduct_col="Adduct type",
+
+    # General total-unsaturation limits by class
+    max_unsaturation_by_class=None,
+
+    # SM-specific structural limits
+    sm_min_backbone_carbons=16,
+    sm_max_backbone_carbons=20,
+    sm_max_acyl_carbons=26,
+    sm_max_backbone_unsaturation=2,
+    sm_max_acyl_unsaturation=3,
+    sm_min_total_carbons=30
+):
+    """
+    Applies general and class-specific lipid sanity checks.
+
+    General unsaturation rule:
+        Classes listed in max_unsaturation_by_class are removed when their
+        total number of double bonds exceeds the class-specific limit.
+
+    SM-specific rules:
+        Speciated SMs:
+            - T1 backbone carbon limits
+            - T2 acyl-tail carbon limit
+            - T1 backbone unsaturation limit
+            - T2 acyl-tail unsaturation limit
+
+        Non-speciated SMs:
+            - Minimum total carbon count
+
+    PC-specific rule:
+        - Flags PCs found only in positive mode and not in negative mode.
+
+    No helper or flag columns are added to the returned DataFrame.
+    """
+
+    df = df.copy()
+
+    if max_unsaturation_by_class is None:
+        max_unsaturation_by_class = {
+            "PC": 6,
+            "SM": 4
+        }
+
+    if "Overall Match Status" not in df.columns:
+        df["Overall Match Status"] = True
+
+    if "Matched Required Fragments" not in df.columns:
+        df["Matched Required Fragments"] = ""
+
+    df["Matched Required Fragments"] = (
+        df["Matched Required Fragments"]
+        .fillna("")
+        .astype(str)
+    )
+
+    clean_class = (
+        df[class_col]
+        .astype(str)
+        .str.replace("\u00a0", " ", regex=False)
+        .str.strip()
+    )
+
+    clean_lipid_name = (
+        df[lipid_col]
+        .astype(str)
+        .str.replace("\u00a0", " ", regex=False)
+        .str.strip()
+    )
+
+    cleaned_adducts = df[adduct_col].apply(
+        lambda value: fix_adduct(value, 1, 0)
+    )
+
+    identification_polarity = pd.Series(
+        np.where(
+            cleaned_adducts.astype(str).str.endswith("+"),
+            "Positive",
+            np.where(
+                cleaned_adducts.astype(str).str.endswith("-"),
+                "Negative",
+                "Unknown"
+            )
+        ),
+        index=df.index
+    )
+
+    if "T1" in df.columns:
+        t1_carbons = df["T1"].apply(get_tail_carbons)
+        t1_unsaturation = df["T1"].apply(get_tail_unsaturation)
+    else:
+        t1_carbons = pd.Series(np.nan, index=df.index)
+        t1_unsaturation = pd.Series(np.nan, index=df.index)
+
+    if "T2" in df.columns:
+        t2_carbons = df["T2"].apply(get_tail_carbons)
+        t2_unsaturation = df["T2"].apply(get_tail_unsaturation)
+    else:
+        t2_carbons = pd.Series(np.nan, index=df.index)
+        t2_unsaturation = pd.Series(np.nan, index=df.index)
+
+    # For speciated lipids, add T1 and T2 unsaturation.
+    # For sum-composition lipids, T2 is missing and T1 contains the total.
+    total_unsaturation = pd.Series(
+        np.where(
+            t2_unsaturation.notna(),
+            t1_unsaturation.fillna(0)
+            + t2_unsaturation.fillna(0),
+            t1_unsaturation
+        ),
+        index=df.index
+    )
+
+    # ==============================================================
+    # GENERAL TOTAL-UNSATURATION CHECK
+    # ==============================================================
+
+    excessive_unsaturation = pd.Series(False, index=df.index)
+
+    print("\nGeneral lipid unsaturation checks:")
+
+    for lipid_class, max_unsaturation in max_unsaturation_by_class.items():
+        class_excessive_unsaturation = (
+            clean_class.eq(lipid_class)
+            & total_unsaturation.notna()
+            & (total_unsaturation > max_unsaturation)
+        )
+
+        excessive_unsaturation = (
+            excessive_unsaturation
+            | class_excessive_unsaturation
+        )
+
+        df.loc[
+            class_excessive_unsaturation,
+            "Matched Required Fragments"
+        ] += (
+            f" FLAGGED: {lipid_class} total double bonds "
+            f"> {max_unsaturation};"
+        )
+
+        print(
+            f"{lipid_class} rows removed for more than "
+            f"{max_unsaturation} double bonds:",
+            int(class_excessive_unsaturation.sum())
+        )
+
+    # ==============================================================
+    # SM-SPECIFIC CHECKS
+    # ==============================================================
+
+    sm_mask = clean_class.eq("SM")
+
+    speciated_sm_mask = (
+        sm_mask
+        & clean_lipid_name.str.contains(r"\|", na=False)
+    )
+
+    sum_sm_mask = (
+        sm_mask
+        & ~clean_lipid_name.str.contains(r"\|", na=False)
+    )
+
+    sm_small_backbone = (
+        speciated_sm_mask
+        & t1_carbons.notna()
+        & (t1_carbons < sm_min_backbone_carbons)
+    )
+
+    sm_large_backbone = (
+        speciated_sm_mask
+        & t1_carbons.notna()
+        & (t1_carbons > sm_max_backbone_carbons)
+    )
+
+    sm_large_acyl_tail = (
+        speciated_sm_mask
+        & t2_carbons.notna()
+        & (t2_carbons > sm_max_acyl_carbons)
+    )
+
+    sm_unsaturated_backbone = (
+        speciated_sm_mask
+        & t1_unsaturation.notna()
+        & (t1_unsaturation > sm_max_backbone_unsaturation)
+    )
+
+    sm_unsaturated_acyl_tail = (
+        speciated_sm_mask
+        & t2_unsaturation.notna()
+        & (t2_unsaturation > sm_max_acyl_unsaturation)
+    )
+
+    sm_small_sum_composition = (
+        sum_sm_mask
+        & t1_carbons.notna()
+        & (t1_carbons < sm_min_total_carbons)
+    )
+
+    sm_weird_lipid = (
+        sm_small_backbone
+        | sm_large_backbone
+        | sm_large_acyl_tail
+        | sm_unsaturated_backbone
+        | sm_unsaturated_acyl_tail
+        | sm_small_sum_composition
+    )
+
+    df.loc[
+        sm_small_backbone,
+        "Matched Required Fragments"
+    ] += (
+        f" FLAGGED: speciated SM backbone T1 carbon count "
+        f"< {sm_min_backbone_carbons};"
+    )
+
+    df.loc[
+        sm_large_backbone,
+        "Matched Required Fragments"
+    ] += (
+        f" FLAGGED: speciated SM backbone T1 carbon count "
+        f"> {sm_max_backbone_carbons};"
+    )
+
+    df.loc[
+        sm_large_acyl_tail,
+        "Matched Required Fragments"
+    ] += (
+        f" FLAGGED: speciated SM acyl tail T2 carbon count "
+        f"> {sm_max_acyl_carbons};"
+    )
+
+    df.loc[
+        sm_unsaturated_backbone,
+        "Matched Required Fragments"
+    ] += (
+        f" FLAGGED: speciated SM backbone T1 unsaturation "
+        f"> {sm_max_backbone_unsaturation};"
+    )
+
+    df.loc[
+        sm_unsaturated_acyl_tail,
+        "Matched Required Fragments"
+    ] += (
+        f" FLAGGED: speciated SM acyl tail T2 unsaturation "
+        f"> {sm_max_acyl_unsaturation};"
+    )
+
+    df.loc[
+        sm_small_sum_composition,
+        "Matched Required Fragments"
+    ] += (
+        f" FLAGGED: non-speciated SM total carbon count "
+        f"< {sm_min_total_carbons};"
+    )
+
+    # ==============================================================
+    # PC-SPECIFIC POLARITY CHECK
+    # ==============================================================
+
+    pc_mask = clean_class.eq("PC")
+
+    pc_polarity_by_name = (
+        pd.DataFrame({
+            "_Clean_Lipid_Name": clean_lipid_name.loc[pc_mask],
+            "_Polarity": identification_polarity.loc[pc_mask]
+        })
+        .groupby("_Clean_Lipid_Name")["_Polarity"]
+        .agg(lambda values: set(values))
+    )
+
+    positive_only_pc_names = pc_polarity_by_name[
+        pc_polarity_by_name.apply(
+            lambda polarities:
+                "Positive" in polarities
+                and "Negative" not in polarities
+        )
+    ].index
+
+    pc_positive_only = (
+        pc_mask
+        & clean_lipid_name.isin(positive_only_pc_names)
+    )
+
+    df.loc[
+        pc_positive_only,
+        "Matched Required Fragments"
+    ] += (
+        " FLAGGED: PC identified only in positive mode; "
+        "no negative-mode identification found;"
+    )
+
+    weird_lipid = (
+        excessive_unsaturation
+        | sm_weird_lipid
+        | pc_positive_only
+    )
+
+    df.loc[
+        weird_lipid,
+        "Overall Match Status"
+    ] = False
+
+    print("\nClass-specific weird lipid checks:")
+
+    print(
+        "SM rows flagged by structural rules:",
+        int(sm_weird_lipid.sum())
+    )
+
+    print(
+        "PC rows flagged as positive-mode only:",
+        int(pc_positive_only.sum())
+    )
+
+    print(
+        "Unique positive-mode-only PC names:",
+        len(positive_only_pc_names)
+    )
+
+    print(
+        "Total rows flagged by all lipid sanity checks:",
+        int(weird_lipid.sum())
+    )
+
+    # Remove all listed classes that exceed their unsaturation limit.
+    df = df[~excessive_unsaturation].copy()
+
+    return df

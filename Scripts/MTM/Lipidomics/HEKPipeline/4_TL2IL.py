@@ -2,7 +2,7 @@ import pandas as pd
 import os
 from PublicScripts.Lipids.LipidFunctions import tl_to_il, derplicate_il
 
-topdir = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\RT Shifting"
+topdir = r"Z:\Group Share\Estevan\Lipid Stuffs"
 os.chdir(topdir)
 
 tlpath = r"HEK_TransList_Clean3.csv"

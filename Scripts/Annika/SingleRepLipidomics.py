@@ -1,199 +1,167 @@
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
-# =========================
-# LOAD
-# =========================
+# ------------------------------------------------------------
+# Settings
+# ------------------------------------------------------------
 
-file = r"Z:\Group Share\Annika\Stellar\TAMU\Natural\NaturalSamples_Molecule Transition Results.csv"
-df = pd.read_csv(file)
-df.columns = df.columns.str.strip()
-control_sample = "BPE"
-samples_to_plot = ["1 N", "2 N", "3 N", "4 N", "5 N"]
+input_file = r"Z:\Group Share\Estevan\Lipid Stuffs\Molecule Transition Results.csv"
 
-# REQUIRED: class → internal standard name mapping
-internal_standard_map = {
-    "Cer": "IS Cer",
-    "CL": "IS CL",
-    "DG": "IS DG",
-    "HexCer_NS": "IS Cer",
-    "PC": "IS PC",
-    "PE": "IS PE",
-    "PG": "IS PG",
-    "PI": "IS PI",
-    "PS": "IS PS",
-    "SM": "IS SM",
-    "TG": "IS TG",
-    "LPC": "IS LPC",
-    "LPE": "IS LPE",
-    "LPG": "IS LPG",
-    "LPI": "IS LPI",
-    "LPS": "IS LPS",
-    "PA": "IS PA",
-    "Cer_NS": "IS Cer",
-    "EtherLPC": "IS LPC",
-    "EtherPC": "IS PC",
-    "EtherPE": "IS PE",
-    "Hex2Cer": "IS Cer",
-    "HexCer_HS": "IS Cer",
-    "HexCer_NDS": "IS Cer",
-    "HexCer_NS": "IS Cer",
-    "SHexCer": "IS Cer",
-}
+extract_sample = "HEK Extract"
+discs_sample = "HEK_Discs_1"
+# Optional:
+# Enter an adduct such as "[M+H]" or "[M-H]" to analyze one mode only.
+# Leave as None to include all precursor adducts.
+adduct_to_use = None
 
-# -----------------------------
-# LOAD
-# -----------------------------
+# ------------------------------------------------------------
+# Read the Skyline report
+# ------------------------------------------------------------
 
+df = pd.read_csv(input_file)
 
-df.columns = df.columns.str.strip()
-df["Replicate Name"] = df["Replicate Name"].astype(str).str.strip()
-df["Molecule List Name"] = df["Molecule List Name"].astype(str).str.strip()
-df["Molecule"] = df["Molecule"].astype(str).str.strip()
-
-# -----------------------------
-# STEP 1: collapse fragment ions
-# -----------------------------
-df = df.groupby(
-    ["Molecule", "Molecule List Name", "Replicate Name"],
-    as_index=False
-)["Area"].sum()
-
-# -----------------------------
-# STEP 2: FORCE class → IS assignment (NO GUESSING)
-# -----------------------------
-
-df["IS_class"] = df["Molecule List Name"].map(internal_standard_map)
-
-# keep ONLY analytes that have a defined IS mapping
-an_df = df[df["IS_class"].notna()].copy()
-
-# IS rows are anything starting with IS
-is_df = df[df["Molecule"].astype(str).str.startswith("IS")].copy()
-
-print("Internal standard rows found:", len(is_df))
-
-# -----------------------------
-# STEP 3: build IS lookup (FORCED MATCH)
-# -----------------------------
-is_lookup = []
-
-for cls, is_name in internal_standard_map.items():
-
-    is_subset = is_df[
-        is_df["Molecule"].str.contains(is_name.replace("IS ", ""), na=False)
-    ]
-
-    tmp = is_subset.groupby(["Replicate Name"])["Area"].mean().reset_index()
-    tmp["Molecule List Name"] = cls
-    tmp = tmp.rename(columns={"Area": "IS_area"})
-
-    is_lookup.append(tmp)
-
-is_lookup = pd.concat(is_lookup, ignore_index=True)
-
-# -----------------------------
-# STEP 4: merge IS onto analytes
-# -----------------------------
-an_df = an_df.merge(
-    is_lookup,
-    on=["Molecule List Name", "Replicate Name"],
-    how="left"
-)
-# -----------------------------
-# STEP 5: normalize
-# -----------------------------
-an_df["normalized"] = an_df["Area"] / an_df["IS_area"]
-
-# drop broken rows
-an_df = an_df.dropna(subset=["normalized"])
-
-df_mat = an_df.copy()
-df_mat["log2_intensity"] = np.log2(df_mat["normalized"] + 1e-12)
-
-heatmap_df = df_mat.pivot_table(
-    index="Molecule",
-    columns="Replicate Name",
-    values="log2_intensity",
-    aggfunc="mean"
-)
-
-plt.figure(figsize=(10, 8))
-plt.imshow(heatmap_df.fillna(0), aspect="auto", cmap="viridis")
-plt.colorbar(label="log2(IS-normalized intensity)")
-
-plt.yticks(range(len(heatmap_df.index)), heatmap_df.index, fontsize=6)
-plt.xticks(range(len(heatmap_df.columns)), heatmap_df.columns, rotation=45)
-
-plt.title("Lipid Abundance Heatmap (log2 IS-normalized)")
-plt.tight_layout()
-plt.show()
-
-class_df = df_mat.groupby(
-    ["Molecule List Name", "Replicate Name"]
-)["normalized"].sum().reset_index()
-
-class_pivot = class_df.pivot(
-    index="Molecule List Name",
-    columns="Replicate Name",
-    values="normalized"
+df["Area"] = pd.to_numeric(
+    df["Area"],
+    errors="coerce"
 ).fillna(0)
 
-class_pivot.plot(kind="bar", figsize=(12,6))
+# ------------------------------------------------------------
+# Keep precursor areas only
+# ------------------------------------------------------------
 
-plt.ylabel("Total IS-normalized abundance")
-plt.title("Lipid Class Composition Across Samples")
-plt.xticks(rotation=45)
-plt.tight_layout()
-plt.show()
+df = df[
+    df["Fragment Ion"].astype(str).str.lower().eq("precursor")
+].copy()
 
-control = "BPE"
+# Keep only the two samples
+df = df[
+    df["Replicate Name"].isin(
+        [extract_sample, discs_sample]
+    )
+].copy()
 
-delta = heatmap_df.subtract(heatmap_df[control], axis=0)
+# Optionally keep only one precursor adduct
+if adduct_to_use is not None:
+    df = df[
+        df["Precursor Adduct"] == adduct_to_use
+    ].copy()
 
-plt.figure(figsize=(10, 8))
-plt.imshow(delta.fillna(0), aspect="auto", cmap="coolwarm", vmin=-2, vmax=2)
-plt.colorbar(label="Δ log2 intensity vs BPE")
+# ------------------------------------------------------------
+# Calculate mTIC for each sample
+# ------------------------------------------------------------
 
-plt.yticks(range(len(delta.index)), delta.index, fontsize=6)
-plt.xticks(range(len(delta.columns)), delta.columns, rotation=45)
+mtic = (
+    df.groupby("Replicate Name")["Area"]
+    .sum()
+    .rename("mTIC")
+)
 
-plt.title("Differential Lipid Abundance (vs BPE)")
-plt.tight_layout()
-plt.show()
+df = df.merge(
+    mtic,
+    left_on="Replicate Name",
+    right_index=True,
+    how="left"
+)
 
-import numpy as np
+df["mTIC Normalized Area"] = (
+    df["Area"] / df["mTIC"]
+)
 
-control = an_df[an_df["Replicate Name"] == "BPE"]
-control_mean = control.groupby("Molecule List Name")["normalized"].mean()
+# ------------------------------------------------------------
+# Sum normalized lipid areas by class
+#
+# "Molecule List Name" is the Skyline lipid-class column.
+# ------------------------------------------------------------
 
-fig, axes = plt.subplots(2, 3, figsize=(12, 8))
-axes = axes.flatten()
+class_data = (
+    df.groupby(
+        ["Molecule List Name", "Replicate Name"],
+        as_index=False
+    )["mTIC Normalized Area"]
+    .sum()
+)
 
-for i, sample in enumerate(samples_to_plot):
+# ------------------------------------------------------------
+# Put the samples in separate columns
+# ------------------------------------------------------------
 
-    ax = axes[i]
+comparison = class_data.pivot_table(
+    index="Molecule List Name",
+    columns="Replicate Name",
+    values="mTIC Normalized Area",
+    aggfunc="sum",
+    fill_value=0
+).reset_index()
 
-    sub = an_df[an_df["Replicate Name"] == sample]
+for sample in [extract_sample, discs_sample]:
+    if sample not in comparison.columns:
+        comparison[sample] = 0
 
-    if sub.empty:
-        ax.set_title(sample)
-        ax.axis("off")
-        continue
+# Remove classes absent from either sample
+comparison = comparison[
+    (comparison[extract_sample] > 0) &
+    (comparison[discs_sample] > 0)
+].copy()
 
-    sample_mean = sub.groupby("Molecule List Name")["normalized"].mean()
+# ------------------------------------------------------------
+# Calculate fold change
+# ------------------------------------------------------------
 
-    fc = (sample_mean / control_mean).replace([np.inf, -np.inf], np.nan)
-    log2fc = np.log2(fc)
-    intensity = np.log10(sample_mean)
+comparison["Fold Change"] = (
+    comparison[discs_sample] /
+    comparison[extract_sample]
+)
 
-    ax.scatter(log2fc, intensity, s=10)
+comparison["Log2 Fold Change"] = np.log2(
+    comparison["Fold Change"]
+)
 
-    ax.axvline(0, color="black", linewidth=1)
-    ax.set_title(sample)
-    ax.set_xlabel("log2 fold change")
-    ax.set_ylabel("log10 intensity")
+comparison = comparison.sort_values(
+    "Log2 Fold Change"
+)
+
+# ------------------------------------------------------------
+# Print results
+# ------------------------------------------------------------
+
+print("\nmTIC values:")
+print(mtic)
+
+print("\nClass-level fold changes:")
+print(
+    comparison[
+        [
+            "Molecule List Name",
+            extract_sample,
+            discs_sample,
+            "Fold Change",
+            "Log2 Fold Change"
+        ]
+    ].to_string(index=False)
+)
+
+# ------------------------------------------------------------
+# Plot class-level fold changes
+# ------------------------------------------------------------
+
+
+plt.figure(figsize=(7, 4))
+
+plt.bar(
+    comparison["Molecule List Name"],
+    comparison["Log2 Fold Change"],
+    width=0.6
+)
+
+plt.axhline(0, linewidth=1)
+
+plt.xlabel("Lipid Class")
+plt.ylabel("Log2 Fold Change")
+plt.title("mTIC-Normalized Lipid Class Fold Changes")
+
+plt.xticks(rotation=45, ha="right", fontsize=8)
+plt.yticks(fontsize=8)
 
 plt.tight_layout()
 plt.show()

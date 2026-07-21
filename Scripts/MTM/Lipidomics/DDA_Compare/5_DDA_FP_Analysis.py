@@ -7,7 +7,7 @@ from PublicScripts.Lipids.LipidFunctions import smiles_analysis
 topdir = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\Final Results\DDA Pipeline"
 os.chdir(topdir)
 
-filepath = r"Combined_DDA_Full.xlsx"
+filepath = r"Combined_Fragment_Assignment_Colored.xlsx"
 df = pd.read_excel(filepath)
 
 # Keep only rows labeled True

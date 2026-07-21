@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from PublicScripts.Lipids.RT_Correction import correct_dataset_rts
 
-topdir = r"Z:\Group Share\Shivam\DDA"
+
 topdir = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\Final Results\DDA Pipeline"
 os.chdir(topdir)
 
