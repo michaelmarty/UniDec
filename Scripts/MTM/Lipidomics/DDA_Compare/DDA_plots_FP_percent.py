@@ -120,11 +120,9 @@ def good_percentage_plot(df, datasets=None, type="All", figname="Good_Percentage
 
 mpl.use("WxAgg")
 
-topdir = r"Z:\Group Share\Shivam\DDA"
-topdir = r"Z:\Group Share\Annika\IQ-X\Feb 2026 UntDDA\MSDial\Marked Low Score\RTP2"
-topdir = r"Z:\Group Share\Shivam\IQX Stellar 3\FinalResults"
+topdir = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\Final Results\DDA Pipeline"
 os.chdir(topdir)
-datasets = ["ITIT", "OTIT", "OTOT", "Stellar", "AX", "Stellarboth"]
+datasets = ["ITIT", "OTIT", "OTOT", "Stellar", "Stellarboth"]
 
 # df = pd.read_csv("Combined_DDA_RT_Corrected_FullNames.csv")
 df = pd.read_excel("Combined_DDA_OutlierAnalysis_Results.xlsx", sheet_name="All Data")

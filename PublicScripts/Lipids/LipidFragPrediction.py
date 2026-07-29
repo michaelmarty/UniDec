@@ -75,7 +75,10 @@ Cer_NS	[M-H]-	negative		30.01,32.03,48.02
 CoQ	[M+H]+	positive	197.08	
 DCAE	[M+NH4]+	positive	357.28	
 DCAE	[M-H]-	negative	373.27	374.28
-DGCC	[M+H]+	positive	104.11,132.1	
+DGCC	[M+H]+	positive	104.11,132.1
+DGDG	[M+NH4]+	positive		341.13,359.14
+DG	[M+Na]+	positive		18.01
+DGTS	[M+H]+	positive	144.1,236.15		
 DGDG	[M+CH3COO]-	negative	379.12,397.14,415.15	60.02
 DGDG	[M+HCOO]-	negative	379.12,397.14,415.15	46.01
 DGDG	[M+NH4]+	positive		341.13,359.14
@@ -517,6 +520,7 @@ def predict_tail_fragments(tail, hgfrags=[], hgbases=[], hgnls=[],
         nls["FA(-H)-(H2O)"] = mass + mass_h  # Neutral loss of fatty acid (-H2O)
         nls["FA+G"] = mass + mass_glycerol - mass_h2o + mass_h  # Neutral loss of FA + glycerol
         nls["FA+GP"] = fragments["FA+GP(-H2O)"] + mass_h
+        nls["FA(+O-H2O)"] = mass - mass_h2o
 
         # For Ceramides
         nls["FA(+O+H2O)"] = mass + mass_h2o
@@ -676,6 +680,28 @@ def predict_tail_fragments(tail, hgfrags=[], hgbases=[], hgnls=[],
         nls["FA(-H)"] = mass - mass_h2o + mass_h
         nls["FA(+O+H2O)"] = mass + mass_h2o
         nls["FA(+OH+H2O)"] = mass + mass_h2o + mass_h
+
+        # Sodium-adducted PC combined neutral losses
+        if adduct == "[M+Na]+":
+            # Neutral fatty acid + trimethylamine, C3H9N
+            nls["FA(+O-C3H9N)"] = (
+                    mass
+                    + mass_h
+                    + 3 * mass_c
+                    + 9 * mass_h
+                    + mass_n
+            )
+
+            # Neutral fatty acid + phosphocholine, C5H14NO4P
+            nls["FA(+O-C5H14NO4P)"] = (
+                    mass
+                    + mass_h
+                    + 5 * mass_c
+                    + 14 * mass_h
+                    + mass_n
+                    + 4 * mass_o
+                    + mass_p
+            )
 
         # For Ceramides
         # fragments["FA(+SL)"] = mass + mass_slfrag - mass_o
