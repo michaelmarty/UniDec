@@ -1,0 +1,12 @@
+# To install, use: sudo dnf install --skip-unavailable $(cat ./linux_apt_dependencies.txt)
+# To Run GUI
+python3-wxpython4
+python3-tkinter
+# To build C code from source
+cmake
+fftw
+fftw-devel
+hdf5-devel
+# To build with pyinstaller
+gdk-pixbuf2-devel
+python3-requests-oauthlib
