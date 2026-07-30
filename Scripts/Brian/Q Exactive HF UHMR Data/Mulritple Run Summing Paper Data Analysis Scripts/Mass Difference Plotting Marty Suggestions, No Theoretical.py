@@ -12,6 +12,7 @@ from pathlib import Path
 
 
 DEFAULT_MASS_TOLERANCE = 50.0
+DEFAULT_OUTPUT_FILENAME = 'mass_centroid_analysis.pdf'
 HIGHLIGHT_INJECTION = 21
 MASS_CENTROID_COLUMN_INDEX = 6
 MASS_CENTROID_COLUMN_NUMBER = MASS_CENTROID_COLUMN_INDEX + 1
@@ -80,6 +81,35 @@ def prompt_for_paths(count, prompt_name):
     return paths
 
 
+def prompt_for_output_filename(default_filename):
+    """
+    Prompt for the output PDF file name.
+    """
+    while True:
+        filename = clean_path(input(f"\nEnter output PDF file name [default: {default_filename}]: "))
+        if not filename:
+            return default_filename
+
+        output_filename = Path(filename)
+        if output_filename.parent != Path('.'):
+            print("  Please enter a file name only, not a folder path.")
+            continue
+
+        filename = output_filename.name
+        if not filename:
+            print("  Please enter a valid file name.")
+            continue
+
+        if not filename.lower().endswith('.pdf'):
+            filename_base = filename.rstrip('.')
+            if not filename_base:
+                print("  Please enter a valid file name.")
+                continue
+            filename = f"{filename_base}.pdf"
+
+        return filename
+
+
 def get_user_inputs():
     """
     Get all user inputs needed for the analysis.
@@ -98,6 +128,8 @@ def get_user_inputs():
     if not output_folder:
         output_folder = "."  # Current directory as default
         print(f"  Using current directory: {output_folder}")
+
+    output_filename = prompt_for_output_filename(DEFAULT_OUTPUT_FILENAME)
 
     num_masses = prompt_for_positive_int("\nEnter the number of peaks to track: ")
     target_masses = {}
@@ -125,6 +157,7 @@ def get_user_inputs():
     for i, folder in enumerate(folders, 1):
         print(f"  {i}. {folder}")
     print(f"\nOutput folder: {output_folder}")
+    print(f"\nOutput file: {output_filename}")
     print(f"\nMass tolerance: {mass_tolerance} Da")
     print("\nPeak targets:")
     for name, mass in target_masses.items():
@@ -141,7 +174,7 @@ def get_user_inputs():
         else:
             print("Please enter 'yes' or 'no'.")
 
-    return folders, output_folder, target_masses, mass_tolerance
+    return folders, output_folder, output_filename, target_masses, mass_tolerance
 
 
 def standard_error(values):
@@ -345,7 +378,7 @@ def get_highlight_band(data, injection_number):
     return None, None
 
 
-def plot_results(results, target_masses, output_folder):
+def plot_results(results, target_masses, output_folder, output_filename):
     """
     Create stacked line plots with error bars.
     """
@@ -429,7 +462,7 @@ def plot_results(results, target_masses, output_folder):
     output_path.mkdir(parents=True, exist_ok=True)
 
     # Save as PDF with editable text
-    output_file = output_path / 'mass_centroid_analysis.pdf'
+    output_file = output_path / output_filename
     plt.savefig(output_file, dpi=300, bbox_inches='tight',
                 transparent=True, format='pdf')
     plt.show()
@@ -461,7 +494,7 @@ def main():
     """
     Run the interactive analysis workflow.
     """
-    folders, output_folder, target_masses, mass_tolerance = get_user_inputs()
+    folders, output_folder, output_filename, target_masses, mass_tolerance = get_user_inputs()
 
     print("\n" + "=" * 80)
     print("Starting DAT file analysis...")
@@ -480,7 +513,7 @@ def main():
         create_summary_table(results, target_masses)
 
         # Plot results
-        plot_results(results, target_masses, output_folder)
+        plot_results(results, target_masses, output_folder, output_filename)
 
         print("\n" + "=" * 80)
         print("Analysis complete!")

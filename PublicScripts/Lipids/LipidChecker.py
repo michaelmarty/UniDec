@@ -3,7 +3,8 @@ import os
 from io import StringIO
 from PublicScripts.Lipids.LipidFragPrediction import *
 from PublicScripts.Lipids.MatchPlotting import *
-from PublicScripts.Lipids.LipidFunctions import parse_spec_string, fix_adduct, match_frag_to_spec, set_tails, spec_to_nl, write_colored_excel, flag_weird_lipids, get_tail_carbons, get_tail_unsaturation, get_tail_unsaturation
+from PublicScripts.Lipids.LipidFunctions import parse_spec_string, fix_adduct, match_frag_to_spec, set_tails, \
+    spec_to_nl, write_colored_excel, flag_weird_lipids, get_tail_carbons, get_tail_unsaturation
 import numpy as np
 import re
 import ms_entropy as me
@@ -12,7 +13,7 @@ import ms_entropy as me
 
 lipid_data = """
 Class	Adduct	Required Frags	Disqualifying Frags
-	
+
 Cer	[M+H]	FA1(+O-H2O), FA1(+O-2H2O), FA1(+O-CH4O2)	
 Cer	[M+H]	FA1(+O-H2O), FA1(+O-2H2O), FA1(+O-3H2O)	
 Cer	[M-H]	FA1(+O-SL)	
@@ -21,9 +22,10 @@ Cer	[M-H]	FA1(+O-SL), FA2(+O-H2O)
 Cer	[M-H]	FA1(+O-SL+C2H2), FA2(+O-H2O)	
 Cer	[M+CH3COO]	FA1(+O-SL), FA2(+O-H2O)	
 Cer	[M+CH3COO]	FA1(+O-SL), FA2(+O)	
-CL	[M-H]	FA1(+O), FA2(+O), FA3(+O), FA4(+O), HG(153)	
+CL	[M-H]	FA1(+O), FA2(+O), FA3(+O), FA4(+O), HG(153)
+CL	[M+NH4]	HGNL(17.03)
 CoQ	[M+H]	HG(197)	
-DG	[M+NH4]	FA1(+G-OH), FA2(+G-OH)	
+DG	[M+NH4]	FA1(+G-OH), FA2(+G-OH)
 FAHFA	[M-H]	FA1(+O)	HG(153), HG(171), HG(196), HG(241)
 GM3	[M-H]	HG(290), HGNL(291)	
 HexCer	[M+H]	FA1(+O-H2O), FA1(+O-CH4O2)	
@@ -44,7 +46,9 @@ LPI	[M-H]	HG(153), FA1(+O), HG(241)
 LPS	[M-H]	HG(153), FA1(+O)	
 PA	[M-H]	HG(153), FA1(+O), FA2(+O)	
 PC	[M+H]	HG(184)	
-PC	[M+CH3COO]	HG(224), HGNL(74), FA1(+O), FA2(+O)	
+PC	[M+CH3COO]	HG(224), HGNL(74), FA1(+O), FA2(+O)
+PC	[M+Na]	NLFA1(+O-C3H9N), NLFA2(+O-C3H9N)
+PC	[M+Na]	NLFA1(+O-C5H14NO4P), NLFA2(+O-C5H14NO4P)
 EtherPC	[M+CH3COO]	HG(224), FA1(+O), FA2(+O), FA1(+O-C2H4), FA2(+O-C2H4)	
 EtherPC	[M+H]	HG(184)	
 PE	[M+H]	HGNL(141)	
@@ -57,24 +61,23 @@ PS	[M+H]	HGNL(185)
 PS	[M-H]	HGNL(87), FA1(+O), FA2(+O)	
 SM	[M+CH3COO]	HGNL(74), HG(168)	FA1(+O), FA2(+O)
 SM	[M+H]	HG(184)	FA1(+O), FA2(+O)
-TG	[M+NH4]	NLFA1(+O+H2O), NLFA2(+O+H2O), NLFA3(+O+H2O)	
+SM	[M+Na]	HGNL(59)
+SM	[M+Na]	HGNL(183)
+TG	[M+NH4]	NLFA1(+O+H2O), NLFA2(+O+H2O), NLFA3(+O+H2O)
+TG	[M+Na]	NLFA1(+OH), NLFA2(+OH), NLFA3(+OH)
 """
-# Read the CSV data into a pandas DataFrame
-
-lipid_df = pd.read_csv(StringIO(lipid_data), sep="\t", index_col=False)
-# Strip whitespace from classes
-lipid_df["Class"] = lipid_df["Class"].str.strip()
+# Read and clean the fragment-rule table
 lipid_df = pd.read_csv(StringIO(lipid_data), sep="\t", index_col=False)
 
 for col in lipid_df.columns:
     if lipid_df[col].dtype == "object":
         lipid_df[col] = lipid_df[col].str.strip()
 
-print(lipid_df[lipid_df["Class"].astype(str).str.contains("Hex2", na=False)].to_string(index=False))
 
 def calc_spectral_entropy(spectrum):
     entropy = me.calculate_spectral_entropy(spectrum, clean_spectrum=False)
     return entropy
+
 
 def spectral_entropy_score(spec1, spec2, tol=0.7):
     # unweighted_similarity = me.calculate_unweighted_entropy_similarity(np.array(spec1), np.array(spec2), clean_spectra=False)
@@ -84,52 +87,52 @@ def spectral_entropy_score(spec1, spec2, tol=0.7):
     similarity = me.calculate_entropy_similarity(np.array(spec1), np.array(spec2), ms2_tolerance_in_da=tol)
     return similarity
 
+
 def get_hg_frag(lipid_class, adduct, fragname):
-    # Direct numeric HG/HGNL support.
-    # This lets disqualifiers like HG(153), HG(171), HG(196), HG(241)
-    # work even for lipid classes like FAHFA that do not have entries
-    # in hgdf_default.
-    if "(" in fragname and ")" in fragname:
-        fragnum = fragname.split("(")[-1].split(")")[0]
-        try:
-            return float(fragnum)
-        except ValueError:
-            pass
-
-    # Get row from hgdf_default that matches lipid_class and adduct
-    row = hgdf_default[
-        (hgdf_default["CompoundClass"] == lipid_class) &
-        (hgdf_default["Adduct"] == fix_adduct(adduct, 1, 0))
-    ]
-
-    if row.empty:
-        print(f"No matching row found for {lipid_class} with adduct {adduct}.")
-        return None
-
-    if "HGNL" in fragname:
-        vals = row["HeadgroupNL_mz"].values[0]
-    elif "HG" in fragname:
-        vals = row["HeadgroupFragment_mz"].values[0]
-    else:
-        raise ValueError(f"Fragment name {fragname} not recognized.")
-
-    if vals == "":
-        print(f"No values found for {lipid_class} with adduct {adduct} and fragment {fragname}.")
-        return None
-
-    vals = vals.split(",")
-    fragnum = fragname.split("(")[-1].split(")")[0] if "(" in fragname else None
-
-    if fragnum is None:
+    # Extract the nominal fragment label, e.g. HG(184) -> "184"
+    if "(" not in fragname or ")" not in fragname:
         print(f"No fragment number specified in {fragname}.")
         return None
 
-    for v in vals:
-        if v.startswith(fragnum):
-            return float(v)
+    fragnum = fragname.split("(")[-1].split(")")[0].strip()
 
-    print(f"No matching fragment number {fragnum} found in values {vals} for {lipid_class} with adduct {adduct}.")
-    return None
+    # Find the correct class/adduct entry
+    row = hgdf_default[
+        (hgdf_default["CompoundClass"] == lipid_class)
+        & (
+                hgdf_default["Adduct"]
+                == fix_adduct(adduct, 1, 0)
+        )
+        ]
+
+    if not row.empty:
+        if "HGNL" in fragname:
+            vals = row["HeadgroupNL_mz"].values[0]
+        elif "HG" in fragname:
+            vals = row["HeadgroupFragment_mz"].values[0]
+        else:
+            raise ValueError(
+                f"Fragment name {fragname} not recognized."
+            )
+
+        if pd.notna(vals) and str(vals).strip() != "":
+            for value in str(vals).split(","):
+                value = value.strip()
+
+                # Match nominal label to exact-mass entry
+                if value.startswith(fragnum):
+                    return float(value)
+
+    # Fallback only when no database value exists
+    try:
+        return float(fragnum)
+    except ValueError:
+        print(
+            f"No fragment mass found for "
+            f"{lipid_class}, {adduct}, {fragname}."
+        )
+        return None
+
 
 def get_tail_frag(row, fragname):
     nlmode = False
@@ -272,6 +275,38 @@ def check_disqualifying_fragments(row, lipid_class, adduct, bad_frags, spec, ref
         elif "FA" in f:
             frag = get_tail_frag(row, f)
 
+        if lipid_class == "TG" and adduct == "[M+Na]":
+            print("\nSODIUM TG DEBUG")
+            print("Lipid:", row["Metabolite name"])
+            print("Precursor used:", mz)
+            print("Fragment rule:", f)
+            print("Predicted neutral loss:", frag)
+
+            sample_nl = spec_to_nl(spec, mz)
+            reference_nl = spec_to_nl(ref_spec, mz)
+
+            print("Sample product peaks:")
+            print(spec)
+
+            print("Reference product peaks:")
+            print(ref_spec)
+
+            print("Sample neutral losses:")
+            print(sample_nl)
+
+            print("Reference neutral losses:")
+            print(reference_nl)
+
+            print(
+                "Sample match:",
+                match_frag_to_spec(sample_nl, frag, tol)
+            )
+
+            print(
+                "Reference match:",
+                match_frag_to_spec(reference_nl, frag, tol)
+            )
+
         if frag is None:
             bad_matches_text += f"{f}: Not Found; "
             continue
@@ -307,7 +342,8 @@ def check_fragments(df, ldf=None, plot_individual=False):
 
         # Match ldf to get required fragments
         required_frags = ldf[(ldf["Class"] == lipid_class) & (ldf["Adduct"] == adduct)]["Required Frags"].values
-        disqualifying_frags = ldf[(ldf["Class"] == lipid_class) & (ldf["Adduct"] == adduct)]["Disqualifying Frags"].values
+        disqualifying_frags = ldf[(ldf["Class"] == lipid_class) & (ldf["Adduct"] == adduct)][
+            "Disqualifying Frags"].values
 
         if len(required_frags) == 0:
             print(f"No required fragments found for {lipid_class} with adduct {adduct}.")
@@ -332,7 +368,7 @@ def check_fragments(df, ldf=None, plot_individual=False):
 
         for frags in required_frags:
             matches_sub = ""
-            mbool_sub=True
+            mbool_sub = True
             for f in frags.split(","):
                 f = f.strip()
                 if "HG" in f:
@@ -343,7 +379,8 @@ def check_fragments(df, ldf=None, plot_individual=False):
                         mbool_sub = False
                         continue
                     if "HGNL" in f:
-                        matched_correctly, match_bool = get_match_result(spec_to_nl(spec, mz), spec_to_nl(ref_spec, mz), frag, tol)
+                        matched_correctly, match_bool = get_match_result(spec_to_nl(spec, mz), spec_to_nl(ref_spec, mz),
+                                                                         frag, tol)
                     else:
                         matched_correctly, match_bool = get_match_result(spec, ref_spec, frag, tol)
                     mbool_sub = mbool_sub and match_bool
@@ -361,7 +398,8 @@ def check_fragments(df, ldf=None, plot_individual=False):
                         continue
 
                     if "NLFA" in f:
-                        matched_correctly, match_bool = get_match_result(spec_to_nl(spec, mz), spec_to_nl(ref_spec, mz), frag, tol)
+                        matched_correctly, match_bool = get_match_result(spec_to_nl(spec, mz), spec_to_nl(ref_spec, mz),
+                                                                         frag, tol)
                     else:
                         matched_correctly, match_bool = get_match_result(spec, ref_spec, frag, tol)
                     mbool_sub = mbool_sub and match_bool
@@ -375,8 +413,8 @@ def check_fragments(df, ldf=None, plot_individual=False):
                 matches = matches_sub
                 continue
 
-            if matches=="":
-                matches+=matches_sub
+            if matches == "":
+                matches += matches_sub
 
         # Check disqualifying fragments
         bad_match_text = ""
@@ -414,12 +452,88 @@ def check_fragments(df, ldf=None, plot_individual=False):
         bresults.append(mbool)
         bad_results.append(bad_match_text)
 
-
-
     df["Matched Required Fragments"] = results
     df["Disqualifying Fragment Check"] = bad_results
     df["Overall Match Status"] = bresults
     return df
+
+
+def filter_excluded_identifications(df):
+    """
+    Remove identification types that should not be evaluated or exported.
+
+    Excludes:
+        - formate-adduct rows
+        - all FAHFA rows
+        - DG sodium-adduct rows
+
+    Returns:
+        filtered_df
+        removed_df
+    """
+
+    filtered = df.copy()
+
+    filtered["Ontology"] = (
+        filtered["Ontology"]
+        .astype(str)
+        .str.strip()
+    )
+
+    filtered["Clean Adduct"] = (
+        filtered["Adduct type"]
+        .apply(lambda value: fix_adduct(value, 0, 1))
+    )
+
+    filtered["Removal Reason"] = ""
+
+    filtered.loc[
+        filtered["Clean Adduct"].eq("[M+HCOO]"),
+        "Removal Reason"
+    ] = "Formate adduct excluded"
+
+    filtered.loc[
+        filtered["Ontology"].eq("FAHFA"),
+        "Removal Reason"
+    ] = "FAHFA excluded"
+
+    filtered.loc[
+        (
+            filtered["Ontology"].eq("DG")
+            & filtered["Clean Adduct"].eq("[M+Na]")
+        ),
+        "Removal Reason"
+    ] = "DG sodium adduct excluded"
+
+    removed_df = filtered[
+        filtered["Removal Reason"] != ""
+    ].copy()
+
+    filtered_df = filtered[
+        filtered["Removal Reason"] == ""
+    ].copy()
+
+    print("\nRows removed:")
+    print(
+        removed_df["Removal Reason"]
+        .value_counts()
+        .to_string()
+    )
+
+    print(
+        f"\nRows remaining after exclusions: "
+        f"{len(filtered_df)}"
+    )
+
+    filtered_df = filtered_df.drop(
+        columns=["Clean Adduct", "Removal Reason"]
+    )
+
+    removed_df = removed_df.drop(
+        columns=["Clean Adduct"]
+    )
+
+    return filtered_df, removed_df
 
 def print_check_results(df):
     # For each unique class, print the percentage of Overall Match Status that are True
@@ -430,34 +544,37 @@ def print_check_results(df):
         percentage = (matched / total) * 100 if total > 0 else 0
         print(f"{lipid_class}: {matched}/{total} ({percentage:.2f}%) matched required fragments.")
 
-    print("Overall Rate: ", len(df[df["Overall Match Status"] == True]), "/", len(df), "(", (len(df[df["Overall Match Status"] == True]) / len(df)) * 100, "%)")
-
+    print("Overall Rate: ", len(df[df["Overall Match Status"] == True]), "/", len(df), "(",
+          (len(df[df["Overall Match Status"] == True]) / len(df)) * 100, "%)")
 
 
 if __name__ == "__main__":
     filepath = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\Final Results\DDA Pipeline\Combined_DDA_Full.xlsx"
 
-    # filepath = r"Z:\Group Share\Annika\DDA_Compare\mzmine\Combined_DDA_Full.xlsx"
     os.chdir(os.path.dirname(filepath))
     df = pd.read_excel(filepath)
 
-    # Filter to Ontology == TG
-    # df = df[df["Ontology"] == "PE"]
+    # Remove excluded identification types before fragment checking.
+    # This keeps FAHFA and DG [M+Na] out of the validation results,
+    # output spreadsheet, and all downstream analyses.
+    df, removed_df = filter_excluded_identifications(df)
 
-    # Drop TG sodium adducts completely before checking fragments
-    df["Clean Adduct"] = df["Adduct type"].apply(lambda x: fix_adduct(x, 0, 1))
-    df = df[df["Clean Adduct"] != "[M+Na]"]
-    df = df[df["Clean Adduct"] != "[M+HCOO]"]
-    # df = df[df["Clean Adduct"] == "[M+CH3COO]"]
-    # df = df[df["Clean Adduct"] == "[M+H]"]
-    df = df.drop(columns=["Clean Adduct"])
-
-    print("Rows after dropping [M+Na]:", len(df))
     df = set_tolcol(df)
+
     df = set_basic_tail_names(df, "Metabolite name")
 
-    # df = check_fragments(df, plot_individual=True)
-    df = check_fragments(df, plot_individual=False)
+    df = check_fragments(
+        df,
+        plot_individual=False
+    )
+
+    # Initial descriptive status
+    df["Identification Status"] = df["Overall Match Status"].map(
+        {
+            True: "Confirmed",
+            False: "Failed"
+        }
+    )
 
     df = flag_weird_lipids(
         df,
@@ -472,8 +589,6 @@ if __name__ == "__main__":
             "PC O": 6,
             "HexCer": 8
         },
-
-        # SM-specific checks
         sm_min_backbone_carbons=16,
         sm_max_backbone_carbons=20,
         sm_max_acyl_carbons=26,
@@ -482,10 +597,41 @@ if __name__ == "__main__":
         sm_min_total_carbons=30
     )
 
-    print_check_results(df)
-    # df = assign_df_fragments(df, tolcol="Tolerance", auto_tolcol=True)
+    # Restore PC [M+H]+ rows that contain the diagnostic m/z 184 ion.
+    # These are retained as valid PC-class IDs, but with caution because
+    # positive mode alone does not confirm the individual fatty-acyl tails.
+    clean_adduct = df["Adduct type"].apply(
+        lambda x: fix_adduct(x, 0, 1)
+    )
 
-    # Write df to test output
-    # df.to_excel("Combined_Fragment_Assignment.xlsx", index=False)
+    positive_pc_mask = (
+            (df["Ontology"] == "PC")
+            & (clean_adduct == "[M+H]")
+            & df["Matched Required Fragments"]
+            .astype(str)
+            .str.contains(
+        r"HG\(184\): Yes",
+        regex=True,
+        na=False
+    )
+    )
 
-    write_colored_excel(df, "Overall Match Status", "Combined_Fragment_Assignment_Colored.xlsx", color_map={True: "lightgreen", False: "lightcoral"})
+    df.loc[
+        positive_pc_mask,
+        "Overall Match Status"
+    ] = True
+
+    df.loc[
+        positive_pc_mask,
+        "Identification Status"
+    ] = "PC class confirmed in positive mode; retain with caution"
+
+    removed_df.to_excel(
+        "Removed_Identifications.xlsx",
+        index=False
+    )
+    # Filter to Ontology == TG
+    # df = df[df["Ontology"] == "DG"]
+
+    write_colored_excel(df, "Overall Match Status", "Combined_Fragment_Assignment_Colored.xlsx",
+                        color_map={True: "lightgreen", False: "lightcoral"})
