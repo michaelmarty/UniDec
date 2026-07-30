@@ -21,8 +21,7 @@ rem python -m twine upload --repository testpypi .\distpypi\* --config-file .pyp
 rem redo last line with pypi instead of testpypi
 rem install with: pip install unidec and test in venv
 
-rem update docs with .\unidec_doc\make.bat html
-rem paste docs into UniDecDocumentation and push to git
+rem Documentation is built and deployed by .github/workflows/deploy-documentation.yml
 
 echo "Building"
 C:\Python313\Scripts\pyinstaller.exe GUniDec.spec --noconfirm
