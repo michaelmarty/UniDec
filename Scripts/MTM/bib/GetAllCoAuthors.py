@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import time
 import os
 
+# http://api.elsevier.com/content/abstract/doi/10.1016/S0014-5793(01)03313-0?apiKey=07070f5eff2d979e7792ebcc2096daf6
+
 sc.init(keys=["07070f5eff2d979e7792ebcc2096daf6"])
 print(sc.get_keys())
 
@@ -81,8 +83,8 @@ if __name__ == '__main__':
     #id = "9-s2.0-51161148500"
     #id = "9-s2.0-57191446043"
     #id = "9-s2.0-13008328400"
-    coauthors = get_coauthors(id)
+    coauthors = get_coauthors(id, startyear=2021, endyear=2026)
     print(coauthors)
     path = "C:\\Users\\marty\\OneDrive - University of Texas at Austin\\Career\\"
     os.chdir(path)
-    coauthors.to_excel("MMcoauthors2020-2025.xlsx", index=False)
+    coauthors.to_excel("MMcoauthors2021-2026.xlsx", index=False)

@@ -52,7 +52,6 @@ f: \.*docker_commands.txt$
 f: \.*dockerignore
 f: \.*hashing.py
 f: \.*MANIFEST.in
-f: \.*pyproject.toml
 f: \.*oldisodecfunctions.py
 f: \.*build.bat
 
