@@ -5,7 +5,8 @@ from venn import venn
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
-def prep_datasets(topdir, datasets, min_count=None, drop_d7=True, write_output=True, dtype="msdial", rttol=0.2):
+def prep_datasets(topdir, datasets, min_count=None, drop_d7=True, write_output=True,
+                  dtype="msdial", rttol=0.2):
     os.chdir(topdir)
     dfs = []
     # Data sets
@@ -37,11 +38,11 @@ def prep_datasets(topdir, datasets, min_count=None, drop_d7=True, write_output=T
 
     if write_output:
         # Write out combined dataframe for reference
-        combineddf.to_csv("Combined_DDA_Full1.csv", index=False)
+        combineddf.to_csv("Combined_DDA_Full.csv", index=False)
     return combineddf
 
 def full_name_assignment(df, rttol=0.1, rtcol="Average Rt(min)"):
-    df = df.copy()
+    newrows = []
     for i, row in df.iterrows():
         name = row["Metabolite name"]
         if "|" in name:
@@ -52,23 +53,23 @@ def full_name_assignment(df, rttol=0.1, rtcol="Average Rt(min)"):
         candidates = df[df["Metabolite name"].str.startswith(simple_name)]
         # Take only candidates not equal to the current row
         candidates = candidates[candidates["Metabolite name"] != name]
-        if len(candidates) == 0:
-            # print(f"Warning: No candidates found for {row['Metabolite name']}")
-            continue
-        for j, candidate in candidates.iterrows():
-            # For cls and other partially named candidates, check if the candidate name is longer
-            if len(candidate["Metabolite name"]) > len(name):
-                # Check if RTs are within rttol
-                if abs(candidate[rtcol] - row[rtcol]) < rttol:
-                    df.at[i, "Metabolite name"] = candidate["Metabolite name"]
-                    break
-                else:
-                    continue
-            else:
-                # print(f"Warning: Candidate {candidate['Metabolite name']} is not longer than {row['Metabolite name']}")
-                # print(f"Warning: Candidate {candidate['Metabolite name']} does not match simple name {simple_name}")
-                pass
+        if len(candidates) > 0:
+            rt = row[rtcol]
+            rtdiffs = abs(candidates[rtcol] - rt)
+            if any(rtdiffs < rttol):
+                # Filter candidates below rttol and sort by RTdiff
+                candidates = candidates.assign(RTdiff=rtdiffs)
+                candidates = candidates[candidates["RTdiff"] < rttol].sort_values(by="RTdiff")
+                for j, candidate in candidates.iterrows():
+                    # For cls and other partially named candidates, check if the candidate name is longer
+                    if len(candidate["Metabolite name"]) > len(name):
+                        # print(f"Assigning {candidate['Metabolite name']} to {row['Metabolite name']} based on RT match within {rttol} min")
+                        row["Metabolite name"] = candidate["Metabolite name"]
+                        break
 
+        newrows.append(row)
+
+    df = pd.DataFrame(newrows)
     return df
 
 def get_number_of_datasets(df, namecol="Metabolite name"):
@@ -125,7 +126,8 @@ def outlier_setup_dda(df, mztol=0.3, write_output=True, do_heads=True, do_tails=
     negdf = df[df["Polarity"] == "Negative"]
 
     outdf = ot.outlier_analysis(posdf, negdf, tol=mztol, contribs=False, add_all_cols_heads=True,
-                                add_all_cols_tails=False, drop_cols=False, do_tails=do_tails, do_heads=do_heads)
+                                add_all_cols_tails=False, drop_cols=False, do_tails=do_tails, do_heads=do_heads,
+                                auto_tolcol=True)
 
     if write_output:
         # Write out combined dataframe for reference

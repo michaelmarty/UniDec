@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import re
 import pandas as pd
 import lxml.etree
@@ -554,7 +555,6 @@ def set_basic_tail_names(df, columnname="Molecule Name"):
         except Exception as e:
             tname = name
             print("Error parsing basic tail name:", name)
-
         t5 = ""
         if tname[0] == "(":
             # Extract stuff inside parentheses
@@ -779,7 +779,7 @@ def make_sum_comp(name):
 
 def add_sump_comp(name):
     newname = make_sum_comp(name)
-    return newname + " | " + name
+    return newname + "|" + name
 
 def apply_sum_comp(df, namecol="Metabolite name", classcol="Ontology", adductcol="Adduct type"):
     # Apply to all
@@ -2425,7 +2425,7 @@ def tl_to_il(df):
     il_df = il_df.drop_duplicates().reset_index(drop=True)
     return il_df
 
-def derplicate_il(df, mztol=0.3, rttol=1.0):
+def derplicate_il(df, mztol=0.2, rttol=1.0):
     good_rows = []
     df = df.sort_values(by=["m/z"]).reset_index(drop=True)
     df["Retention Time (min)"] = (df["t start (min)"] + df["t stop (min)"]) / 2
@@ -2517,6 +2517,48 @@ def simplify_class_df(df, class_col="Ontology"):
     df[class_col] = df[class_col].apply(simplify_class_name)
     return df
 
+def parse_spec_string(spec_string, threshold=0, norm=False):
+    # Parse a string of the form "m/z:intensity m/z:intensity,..." into a numpy array
+    if pd.isna(spec_string):
+        return np.array([]).reshape(0, 2)
+    pairs = spec_string.split(" ")
+    data = []
+    for pair in pairs:
+        try:
+            mz, intensity = pair.split(":")
+            data.append([float(mz), float(intensity)])
+        except ValueError:
+            continue
+    data = np.array(data)
+    # Apply threshold
+    data = data[data[:, 1] > threshold * np.amax(data[:, 1])]
+
+    if norm:
+        data[:, 1] = data[:, 1] / np.amax(data[:, 1])
+    return data
+
+def match_frag_to_spec(spec_data, frag_mz, mz_tol=0.05):
+    # spec_data is a numpy array of shape (n, 2) with columns [m/z, intensity]
+    # frag_mz is a float
+    # mz_tol is a float
+    if spec_data.size == 0:
+        return None
+    mz_diff = np.abs(spec_data[:, 0] - frag_mz)
+    min_diff_index = np.argmin(mz_diff)
+    if mz_diff[min_diff_index] <= mz_tol:
+        return True
+    else:
+        return False
+
+def spec_to_nl(spec_data, precursor_mz):
+    # spec_data is a numpy array of shape (n, 2) with columns [m/z, intensity]
+    # precursor_mz is a float
+    if spec_data.size == 0:
+        return np.array([]).reshape(0, 2)
+    nl_data = np.copy(spec_data)
+    nl_data[:, 0] = precursor_mz - spec_data[:, 0]
+    return nl_data
+
 def mzrt_plot(df, class_col="Ontology", title="", simplify=True, write_file=False, labeln=False, rtcol="Average Rt(min)", mzcol="Average Mz"):
     # ------------------------------
     # Plot setup
@@ -2585,3 +2627,1743 @@ def mzrt_plot(df, class_col="Ontology", title="", simplify=True, write_file=Fals
         plt.savefig(f"{title}_mzrt_plot.png", bbox_inches='tight', dpi=300)
 
     plt.show()
+
+def write_colored_excel(df, column, filename, color_map=None):
+    # Create a Pandas Excel writer using XlsxWriter as the engine.
+    with pd.ExcelWriter(filename, engine='xlsxwriter') as writer:
+        # Convert the dataframe to an XlsxWriter Excel object.
+        df.to_excel(writer, sheet_name='Sheet1', index=False)
+
+        # Get the xlsxwriter workbook and worksheet objects.
+        workbook = writer.book
+        worksheet = writer.sheets['Sheet1']
+
+        # Define a default color map if none is provided
+        if color_map is None:
+            unique_values = df[column].unique()
+            colors = plt.cm.get_cmap('tab20', len(unique_values)).colors
+            color_map = {val: colors[i] for i, val in enumerate(unique_values)}
+
+        # Apply formatting based on the column values
+        for row_num, value in enumerate(df[column], start=1):  # start=1 to skip header
+            color = color_map.get(value, (1, 1, 1))  # Default to white if not found
+            color = mpl.colors.to_hex(color)
+            hex_color = '#%02x%02x%02x' % (int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16))
+            cell_format = workbook.add_format({'bg_color': hex_color})
+            worksheet.write(row_num, df.columns.get_loc(column), value, cell_format)
+
+
+def get_tail_carbons(tail):
+    """
+    Extracts carbon count from tail strings like:
+    18:1;O2
+    16:0
+    24:1;O
+    """
+    if pd.isna(tail):
+        return np.nan
+
+    tail = str(tail).strip()
+
+    if tail == "":
+        return np.nan
+
+    match = re.match(r"^(\d+):", tail)
+
+    if match is None:
+        return np.nan
+
+    return float(match.group(1))
+
+
+def get_tail_unsaturation(tail):
+    """
+    Extracts unsaturation count from tail strings like:
+    18:1;O2
+    16:0
+    24:1;O
+    """
+    if pd.isna(tail):
+        return np.nan
+
+    tail = str(tail).strip()
+
+    if tail == "":
+        return np.nan
+
+    match = re.match(r"^\d+:(\d+)", tail)
+
+    if match is None:
+        return np.nan
+
+    return float(match.group(1))
+
+
+def flag_weird_lipids(
+    df,
+    lipid_col="Metabolite name",
+    class_col="Ontology",
+    adduct_col="Adduct type",
+
+    # General total-unsaturation limits by class
+    max_unsaturation_by_class=None,
+
+    # SM-specific structural limits
+    sm_min_backbone_carbons=16,
+    sm_max_backbone_carbons=20,
+    sm_max_acyl_carbons=26,
+    sm_max_backbone_unsaturation=2,
+    sm_max_acyl_unsaturation=3,
+    sm_min_total_carbons=30
+):
+    """
+    Applies general and class-specific lipid sanity checks.
+
+    General unsaturation rule:
+        Classes listed in max_unsaturation_by_class are removed when their
+        total number of double bonds exceeds the class-specific limit.
+
+    SM-specific rules:
+        Speciated SMs:
+            - T1 backbone carbon limits
+            - T2 acyl-tail carbon limit
+            - T1 backbone unsaturation limit
+            - T2 acyl-tail unsaturation limit
+
+        Non-speciated SMs:
+            - Minimum total carbon count
+
+    PC-specific rule:
+        - Flags PCs found only in positive mode and not in negative mode.
+
+    No helper or flag columns are added to the returned DataFrame.
+    """
+
+    df = df.copy()
+
+    if max_unsaturation_by_class is None:
+        max_unsaturation_by_class = {
+            "PC": 6,
+            "SM": 4
+        }
+
+    if "Overall Match Status" not in df.columns:
+        df["Overall Match Status"] = True
+
+    if "Matched Required Fragments" not in df.columns:
+        df["Matched Required Fragments"] = ""
+
+    df["Matched Required Fragments"] = (
+        df["Matched Required Fragments"]
+        .fillna("")
+        .astype(str)
+    )
+
+    clean_class = (
+        df[class_col]
+        .astype(str)
+        .str.replace("\u00a0", " ", regex=False)
+        .str.strip()
+    )
+
+    clean_lipid_name = (
+        df[lipid_col]
+        .astype(str)
+        .str.replace("\u00a0", " ", regex=False)
+        .str.strip()
+    )
+
+    cleaned_adducts = df[adduct_col].apply(
+        lambda value: fix_adduct(value, 1, 0)
+    )
+
+    identification_polarity = pd.Series(
+        np.where(
+            cleaned_adducts.astype(str).str.endswith("+"),
+            "Positive",
+            np.where(
+                cleaned_adducts.astype(str).str.endswith("-"),
+                "Negative",
+                "Unknown"
+            )
+        ),
+        index=df.index
+    )
+
+    if "T1" in df.columns:
+        t1_carbons = df["T1"].apply(get_tail_carbons)
+        t1_unsaturation = df["T1"].apply(get_tail_unsaturation)
+    else:
+        t1_carbons = pd.Series(np.nan, index=df.index)
+        t1_unsaturation = pd.Series(np.nan, index=df.index)
+
+    if "T2" in df.columns:
+        t2_carbons = df["T2"].apply(get_tail_carbons)
+        t2_unsaturation = df["T2"].apply(get_tail_unsaturation)
+    else:
+        t2_carbons = pd.Series(np.nan, index=df.index)
+        t2_unsaturation = pd.Series(np.nan, index=df.index)
+
+    # For speciated lipids, add T1 and T2 unsaturation.
+    # For sum-composition lipids, T2 is missing and T1 contains the total.
+    total_unsaturation = pd.Series(
+        np.where(
+            t2_unsaturation.notna(),
+            t1_unsaturation.fillna(0)
+            + t2_unsaturation.fillna(0),
+            t1_unsaturation
+        ),
+        index=df.index
+    )
+
+    # ==============================================================
+    # GENERAL TOTAL-UNSATURATION CHECK
+    # ==============================================================
+
+    excessive_unsaturation = pd.Series(False, index=df.index)
+
+    print("\nGeneral lipid unsaturation checks:")
+
+    for lipid_class, max_unsaturation in max_unsaturation_by_class.items():
+        class_excessive_unsaturation = (
+            clean_class.eq(lipid_class)
+            & total_unsaturation.notna()
+            & (total_unsaturation > max_unsaturation)
+        )
+
+        excessive_unsaturation = (
+            excessive_unsaturation
+            | class_excessive_unsaturation
+        )
+
+        df.loc[
+            class_excessive_unsaturation,
+            "Matched Required Fragments"
+        ] += (
+            f" FLAGGED: {lipid_class} total double bonds "
+            f"> {max_unsaturation};"
+        )
+
+        print(
+            f"{lipid_class} rows removed for more than "
+            f"{max_unsaturation} double bonds:",
+            int(class_excessive_unsaturation.sum())
+        )
+
+    # ==============================================================
+    # SM-SPECIFIC CHECKS
+    # ==============================================================
+
+    sm_mask = clean_class.eq("SM")
+
+    speciated_sm_mask = (
+        sm_mask
+        & clean_lipid_name.str.contains(r"\|", na=False)
+    )
+
+    sum_sm_mask = (
+        sm_mask
+        & ~clean_lipid_name.str.contains(r"\|", na=False)
+    )
+
+    sm_small_backbone = (
+        speciated_sm_mask
+        & t1_carbons.notna()
+        & (t1_carbons < sm_min_backbone_carbons)
+    )
+
+    sm_large_backbone = (
+        speciated_sm_mask
+        & t1_carbons.notna()
+        & (t1_carbons > sm_max_backbone_carbons)
+    )
+
+    sm_large_acyl_tail = (
+        speciated_sm_mask
+        & t2_carbons.notna()
+        & (t2_carbons > sm_max_acyl_carbons)
+    )
+
+    sm_unsaturated_backbone = (
+        speciated_sm_mask
+        & t1_unsaturation.notna()
+        & (t1_unsaturation > sm_max_backbone_unsaturation)
+    )
+
+    sm_unsaturated_acyl_tail = (
+        speciated_sm_mask
+        & t2_unsaturation.notna()
+        & (t2_unsaturation > sm_max_acyl_unsaturation)
+    )
+
+    sm_small_sum_composition = (
+        sum_sm_mask
+        & t1_carbons.notna()
+        & (t1_carbons < sm_min_total_carbons)
+    )
+
+    sm_weird_lipid = (
+        sm_small_backbone
+        | sm_large_backbone
+        | sm_large_acyl_tail
+        | sm_unsaturated_backbone
+        | sm_unsaturated_acyl_tail
+        | sm_small_sum_composition
+    )
+
+    df.loc[
+        sm_small_backbone,
+        "Matched Required Fragments"
+    ] += (
+        f" FLAGGED: speciated SM backbone T1 carbon count "
+        f"< {sm_min_backbone_carbons};"
+    )
+
+    df.loc[
+        sm_large_backbone,
+        "Matched Required Fragments"
+    ] += (
+        f" FLAGGED: speciated SM backbone T1 carbon count "
+        f"> {sm_max_backbone_carbons};"
+    )
+
+    df.loc[
+        sm_large_acyl_tail,
+        "Matched Required Fragments"
+    ] += (
+        f" FLAGGED: speciated SM acyl tail T2 carbon count "
+        f"> {sm_max_acyl_carbons};"
+    )
+
+    df.loc[
+        sm_unsaturated_backbone,
+        "Matched Required Fragments"
+    ] += (
+        f" FLAGGED: speciated SM backbone T1 unsaturation "
+        f"> {sm_max_backbone_unsaturation};"
+    )
+
+    df.loc[
+        sm_unsaturated_acyl_tail,
+        "Matched Required Fragments"
+    ] += (
+        f" FLAGGED: speciated SM acyl tail T2 unsaturation "
+        f"> {sm_max_acyl_unsaturation};"
+    )
+
+    df.loc[
+        sm_small_sum_composition,
+        "Matched Required Fragments"
+    ] += (
+        f" FLAGGED: non-speciated SM total carbon count "
+        f"< {sm_min_total_carbons};"
+    )
+
+    # ==============================================================
+    # PC-SPECIFIC POLARITY CHECK
+    # ==============================================================
+
+    pc_mask = clean_class.eq("PC")
+
+    pc_polarity_by_name = (
+        pd.DataFrame({
+            "_Clean_Lipid_Name": clean_lipid_name.loc[pc_mask],
+            "_Polarity": identification_polarity.loc[pc_mask]
+        })
+        .groupby("_Clean_Lipid_Name")["_Polarity"]
+        .agg(lambda values: set(values))
+    )
+
+    positive_only_pc_names = pc_polarity_by_name[
+        pc_polarity_by_name.apply(
+            lambda polarities:
+                "Positive" in polarities
+                and "Negative" not in polarities
+        )
+    ].index
+
+    pc_positive_only = (
+        pc_mask
+        & clean_lipid_name.isin(positive_only_pc_names)
+    )
+
+    df.loc[
+        pc_positive_only,
+        "Matched Required Fragments"
+    ] += (
+        " FLAGGED: PC identified only in positive mode; "
+        "no negative-mode identification found;"
+    )
+
+    weird_lipid = (
+        excessive_unsaturation
+        | sm_weird_lipid
+        | pc_positive_only
+    )
+
+    df.loc[
+        weird_lipid,
+        "Overall Match Status"
+    ] = False
+
+    print("\nClass-specific weird lipid checks:")
+
+    print(
+        "SM rows flagged by structural rules:",
+        int(sm_weird_lipid.sum())
+    )
+
+    print(
+        "PC rows flagged as positive-mode only:",
+        int(pc_positive_only.sum())
+    )
+
+    print(
+        "Unique positive-mode-only PC names:",
+        len(positive_only_pc_names)
+    )
+
+    print(
+        "Total rows flagged by all lipid sanity checks:",
+        int(weird_lipid.sum())
+    )
+
+    # Remove all listed classes that exceed their unsaturation limit.
+    df = df[~excessive_unsaturation].copy()
+
+    return df
+
+def plot_rejected_quality_density(
+    candidate_df,
+    output_basename="Rejected_Quality_Density"
+):
+    plot_df = candidate_df.copy()
+
+    accepted_values = [
+        True, "TRUE", "True", "true", 1, "1"
+    ]
+
+    # Keep rejected candidates only
+    plot_df = plot_df[
+        ~plot_df["Overall Match Status"].isin(accepted_values)
+    ].copy()
+
+    fragment_text = (
+        plot_df["Matched Required Fragments"]
+        .fillna("")
+        .astype(str)
+    )
+
+    plot_df["Fragments Found"] = (
+        fragment_text.str.count(r":\s*Yes")
+    )
+
+    plot_df["Fragments Missing"] = (
+        fragment_text.str.count(r":\s*No")
+    )
+
+    plot_df["Fragments Evaluated"] = (
+        plot_df["Fragments Found"]
+        + plot_df["Fragments Missing"]
+    )
+
+    plot_df["Fragment Match Fraction"] = np.where(
+        plot_df["Fragments Evaluated"] > 0,
+        (
+            plot_df["Fragments Found"]
+            / plot_df["Fragments Evaluated"]
+        ),
+        np.nan
+    )
+
+    plot_df["Reverse dot product"] = pd.to_numeric(
+        plot_df["Reverse dot product"],
+        errors="coerce"
+    )
+
+    plot_df = plot_df.dropna(
+        subset=[
+            "Reverse dot product",
+            "Fragment Match Fraction"
+        ]
+    )
+
+    fig, ax = plt.subplots(figsize=(9, 7))
+
+    density = ax.hist2d(
+        plot_df["Reverse dot product"],
+        plot_df["Fragment Match Fraction"],
+        bins=[20, 10],
+        cmap="viridis"
+    )
+
+    fig.colorbar(
+        density[3],
+        ax=ax,
+        label="Number of Rejected Candidates"
+    )
+
+    ax.set_xlabel("Reverse Dot Product")
+    ax.set_ylabel("Fraction of Required Fragments Detected")
+
+    ax.set_title(
+        "Common Raw-Data Characteristics of Rejected Lipid Candidates"
+    )
+
+    ax.set_ylim(0, 1)
+
+    fig.tight_layout()
+
+    fig.savefig(
+        f"{output_basename}.png",
+        dpi=300,
+        bbox_inches="tight"
+    )
+
+    fig.savefig(
+        f"{output_basename}.pdf",
+        bbox_inches="tight"
+    )
+
+    return plot_df
+
+def plot_class_dataset_heatmap(
+    df,
+    datasets,
+    output_basename="Class_Dataset_Heatmap"
+):
+    """
+    Plot the number of unique confirmed lipid IDs in each lipid class
+    for each dataset.
+    """
+
+    plot_df = df.copy()
+
+    # Clean dataset and lipid-class names
+    plot_df["Dataset"] = (
+        plot_df["Dataset"]
+        .astype(str)
+        .str.replace("\u00a0", " ", regex=False)
+        .str.strip()
+    )
+
+    plot_df["Ontology"] = (
+        plot_df["Ontology"]
+        .astype(str)
+        .str.replace("\u00a0", " ", regex=False)
+        .str.strip()
+    )
+
+    # Keep confirmed IDs only
+    plot_df = plot_df[
+        plot_df["Overall Match Status"].isin(
+            [True, "TRUE", "True", "true", 1, "1"]
+        )
+    ].copy()
+
+    # Keep only the selected datasets
+    plot_df = plot_df[
+        plot_df["Dataset"].isin(datasets)
+    ].copy()
+
+    # Match speciated and unspeciated versions using sum composition
+    plot_df["Lipid Match Key"] = (
+        plot_df["Metabolite name"]
+        .astype(str)
+        .str.split("|", n=1)
+        .str[0]
+        .str.strip()
+    )
+
+    # Count each lipid only once per class and dataset
+    plot_df = plot_df.drop_duplicates(
+        subset=[
+            "Dataset",
+            "Ontology",
+            "Lipid Match Key"
+        ]
+    )
+
+    # Create class-by-dataset count matrix
+    heatmap_df = (
+        plot_df
+        .groupby(
+            ["Ontology", "Dataset"]
+        )
+        .size()
+        .unstack(fill_value=0)
+        .reindex(
+            columns=datasets,
+            fill_value=0
+        )
+    )
+
+    # Sort classes by total number of IDs
+    heatmap_df["Total"] = heatmap_df.sum(axis=1)
+
+    heatmap_df = (
+        heatmap_df
+        .sort_values(
+            "Total",
+            ascending=False
+        )
+        .drop(columns=["Total"])
+    )
+
+    print("\nConfirmed lipid counts by class and dataset:")
+    print(heatmap_df.to_string())
+
+    # Create heatmap
+    fig, ax = plt.subplots(
+        figsize=(
+            8,
+            max(6, len(heatmap_df) * 0.4)
+        )
+    )
+
+    image = ax.imshow(
+        heatmap_df.values,
+        aspect="auto",
+        cmap="viridis"
+    )
+
+    ax.set_xticks(
+        range(len(heatmap_df.columns))
+    )
+
+    ax.set_xticklabels(
+        heatmap_df.columns,
+        rotation=45,
+        ha="right"
+    )
+
+    ax.set_yticks(
+        range(len(heatmap_df.index))
+    )
+
+    ax.set_yticklabels(
+        heatmap_df.index
+    )
+
+    ax.set_xlabel("Dataset")
+    ax.set_ylabel("Lipid Class")
+
+    ax.set_title(
+        "Unique Confirmed Lipid IDs by Class and Dataset"
+    )
+
+    # Print the raw count inside every cell
+    for row_index in range(len(heatmap_df.index)):
+        for col_index in range(len(heatmap_df.columns)):
+
+            value = int(
+                heatmap_df.iloc[
+                    row_index,
+                    col_index
+                ]
+            )
+
+            ax.text(
+                col_index,
+                row_index,
+                str(value),
+                ha="center",
+                va="center",
+                fontsize=8
+            )
+
+    fig.colorbar(
+        image,
+        ax=ax,
+        label="Unique Confirmed Lipid IDs"
+    )
+
+    fig.tight_layout()
+
+    png_file = f"{output_basename}.png"
+    pdf_file = f"{output_basename}.pdf"
+
+    fig.savefig(
+        png_file,
+        dpi=300,
+        bbox_inches="tight"
+    )
+
+    fig.savefig(
+        pdf_file,
+        bbox_inches="tight"
+    )
+
+    print("\nHeatmap saved as:")
+    print(os.path.abspath(png_file))
+    print(os.path.abspath(pdf_file))
+
+    return heatmap_df
+
+def plot_class_consistency(
+    df,
+    datasets,
+    output_basename="Class_Consistency"
+):
+    """
+    For each lipid class, calculate the average percentage of datasets
+    in which its confirmed unique lipid identities were detected.
+    """
+
+    plot_df = df.copy()
+
+    # Keep confirmed identifications only
+    plot_df = plot_df[
+        plot_df["Overall Match Status"].isin(
+            [True, "TRUE", "True", 1, "1"]
+        )
+    ].copy()
+
+    # Clean relevant columns
+    plot_df["Dataset"] = (
+        plot_df["Dataset"]
+        .astype(str)
+        .str.replace("\u00a0", " ", regex=False)
+        .str.strip()
+    )
+
+    plot_df["Ontology"] = (
+        plot_df["Ontology"]
+        .astype(str)
+        .str.replace("\u00a0", " ", regex=False)
+        .str.strip()
+    )
+
+    # Convert detailed names to sum-composition names
+    plot_df["Lipid Match Key"] = (
+        plot_df["Metabolite name"]
+        .astype(str)
+        .str.split("|", n=1)
+        .str[0]
+        .str.strip()
+    )
+
+    # Keep requested datasets
+    plot_df = plot_df[
+        plot_df["Dataset"].isin(datasets)
+    ].copy()
+
+    # One occurrence of each lipid per dataset
+    plot_df = plot_df.drop_duplicates(
+        subset=[
+            "Dataset",
+            "Ontology",
+            "Lipid Match Key"
+        ]
+    )
+
+    # Number of datasets containing each lipid
+    lipid_coverage = (
+        plot_df
+        .groupby(
+            ["Ontology", "Lipid Match Key"]
+        )["Dataset"]
+        .nunique()
+        .reset_index(name="Datasets Present")
+    )
+
+    lipid_coverage["Consistency Percent"] = (
+        lipid_coverage["Datasets Present"]
+        / len(datasets)
+        * 100
+    )
+
+    # Average consistency for each class
+    class_summary = (
+        lipid_coverage
+        .groupby("Ontology")
+        .agg(
+            Mean_Consistency=(
+                "Consistency Percent",
+                "mean"
+            ),
+            Number_of_Lipids=(
+                "Lipid Match Key",
+                "nunique"
+            )
+        )
+        .reset_index()
+        .sort_values(
+            "Mean_Consistency",
+            ascending=False
+        )
+    )
+
+    print("\nClass consistency values:")
+    print(class_summary.to_string(index=False))
+
+    fig, ax = plt.subplots(figsize=(11, 6))
+
+    ax.bar(
+        class_summary["Ontology"],
+        class_summary["Mean_Consistency"],
+        edgecolor="black"
+    )
+
+    ax.set_xlabel("Lipid Class")
+    ax.set_ylabel("Mean Dataset Consistency (%)")
+    ax.set_title("Consistency of Lipid Classes Across Datasets")
+    ax.set_ylim(0, 100)
+
+    for i, value in enumerate(
+        class_summary["Mean_Consistency"]
+    ):
+        ax.text(
+            i,
+            value,
+            f"{value:.1f}",
+            ha="center",
+            va="bottom",
+            fontsize=8
+        )
+
+    ax.tick_params(axis="x", rotation=45)
+    fig.tight_layout()
+
+    png_file = f"{output_basename}.png"
+    pdf_file = f"{output_basename}.pdf"
+
+    fig.savefig(
+        png_file,
+        dpi=300,
+        bbox_inches="tight"
+    )
+
+    fig.savefig(
+        pdf_file,
+        bbox_inches="tight"
+    )
+
+    print("\nClass-consistency plots saved as:")
+    print(os.path.abspath(png_file))
+    print(os.path.abspath(pdf_file))
+
+    plt.show()
+    plt.close(fig)
+
+    return class_summary
+
+
+def plot_total_ids_by_dataset(
+    df,
+    datasets,
+    dataset_col="Dataset",
+    bar_color=None,
+    output_basename="Confirmed_Lipid_IDs_by_Dataset"
+):
+    """
+    Plot one confirmed sum-composition lipid ID per class and dataset.
+
+    Speciated and unspeciated names with the same sum composition are
+    counted as one identity within a dataset.
+    """
+    plot_df = df.copy()
+
+    plot_df[dataset_col] = (
+        plot_df[dataset_col]
+        .astype(str)
+        .str.replace("\u00a0", " ", regex=False)
+        .str.strip()
+    )
+
+    plot_df["Ontology"] = (
+        plot_df["Ontology"]
+        .astype(str)
+        .str.replace("\u00a0", " ", regex=False)
+        .str.strip()
+    )
+
+    # Keep confirmed identifications only.
+    plot_df = plot_df[
+        plot_df["Overall Match Status"].isin(
+            [True, "TRUE", "True", 1, "1"]
+        )
+    ].copy()
+
+    # Convert detailed names to sum-composition names.
+    plot_df["Plot Lipid Name"] = (
+        plot_df["Metabolite name"]
+        .astype(str)
+        .str.split("|", n=1)
+        .str[0]
+        .str.strip()
+    )
+
+    # Keep requested datasets and count each lipid once per dataset.
+    plot_df = plot_df[
+        plot_df[dataset_col].isin(datasets)
+    ].drop_duplicates(
+        subset=[
+            dataset_col,
+            "Ontology",
+            "Plot Lipid Name"
+        ]
+    )
+
+    counts = (
+        plot_df
+        .groupby(dataset_col)
+        .size()
+        .reindex(datasets, fill_value=0)
+    )
+
+    print("\nCounts used for confirmed-ID plot:")
+    print(counts.to_string())
+
+    fig, ax = plt.subplots(figsize=(7, 5))
+
+    ax.bar(
+        counts.index,
+        counts.values,
+        color=bar_color,
+        edgecolor="black"
+    )
+
+    ax.set_xlabel("Dataset")
+    ax.set_ylabel("Unique Confirmed Lipid IDs")
+    ax.set_title("Confirmed Lipid IDs by Dataset")
+
+    for i, value in enumerate(counts.values):
+        ax.text(
+            i,
+            value,
+            str(int(value)),
+            ha="center",
+            va="bottom"
+        )
+
+    ax.tick_params(axis="x", rotation=45)
+    fig.tight_layout()
+
+    png_file = f"{output_basename}.png"
+    pdf_file = f"{output_basename}.pdf"
+
+    fig.savefig(
+        png_file,
+        dpi=300,
+        bbox_inches="tight"
+    )
+
+    fig.savefig(
+        pdf_file,
+        bbox_inches="tight"
+    )
+
+    print("\nPlots saved as:")
+    print(os.path.abspath(png_file))
+    print(os.path.abspath(pdf_file))
+
+    plt.show(block=True)
+    plt.close(fig)
+
+
+def export_lipid_dataset_presence(
+    df,
+    datasets,
+    lipid_classes,
+    lipid_col="Lipid",
+    class_col="Ontology",
+    dataset_col="Dataset",
+    output_file="Lipid_Dataset_Presence.xlsx"
+):
+    """
+    Exports dataset presence/absence information for specified lipid classes.
+
+    Output includes:
+        - One row per unique lipid
+        - 1/0 presence columns for each dataset
+        - Number of datasets containing the lipid
+        - Number of datasets missing the lipid
+        - Names of datasets containing the lipid
+        - Names of datasets missing the lipid
+        - Separate Excel sheets grouped by number of datasets present
+    """
+
+    presence_df = df.copy()
+
+    presence_df = presence_df[
+        presence_df["Overall Match Status"].isin(
+            [True, "TRUE", "True", 1, "1"]
+        )
+    ].copy()
+
+    # Clean relevant text columns
+    for col in [lipid_col, class_col, dataset_col]:
+        presence_df[col] = (
+            presence_df[col]
+            .astype(str)
+            .str.replace("\u00a0", " ", regex=False)
+            .str.strip()
+        )
+    presence_df["Lipid Match Key"] = (
+        presence_df[lipid_col]
+        .astype(str)
+        .str.split("|", n=1)
+        .str[0]
+        .str.strip()
+    )
+
+    presence_df["Is Speciated"] = (
+        presence_df[lipid_col]
+        .astype(str)
+        .str.contains("|", regex=False)
+    )
+    # Keep only requested datasets and lipid classes
+    presence_df = presence_df[
+        presence_df[dataset_col].isin(datasets)
+        & presence_df[class_col].isin(lipid_classes)
+    ].copy()
+
+    # Remove rows without a meaningful lipid name
+    presence_df = presence_df[
+        presence_df[lipid_col].notna()
+        & ~presence_df[lipid_col].isin(["", "nan", "None"])
+    ]
+
+    # One row per lipid/class/dataset before making the table
+    presence_df = presence_df[
+        [
+            class_col,
+            lipid_col,
+            "Lipid Match Key",
+            dataset_col,
+            "Is Speciated"
+        ]
+    ].drop_duplicates()
+
+    # Build presence/absence matrix
+    presence_matrix = (
+        presence_df
+        .assign(Present=1)
+        .pivot_table(
+            index=[class_col, "Lipid Match Key"],
+            columns=dataset_col,
+            values="Present",
+            aggfunc="max",
+            fill_value=0
+        )
+        .reindex(columns=datasets, fill_value=0)
+        .reset_index()
+    )
+
+    # Prefer a speciated name for display
+    display_names = (
+        presence_df
+        .sort_values("Is Speciated", ascending=False)
+        .drop_duplicates([class_col, "Lipid Match Key"])
+        [[class_col, "Lipid Match Key", lipid_col]]
+    )
+
+    presence_matrix = presence_matrix.merge(
+        display_names,
+        on=[class_col, "Lipid Match Key"],
+        how="left"
+    )
+
+    # List datasets where only the unspeciated form was found
+    speciation_status = (
+        presence_df
+        .groupby(
+            [class_col, "Lipid Match Key", dataset_col]
+        )["Is Speciated"]
+        .any()
+        .reset_index()
+    )
+
+    not_speciated = (
+        speciation_status[
+            speciation_status["Is Speciated"] == False
+            ]
+        .groupby(
+            [class_col, "Lipid Match Key"]
+        )[dataset_col]
+        .apply(lambda x: ", ".join(sorted(x)))
+        .reset_index(name="Not Speciated In")
+    )
+
+    presence_matrix = presence_matrix.merge(
+        not_speciated,
+        on=[class_col, "Lipid Match Key"],
+        how="left"
+    )
+
+    presence_matrix["Not Speciated In"] = (
+        presence_matrix["Not Speciated In"].fillna("")
+    )
+
+    # Count datasets present and missing
+    presence_matrix["Datasets Present"] = (
+        presence_matrix[datasets].sum(axis=1)
+    )
+
+    presence_matrix["Datasets Missing"] = (
+        len(datasets) - presence_matrix["Datasets Present"]
+    )
+
+    # List dataset names
+    presence_matrix["Present In"] = presence_matrix.apply(
+        lambda row: ", ".join(
+            dataset for dataset in datasets if row[dataset] == 1
+        ),
+        axis=1
+    )
+
+    presence_matrix["Missing From"] = presence_matrix.apply(
+        lambda row: ", ".join(
+            dataset for dataset in datasets if row[dataset] == 0
+        ),
+        axis=1
+    )
+
+    # Sort by class, then by greatest coverage, then lipid name
+    presence_matrix = presence_matrix.sort_values(
+        by=[class_col, "Datasets Present", lipid_col],
+        ascending=[True, False, True]
+    )
+
+    # Summary by class and number of datasets present
+    summary = (
+        presence_matrix
+        .groupby([class_col, "Datasets Present"])
+        .size()
+        .reset_index(name="Number of Lipids")
+        .sort_values([class_col, "Datasets Present"])
+    )
+
+    presence_matrix = presence_matrix.drop(
+        columns=["Lipid Match Key"]
+    )
+
+    with pd.ExcelWriter(output_file, engine="openpyxl") as writer:
+
+        # Complete table
+        presence_matrix.to_excel(
+            writer,
+            sheet_name="All Lipids",
+            index=False
+        )
+
+        # Summary counts
+        summary.to_excel(
+            writer,
+            sheet_name="Summary",
+            index=False
+        )
+
+        # Separate sheet for each presence count
+        for number_present in range(len(datasets) + 1):
+            subset = presence_matrix[
+                presence_matrix["Datasets Present"] == number_present
+            ]
+
+            if not subset.empty:
+                subset.to_excel(
+                    writer,
+                    sheet_name=f"Present in {number_present}",
+                    index=False
+                )
+
+        # Separate sheets for each requested class
+        for lipid_class in lipid_classes:
+            class_subset = presence_matrix[
+                presence_matrix[class_col] == lipid_class
+            ]
+
+            if not class_subset.empty:
+                safe_sheet_name = str(lipid_class)[:31]
+
+                class_subset.to_excel(
+                    writer,
+                    sheet_name=safe_sheet_name,
+                    index=False
+                )
+
+    print(f"\nPresence/absence spreadsheet saved as:")
+    print(os.path.abspath(output_file))
+
+    print("\nNumber of lipids by class and dataset coverage:")
+    print(summary.to_string(index=False))
+
+    return presence_matrix
+
+def plot_removed_ids_by_class(
+    removed_df,
+    output_basename="Removed_IDs_by_Class"
+):
+    plot_df = removed_df.copy()
+
+    plot_df["Ontology"] = (
+        plot_df["Ontology"]
+        .astype(str)
+        .str.replace("\u00a0", " ", regex=False)
+        .str.strip()
+    )
+
+    plot_df["Lipid Match Key"] = (
+        plot_df["Metabolite name"]
+        .astype(str)
+        .str.split("|", n=1)
+        .str[0]
+        .str.strip()
+    )
+
+    # Count each removed lipid only once across all datasets
+    plot_df = plot_df.drop_duplicates(
+        subset=[
+            "Ontology",
+            "Lipid Match Key"
+        ]
+    )
+
+    removed_counts = (
+        plot_df["Ontology"]
+        .value_counts()
+        .sort_values(ascending=False)
+    )
+
+def plot_class_coverage_distribution(
+    df,
+    datasets,
+    output_basename="Class_Coverage_Distribution"
+):
+    plot_df = df.copy()
+
+    plot_df["Dataset"] = (
+        plot_df["Dataset"]
+        .astype(str)
+        .str.replace("\u00a0", " ", regex=False)
+        .str.strip()
+    )
+
+    plot_df["Ontology"] = (
+        plot_df["Ontology"]
+        .astype(str)
+        .str.replace("\u00a0", " ", regex=False)
+        .str.strip()
+    )
+
+    plot_df = plot_df[
+        plot_df["Overall Match Status"].isin(
+            [True, "TRUE", "True", 1, "1"]
+        )
+    ].copy()
+
+    plot_df = plot_df[
+        plot_df["Dataset"].isin(datasets)
+    ].copy()
+
+    plot_df["Lipid Match Key"] = (
+        plot_df["Metabolite name"]
+        .astype(str)
+        .str.split("|", n=1)
+        .str[0]
+        .str.strip()
+    )
+
+    plot_df = plot_df.drop_duplicates(
+        subset=[
+            "Dataset",
+            "Ontology",
+            "Lipid Match Key"
+        ]
+    )
+
+    lipid_coverage = (
+        plot_df
+        .groupby(
+            ["Ontology", "Lipid Match Key"]
+        )["Dataset"]
+        .nunique()
+        .reset_index(name="Datasets Present")
+    )
+
+    coverage_counts = (
+        lipid_coverage
+        .groupby(
+            ["Ontology", "Datasets Present"]
+        )
+        .size()
+        .unstack(fill_value=0)
+        .reindex(columns=range(1, len(datasets) + 1), fill_value=0)
+    )
+
+    coverage_percent = (
+        coverage_counts
+        .div(coverage_counts.sum(axis=1), axis=0)
+        * 100
+    )
+
+    # Sort classes by percentage found in 3 or more datasets
+    coverage_percent["3+ Total"] = (
+        coverage_percent[
+            [col for col in coverage_percent.columns if col >= 3]
+        ]
+        .sum(axis=1)
+    )
+
+    coverage_percent = coverage_percent.sort_values(
+        "3+ Total",
+        ascending=True
+    )
+
+    coverage_percent = coverage_percent.drop(
+        columns=["3+ Total"]
+    )
+
+    print("\nCoverage distribution by class (%):")
+    print(coverage_percent.to_string())
+
+    fig, ax = plt.subplots(
+        figsize=(10, max(6, len(coverage_percent) * 0.35))
+    )
+
+    cmap = plt.get_cmap("viridis")
+
+    coverage_colors = [
+        cmap(i / (len(datasets) - 1))
+        for i in range(len(datasets))
+    ]
+
+    left = np.zeros(len(coverage_percent))
+
+    for coverage_number in range(1, len(datasets) + 1):
+        values = coverage_percent[coverage_number].values
+
+        ax.barh(
+            coverage_percent.index,
+            values,
+            left=left,
+            label=(
+                f"{coverage_number} dataset"
+                if coverage_number == 1
+                else f"{coverage_number} datasets"
+            ),
+            edgecolor="black",
+            color=coverage_colors[coverage_number - 1]
+        )
+
+        left += values
+    ax.set_xlabel("Unique Lipids in Each Coverage Group (%)")
+    ax.set_ylabel("Lipid Class")
+    ax.set_title("Dataset Coverage Distribution by Lipid Class")
+    ax.set_xlim(0, 100)
+
+    ax.legend(
+        title="Detected In",
+        bbox_to_anchor=(1.02, 1),
+        loc="upper left"
+    )
+
+    fig.tight_layout()
+
+    fig.savefig(
+        f"{output_basename}.png",
+        dpi=300,
+        bbox_inches="tight"
+    )
+
+    fig.savefig(
+        f"{output_basename}.pdf",
+        bbox_inches="tight"
+    )
+
+    return coverage_percent
+
+def plot_true_false_quality_distributions(
+    candidate_df,
+    output_basename="True_False_Quality_Distributions"
+):
+    plot_df = candidate_df.copy()
+
+    true_values = [True, "TRUE", "True", "true", 1, "1"]
+
+    plot_df["Confirmed"] = (
+        plot_df["Overall Match Status"]
+        .isin(true_values)
+    )
+
+    fragment_text = (
+        plot_df["Matched Required Fragments"]
+        .fillna("")
+        .astype(str)
+    )
+
+    plot_df["Fragments Found"] = (
+        fragment_text.str.count(r":\s*Yes")
+    )
+
+    plot_df["Fragments Missing"] = (
+        fragment_text.str.count(r":\s*No")
+    )
+
+    plot_df["Fragments Evaluated"] = (
+        plot_df["Fragments Found"]
+        + plot_df["Fragments Missing"]
+    )
+
+    plot_df["Fragment Match Fraction"] = np.where(
+        plot_df["Fragments Evaluated"] > 0,
+        (
+            plot_df["Fragments Found"]
+            / plot_df["Fragments Evaluated"]
+        ),
+        np.nan
+    )
+
+    plot_df["Reverse dot product"] = pd.to_numeric(
+        plot_df["Reverse dot product"],
+        errors="coerce"
+    )
+
+    features = [
+        (
+            "Reverse dot product",
+            "Reverse Dot Product",
+            np.linspace(0, 1, 25)
+        ),
+        (
+            "Fragment Match Fraction",
+            "Fraction of Required Fragments Matched",
+            np.linspace(0, 1, 12)
+        )
+    ]
+
+    fig, axes = plt.subplots(
+        ncols=2,
+        figsize=(10, 5)
+    )
+
+    for ax, (column, title, bins) in zip(
+        axes,
+        features
+    ):
+        false_values = (
+            plot_df.loc[
+                ~plot_df["Confirmed"],
+                column
+            ]
+            .dropna()
+        )
+
+        true_values_data = (
+            plot_df.loc[
+                plot_df["Confirmed"],
+                column
+            ]
+            .dropna()
+        )
+
+        ax.hist(
+            false_values,
+            bins=bins,
+            alpha=0.65,
+            label="False",
+            density=True
+        )
+
+        ax.hist(
+            true_values_data,
+            bins=bins,
+            alpha=0.65,
+            label="True",
+            density=True
+        )
+
+        ax.set_title(title)
+        ax.set_xlabel(title)
+        ax.set_ylabel("Density")
+        ax.legend()
+
+    fig.suptitle(
+        "Raw-Data Characteristics of Confirmed and Rejected Lipid IDs"
+    )
+
+    fig.tight_layout()
+
+    fig.savefig(
+        f"{output_basename}.png",
+        dpi=300,
+        bbox_inches="tight"
+    )
+
+    fig.savefig(
+        f"{output_basename}.pdf",
+        bbox_inches="tight"
+    )
+
+    return plot_df
+
+def plot_quality_feature_separation(
+    candidate_df,
+    output_basename="Quality_Feature_Separation"
+):
+    plot_df = candidate_df.copy()
+
+    true_values = [True, "TRUE", "True", "true", 1, "1"]
+
+    plot_df["Confirmed"] = (
+        plot_df["Overall Match Status"]
+        .isin(true_values)
+    )
+
+    fragment_text = (
+        plot_df["Matched Required Fragments"]
+        .fillna("")
+        .astype(str)
+    )
+
+    plot_df["Fragments Found"] = (
+        fragment_text.str.count(r":\s*Yes")
+    )
+
+    plot_df["Fragments Missing"] = (
+        fragment_text.str.count(r":\s*No")
+    )
+
+    plot_df["Fragments Evaluated"] = (
+        plot_df["Fragments Found"]
+        + plot_df["Fragments Missing"]
+    )
+
+    plot_df["Fragment Match Fraction"] = np.where(
+        plot_df["Fragments Evaluated"] > 0,
+        (
+            plot_df["Fragments Found"]
+            / plot_df["Fragments Evaluated"]
+        ),
+        np.nan
+    )
+
+    feature_columns = [
+        "Reverse dot product",
+        "Fragment Match Fraction"
+    ]
+    feature_labels = {
+        "Reverse dot product": "Reverse dot product",
+        "Fragment Match Fraction": "Fragment-match fraction"
+    }
+    separation_scores = {}
+
+    for feature in feature_columns:
+        plot_df[feature] = pd.to_numeric(
+            plot_df[feature],
+            errors="coerce"
+        )
+
+        true_group = (
+            plot_df.loc[
+                plot_df["Confirmed"],
+                feature
+            ]
+            .dropna()
+        )
+
+        false_group = (
+            plot_df.loc[
+                ~plot_df["Confirmed"],
+                feature
+            ]
+            .dropna()
+        )
+
+        pooled_sd = np.sqrt(
+            (
+                true_group.var(ddof=1)
+                + false_group.var(ddof=1)
+            )
+            / 2
+        )
+
+        if pooled_sd == 0 or np.isnan(pooled_sd):
+            score = 0
+        else:
+            score = abs(
+                true_group.mean()
+                - false_group.mean()
+            ) / pooled_sd
+
+        separation_scores[
+            feature_labels[feature]
+        ] = score
+
+    score_series = (
+        pd.Series(separation_scores)
+        .sort_values(ascending=False)
+    )
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    ax.bar(
+        score_series.index,
+        score_series.values,
+        edgecolor="black"
+    )
+
+    ax.set_xlabel("Raw-Data Feature")
+    ax.set_ylabel("Standardized Difference")
+    ax.set_title(
+        "Features That Best Separate Confirmed and Rejected IDs"
+    )
+
+    ax.tick_params(
+        axis="x",
+        rotation=45
+    )
+
+    fig.tight_layout()
+
+    fig.savefig(
+        f"{output_basename}.png",
+        dpi=300,
+        bbox_inches="tight"
+    )
+
+    fig.savefig(
+        f"{output_basename}.pdf",
+        bbox_inches="tight"
+    )
+
+    return score_series
+
+def plot_rejected_ids_by_dataset(
+    candidate_df,
+    datasets,
+    bar_color=None,
+    output_basename="Rejected_Lipid_IDs_by_Dataset"
+):
+    """
+    Plot the number of unique lipid identities rejected by fragment
+    validation in each dataset.
+
+    Detailed and unspeciated names sharing the same sum composition
+    are counted as one lipid within a dataset.
+    """
+
+    plot_df = candidate_df.copy()
+
+    # Clean dataset names
+    plot_df["Dataset"] = (
+        plot_df["Dataset"]
+        .astype(str)
+        .str.replace("\u00a0", " ", regex=False)
+        .str.strip()
+    )
+
+    # Convert Overall Match Status into a reliable Boolean
+    confirmed_values = [
+        True,
+        "TRUE",
+        "True",
+        "true",
+        1,
+        "1"
+    ]
+
+    plot_df["Confirmed"] = (
+        plot_df["Overall Match Status"]
+        .isin(confirmed_values)
+    )
+
+    # Keep rejected IDs only
+    plot_df = plot_df[
+        ~plot_df["Confirmed"]
+    ].copy()
+
+    # Keep the selected datasets
+    plot_df = plot_df[
+        plot_df["Dataset"].isin(datasets)
+    ].copy()
+
+    # Convert detailed names to sum-composition identities
+    plot_df["Lipid Match Key"] = (
+        plot_df["Metabolite name"]
+        .astype(str)
+        .str.split("|", n=1)
+        .str[0]
+        .str.strip()
+    )
+
+    # Remove invalid names
+    plot_df = plot_df[
+        ~plot_df["Lipid Match Key"].isin(
+            ["", "nan", "None"]
+        )
+    ].copy()
+
+    # Count each rejected lipid once per dataset
+    plot_df = plot_df.drop_duplicates(
+        subset=[
+            "Dataset",
+            "Ontology",
+            "Lipid Match Key"
+        ]
+    )
+
+    rejected_counts = (
+        plot_df
+        .groupby("Dataset")
+        .size()
+        .reindex(datasets, fill_value=0)
+    )
+
+    print("\nUnique rejected lipid IDs by dataset:")
+    print(rejected_counts.to_string())
+
+    fig, ax = plt.subplots(figsize=(7, 5))
+
+    ax.bar(
+        rejected_counts.index,
+        rejected_counts.values,
+        edgecolor="black",
+        color=bar_color
+    )
+
+    ax.set_xlabel("Dataset")
+    ax.set_ylabel("Unique Rejected Lipid IDs")
+    ax.set_title(
+        "Lipid IDs Rejected by Fragment Validation"
+    )
+
+    for index, value in enumerate(
+        rejected_counts.values
+    ):
+        ax.text(
+            index,
+            value,
+            str(int(value)),
+            ha="center",
+            va="bottom"
+        )
+
+    ax.tick_params(
+        axis="x",
+        rotation=45
+    )
+
+    fig.tight_layout()
+
+    png_file = f"{output_basename}.png"
+    pdf_file = f"{output_basename}.pdf"
+
+    fig.savefig(
+        png_file,
+        dpi=300,
+        bbox_inches="tight"
+    )
+
+    fig.savefig(
+        pdf_file,
+        bbox_inches="tight"
+    )
+
+    print("\nRejected-ID plot saved as:")
+    print(os.path.abspath(png_file))
+    print(os.path.abspath(pdf_file))
+
+    return rejected_counts
+
