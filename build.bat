@@ -6,7 +6,7 @@ rem Run Tests on test_GUI and test_MUD and and ImporterTest
 
 rem build pyinstaller upload
 
-rem build docker and commit (see docker_commands.txt)
+rem Docker image is built, tested, and published by .github/workflows/publish-to-docker-hub.yml
 
 rem build wheel
     rem python -m build -o .\distpypi

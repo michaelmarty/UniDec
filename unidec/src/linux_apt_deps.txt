@@ -1,0 +1,20 @@
+# to install, use sudo apt install ./linux_apt_dependencies.txt
+# To Run GUI
+python-pip
+python-setuptools
+python-dev
+python-scipy
+python-matplotlib
+python-wxgtk3.0
+python-h5py
+python-tk
+
+# To build C code from source
+cmake
+libfftw3-dev
+hdf5-tools
+libhdf5-dev
+
+# To build with pyinstaller
+libgdk-pixbuf2.0-dev
+python-requests-oauthlib

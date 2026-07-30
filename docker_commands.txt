@@ -6,6 +6,4 @@ python -m unidec $TESTFILE
 
 python -m unidec.IsoDec $TESTFILE2 -precentroided
 
-docker cp ea683e109303:/opt/UniDec/unidec/bin/unideclinux .
-
 docker push michaeltmarty/unidec
