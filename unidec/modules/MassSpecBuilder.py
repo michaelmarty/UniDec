@@ -5,7 +5,8 @@ from unidec.modules import isotopetools as iso
 __author__ = 'Michael.Marty'
 
 
-def make_mass_spectrum(array, zrange=(10, 50), mzrange=(2000, 10000), mz_bin_size=1, adductmass=1.00727647, psfun=0,
+def make_mass_spectrum(array, zrange=(10, 50), mzrange=(2000, 10000), mz_bin_size=1,
+                       adductmass=1.00727647, psfun=0,
                        noise=0, baseline=0, **kwargs):
     """
     Create a new mass spectrum.

@@ -37,11 +37,11 @@ Cer,C20:1 Ceramide-d7 (d18:1-d7/20:1),IS Cer 18:1;2(+[2]H7)/20:1,25,599.6,597.6,
 Cer,C18:1 Ceramide-d7 (d18:1-d7/18:1),IS Cer 18:1;2(+[2]H7)/18:1,50,571.57,569.57,9,860747,[H][C@](/C=C/CCCCCCCCCCC(C([2H])(C([2H])([2H])[2H])[2H])([2H])[2H])(O)[C@@]([H])(NC(CCCCCCC/C=C\CCCCCCCC)=O)CO
 Cer,C16:1 Ceramide-d7 (d18:1-d7/16:1),IS Cer 18:1;2(+[2]H7)/16:1,75,543.54,541.54,8,860748,[H][C@](/C=C/CCCCCCCCCCC(C([2H])(C([2H])([2H])[2H])[2H])([2H])[2H])(O)[C@@]([H])(NC(CCCCCCC/C=C\CCCCCC)=O)CO
 CL,18:2-18:2-18:2-18:2 CL-d5,IS CL(+[2]H5) 18:2_18:2_18:2_18:2,15,1454.9,1452.9963,10.6,791108,O=P([O-])(OC[C@@]([H])(OC(CCCCCCC/C=C\C/C=C\CCCCC)=O)COC(CCCCCCC/C=C\C/C=C\CCCCC)=O)OC([2H])([2H])C([2H])(O)C([2H])([2H])OP([O-])(OC[C@]([H])(OC(CCCCCCC/C=C\C/C=C\CCCCC)=O)COC(CCCCCCC/C=C\C/C=C\CCCCC)=O)=O.[NH4+].[NH4+]
-DG,17:0-22:4 DG-d5,IS DAG(+[2]H5) 17:0-22:4,25,664.59,662.59,10.9,800823,[2H][C@](OC(CCCCC/C=C\C/C=C\C/C=C\C/C=C\CCCCC)=O)(C(O)([2H])[2H])C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H]
-DG,17:0-18:1 DG-d5,IS DAG(+[2]H5) 17:0-18:1,75,614.57,612.57,11,800824,OC([C@]([2H])(OC(CCCCCCC/C=C\CCCCCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H]
-DG,17:0-20:3 DG-d5,IS DAG(+[2]H5) 17:0-20:3,50,638.57,636.57,10.7,800825,OC([C@]([2H])(OC(CCCCCC/C=C\C/C=C\C/C=C\CCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H]
-DG,17:0-16:1 DG-d5,IS DAG(+[2]H5) 16:1-17:0,50,586.54,584.54,10.2,800826,OC([C@]([2H])(OC(CCCCCCC/C=C\CCCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H]
-DG,17:0-14:1 DG-d5,IS DAG(+[2]H5) 14:1-17:0,25,558.51,556.51,9,800827,OC([C@]([2H])(OC(CCCCCCC/C=C\CCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H]
+DG,17:0-22:4 DG-d5,IS DG(+[2]H5) 17:0_22:4,25,664.59,662.59,10.9,800823,[2H][C@](OC(CCCCC/C=C\C/C=C\C/C=C\C/C=C\CCCCC)=O)(C(O)([2H])[2H])C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H]
+DG,17:0-18:1 DG-d5,IS DG(+[2]H5) 17:0_18:1,75,614.57,612.57,11,800824,OC([C@]([2H])(OC(CCCCCCC/C=C\CCCCCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H]
+DG,17:0-20:3 DG-d5,IS DG(+[2]H5) 17:0_20:3,50,638.57,636.57,10.7,800825,OC([C@]([2H])(OC(CCCCCC/C=C\C/C=C\C/C=C\CCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H]
+DG,17:0-16:1 DG-d5,IS DG(+[2]H5) 16:1_17:0,50,586.54,584.54,10.2,800826,OC([C@]([2H])(OC(CCCCCCC/C=C\CCCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H]
+DG,17:0-14:1 DG-d5,IS DG(+[2]H5) 14:1_17:0,25,558.51,556.51,9,800827,OC([C@]([2H])(OC(CCCCCCC/C=C\CCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H]
 LPA,17:0 Lyso PA-d5, IS LPA 18:1(+[2]H9), 446.3, 444.3, 1.75, 793074, [2H]C([2H])([2H])C([2H])([2H])C([2H])([2H])CCCC/C=C\CCCCCCC(=O)OC[C@H](O)COP([O-])([O-])=O.[Na+]
 LPC,17:0 Lyso PC-d5,IS LPC 17:0(+[2]H5),50,492.38,490.38,3,855679,[O-]P(OCC[N+](C)(C)C)(OC([C@]([2H])(O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
 LPC,19:0 Lyso PC-d5,IS LPC 19:0(+[2]H5),25,520.41,518.41,4,855778,[O-]P(OCC[N+](C)(C)C)(OC([C@]([2H])(O)C(OC(CCCCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
@@ -59,11 +59,11 @@ LPS,15:0 Lyso PS-d5,IS LPS(+[2]H5) 15:0,25,489.3,487.3,1.9,858146,[O-]P(OC[C@](C
 LPS,19:0 Lyso PS-d5,IS LPS(+[2]H5) 19:0,25,545.4,543.4,3,858147,[O-]P(OC[C@](C([O-])=O)([H])[NH3+])(OC([C@]([2H])(O)C(OC(CCCCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
 LPS,17:0 Lyso PS-d5,IS LPS(+[2]H5) 17:0,50,517.3,515.3,2.3,858148,[O-]P(OC[C@](C([O-])=O)([H])[NH3+])(OC([C@]([2H])(O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
 PA,15:0-18:1 PA-d7,IS PA 15:0_18:1(+[2]H7), 668.5, 666.5, 5.6, 791642, CCCCCCCCCCCCCCC(=O)OC[C@H](COP([O-])([O-])=O)OC(=O)CCCCCCC/C=C\CCCCCC([2H])([2H])C([2H])([2H])C([2H])([2H])[2H]
-PC,17:0-22:4 PC-d5,IS PC(+[2]H5) 17:0-22:4,50,829.64,827.64,9.1,855678,[2H][C@](OC(CCCCC/C=C\C/C=C\C/C=C\C/C=C\CCCCC)=O)(C(OP(OCC[N+](C)(C)C)([O-])=O)([2H])[2H])C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H]
-PC,17:0-20:3 PC-d5,IS PC(+[2]H5) 17:0-20:3,100,803.62,801.62,8.9,855680,[O-]P(OCC[N+](C)(C)C)(OC([C@]([2H])(OC(CCCCCC/C=C\C/C=C\C/C=C\CCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
-PC,17:0-18:1 PC-d5,IS PC(+[2]H5) 17:0-18:1,150,779.62,777.62,9.2,855681,[O-]P(OCC[N+](C)(C)C)(OC([C@]([2H])(OC(CCCCCCC/C=C\CCCCCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
-PC,17:0-16:1 PC-d5,IS PC(+[2]H5) 16:1-17:0,100,751.59,749.59,8.5,855682,[O-]P(OCC[N+](C)(C)C)(OC([C@]([2H])(OC(CCCCCCC/C=C\CCCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
-PC,17:0-14:1 PC-d5,IS PC(+[2]H5) 14:1-17:0,50,723.56,721.56,7.5,855683,[O-]P(OCC[N+](C)(C)C)(OC([C@]([2H])(OC(CCCCCCC/C=C\CCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
+PC,17:0-22:4 PC-d5,IS PC(+[2]H5) 17:0_22:4,50,829.64,827.64,9.1,855678,[2H][C@](OC(CCCCC/C=C\C/C=C\C/C=C\C/C=C\CCCCC)=O)(C(OP(OCC[N+](C)(C)C)([O-])=O)([2H])[2H])C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H]
+PC,17:0-20:3 PC-d5,IS PC(+[2]H5) 17:0_20:3,100,803.62,801.62,8.9,855680,[O-]P(OCC[N+](C)(C)C)(OC([C@]([2H])(OC(CCCCCC/C=C\C/C=C\C/C=C\CCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
+PC,17:0-18:1 PC-d5,IS PC(+[2]H5) 17:0_18:1,150,779.62,777.62,9.2,855681,[O-]P(OCC[N+](C)(C)C)(OC([C@]([2H])(OC(CCCCCCC/C=C\CCCCCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
+PC,17:0-16:1 PC-d5,IS PC(+[2]H5) 16:1_17:0,100,751.59,749.59,8.5,855682,[O-]P(OCC[N+](C)(C)C)(OC([C@]([2H])(OC(CCCCCCC/C=C\CCCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
+PC,17:0-14:1 PC-d5,IS PC(+[2]H5) 14:1_17:0,50,723.56,721.56,7.5,855683,[O-]P(OCC[N+](C)(C)C)(OC([C@]([2H])(OC(CCCCCCC/C=C\CCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
 PE,17:0-22:4 PE-d5,IS PE(+[2]H5) 17:0-22:4,25,787.59,785.59,9.3,856717,[2H][C@](OC(CCCCC/C=C\C/C=C\C/C=C\C/C=C\CCCCC)=O)(C(OP(OCC[NH3+])([O-])=O)([2H])[2H])C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H]
 PE,17:0-20:3 PE-d5,IS PE(+[2]H5) 17:0-20:3,50,761.58,759.58,9.1,856718,[O-]P(OCC[NH3+])(OC([C@]([2H])(OC(CCCCCC/C=C\C/C=C\C/C=C\CCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
 PE,17:0-18:1 PE-d5,IS PE(+[2]H5) 17:0-18:1,75,737.58,735.58,9.6,856719,[O-]P(OCC[NH3+])(OC([C@]([2H])(OC(CCCCCCC/C=C\CCCCCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
@@ -90,15 +90,15 @@ SM,20:1 SM (d18:1/20:1)-d9,IS SM(+[2]H9) 18:1;2/20:1,25,766.67,764.67,8.9,860742
 SM,22:1 SM (d18:1/22:1)-d9,IS SM(+[2]H9) 18:1;2/22:1,50,794.7,792.7,9.8,860743,[H][C@](/C=C/CCCCCCCCCCCCC)(O)[C@@]([H])(NC(CCCCCCCCCCC/C=C\CCCCCCCC)=O)COP([O-])(OCC[N+](C([2H])([2H])[2H])(C([2H])([2H])[2H])C([2H])([2H])[2H])=O
 SM,24:1 SM (d18:1/24:1)-d9,IS SM(+[2]H9) 18:1;2/24:1,75,822.73,820.73,10,860744,[H][C@](/C=C/CCCCCCCCCCCCC)(O)[C@@]([H])(NC(CCCCCCCCCCCCC/C=C\CCCCCCCC)=O)COP([O-])(OCC[N+](C([2H])([2H])[2H])(C([2H])([2H])[2H])C([2H])([2H])[2H])=O
 ST,d7-cholesterol,IS ST 27:1;1(+[2]H7),10,376.5,374.5,7,700041,[H][C@@]12[C@]([C@](CC[C@H](O)C3)(C)C3=CC2)([H])CC[C@@]4(C)[C@@]1([H])CC[C@]4([H])[C@]([H])(C)CCCC([2H])(C([2H])([2H])[2H])C([2H])([2H])[2H]
-TG,14:0-13:0-14:0 TG-d5,IS TAG(+[2]H5) 13:0-14:0-14:0,25,714.66,712.66,15.6,860906,CCCCCCCCCCCCCC(OC([2H])([2H])C([2H])(OC(CCCCCCCCCCCC)=O)C([2H])([2H])OC(CCCCCCCCCCCCC)=O)=O
-TG,14:0-15:1-14:0 TG-d5,IS TAG(+[2]H5) 14:0-14:0-15:1,50,740.67,738.67,15.6,860907,CCCCCCCCCCCCCC(OC([2H])([2H])C([2H])(OC(CCCCCCCC/C=C\CCCC)=O)C([2H])([2H])OC(CCCCCCCCCCCCC)=O)=O
-TG,14:0-17:1-14:0 TG-d5,IS TAG(+[2]H5) 14:0-14:0-17:1,75,768.71,766.71,15.9,860908,CCCCCCCCCCCCCC(OC([2H])([2H])C([2H])(OC(CCCCCCCC/C=C\CCCCCC)=O)C([2H])([2H])OC(CCCCCCCCCCCCC)=O)=O
-TG,16:0-17:1-16:0 TG-d5,IS TAG(+[2]H5) 16:0-16:0-17:1,125,824.77,822.77,16.5,860909,[2H]C(C([2H])([2H])OC(CCCCCCCCCCCCCCC)=O)(OC(CCCCCCCC/C=C\CCCCCC)=O)C([2H])([2H])OC(CCCCCCCCCCCCCCC)=O
-TG,16:0-15:1-16:0 TG-d5,IS TAG(+[2]H5) 15:1-16:0-16:0,100,796.74,794.74,16.3,860910,[2H]C(C([2H])([2H])OC(CCCCCCCCCCCCCCC)=O)(OC(CCCCCCCC/C=C\CCCC)=O)C([2H])([2H])OC(CCCCCCCCCCCCCCC)=O
-TG,16:0-19:2-16:0 TG-d5,IS TAG(+[2]H5) 16:0-16:0-19:2,100,850.78,848.78,16.6,860911,[2H]C(C([2H])([2H])OC(CCCCCCCCCCCCCCC)=O)(OC(CCCCCCCC/C=C\C/C=C\CCCCC)=O)C([2H])([2H])OC(CCCCCCCCCCCCCCC)=O
-TG,18:1-19:2-18:1 TG-d5,IS TAG(+[2]H5) 18:1-18:1-19:2,50,902.81,900.81,16.6,860912,[2H]C(C([2H])([2H])OC(CCCCCCC/C=C\CCCCCCCC)=O)(OC(CCCCCCCC/C=C\C/C=C\CCCCC)=O)C([2H])([2H])OC(CCCCCCC/C=C\CCCCCCCC)=O
-TG,18:1-21:2-18:1 TG-d5,IS TAG(+[2]H5) 18:1-18:1-21:2,25,930.85,928.85,16.8,860913,[2H]C(C([2H])([2H])OC(CCCCCCC/C=C\CCCCCCCC)=O)(OC(CCCCCCCCCC/C=C\C/C=C\CCCCC)=O)C([2H])([2H])OC(CCCCCCC/C=C\CCCCCCCC)=O
-TG,18:1-17:1-18:1 TG-d5,IS TAG(+[2]H5) 17:1-18:1-18:1,75,876.8,874.8,16.5,860914,[2H]C(C([2H])([2H])OC(CCCCCCC/C=C\CCCCCCCC)=O)(OC(CCCCCCCC/C=C\CCCCCC)=O)C([2H])([2H])OC(CCCCCCC/C=C\CCCCCCCC)=O
+TG,14:0-13:0-14:0 TG-d5,IS TG(+[2]H5) 13:0-14:0-14:0,25,714.66,712.66,15.6,860906,CCCCCCCCCCCCCC(OC([2H])([2H])C([2H])(OC(CCCCCCCCCCCC)=O)C([2H])([2H])OC(CCCCCCCCCCCCC)=O)=O
+TG,14:0-15:1-14:0 TG-d5,IS TG(+[2]H5) 14:0-14:0-15:1,50,740.67,738.67,15.6,860907,CCCCCCCCCCCCCC(OC([2H])([2H])C([2H])(OC(CCCCCCCC/C=C\CCCC)=O)C([2H])([2H])OC(CCCCCCCCCCCCC)=O)=O
+TG,14:0-17:1-14:0 TG-d5,IS TG(+[2]H5) 14:0-14:0-17:1,75,768.71,766.71,15.9,860908,CCCCCCCCCCCCCC(OC([2H])([2H])C([2H])(OC(CCCCCCCC/C=C\CCCCCC)=O)C([2H])([2H])OC(CCCCCCCCCCCCC)=O)=O
+TG,16:0-17:1-16:0 TG-d5,IS TG(+[2]H5) 16:0-16:0-17:1,125,824.77,822.77,16.5,860909,[2H]C(C([2H])([2H])OC(CCCCCCCCCCCCCCC)=O)(OC(CCCCCCCC/C=C\CCCCCC)=O)C([2H])([2H])OC(CCCCCCCCCCCCCCC)=O
+TG,16:0-15:1-16:0 TG-d5,IS TG(+[2]H5) 15:1-16:0-16:0,100,796.74,794.74,16.3,860910,[2H]C(C([2H])([2H])OC(CCCCCCCCCCCCCCC)=O)(OC(CCCCCCCC/C=C\CCCC)=O)C([2H])([2H])OC(CCCCCCCCCCCCCCC)=O
+TG,16:0-19:2-16:0 TG-d5,IS TG(+[2]H5) 16:0-16:0-19:2,100,850.78,848.78,16.6,860911,[2H]C(C([2H])([2H])OC(CCCCCCCCCCCCCCC)=O)(OC(CCCCCCCC/C=C\C/C=C\CCCCC)=O)C([2H])([2H])OC(CCCCCCCCCCCCCCC)=O
+TG,18:1-19:2-18:1 TG-d5,IS TG(+[2]H5) 18:1-18:1-19:2,50,902.81,900.81,16.6,860912,[2H]C(C([2H])([2H])OC(CCCCCCC/C=C\CCCCCCCC)=O)(OC(CCCCCCCC/C=C\C/C=C\CCCCC)=O)C([2H])([2H])OC(CCCCCCC/C=C\CCCCCCCC)=O
+TG,18:1-21:2-18:1 TG-d5,IS TG(+[2]H5) 18:1-18:1-21:2,25,930.85,928.85,16.8,860913,[2H]C(C([2H])([2H])OC(CCCCCCC/C=C\CCCCCCCC)=O)(OC(CCCCCCCCCC/C=C\C/C=C\CCCCC)=O)C([2H])([2H])OC(CCCCCCC/C=C\CCCCCCCC)=O
+TG,18:1-17:1-18:1 TG-d5,IS TG(+[2]H5) 17:1-18:1-18:1,75,876.8,874.8,16.5,860914,[2H]C(C([2H])([2H])OC(CCCCCCC/C=C\CCCCCCCC)=O)(OC(CCCCCCCC/C=C\CCCCCC)=O)C([2H])([2H])OC(CCCCCCC/C=C\CCCCCCCC)=O
 """
 
 # Load the inline CSV into a DataFrame for quick use
@@ -112,7 +112,9 @@ default_isdf["Lipid"] = default_isdf["Lipid"].str.replace("-", "_")
 # Replace TAG with TG and DAG with DG in "Lipid" column
 default_isdf["Lipid"] = default_isdf["Lipid"].str.replace("TAG", "TG")
 default_isdf["Lipid"] = default_isdf["Lipid"].str.replace("DAG", "DG")
-# print(default_isdf.to_string())
+default_isdf["Lipid"] = default_isdf["Lipid"].str.replace("SHexCer", "HexCer")
+default_isdf["Lipid"] = default_isdf["Lipid"].str.replace("Hex2Cer", "HexCer")
+print(default_isdf.to_string())
 
 # Drop last two columns
 # default_isdf = default_isdf.iloc[:, :-2]
@@ -121,7 +123,7 @@ default_isdf["Mass"] = (default_isdf["m/z (+)"] + default_isdf["m/z (-)"]) / 2.
 # Calculate conc in uM from ug/mL using mass
 default_isdf["Concentration (uM)"] = default_isdf["Concentration (ug/mL)"] / default_isdf["Mass"]
 
-default_is_mapper = {"GM3": "PI", "PEtOH": "PG"}
+default_is_mapper = {"GM3": "PI", "PEtOH": "PG", "SHexCer": "Cer", "EtherPC": "PC", "HexCer": "Cer", "Hex2Cer": "Cer"}
 # print(default_isdf.to_string())
 # exit()
 
@@ -177,6 +179,8 @@ def clean_classes(df):
     df["Molecule List Name"] = df["Molecule List Name"].str.replace("SE", "CE")
     # Switch name ST 27:1;1 to ST
     df["Molecule List Name"] = df["Molecule List Name"].str.replace("ST 27:1;1", "ST")
+    df["Molecule List Name"] = df["Molecule List Name"].str.replace("SHexCer", "HexCer")
+    df["Molecule List Name"] = df["Molecule List Name"].str.replace("Hex2Cer", "HexCer")
     return df
 
 def clean_names(names, split_side=1):
@@ -249,7 +253,7 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
                                   "[M5H2+H]":"[M+H]", "[M5H2-H]":"[M-H]",
                                   "[M5H2+CH3COO]": "[M+CH3COO]", "[M5H2-CH3COO]": "[M-CH3COO]",
                                   "[M9H2+H]": "[M+H]", "[M9H2-H]": "[M-H]",
-                                  "[M7H2+H-H2O]": "[M+H-H2O]",
+                                  "[M7H2+H-H2O]": "[M+H-H2O]", "[M5H2+NH4]": "[M+NH4]",
                                   "[M9H2+CH3COO]": "[M+CH3COO]", "[M9H2-CH3COO]": "[M-CH3COO]"}})
 
     rtcol = "RT" if "RT" in df.columns else "Retention Time"
@@ -287,12 +291,17 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
                 elif mode == "All":
                     pass
 
+                # if m == "IS LPE(+[2]H5) 17:0":
+                #     print(f"DEBUG: Subset for {m} {a} {r}:")
+                #     print(subset)
+
                 total_area = subset["Area"].sum()
                 newrow[r] = total_area
             if normalize_IS:
                 # If any IS values have a zero in any replicate, skip this IS compound
                 if any(newrow[r] == 0 for r in replicates) and m.startswith("IS"):
                     print(f"WARNING: Removing IS compound {m} with adduct {a} because it is 0")
+                    # print(newrow)
                     continue
             newrows.append(newrow)
 
@@ -1233,13 +1242,13 @@ def lipid_bar_chart_compare(df, classes=["PC"], ax=None, fontsize=8, s1name="Set
 
 
 if __name__ == "__main__":
-    file = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\May 2026\Moleule Transition Results.csv"
+    file = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\BB vs DC\Molecule Transition Results3.csv"
     # file2 = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\Molecule Transition Results Chol.csv"
     # file = r"C:\Users\marty\Downloads\Extr_US_MoleculeTransResults.csv"
 
-    set1 = ["FT 1", "FT 2", "FT 3"]
-    set2 = ["E 1", "E 2", "E 3"]
-    set3 = ["Memb Extr 1", "Memb Extr 2", "Memb Extr 3"]
+    set1 = ["FT DC 1", "FT DC 2", "FT DC 3"]
+    set2 = ["E DC 1", "E DC 2", "E DC 3"]
+    set1 = ["Memb Extr 1", "Memb Extr 2", "Memb Extr 3"]
 
     # set1 = ["Memb Extr 1", "Memb Extr 2", "Memb Extr 3"]
     # is_analysis(file)
@@ -1250,17 +1259,17 @@ if __name__ == "__main__":
     #
     # exit()
 
-    normdf, classdf = compare_pipeline([file], set1, set2, mode="Products", drop_IS=True, normalize_IS=False,
-                                       norm_tmm=True,
-                  normalize_TIC=False, paired=False, bh_correction=True, plot_results=True, write_output=True,
+    normdf, classdf = compare_pipeline([file], set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
+                                       norm_tmm=False,
+                  normalize_TIC=True, paired=True, bh_correction=True, plot_results=True, write_output=True,
                      fold_range=np.log2(2), otherthresh=0.03, set1_name="FT", set2_name="E", drop_lipids=[],
-                                       drop_class=["TG"])
+                                       drop_class=[])
 
     exit()
     # Figure with pie 1 volcano pie 2 in a row
     plt.figure(figsize=(18, 6))
     ax1 = plt.subplot(1, 3, 1)
-    pie_chart(classdf, "Set1_Mean", ax=ax1, title="FT", otherthresh=0.015)
+    pie_chart(classdf, "Set1_Mean", ax=ax1, title="FT Control Discs", otherthresh=0.015)
     ax2 = plt.subplot(1, 3, 2)
     make_volcano_plot(normdf, title="Volcano Plot", ax=ax2, fold_range=np.log2(1.75), xlims=[-6, 6])
     ax3 = plt.subplot(1, 3, 3)

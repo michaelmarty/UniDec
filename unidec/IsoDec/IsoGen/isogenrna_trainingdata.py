@@ -184,7 +184,7 @@ def gen_random_seqs_even_length(n=100, min_length=1, max_length=200):
             good_seqs.append(str(r[2]))
             masses.append(r[3])
 
-
+    print(len(good_seqs))
     np.savez_compressed("assessment_random_RNAs_"+str(n)+ "_min_" + str(min_length) + "_max_" +
                         str(max_length) + ".npz",
                         dists=dists, vecs=vectors, seqs=good_seqs,masses=masses)
@@ -192,12 +192,12 @@ def gen_random_seqs_even_length(n=100, min_length=1, max_length=200):
 
 
 if __name__ == "__main__":
-    os.chdir(r"C:\Users\Admin\Documents\martylab\RNA_SeqData\Assessment")
+    os.chdir(r"C:\Data\IsoNN\RNA_SeqData")
 
     if True:
-        n = 5000
-        min_length = 10
-        max_length = 500
+        n = 100
+        min_length = 21
+        max_length = 220
         gen_random_seqs_even_length(n=n, min_length=min_length, max_length=max_length)
 
     if False:

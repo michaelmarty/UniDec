@@ -1,0 +1,66 @@
+# pyproject.toml
+
+[build-system]
+requires      = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "UniDec"
+version = "8.2.1"
+description = "Universal Deconvolution of Mass and Ion Mobility Spectra"
+readme = "README.md"
+authors = [{ name = "Michael Marty", email = "mtmarty@utexas.edu" }]
+license = { file = "LICENSE" }
+classifiers = [
+    #"License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+keywords = ["Mass Spectrometry", "Ion Mobility", "Deconvolution"]
+dependencies = ["numpy>=2.0.0", "scipy>=1.2", "matplotlib>=3.7", 'pandas',
+                      "pymzml", "natsort", "networkx", "h5py", "pypubsub", "numba",
+                      "pyimzml", "pythonnet", "pyteomics", "lxml", "lxml_html_clean", "pywin32"]
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+# install with <installer> install '.[opt-dependency group]'
+dev = ["massql", "pytest", "pyinstaller", "molmass", "mpld3",
+    "wxpython>=4.0"]
+img = ['pyimzml']
+exp = ['massql']
+
+[project.urls]
+Homepage = "https://github.com/michaelmarty/UniDec"
+Repository = "https://github.com/michaelmarty/UniDec"
+Issues = "https://github.com/michaelmarty/UniDec/issues"
+
+[project.scripts]
+unidec = "unidec.__main__:main"
+gunidec = "unidec.Launcher:run_launcher"
+isodec = "unidec.IsoDec.__main__:main"
+
+[tool.setuptools]
+include-package-data = true
+
+#[tool.setuptools.packages.find]
+#where = ["unidec"]
+#
+#[tool.setuptools.package_data]
+
+[tool.setuptools.package-dir]
+# define the subdirectory (from the parent directory containing this pyproject
+# file) to define as the root directory of the package.
+unidec = "unidec"
+
+[project.gui-scripts]
+# define a command to open the unidec GUI
+gunidec = "unidec.Launcher:run_launcher"
+
+[tool.uv.sources]
+unidec = { workspace = true }
+
+[tool.uv.workspace]
+members = [
+    ".",
+    ".",
+]

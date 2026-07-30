@@ -55,7 +55,8 @@ def basic_class_network_analysis(df, tol=0.3):
 
 
 def outlier_analysis(posdf, negdf, tol=0.05, rttol=0.1, contribs=False, add_all_cols_heads=False,
-                     add_all_cols_tails=False, drop_cols=True, do_tails=True, do_heads=True):
+                     add_all_cols_tails=False, drop_cols=True, do_tails=True, do_heads=True,
+                     auto_tolcol=False):
     if drop_cols:
         # Drop unnecessary columns if present
         for col in drop_columns:
@@ -66,8 +67,8 @@ def outlier_analysis(posdf, negdf, tol=0.05, rttol=0.1, contribs=False, add_all_
 
     print("Headgroup and Tail Fragment Checks...")
     # Perform Tail and Headgroup Fragment Checks
-    posdf = assign_df_fragments(posdf, tol=tol)
-    negdf = assign_df_fragments(negdf, tol=tol)
+    posdf = assign_df_fragments(posdf, tol=tol, auto_tolcol=auto_tolcol)
+    negdf = assign_df_fragments(negdf, tol=tol, auto_tolcol=auto_tolcol)
 
     if do_heads:
         print("MSMS Networking Analysis...")
