@@ -1,8 +1,6 @@
 import pybliometrics.scopus as sc
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import time
 import os
 
 # http://api.elsevier.com/content/abstract/doi/10.1016/S0014-5793(01)03313-0?apiKey=07070f5eff2d979e7792ebcc2096daf6
@@ -39,8 +37,6 @@ def get_coauthors(id, startyear=2020, endyear=None):
         except Exception as e:
             print("ERROR:", e, row)
             continue
-        #print(authornames)
-        #print(authoraffs)
 
         affnames = [get_affil_name(affid) for affid in authoraffs]
         #print(affnames)
@@ -50,10 +46,6 @@ def get_coauthors(id, startyear=2020, endyear=None):
 
         for a in affnames:
             affilist.append(a)
-
-        #print(row['authors'])
-        #print(row)
-
 
 
     uniquenames, uniqueindexes = np.unique(coauthorlist, return_index=True)
@@ -85,6 +77,6 @@ if __name__ == '__main__':
     #id = "9-s2.0-13008328400"
     coauthors = get_coauthors(id, startyear=2021, endyear=2026)
     print(coauthors)
-    path = "C:\\Users\\marty\\OneDrive - University of Texas at Austin\\Career\\"
+    path = r"C:\Users\mm96978\OneDrive - The University of Texas at Austin\Career"
     os.chdir(path)
     coauthors.to_excel("MMcoauthors2021-2026.xlsx", index=False)
