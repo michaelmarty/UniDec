@@ -4,8 +4,7 @@
 """
 from ctypes import *
 
-from unidec.modules.waters_importer.MassLynxRawReader import MassLynxCodeHandler, MassLynxBaseType
-from unidec.modules.waters_importer.MassLynxRawReader import MassLynxRawReader
+from unidec.UniDecImporter.Waters.MassLynxRawReader import MassLynxBaseType, MassLynxCodeHandler, MassLynxRawReader
 
 
 class MasslynxLockMassProcessor(object):

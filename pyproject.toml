@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 name = "UniDec"
 version = "8.2.1"
 description = "Universal Deconvolution of Mass and Ion Mobility Spectra"
-readme = "README.md"
+readme = "readme.md"
 authors = [{ name = "Michael Marty", email = "mtmarty@utexas.edu" }]
 license = { file = "LICENSE" }
 classifiers = [

@@ -1,7 +1,4 @@
-"""
-     Waters
-    MassLynx Python SDK
-"""
+"""Waters MassLynx Python SDK information reader."""
 
 import ctypes
 from ctypes import*

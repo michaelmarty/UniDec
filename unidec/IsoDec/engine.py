@@ -331,8 +331,7 @@ class IsoDecEngine:
         """
         Load training data from a file
         :param training_path: Path to the training data file or name of the file tag
-        :param test_path: Optional path to the test data file or name of the file tag.
-                            If not, will default to same as training_path
+        :param test_path: Optional test-data path or tag; defaults to a name derived from ``training_path``.
         :param noise_percent: The percent of noise to add to the training and test data
         :param double_percent: The percent of double peaks to add to the training and test data
         :param harmonic_percent: The percent of harmonic peaks to add to the training and test data
