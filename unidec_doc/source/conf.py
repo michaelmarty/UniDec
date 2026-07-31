@@ -48,6 +48,9 @@ autodoc_mock_imports = [
     'sqlalchemy',
     'torch',
     'torchvision',
+    'unidec.IsoDec.IsoGen.isogenc',
+    'unidec.IsoDec.isogenwrapper',
+    'unidec.modules.unidecwrapper',
     'wx',
 ]
 
