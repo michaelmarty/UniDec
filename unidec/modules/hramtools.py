@@ -111,7 +111,7 @@ class HRAMSearchSpace:
             self.result.match_formulas = np.array(["" for m in self.result.match_comp])
             for i, isoname in enumerate(self.isotopes):
                 self.result.iso_keys.append(isoname)
-                simpname = re.sub('\d', '', isoname)
+                simpname = re.sub(r'\d', '', isoname)
                 self.result.elem_keys.append(simpname)
                 fpart = np.char.add(" " + isoname + ":", self.result.match_comp[:, i].astype(str))
                 self.result.match_formulas = np.char.add(self.result.match_formulas, fpart)

@@ -22,14 +22,15 @@ class ZoomSpan(ZoomCommon):
 
     Select a min/max range of the x or y axes for a matplotlib Axes
 
-    Example usage:
+    Example usage::
 
-      axes = subplot(111)
-      axes.plot(x,y)
+        axes = subplot(111)
+        axes.plot(x, y)
 
-      def onselect(vmin, vmax):
-          print vmin, vmax
-      span = ZoomSpan(axes, onselect, 'horizontal')
+        def onselect(vmin, vmax):
+            print(vmin, vmax)
+
+        span = ZoomSpan(axes, onselect, 'horizontal')
 
       onmove_callback is an optional callback that will be called on mouse move
       with the span range

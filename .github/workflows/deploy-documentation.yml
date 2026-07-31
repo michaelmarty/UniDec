@@ -8,8 +8,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
@@ -36,6 +34,7 @@ jobs:
           python -m pip install --upgrade \
             sphinx \
             myst-parser \
+            furo \
             numpy \
             scipy \
             matplotlib \
@@ -52,13 +51,10 @@ jobs:
             lxml_html_clean
 
       - name: Generate API documentation
-        run: sphinx-apidoc --force --module-first --output-dir unidec_doc/source unidec
+        run: python unidec_doc/generate_api_docs.py
 
       - name: Build HTML documentation
-        run: sphinx-build --builder html unidec_doc/source unidec_doc/build/html
-
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v6
+        run: sphinx-build --builder html --fail-on-warning unidec_doc/source unidec_doc/build/html
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v5
@@ -69,11 +65,17 @@ jobs:
     name: Deploy documentation
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5

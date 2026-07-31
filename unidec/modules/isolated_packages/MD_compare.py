@@ -65,7 +65,7 @@ class MassDefectCompareWindow(wx.Frame):
 
 
 
-        '''
+        disabled_menu_code = '''
         # Make the menu
         filemenu = wx.Menu()
         if self.datalist.shape[0] > 1:

@@ -109,8 +109,7 @@ def simple_params(masslist, intlist=None, resolution=1000, zwidth=2, rlist=None,
     :param intlist: list of intensities (default is None which gives all as 1)
     :param resolution: Mass resolution (delta m/m), Overridden if rlist is not None
     :param zwidth: Standard deviation of charge state distribution
-    :param rlist: List of resolution values for each corresponding mass.
-    If None, will use a single resolution for all defined by resolution.
+    :param rlist: List of resolution values for each corresponding mass. If ``None``, use ``resolution`` for all.
     :param kwargs: Extra keywords
     :return: P x 5 array of parameters [mass, mass fwhm, z avg, z std dev, intensity]
     """

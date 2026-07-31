@@ -5,6 +5,7 @@
 
 import sys
 import tomllib
+from datetime import date
 from pathlib import Path
 
 # Make the repository importable on Windows and in the Linux Pages runner.
@@ -18,21 +19,16 @@ with (repository_root / 'pyproject.toml').open('rb') as pyproject_file:
     project_metadata = tomllib.load(pyproject_file)['project']
 
 project = project_metadata['name']
-copyright = '2026, University of Arizona'
+copyright = f'{date.today().year}, University of Arizona'
 author = 'Michael Marty'
 release = project_metadata['version']
 version = release
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
-# cd to unidec_doc
-# sphinx-apidoc -f -o source ..\unidec
-# .\make.bat html
+# Run unidec_doc/generate.bat on Windows to regenerate the API pages and build HTML.
 
-#for x in os.walk('..\\..\\unidec'):
-  #sys.path.insert(0, x[0])
-
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinx.ext.coverage', 'myst_parser']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'myst_parser']
 
 # Avoid importing optional GUI, training, vendor, and platform-specific
 # dependencies on the documentation runner.
@@ -55,9 +51,6 @@ autodoc_mock_imports = [
     'wx',
 ]
 
-templates_path = ['_templates']
-# exclude_patterns = ["**/thermo_reader", "**/waters_importer"]
-
 source_suffix = {
     '.rst': 'restructuredtext',
     '.txt': 'markdown',
@@ -67,4 +60,4 @@ source_suffix = {
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'classic'
+html_theme = 'furo'

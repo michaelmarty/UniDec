@@ -45,7 +45,7 @@ def create_formulas():
 
 if __name__ == "__main__":
     # Search pubchem and get all atomic formulas
-    os.chdir("Z:\Group Share\JGP\PubChem")
+    os.chdir(r"Z:\Group Share\JGP\PubChem")
     starttime= time.perf_counter()
 
     formulas = create_formulas()
