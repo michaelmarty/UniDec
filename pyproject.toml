@@ -27,7 +27,6 @@ requires-python = ">=3.10"
 # install with <installer> install '.[opt-dependency group]'
 dev = ["massql", "pytest", "pyinstaller", "molmass", "mpld3",
     "wxpython>=4.0"]
-exp = ['massql']
 
 [project.urls]
 Homepage = "https://github.com/michaelmarty/UniDec"
