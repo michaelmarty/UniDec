@@ -75,7 +75,7 @@ If you are on an Arm or other non-x86_64 system, or if running UniDec from
 within the GUI throws errors (in the terminal window), you may need to recompile
 the UniDec engine:
 
-    `./unidec/src/compilelinux.sh`
+    ./unidec/src/compilelinux.sh
 
 When UniDec is restarted, the engine should now be accessible.
 
