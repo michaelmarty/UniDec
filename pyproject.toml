@@ -18,16 +18,15 @@ classifiers = [
 ]
 keywords = ["Mass Spectrometry", "Ion Mobility", "Deconvolution"]
 dependencies = ["numpy>=2.0.0", "scipy>=1.2", "matplotlib>=3.7", 'pandas',
-                      "pymzml", "natsort", "networkx", "h5py", "pypubsub", "numba",
-                      "pyimzml", "pythonnet", "pyteomics", "lxml", "lxml_html_clean", "pywin32"]
+                "pymzml", "natsort", "networkx", "h5py", "pypubsub", "numba",
+                "pyimzml", "pythonnet; os_name == 'nt'", "pyteomics", "lxml",
+				"lxml_html_clean", "pywin32; os_name == 'nt'"]
 requires-python = ">=3.10"
 
 [project.optional-dependencies]
 # install with <installer> install '.[opt-dependency group]'
 dev = ["massql", "pytest", "pyinstaller", "molmass", "mpld3",
     "wxpython>=4.0"]
-img = ['pyimzml']
-exp = ['massql']
 
 [project.urls]
 Homepage = "https://github.com/michaelmarty/UniDec"
@@ -36,7 +35,6 @@ Issues = "https://github.com/michaelmarty/UniDec/issues"
 
 [project.scripts]
 unidec = "unidec.__main__:main"
-gunidec = "unidec.Launcher:run_launcher"
 isodec = "unidec.IsoDec.__main__:main"
 
 [tool.setuptools]

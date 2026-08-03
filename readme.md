@@ -64,7 +64,9 @@ install the dependencies for your package manager. If your package manager isn't
 listed, you'll need to figure out which packages provide these libraries.
 3.  Make a virtual envionment which passes this installation through:
 
-	pip -m venv venv --system-site-packages
+```
+pip -m venv venv --system-site-packages
+```
 
 If you're on an x86_64 machine and step 1 did not throw any errors, then you
 will likely be able to proceed with the Pip install as shown above, as there
@@ -73,7 +75,7 @@ If you are on an Arm or other non-x86_64 system, or if running UniDec from
 within the GUI throws errors (in the terminal window), you may need to recompile
 the UniDec engine:
 
-    `./unidec/src/compilelinux.sh`
+    ./unidec/src/compilelinux.sh
 
 When UniDec is restarted, the engine should now be accessible.
 
