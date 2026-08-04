@@ -18,7 +18,7 @@ def: include
 
 ## d: \\subdir$ ## Filter for directory
 
-d: \\.git
+d: \\.git$
 d: \\.idea
 d: \\build
 d: \\dist
