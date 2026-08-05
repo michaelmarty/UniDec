@@ -334,6 +334,25 @@ class MatchedCollection:
 
         return huskleft
 
+    def remove_duplicate_peaks(self, mztol=0.01, masstol=0.1):
+        # Remove duplicate peaks based on m/z tolerance or mass and charge
+        # If the new peak is higher intensity, replace the old peak, otherwise discard the new peak
+        unique_peaks = []
+        for p in self.peaks:
+            is_duplicate = False
+            for i, up in enumerate(unique_peaks):
+                same_mz = mztol > 0 and abs(p.mz - up.mz) < mztol
+                same_mass_charge = (masstol > 0 and p.z == up.z and
+                                    abs(p.monoiso - up.monoiso) < masstol)
+                if same_mz or same_mass_charge:
+                    is_duplicate = True
+                    if p.peakint > up.peakint:
+                        unique_peaks[i] = p
+                    break
+            if not is_duplicate:
+                unique_peaks.append(p)
+        self.peaks = unique_peaks
+
 
 class MatchedMass:
     """

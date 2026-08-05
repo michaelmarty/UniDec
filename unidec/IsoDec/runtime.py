@@ -103,18 +103,23 @@ class IsoDecRuntime:
         """
         return self.pks.to_mass_spectrum(binsize)
 
-    def process_file(self, file, scans=None, check_centroided=True, assume_centroided=False, save=False):
+    def process_file(self, file, scans=None, check_centroided=True, assume_centroided=False, save=False,
+                     mz_range=None, verbose=True):
         starttime = time.perf_counter()
         self.config.filepath = file
         # Get importer and check it
-        reader = ImporterFactory.create_importer(file)
+        reader = ImporterFactory.create_importer(file, silent=not verbose)
         self.reader = reader
+
         try:
-            print("File:", file, "N Scans:", np.amax(reader.scans))
+            max_scans = np.amax(reader.scans)
         except Exception as e:
             print("Could not open:", file)
             print(e)
             return []
+
+        if verbose:
+            print("File:", file, "Max Scans:", max_scans)
 
         ext = file.split(".")[-1]
         t2 = time.perf_counter()
@@ -144,6 +149,10 @@ class IsoDecRuntime:
             except Exception as e:
                 print("Error Reading Scan", s, e)
                 continue
+
+            if mz_range is not None:
+                spectrum = spectrum[(spectrum[:, 0] >= mz_range[0]) & (spectrum[:, 0] <= mz_range[1])]
+
             # If the spectrum is too short, skip it
             if len(spectrum) < 3:
                 continue
@@ -151,13 +160,15 @@ class IsoDecRuntime:
             # print("Scan:", s, "Length:", len(spectrum), "Centroided:", reader.centroided)
             self.batch_process_spectrum(spectrum, centroided=reader.centroided)
 
-            print_rate = 100.0
-            if s % print_rate == 0:
-                print("Scan:", s, "Length:", len(spectrum), "Avg. Time per scan:", (time.perf_counter() - t2) / print_rate)
-                t2 = time.perf_counter()
+            if verbose:
+                print_rate = 100.0
+                if s % print_rate == 0:
+                    print("Scan:", s, "Length:", len(spectrum), "Avg. Time per scan:", (time.perf_counter() - t2) / print_rate)
+                    t2 = time.perf_counter()
 
-        print("Time:", time.perf_counter() - starttime)
-        print("N Peaks:", len(self.pks.peaks))
+        if verbose:
+            print("Time:", time.perf_counter() - starttime)
+            print("N Peaks:", len(self.pks.peaks))
 
         if save:
             self.pks.save_pks()
