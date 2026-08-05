@@ -493,6 +493,7 @@ class MatchedPeak:
         self.z = z
         self.centroids = centroids
         self.decon_centroids = None
+        self.profile_data = None
 
         self.isodist = isodist
         self.massdist = None
@@ -558,6 +559,32 @@ class MatchedPeak:
         maxmz = np.amax(self.isodist[:, 0]) + 0.5
         data = ud.dataremove(data, minmz, maxmz)
         return data
+
+    def pull_from_data(self, data):
+        """
+        Extracts the matched peak region from the data and stores it as profile_data
+        :param data: The data to extract from, numpy array of shape (N, 2) with m/z and intensity
+        :return: None
+        """
+        minmz = np.amin(self.isodist[:, 0]) - 0.5
+        maxmz = np.amax(self.isodist[:, 0]) + 0.5
+        self.profile_data = data[(data[:, 0] >= minmz) & (data[:, 0] <= maxmz)]
+        if self.profile_data is None:
+            print("No profile data for peak", self.mz, self.z)
+
+    def pull_from_reader(self, reader):
+        """
+        Extracts the matched peak region from the reader and stores it as profile_data
+        :param reader: The reader to extract from, UniDecImporter object
+        :return: None
+        """
+        # Get the scan from the reader
+        scan_data = reader.get_single_scan(self.scan)
+        if scan_data is None:
+            print("No scan data for scan", self.scan)
+            return
+        self.pull_from_data(scan_data)
+
 
     def set_fwhms(self, profiledata, sort=False, wfactor=4, maxppmtol=1000):
         if ud.isempty(self.isodist):

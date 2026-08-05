@@ -103,7 +103,7 @@ class IsoDecRuntime:
         """
         return self.pks.to_mass_spectrum(binsize)
 
-    def process_file(self, file, scans=None, check_centroided=True, assume_centroided=False):
+    def process_file(self, file, scans=None, check_centroided=True, assume_centroided=False, save=False):
         starttime = time.perf_counter()
         self.config.filepath = file
         # Get importer and check it
@@ -151,14 +151,16 @@ class IsoDecRuntime:
             # print("Scan:", s, "Length:", len(spectrum), "Centroided:", reader.centroided)
             self.batch_process_spectrum(spectrum, centroided=reader.centroided)
 
-            if s % 10 == 0:
-                print("Scan:", s, "Length:", len(spectrum), "Avg. Time per scan:", (time.perf_counter() - t2) / 10.)
+            print_rate = 100.0
+            if s % print_rate == 0:
+                print("Scan:", s, "Length:", len(spectrum), "Avg. Time per scan:", (time.perf_counter() - t2) / print_rate)
                 t2 = time.perf_counter()
 
         print("Time:", time.perf_counter() - starttime)
         print("N Peaks:", len(self.pks.peaks))
 
-        # self.pks.save_pks()
+        if save:
+            self.pks.save_pks()
         return reader
 
     def export_peaks(self, type="prosightlite", filename=None, reader=None, act_type="HCD", max_precursors=1):
