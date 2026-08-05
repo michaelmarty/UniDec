@@ -1,7 +1,6 @@
 import os
+import pickle
 from itertools import groupby
-
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
 import matplotlib.pyplot as plt
 from unidec.IsoDec.runtime import IsoDecRuntime
 import time
@@ -14,8 +13,9 @@ def run_profile_processing(file_path, scan_range=None, mz_range=None, save=False
     eng.config.minareacovered = 0.5
     eng.config.maxshift = 1
 
-    reader = eng.process_file(file_path, scans=scan_range, mz_range=mz_range, verbose=False)
     start_time = time.perf_counter()
+    reader = eng.process_file(file_path, scans=scan_range, mz_range=mz_range, verbose=False)
+
     eng.pks.remove_duplicate_peaks()
     print("Number of peaks:", len(eng.pks))
     get_profile_from_pks(reader, eng.pks)
@@ -23,10 +23,9 @@ def run_profile_processing(file_path, scan_range=None, mz_range=None, save=False
     print(f"Time to get profile data: {end_time - start_time:.2f} seconds")
 
     if save:
-        outfile = os.path.splitext(file_path)[0] + "_profile_data.npz"
-        # Save output data as npz, with mz, z, monoiso, peakint, profile_data, centroids. Keep as peaks list
-        output_data = [[peak.profile_data, peak.z, peak.mz, peak.monoiso, peak.peakint, peak.centroids] for peak in eng.pks]
-        np.savez(outfile, data=output_data)
+        outfile = os.path.splitext(file_path)[0] + "_profile_data.pkl"
+        with open(outfile, "wb") as outfile_handle:
+            pickle.dump(eng.pks, outfile_handle, protocol=pickle.HIGHEST_PROTOCOL)
         print(f"Profile data saved to {outfile}")
 
     return eng
@@ -43,27 +42,68 @@ def get_profile_from_pks(reader, pks):
         for peak in scan_peaks:
             peak.pull_from_data(scan_data)
 
-def process_dir(directory):
+def process_dir(directory, check_existing=True):
+    total_peaks = 0
+    total_files = 0
     for file in os.listdir(directory):
         if file.endswith(".raw"):
             full_path = os.path.join(directory, file)
+            # Check existing
+            if check_existing:
+                outfile = os.path.splitext(full_path)[0] + "_profile_data.pkl"
+                if os.path.exists(outfile):
+                    print(f"Profile data already exists for {file}, skipping.")
+                    continue
+
             eng = run_profile_processing(full_path, scan_range=None, mz_range=None, save=True)
+            total_peaks += len(eng.pks)
+            total_files += 1
+
+    print(f"Processed {total_files} files in {directory}, total peaks: {total_peaks}")
+    return total_files, total_peaks
 
 
-def process_dir_list(topdir, dirlist):
+def process_dir_list(topdir, dirlist, check_existing=True):
+    t1 = time.perf_counter()
+    total_peaks = 0
+    total_files = 0
     for subdir in dirlist:
         directory = os.path.join(topdir, subdir)
         if os.path.isdir(directory):
-            process_dir(directory)
+            files, peaks = process_dir(directory, check_existing=check_existing)
+            total_files += files
+            total_peaks += peaks
+            print(f"{time.perf_counter() - t1:.2f} seconds")
         else:
             print(f"Directory {directory} does not exist.")
 
+    print(f"Processed {total_files} files in total, total peaks: {total_peaks}")
+    t2 = time.perf_counter()
+    print(f"Total time: {t2 - t1:.2f} seconds")
+
+
+data_dirs = ["MSV000090488",
+             "MSV000091923",
+             "RibosomalPfms_Td_Control",
+             "PXD045560",
+             "PXD046651",
+             "PXD027650",
+             "PXD041357",
+             "PXD042921",
+             "PXD069439"
+             ]
+
+
 
 if __name__ == "__main__":
-    directory = r"Z:\Group Share\JGP\PXD069439"
-
-    process_dir(directory)
+    topdir= r"Z:\Group Share\JGP"
+    process_dir_list(topdir, data_dirs, check_existing=True)
     exit()
+
+    # directory = r"Z:\Group Share\JGP\PXD069439"
+    #
+    # process_dir(directory)
+    # exit()
 
     file = r"TDP_LH_F3.raw"
 
@@ -75,7 +115,7 @@ if __name__ == "__main__":
     mz_range = [628, 631]
     mz_range = None
 
-    eng = run_profile_processing(full_path, scan_range=None, mz_range=None)
+    eng = run_profile_processing(full_path, scan_range=scan_range, mz_range=mz_range, save=True)
 
     # # Sort peaks by mz
     # eng.pks.peaks = sorted(eng.pks.peaks, key=lambda peak: peak.mz)

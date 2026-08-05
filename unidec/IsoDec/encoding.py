@@ -21,7 +21,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 
 @njit(fastmath=True)
-def encode_phase(centroids, maxz=50, phaseres=8):
+def encode_phase(centroids, maxz=50, phaseres=8, shift=False):
     """
     Encode the charge phases for a set of centroids
     :param centroids: Centroids (m/z, intensity)
@@ -44,20 +44,17 @@ def encode_phase(centroids, maxz=50, phaseres=8):
                 if int(phaseindexes[j]) == 0:
                     phases[i, 0] += centroids[j, 1]
     else:
-        rescale = centroids[:, 0] / mass_diff_c # Note this is probably wrong
+        # rescale = centroids[:, 0] / mass_diff_c # Note this is probably wrong
         for i in range(maxz):
-            phase = (rescale * (i + 1)) % 1
+            phase = ((centroids[:, 0] * (i + 1)) / mass_diff_c) % 1
             phaseindexes = np.floor(phase * phaseres)
+            if shift:
+                phaselock = phaseindexes[np.argmax(centroids[:, 1])]
+                phaseindexes = (phaseindexes - phaselock + 0.5) % phaseres
+
             for j in range(len(centroids)):
                 phases[i, int(phaseindexes[j])] += centroids[j, 1]
     phases /= np.amax(phases)
-
-    # if phaseres ==1:
-    #     plt.subplot(2, 1, 1)
-    #     plt.plot(phases[:, 0])
-    #     plt.subplot(2, 1, 2)
-    #     cplot(centroids)
-    #     plt.show()
 
     return phases
 
