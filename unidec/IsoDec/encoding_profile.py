@@ -51,6 +51,10 @@ def encode_phase_file_profile(file_path, onedropper=0.0, types=None):
         centroid = p.centroids
         profile = p.profile_data
 
+        if len(centroid) < 3 or len(profile) < 3:
+            print("Skipping peak with insufficient data:", len(centroid), len(profile))
+            continue
+
         cemats = []
         pemats = []
         for t in types:
@@ -126,7 +130,7 @@ def encode_dir(pkldir, outdir=None, name="profile", file_string="_profile_data.p
     if maxfiles is not None:
         files = files[:maxfiles]
 
-    print("Files:", files)
+    # print("Files:", files)
     for file in files:
         tr, te, zd, file_types = encode_phase_file_profile(file, types=encoding_types, **kwargs)
         if [list(encoding_type) for encoding_type in file_types] != encoding_types:
@@ -178,7 +182,6 @@ def encode_dir_list(topdir, dirlist, name="profile", plot=True, check_existing=T
 
 data_dirs = ["MSV000090488",
              "MSV000091923",
-             "RibosomalPfms_Td_Control",
              "PXD045560",
              "PXD046651",
              "PXD027650",

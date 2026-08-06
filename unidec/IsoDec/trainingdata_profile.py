@@ -84,7 +84,6 @@ def process_dir_list(topdir, dirlist, check_existing=True):
 
 data_dirs = ["MSV000090488",
              "MSV000091923",
-             "RibosomalPfms_Td_Control",
              "PXD045560",
              "PXD046651",
              "PXD027650",

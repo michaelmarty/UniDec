@@ -68,7 +68,7 @@ class IsoDecEngine:
         self.test_centroids = []
         self.training_centroids = []
         self.config.verbose = verbose
-        self.version = "1.0.0"
+        self.version = "2.0.0"
 
         self.pks = MatchedCollection()
 
@@ -92,9 +92,10 @@ class IsoDecEngine:
         else:
             self.wrapper = None
 
-
         self.reader = None
         self.predmode = 0
+        self.ematkey="emat"
+        self.centroidkey="centroids"
 
     def drop_ones(self, percentage=0.8):
         """
@@ -325,9 +326,9 @@ class IsoDecEngine:
         self.test_data[1] = np.concatenate((self.test_data[1], zs), axis=0)
         self.test_data[2] = self.test_data[2] + tempcentroids
 
-
     def load_training_data(self, training_path, test_path=None, noise_percent=0.0, double_percent=0.4,
-                           harmonic_percent=0.0, onedrop_percent=0.0, equilize=False):
+                           harmonic_percent=0.0, onedrop_percent=0.0, equilize=False,
+                           ematkey="emat", centroidkey="centroids"):
         """
         Load training data from a file
         :param training_path: Path to the training data file or name of the file tag
@@ -337,6 +338,8 @@ class IsoDecEngine:
         :param harmonic_percent: The percent of harmonic peaks to add to the training and test data
         :param onedrop_percent: The percent of charge 1 data to drop
         :param equilize: Whether to equilize the data
+        :param ematkey: The key for the encoded matrix in the npz file
+        :param centroidkey: The key for the centroids in the npz file
         :return: None
         """
         ext = ".npz"
@@ -349,9 +352,9 @@ class IsoDecEngine:
             test_path = "test_data_" + test_path + ext
 
         td = np.load(training_path, allow_pickle=True)
-        self.training_data = [td["emat"], td["z"], list(td["centroids"])]
+        self.training_data = [td[ematkey], td["z"], list(td[centroidkey])]
         td = np.load(test_path, allow_pickle=True)
-        self.test_data = [td["emat"], td["z"], list(td["centroids"])]
+        self.test_data = [td[ematkey], td["z"], list(td[centroidkey])]
 
         if onedrop_percent > 0:
             self.drop_ones(percentage=onedrop_percent)
@@ -371,7 +374,8 @@ class IsoDecEngine:
         print("Loaded:", len(self.training_data[0]), "Training Samples")
 
     def create_training_dataloader(self, training_path, test_path=None, noise_percent=0, batchsize=None,
-                                   double_percent=0.4, harmonic_percent=0, one_drop_percent=0, equalize=False):
+                                   double_percent=0.4, harmonic_percent=0, one_drop_percent=0, equalize=False,
+                                   ematkey="emat", centroidkey="centroids"):
         """
         Create the training and test dataloaders from a single file path
         :param training_path: Path to the training data file or name of the file tag
@@ -389,7 +393,8 @@ class IsoDecEngine:
 
         self.load_training_data(training_path, test_path=test_path, noise_percent=noise_percent,
                                 double_percent=double_percent, harmonic_percent=harmonic_percent,
-                                onedrop_percent=one_drop_percent, equalize=equalize)
+                                ematkey=ematkey, centroidkey=centroidkey, onedrop_percent=one_drop_percent,
+                                equalize=equalize)
 
         self.training_data = IsoDecDataset(self.training_data[0], self.training_data[1])
         self.test_data = IsoDecDataset(self.test_data[0], self.test_data[1])
@@ -400,7 +405,7 @@ class IsoDecEngine:
                                           pin_memory=False)
 
     def create_merged_dataloader(self, dirs, training_path, noise_percent=0.0, batchsize=None, double_percent=0.4,
-                                 harmonic_percent=0.0, onedrop_percent=0.0, equilize=False):
+                                 harmonic_percent=0.0, onedrop_percent=0.0, equilize=False, ematkey="emat", centroidkey="centroids"):
         """
         Create a merged dataloader from multiple directories. Looks for common file names and merges them together
         :param dirs: Directories to look in
@@ -419,12 +424,15 @@ class IsoDecEngine:
         training_data = []
         test_data = []
 
+        self.ematkey = ematkey
+        self.centroidkey = centroidkey
+
         for d in dirs:
             os.chdir(d)
             print(d)
             self.load_training_data(training_path, noise_percent=noise_percent, double_percent=double_percent,
                                     harmonic_percent=harmonic_percent, onedrop_percent=onedrop_percent,
-                                    equilize=equilize)
+                                    ematkey=ematkey, centroidkey=centroidkey, equilize=equilize)
             training_data.append(self.training_data)
             test_data.append(self.test_data)
 
@@ -459,17 +467,26 @@ class IsoDecEngine:
         """
         starttime = time.perf_counter()
 
+        accuracy_score=0
+
         if self.train_dataloader is None or self.test_dataloader is None:
             raise ValueError("DataLoaders not created. Run create_training_dataloader first.")
         self.phasemodel.get_class_weights(self.train_dataloader)
         for t in range(epochs):
             print(f"Epoch {t + 1}\n-------------------------------")
             self.phasemodel.train_model(self.train_dataloader, lossfn=lossfn, forcenew=forcenew)
-            self.phasemodel.evaluate_model(self.test_dataloader)
+            _, accuracy_score = self.phasemodel.evaluate_model(self.test_dataloader)
+
+        if self.ematkey != "emat":
+            output = self.ematkey.replace("emat_", "")
+            savepath = f"phase_model_{output}.pth"
+        else:
+            savepath = None
 
         if save:
-            self.phasemodel.save_model()
+            self.phasemodel.save_model(savepath)
         print("Done! Time:", time.perf_counter() - starttime)
+        return accuracy_score
 
     def save_bad_data(self, filename="bad_data.pkl", maxbad=50):
         """
