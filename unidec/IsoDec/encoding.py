@@ -2,14 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import unidec.tools as ud
-from unidec.IsoDec.datatools import *
-from unidec.IsoDec.match import *
+from unidec.IsoDec.datatools import fastnearest
+from unidec.IsoDec.match import mass_diff_c
 import pickle as pkl
 import time
 import torch
 import matplotlib as mpl
 from numba import njit
-from unidec.IsoDec.plots import cplot
+# from unidec.IsoDec.plots import cplot
 
 try:
     mpl.use("WxAgg")
@@ -47,10 +47,12 @@ def encode_phase(centroids, maxz=50, phaseres=8, shift=False):
         # rescale = centroids[:, 0] / mass_diff_c # Note this is probably wrong
         for i in range(maxz):
             phase = ((centroids[:, 0] * (i + 1)) / mass_diff_c) % 1
-            phaseindexes = np.floor(phase * phaseres)
             if shift:
-                phaselock = phaseindexes[np.argmax(centroids[:, 1])]
-                phaseindexes = (phaseindexes - phaselock + 0.5) % phaseres
+                maxindex = np.argmax(centroids[:, 1])
+                phaselock = phase[maxindex]
+                phase = (phase - phaselock + 0.5/phaseres) % 1
+
+            phaseindexes = np.floor(phase * phaseres)
 
             for j in range(len(centroids)):
                 phases[i, int(phaseindexes[j])] += centroids[j, 1]
@@ -173,8 +175,7 @@ def encode_harmonic(centroid, z, intmax=0.2, phaseres=8):
     return emat, mergedc
 
 
-def encode_phase_file(file, maxlen=8, save=True, outdir="C:\\Data\\IsoNN\\multi", name="medium",
-                      onedropper=0.95):
+def encode_phase_file(file, phaseres=8, onedropper=0.95):
     training = []
     test = []
     zdist = []
@@ -199,7 +200,7 @@ def encode_phase_file(file, maxlen=8, save=True, outdir="C:\\Data\\IsoNN\\multi"
             if r < onedropper:
                 continue
         zdist.append(z)
-        emat = encode_phase(centroid, phaseres=maxlen)
+        emat = encode_phase(centroid, phaseres=phaseres)
         # emat.astype(np.float32)
         emat = torch.as_tensor(emat, dtype=torch.float32)
 

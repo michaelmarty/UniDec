@@ -41,6 +41,9 @@ class MatchedCollection:
     def __getitem__(self, item):
         return self.peaks[item]
 
+    def __iter__(self):
+        return iter(self.peaks)
+
     def get_z_dist(self):
         return np.array([p.z for p in self.peaks])
 
