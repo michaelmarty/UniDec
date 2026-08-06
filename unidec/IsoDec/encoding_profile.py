@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import torch
 
-mpl.use("WxAgg")
 
 def load_pkl_training_data(file_path):
     """
@@ -193,6 +192,8 @@ data_dirs = ["MSV000090488",
 
 
 if __name__ == "__main__":
+
+    mpl.use("WxAgg")
 
     topdir = r"Z:\Group Share\JGP"
     encode_dir_list(topdir, data_dirs, check_existing=True)

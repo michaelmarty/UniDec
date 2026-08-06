@@ -351,10 +351,39 @@ class IsoDecEngine:
         elif ext not in test_path:
             test_path = "test_data_" + test_path + ext
 
-        td = np.load(training_path, allow_pickle=True)
-        self.training_data = [td[ematkey], td["z"], list(td[centroidkey])]
-        td = np.load(test_path, allow_pickle=True)
-        self.test_data = [td[ematkey], td["z"], list(td[centroidkey])]
+        traind = np.load(training_path, allow_pickle=True)
+        testd = np.load(test_path, allow_pickle=True)
+
+        if centroidkey == "centroids" or centroidkey == "profiles":
+            self.training_data = [traind[ematkey], traind["z"], list(traind[centroidkey])]
+            self.test_data = [testd[ematkey], testd["z"], list(testd[centroidkey])]
+        elif centroidkey == "both":
+            if "p" in ematkey:
+                ematkey = ematkey.replace("p", "c")
+            elif "b" in ematkey:
+                ematkey = ematkey.replace("b", "c")
+
+            self.training_data = [traind[ematkey], traind["z"], list(traind["centroids"])]
+            self.test_data = [testd[ematkey], testd["z"], list(testd["centroids"])]
+
+            # ematkey2 replaces c with p
+            ematkey2 = ematkey
+            if "c" in ematkey:
+                ematkey2 = ematkey.replace("c", "p")
+            elif "b" in ematkey:
+                ematkey2 = ematkey.replace("b", "p")
+
+            tr2 = [traind[ematkey2], traind["z"], list(traind["profiles"])]
+            te2 = [testd[ematkey2], testd["z"], list(testd["profiles"])]
+
+            # Combine the two datasets by adding the elements to the end of the list
+            self.training_data[0] = np.concatenate((self.training_data[0], tr2[0]), axis=0)
+            self.training_data[1] = np.concatenate((self.training_data[1], tr2[1]), axis=0)
+            self.training_data[2] = self.training_data[2] + tr2[2]
+
+            self.test_data[0] = np.concatenate((self.test_data[0], te2[0]), axis=0)
+            self.test_data[1] = np.concatenate((self.test_data[1], te2[1]), axis=0)
+            self.test_data[2] = self.test_data[2] + te2[2]
 
         if onedrop_percent > 0:
             self.drop_ones(percentage=onedrop_percent)
