@@ -1,6 +1,6 @@
 """
-Read UniDec *_peakparam.dat files from replicate folders, match mass centroids
-to user-provided target masses, and plot mean area fractions +/- SEM by injection.
+Read UniDec *_peakparam.dat files from replicate folders, match first-column masses
+to user-provided target masses, and plot mean centroid +/- SEM by injection.
 """
 
 import re
@@ -12,12 +12,12 @@ from pathlib import Path
 
 
 DEFAULT_MASS_TOLERANCE = 50.0
-DEFAULT_OUTPUT_FILENAME = 'area_ratio_analysis.pdf'
+DEFAULT_OUTPUT_FILENAME = 'mass_centroid_analysis.pdf'
 HIGHLIGHT_INJECTION = 21
+MASS_COLUMN_INDEX = 0
+MASS_COLUMN_NUMBER = MASS_COLUMN_INDEX + 1
 MASS_CENTROID_COLUMN_INDEX = 6
 MASS_CENTROID_COLUMN_NUMBER = MASS_CENTROID_COLUMN_INDEX + 1
-AREA_COLUMN_INDEX = 5
-AREA_COLUMN_NUMBER = AREA_COLUMN_INDEX + 1
 Y_TICK_INTERVALS_PER_SIDE = 2
 
 
@@ -93,7 +93,7 @@ def prompt_for_output_filename(default_filename):
             return default_filename
 
         output_filename = Path(filename)
-        if output_filename.parent != Path('.'):
+        if output_filename.parent != Path(''):
             print("  Please enter a file name only, not a folder path.")
             continue
 
@@ -117,7 +117,7 @@ def get_user_inputs():
     Get all user inputs needed for the analysis.
     """
     print("=" * 80)
-    print("DAT FILE AREA RATIO ANALYSIS")
+    print("DAT FILE MASS ANALYSIS")
     print("=" * 80)
 
     num_reps = prompt_for_positive_int("\nEnter the number of replicate folders: ")
@@ -197,38 +197,40 @@ def read_dat_file(filepath):
         return None
 
 
-def get_peak_measurements(df, filepath):
+def get_mass_measurements(df, filepath):
     """
-    Return numeric mass centroid and area values from the peakparam DAT columns.
+    Return paired first-column mass and 7th-column mass centroid values.
     """
-    required_column_count = max(MASS_CENTROID_COLUMN_NUMBER, AREA_COLUMN_NUMBER)
+    required_column_count = max(MASS_COLUMN_NUMBER, MASS_CENTROID_COLUMN_NUMBER)
     if df.shape[1] < required_column_count:
         print(
-            f"Warning: Expected at least {required_column_count} columns for "
-            f"mass centroid/area in {filepath}; found {df.shape[1]}"
+            f"Warning: Expected at least {required_column_count} columns "
+            f"for mass/mass centroid in {filepath}; found {df.shape[1]}"
         )
-        return pd.DataFrame(columns=['mass_centroid', 'area'])
+        return pd.DataFrame(columns=['mass', 'mass_centroid'])
 
     measurements = pd.DataFrame({
-        'mass_centroid': pd.to_numeric(df.iloc[:, MASS_CENTROID_COLUMN_INDEX], errors='coerce'),
-        'area': pd.to_numeric(df.iloc[:, AREA_COLUMN_INDEX], errors='coerce'),
+        'mass': pd.to_numeric(df.iloc[:, MASS_COLUMN_INDEX], errors='coerce'),
+        'mass_centroid': pd.to_numeric(
+            df.iloc[:, MASS_CENTROID_COLUMN_INDEX], errors='coerce'
+        ),
     }).dropna()
     if measurements.empty:
-        print(f"Warning: No numeric mass centroid/area pairs found in {filepath}")
+        print(f"Warning: No numeric mass/mass centroid pairs found in {filepath}")
 
     return measurements
 
 
-def match_centroid_to_target(mass_centroid, target_masses, tolerance=50):
+def match_mass_to_target(mass, target_masses, tolerance=50):
     """
-    Return the closest target mass to this centroid, or (None, None).
+    Return the closest target mass to this first-column mass, or (None, None).
     """
     matched_target_mass = None
     matched_name = None
     min_diff = float("inf")
 
     for name, target_mass in target_masses.items():
-        diff = abs(mass_centroid - target_mass)
+        diff = abs(mass - target_mass)
         if diff < min_diff and diff <= tolerance:
             min_diff = diff
             matched_target_mass = target_mass
@@ -248,9 +250,10 @@ def extract_injection_number(filename):
 
 def process_all_data(folders, target_masses, mass_tolerance=50):
     """
-    Return nested data as {injection_num: {rep_num: {mass_name: area_fraction}}}.
+    Return nested data as {injection_num: {rep_num: {mass_name: centroid}}}.
     """
     all_data = {}
+    match_diffs = {}
 
     for rep_idx, folder in enumerate(folders, start=1):
         folder_path = Path(folder)
@@ -278,45 +281,34 @@ def process_all_data(folders, target_masses, mass_tolerance=50):
             if df is None or df.empty:
                 continue
 
-            peak_measurements = get_peak_measurements(df, dat_file)
-            if peak_measurements.empty:
-                continue
-
-            matched_areas = {}
-            matched_diffs = {}
-
-            # If multiple peaks match the same protein, keep the area from the closest centroid.
-            for peak in peak_measurements.itertuples(index=False):
-                mass_centroid = float(peak.mass_centroid)
-                target_mass, mass_name = match_centroid_to_target(
-                    mass_centroid, target_masses, mass_tolerance
-                )
-
-                if target_mass is not None:
-                    current_diff = matched_diffs.get(mass_name, float("inf"))
-                    candidate_diff = abs(mass_centroid - target_mass)
-                    if candidate_diff < current_diff:
-                        matched_areas[mass_name] = float(peak.area)
-                        matched_diffs[mass_name] = candidate_diff
-
-            if not matched_areas:
-                continue
-
-            total_area = sum(matched_areas.values())
-            if total_area <= 0:
-                print(f"Warning: Matched peak areas sum to zero or less in {dat_file}")
+            mass_measurements = get_mass_measurements(df, dat_file)
+            if mass_measurements.empty:
                 continue
 
             rep_data = all_data.setdefault(inj_num, {}).setdefault(rep_idx, {})
-            for mass_name, area in matched_areas.items():
-                rep_data[mass_name] = area / total_area
+            rep_match_diffs = match_diffs.setdefault(inj_num, {}).setdefault(rep_idx, {})
+
+            # Select by closest first-column mass, then retain its mass centroid.
+            for peak in mass_measurements.itertuples(index=False):
+                mass = float(peak.mass)
+                mass_centroid = float(peak.mass_centroid)
+                target_mass, mass_name = match_mass_to_target(
+                    mass, target_masses, mass_tolerance
+                )
+
+                if target_mass is not None:
+                    candidate_diff = abs(mass - target_mass)
+                    current_diff = rep_match_diffs.get(mass_name, float("inf"))
+                    if candidate_diff < current_diff:
+                        rep_data[mass_name] = mass_centroid
+                        rep_match_diffs[mass_name] = candidate_diff
 
     return all_data
 
 
 def calculate_statistics(all_data, target_masses, num_replicates):
     """
-    Calculate mean and standard error for each injection number and area fraction.
+    Calculate mean and standard error for each injection number and centroid.
     """
     results = {mass_name: {'injections': [], 'mean': [], 'se': []}
                for mass_name in target_masses.keys()}
@@ -342,24 +334,24 @@ def calculate_statistics(all_data, target_masses, num_replicates):
 
 def get_nice_tick_step(raw_step):
     """
-    Round a raw tick interval up to a readable 1, 2, 2.5, 5, or 10 multiple.
+    Round a raw tick interval up to a readable 1, 2, 5, or 10 multiple.
     """
-    if raw_step <= 0:
+    if raw_step <= 1:
         return 1.0
 
     magnitude = 10 ** np.floor(np.log10(raw_step))
     normalized_step = raw_step / magnitude
 
-    for candidate in (1, 2, 2.5, 5, 10):
+    for candidate in (1, 2, 5, 10):
         if normalized_step <= candidate:
             return float(candidate * magnitude)
 
     return float(10 * magnitude)
 
 
-def set_ratio_axis_limits(ax, data):
+def set_centroid_axis_limits(ax, data):
     """
-    Scale the y-axis around measured area fractions and end on tick marks.
+    Scale the y-axis around measured centroid values and end on tick marks.
     """
     if data['mean']:
         means = np.asarray(data['mean'], dtype=float)
@@ -368,25 +360,20 @@ def set_ratio_axis_limits(ax, data):
         lower_value = float(np.min(y_values))
         upper_value = float(np.max(y_values))
         span = upper_value - lower_value
-        padding = max(span * 0.08, 0.01)
+        padding = max(span * 0.08, max(abs(lower_value), abs(upper_value), 1) * 0.00005, 1)
         lower_limit = lower_value - padding
         upper_limit = upper_value + padding
-
-        if lower_limit == upper_limit:
-            lower_limit -= 0.01
-            upper_limit += 0.01
 
         tick_step = get_nice_tick_step((upper_limit - lower_limit) / (Y_TICK_INTERVALS_PER_SIDE * 2))
         tick_start = np.floor(lower_limit / tick_step) * tick_step
         tick_end = np.ceil(upper_limit / tick_step) * tick_step
         ticks = np.arange(tick_start, tick_end + tick_step * 0.5, tick_step)
-    else:
-        ticks = np.linspace(0, 1, 5)
 
-    ax.set_ylim(ticks[0], ticks[-1])
-    ax.set_yticks(ticks)
+        ax.set_ylim(ticks[0], ticks[-1])
+        ax.set_yticks(ticks)
 
-    ax.yaxis.set_major_formatter(StrMethodFormatter('{x:.2f}'))
+    # Show full Da values as integers instead of scientific notation or offsets.
+    ax.yaxis.set_major_formatter(StrMethodFormatter('{x:.0f}'))
     ax.yaxis.get_offset_text().set_visible(False)
 
 
@@ -422,7 +409,7 @@ def plot_results(results, target_masses, output_folder, output_filename):
         axes = [axes]
 
     # Add main title with larger font
-    fig.suptitle('Measured Area Fractions vs Number of Injections',
+    fig.suptitle('Measured Mass Centroid vs Number of Injections',
                  fontsize=24, fontweight='bold', y=0.98)
 
     # Use a single consistent color for the marker points and lines across all subplots
@@ -457,7 +444,7 @@ def plot_results(results, target_masses, output_folder, output_filename):
             # Set x-axis to show integer values
             ax.set_xticks(data['injections'])
 
-        set_ratio_axis_limits(ax, data)
+        set_centroid_axis_limits(ax, data)
 
         # Remove top and right spines
         ax.spines['top'].set_visible(False)
@@ -474,7 +461,7 @@ def plot_results(results, target_masses, output_folder, output_filename):
             ax.legend(frameon=False, fontsize=12, loc='best')
 
     # Add unified y-axis label with larger font
-    fig.text(0.04, 0.5, 'Area Fraction',
+    fig.text(0.04, 0.5, 'Mass Centroid (Da)',
              va='center', rotation='vertical', fontsize=24, fontweight='bold')
 
     plt.tight_layout(rect=(0.06, 0, 1, 0.97))  # Adjust layout to make room for y-label and title
@@ -498,13 +485,13 @@ def create_summary_table(results, target_masses):
     Print a summary table of the results.
     """
     print("\n" + "=" * 80)
-    print("SUMMARY TABLE: Mean Area Fractions")
+    print("SUMMARY TABLE: Mean Mass Centroids (Da)")
     print("=" * 80)
 
     for mass_name in target_masses.keys():
         print(f"\n{mass_name}")
         print("-" * 60)
-        print(f"{'Injections':<12} {'Mean Fraction':<20} {'Std Error':<18}")
+        print(f"{'Injections':<12} {'Mean Centroid (Da)':<20} {'Std Error (Da)':<18}")
         print("-" * 60)
 
         data = results[mass_name]

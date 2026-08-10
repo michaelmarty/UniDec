@@ -1,9 +1,13 @@
 """
-Plot UniDec ion statistics as a peak-by-metric grid.
+Plot changes in UniDec ion statistics relative to injection 21.
 
-Rows are user-specified peaks. Columns are mass centroid, FWHM, and,
-optionally, sum-normalized peak area fraction. Values are means +/- SEM
-across replicate folders for each injection number.
+Mass centroid, FWHM, and sum-normalized peak area fraction are shown in three
+panels. Every requested peak is overlaid in each panel with a consistent color.
+Points are differences between replicate means and the injection 21 mean:
+
+    delta = injection mean - injection 21 mean
+
+Error bars are SEM in the original units of each metric.
 """
 
 import re
@@ -12,38 +16,36 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.ticker import MaxNLocator, StrMethodFormatter
+from matplotlib.ticker import MaxNLocator
 
 
 DEFAULT_MASS_TOLERANCE = 50.0
-DEFAULT_OUTPUT_FILENAME = "ion_statistics_grid.pdf"
-HIGHLIGHT_INJECTION = 21
+DEFAULT_OUTPUT_FILENAME = "delta_plots.pdf"
+REFERENCE_INJECTION = 21
+MASS_COLUMN_INDEX = 0
 AREA_COLUMN_INDEX = 5
 MASS_CENTROID_COLUMN_INDEX = 6
 FWHM_COLUMN_INDEX = 7
-Y_TICK_INTERVALS_PER_SIDE = 2
 BASE_FONT_SIZE = 16
-GRID_HEADER_FONT_SIZE = 20
+PANEL_TITLE_FONT_SIZE = 20
 SUBPLOT_LABEL_FONT_SIZE = 19
 LEGEND_FONT_SIZE = 13
-FIGURE_WIDTH_PER_COLUMN = 5.0
-FIGURE_HEIGHT_PER_ROW = 3.4
 
 METRICS = {
     "centroid": {
         "title": "Mass Centroid",
-        "ylabel": "Mass Centroid (Da)",
-        "format": "{x:.0f}",
+        "table_name": "Mass Centroid",
+        "ylabel": f"Delta from Injection {REFERENCE_INJECTION} (Da)",
     },
     "fwhm": {
         "title": "FWHM",
-        "ylabel": "FWHM (Da)",
-        "format": "{x:.0f}",
+        "table_name": "FWHM",
+        "ylabel": f"Delta from Injection {REFERENCE_INJECTION} (Da)",
     },
     "area_fraction": {
         "title": "Sum-Normalized\nPeak Area Fraction",
-        "ylabel": "Area Fraction",
-        "format": "{x:.2f}",
+        "table_name": "Sum-Normalized Peak Area Fraction",
+        "ylabel": f"Delta from Injection {REFERENCE_INJECTION}",
     },
 }
 
@@ -131,7 +133,7 @@ def prompt_for_output_filename(default_filename):
             return default_filename
 
         output_filename = Path(filename)
-        if output_filename.parent != Path("."):
+        if output_filename.parent != Path(""):
             print("  Please enter a file name only, not a folder path.")
             continue
 
@@ -146,8 +148,11 @@ def prompt_for_output_filename(default_filename):
 def get_user_inputs():
     """Collect and confirm all analysis settings."""
     print("=" * 80)
-    print("ION STATISTICS GRID")
+    print("DELTA PLOTS")
     print("=" * 80)
+    print(
+        f"All values will be plotted as deltas from injection {REFERENCE_INJECTION}."
+    )
 
     num_replicates = prompt_for_positive_int("\nEnter the number of replicate folders: ")
     folders = prompt_for_paths(num_replicates, "replicate folders")
@@ -176,12 +181,6 @@ def get_user_inputs():
         f"[default: {DEFAULT_MASS_TOLERANCE:g}]: ",
         DEFAULT_MASS_TOLERANCE,
     )
-    show_theoretical_mass = prompt_for_yes_no(
-        "\nDisplay the theoretical mass line in the mass centroid plots", True
-    )
-    include_area_fraction = prompt_for_yes_no(
-        "Include sum-normalized peak area fraction plots", True
-    )
 
     print("\n" + "=" * 80)
     print("CONFIGURATION SUMMARY")
@@ -190,12 +189,9 @@ def get_user_inputs():
     for index, folder in enumerate(folders, 1):
         print(f"  {index}. {folder}")
     print(f"Output file: {Path(output_folder) / output_filename}")
+    print(f"Reference injection: {REFERENCE_INJECTION}")
     print(f"Mass tolerance: {mass_tolerance:g} Da")
-    print(f"Theoretical mass line: {'Yes' if show_theoretical_mass else 'No'}")
-    print(
-        "Sum-normalized peak area fraction: "
-        f"{'Included' if include_area_fraction else 'Excluded'}"
-    )
+    print("Metrics: Mass centroid, FWHM, and sum-normalized peak area fraction")
     print("Peaks:")
     for name, mass in target_masses.items():
         print(f"  {name}: {mass:.2f} Da")
@@ -210,8 +206,6 @@ def get_user_inputs():
         "output_filename": output_filename,
         "target_masses": target_masses,
         "mass_tolerance": mass_tolerance,
-        "show_theoretical_mass": show_theoretical_mass,
-        "include_area_fraction": include_area_fraction,
     }
 
 
@@ -225,19 +219,23 @@ def read_dat_file(filepath):
 
 
 def get_peak_measurements(df, filepath):
-    """Return numeric area, centroid, and FWHM columns from a DAT file."""
+    """Return numeric mass, area, centroid, and FWHM columns from a DAT file."""
     required_columns = max(
-        AREA_COLUMN_INDEX, MASS_CENTROID_COLUMN_INDEX, FWHM_COLUMN_INDEX
+        MASS_COLUMN_INDEX,
+        AREA_COLUMN_INDEX,
+        MASS_CENTROID_COLUMN_INDEX,
+        FWHM_COLUMN_INDEX,
     ) + 1
     if df.shape[1] < required_columns:
         print(
             f"Warning: Expected at least {required_columns} columns in {filepath}; "
             f"found {df.shape[1]}"
         )
-        return pd.DataFrame(columns=["area", "centroid", "fwhm"])
+        return pd.DataFrame(columns=["mass", "area", "centroid", "fwhm"])
 
     measurements = pd.DataFrame(
         {
+            "mass": pd.to_numeric(df.iloc[:, MASS_COLUMN_INDEX], errors="coerce"),
             "area": pd.to_numeric(df.iloc[:, AREA_COLUMN_INDEX], errors="coerce"),
             "centroid": pd.to_numeric(
                 df.iloc[:, MASS_CENTROID_COLUMN_INDEX], errors="coerce"
@@ -250,12 +248,12 @@ def get_peak_measurements(df, filepath):
     return measurements
 
 
-def match_centroid_to_target(mass_centroid, target_masses, tolerance):
-    """Return the closest target name and mass within tolerance."""
+def match_mass_to_target(mass, target_masses, tolerance):
+    """Match the DAT file's first-column mass to the closest target."""
     candidates = [
-        (abs(mass_centroid - target_mass), name, target_mass)
+        (abs(mass - target_mass), name, target_mass)
         for name, target_mass in target_masses.items()
-        if abs(mass_centroid - target_mass) <= tolerance
+        if abs(mass - target_mass) <= tolerance
     ]
     if not candidates:
         return None, None
@@ -273,9 +271,9 @@ def process_all_data(folders, target_masses, mass_tolerance):
     """
     Return {injection: {replicate: {peak: metric values}}}.
 
-    When more than one measured peak matches a target, the closest centroid is
-    retained. Area is normalized by the sum of all retained target-peak areas
-    in that DAT file.
+    Peak matching and tolerance use the first DAT column. If multiple measured
+    peaks match a target, the closest one is retained. Area is normalized by the
+    sum of all retained target-peak areas in that DAT file.
     """
     all_data = {}
 
@@ -304,12 +302,12 @@ def process_all_data(folders, target_masses, mass_tolerance):
             matched = {}
             match_differences = {}
             for peak in measurements.itertuples(index=False):
-                name, target_mass = match_centroid_to_target(
-                    float(peak.centroid), target_masses, mass_tolerance
+                name, target_mass = match_mass_to_target(
+                    float(peak.mass), target_masses, mass_tolerance
                 )
                 if name is None:
                     continue
-                difference = abs(float(peak.centroid) - target_mass)
+                difference = abs(float(peak.mass) - target_mass)
                 if difference < match_differences.get(name, float("inf")):
                     matched[name] = {
                         "centroid": float(peak.centroid),
@@ -344,7 +342,7 @@ def standard_error(values):
 
 
 def calculate_statistics(all_data, target_masses, num_replicates):
-    """Calculate mean and SEM for every peak, metric, and injection."""
+    """Calculate the raw mean and SEM for each peak, metric, and injection."""
     results = {
         peak_name: {
             metric: {"injections": [], "mean": [], "se": []}
@@ -374,56 +372,8 @@ def calculate_statistics(all_data, target_masses, num_replicates):
     return results
 
 
-def get_nice_tick_step(raw_step):
-    """Round a tick interval up to a readable 1, 2, 5, or 10 multiple."""
-    if raw_step <= 0:
-        return 1.0
-    magnitude = 10 ** np.floor(np.log10(raw_step))
-    normalized = raw_step / magnitude
-    for candidate in (1, 2, 5, 10):
-        if normalized <= candidate:
-            return float(candidate * magnitude)
-    return float(10 * magnitude)
-
-
-def set_metric_axis_limits(ax, data, metric, theoretical_mass=None):
-    """Scale a metric axis to its values and optional theoretical mass."""
-    values = []
-    if data["mean"]:
-        means = np.asarray(data["mean"], dtype=float)
-        errors = np.asarray(data["se"], dtype=float)
-        values.extend((means - errors).tolist())
-        values.extend((means + errors).tolist())
-    if theoretical_mass is not None:
-        values.append(float(theoretical_mass))
-    if not values:
-        return
-
-    lower_value = min(values)
-    upper_value = max(values)
-    span = upper_value - lower_value
-    minimum_padding = 0.01 if metric == "area_fraction" else 1
-    padding = max(
-        span * 0.08,
-        max(abs(lower_value), abs(upper_value), 1) * 0.00005,
-        minimum_padding,
-    )
-    lower_limit = lower_value - padding
-    upper_limit = upper_value + padding
-    tick_step = get_nice_tick_step(
-        (upper_limit - lower_limit) / (Y_TICK_INTERVALS_PER_SIDE * 2)
-    )
-    tick_start = np.floor(lower_limit / tick_step) * tick_step
-    tick_end = np.ceil(upper_limit / tick_step) * tick_step
-    ticks = np.arange(tick_start, tick_end + tick_step * 0.5, tick_step)
-    ax.set_ylim(ticks[0], ticks[-1])
-    ax.set_yticks(ticks)
-    ax.yaxis.set_major_formatter(StrMethodFormatter(METRICS[metric]["format"]))
-    ax.yaxis.get_offset_text().set_visible(False)
-
-
-def get_highlight_band(data, injection_number):
-    """Return the mean and SEM at one injection number."""
+def get_injection_values(data, injection_number):
+    """Return the mean and SEM for a requested injection, if present."""
     for injection, mean, error in zip(
         data["injections"], data["mean"], data["se"]
     ):
@@ -432,148 +382,190 @@ def get_highlight_band(data, injection_number):
     return None, None
 
 
-def get_subplot_label(index):
-    """Return spreadsheet-style subplot labels: A ... Z, AA, AB, etc."""
-    label = ""
-    while True:
-        index, remainder = divmod(index, 26)
-        label = chr(ord("A") + remainder) + label
-        if index == 0:
-            return label
-        index -= 1
-
-
-def plot_results(
-    results,
-    target_masses,
-    output_folder,
-    output_filename,
-    show_theoretical_mass,
-    include_area_fraction,
+def calculate_deltas(
+    raw_results, target_masses, reference_injection=REFERENCE_INJECTION
 ):
-    """Create a grid whose rows are peaks and columns are metrics."""
+    """
+    Subtract the reference-injection mean from every injection mean.
+
+    SEM remains in the original units of the metric.
+    """
+    delta_results = {
+        peak_name: {
+            metric: {
+                "injections": [],
+                "mean": [],
+                "se": [],
+                "reference_mean": None,
+            }
+            for metric in METRICS
+        }
+        for peak_name in target_masses
+    }
+
+    for peak_name in target_masses:
+        for metric in METRICS:
+            raw_data = raw_results[peak_name][metric]
+            reference_mean, _ = get_injection_values(
+                raw_data, reference_injection
+            )
+            if reference_mean is None:
+                print(
+                    f"Warning: No injection {reference_injection} reference for "
+                    f"{peak_name} ({METRICS[metric]['table_name']}); series omitted."
+                )
+                continue
+
+            delta_data = delta_results[peak_name][metric]
+            delta_data["reference_mean"] = reference_mean
+            for injection, mean, error in zip(
+                raw_data["injections"], raw_data["mean"], raw_data["se"]
+            ):
+                delta_data["injections"].append(injection)
+                delta_data["mean"].append(float(mean) - reference_mean)
+                delta_data["se"].append(float(error))
+
+    return delta_results
+
+
+def metric_has_data(results, target_masses, metric):
+    """Return True if at least one peak has plottable data for a metric."""
+    return any(results[peak_name][metric]["injections"] for peak_name in target_masses)
+
+
+def set_delta_axis_limits(ax, results, target_masses, metric):
+    """Set a symmetric delta axis that includes all SEM bars and zero."""
+    bounds = [0.0]
+    for peak_name in target_masses:
+        data = results[peak_name][metric]
+        if not data["mean"]:
+            continue
+        means = np.asarray(data["mean"], dtype=float)
+        errors = np.asarray(data["se"], dtype=float)
+        bounds.extend((means - errors).tolist())
+        bounds.extend((means + errors).tolist())
+
+    maximum = max(abs(value) for value in bounds if np.isfinite(value))
+    if maximum == 0:
+        maximum = 1.0
+    limit = maximum * 1.10
+    ax.set_ylim(-limit, limit)
+    ax.yaxis.set_major_locator(MaxNLocator(nbins=7, symmetric=True))
+
+
+def get_peak_colors(target_masses):
+    """Assign each peak a distinct, stable color."""
+    peak_names = list(target_masses)
+    if len(peak_names) <= 10:
+        colors = plt.get_cmap("tab10").colors
+    elif len(peak_names) <= 20:
+        colors = plt.get_cmap("tab20").colors
+    else:
+        color_map = plt.get_cmap("gist_ncar")
+        denominator = max(len(peak_names) - 1, 1)
+        return {
+            peak_name: color_map(index / denominator)
+            for index, peak_name in enumerate(peak_names)
+        }
+    return {peak_name: colors[index] for index, peak_name in enumerate(peak_names)}
+
+
+def plot_results(results, target_masses, output_folder, output_filename):
+    """Create three panels, with all peaks overlaid in every metric panel."""
     plt.rcParams["font.family"] = "Arial"
     plt.rcParams["font.size"] = BASE_FONT_SIZE
     plt.rcParams["pdf.fonttype"] = 42
     plt.rcParams["ps.fonttype"] = 42
 
-    metrics = ["centroid", "fwhm"]
-    if include_area_fraction:
-        metrics.append("area_fraction")
-
-    peak_names = list(target_masses)
-    figure_size = (
-        FIGURE_WIDTH_PER_COLUMN * len(metrics) + 1.5,
-        FIGURE_HEIGHT_PER_ROW * len(peak_names) + 1.5,
-    )
+    metrics = list(METRICS)
     fig, axes = plt.subplots(
-        len(peak_names),
+        1,
         len(metrics),
         squeeze=False,
-        sharex="col",
-        figsize=figure_size,
+        sharex=True,
+        figsize=(17.5, 5.8),
     )
-    point_color = plt.get_cmap("tab10")(0)
-    highlight_color = plt.get_cmap("tab10")(2)
+    axes = axes[0]
+    peak_colors = get_peak_colors(target_masses)
+    legend_handles = []
+    legend_labels = []
 
-    for row, peak_name in enumerate(peak_names):
-        for column, metric in enumerate(metrics):
-            ax = axes[row, column]
+    for panel_index, (ax, metric) in enumerate(zip(axes, metrics)):
+        ax.set_title(
+            METRICS[metric]["title"],
+            fontsize=PANEL_TITLE_FONT_SIZE,
+            fontweight="bold",
+            pad=14,
+        )
+        ax.text(
+            0.97,
+            0.95,
+            chr(ord("A") + panel_index),
+            transform=ax.transAxes,
+            fontsize=SUBPLOT_LABEL_FONT_SIZE,
+            fontweight="bold",
+            ha="right",
+            va="top",
+            clip_on=True,
+            zorder=10,
+        )
+        ax.axhline(0, color="black", linestyle="--", linewidth=1.2, zorder=1)
+
+        for peak_name in target_masses:
             data = results[peak_name][metric]
+            if not data["injections"]:
+                continue
+            color = peak_colors[peak_name]
+            plotted = ax.errorbar(
+                data["injections"],
+                data["mean"],
+                yerr=data["se"],
+                marker="o",
+                linestyle="-",
+                linewidth=1.5,
+                markersize=4.5,
+                capsize=3,
+                color=color,
+                markerfacecolor=color,
+                markeredgecolor=color,
+                ecolor=color,
+                elinewidth=1.2,
+                label=peak_name,
+                zorder=2,
+            )
+            if panel_index == 0:
+                legend_handles.append(plotted)
+                legend_labels.append(peak_name)
 
-            if row == 0:
-                ax.set_title(
-                    METRICS[metric]["title"],
-                    fontsize=GRID_HEADER_FONT_SIZE,
-                    fontweight="bold",
-                    pad=14,
-                )
+        set_delta_axis_limits(ax, results, target_masses, metric)
+        ax.xaxis.set_major_locator(MaxNLocator(nbins=6, integer=True))
+        ax.set_xlabel("Number of Injections", fontweight="bold")
+        ax.set_ylabel(METRICS[metric]["ylabel"])
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
 
-            if column == 0:
-                ax.annotate(
-                    peak_name,
-                    xy=(0, 0.5),
-                    xytext=(-ax.yaxis.labelpad - 38, 0),
-                    xycoords=ax.yaxis.label,
-                    textcoords="offset points",
-                    ha="right",
-                    va="center",
-                    fontsize=GRID_HEADER_FONT_SIZE,
-                    fontweight="bold",
-                    rotation=90,
-                )
-
-            subplot_index = row * len(metrics) + column
+        if not metric_has_data(results, target_masses, metric):
             ax.text(
-                -0.14,
-                1.05,
-                get_subplot_label(subplot_index),
+                0.5,
+                0.5,
+                "No reference data available",
                 transform=ax.transAxes,
-                fontsize=SUBPLOT_LABEL_FONT_SIZE,
-                fontweight="bold",
-                ha="left",
-                va="bottom",
-                clip_on=False,
+                ha="center",
+                va="center",
             )
 
-            theoretical_for_limits = None
-            if metric == "centroid" and show_theoretical_mass:
-                theoretical_for_limits = target_masses[peak_name]
-                ax.axhline(
-                    theoretical_for_limits,
-                    color="black",
-                    linestyle="-",
-                    linewidth=1.4,
-                    label="Theoretical mass",
-                    zorder=1.5,
-                )
+    if legend_handles:
+        fig.legend(
+            legend_handles,
+            legend_labels,
+            loc="upper center",
+            bbox_to_anchor=(0.5, 1.02),
+            ncol=min(len(legend_labels), 6),
+            frameon=False,
+            fontsize=LEGEND_FONT_SIZE,
+        )
 
-            highlight_mean, highlight_error = get_highlight_band(
-                data, HIGHLIGHT_INJECTION
-            )
-            if highlight_mean is not None and highlight_error > 0:
-                ax.axhspan(
-                    highlight_mean - highlight_error,
-                    highlight_mean + highlight_error,
-                    facecolor=highlight_color,
-                    alpha=0.45,
-                    linewidth=0,
-                    label=f"{HIGHLIGHT_INJECTION} injections mean +/- SEM",
-                    zorder=1,
-                )
-
-            if data["injections"]:
-                ax.errorbar(
-                    data["injections"],
-                    data["mean"],
-                    yerr=data["se"],
-                    marker="o",
-                    linestyle="-",
-                    linewidth=1.5,
-                    markersize=4,
-                    capsize=3,
-                    color=point_color,
-                    markerfacecolor=point_color,
-                    markeredgecolor=point_color,
-                    ecolor="black",
-                    elinewidth=1.2,
-                    zorder=2,
-                )
-
-            set_metric_axis_limits(ax, data, metric, theoretical_for_limits)
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=6, integer=True))
-            ax.set_ylabel(METRICS[metric]["ylabel"])
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
-
-            if row == len(peak_names) - 1:
-                ax.set_xlabel("Number of Injections", fontweight="bold")
-
-            handles, _ = ax.get_legend_handles_labels()
-            if handles:
-                ax.legend(frameon=False, fontsize=LEGEND_FONT_SIZE, loc="best")
-
-    fig.tight_layout(rect=(0.03, 0, 1, 1), h_pad=2.2, w_pad=2.0)
+    fig.tight_layout(rect=(0, 0, 1, 0.91 if legend_handles else 1), w_pad=2.0)
 
     output_path = Path(output_folder)
     output_path.mkdir(parents=True, exist_ok=True)
@@ -589,59 +581,48 @@ def plot_results(
 
     print(f"\nPlot saved as '{output_file}'")
     print(
-        "Format: PDF "
-        f"(300 DPI, transparent, {figure_size[0]:g} x {figure_size[1]:g} inches, "
-        "editable text)"
+        "Format: PDF (300 DPI, transparent, 17.5 x 5.8 inches, editable text)"
     )
 
 
-def create_summary_tables(results, target_masses, include_area_fraction):
-    """Print compact result tables for the plotted metrics."""
-    metrics = ["centroid", "fwhm"]
-    if include_area_fraction:
-        metrics.append("area_fraction")
-
+def create_summary_tables(results, target_masses):
+    """Print delta and SEM result tables."""
     print("\n" + "=" * 80)
-    print("SUMMARY TABLES")
+    print(f"DELTAS FROM INJECTION {REFERENCE_INJECTION}")
     print("=" * 80)
     for peak_name in target_masses:
-        for metric in metrics:
-            print(f"\n{peak_name} - {METRICS[metric]['title']}")
-            print(f"{'Injections':<12} {'Mean':<18} {'SEM':<18}")
-            print("-" * 48)
+        for metric in METRICS:
             data = results[peak_name][metric]
+            print(f"\n{peak_name} - {METRICS[metric]['table_name']}")
+            if data["reference_mean"] is None:
+                print(f"No injection {REFERENCE_INJECTION} reference available.")
+                continue
+            print(f"Injection {REFERENCE_INJECTION} mean: {data['reference_mean']:.6g}")
+            print(f"{'Injections':<12} {'Delta':<18} {'SEM':<18}")
+            print("-" * 48)
             for injection, mean, error in zip(
                 data["injections"], data["mean"], data["se"]
             ):
-                print(f"{injection:<12} {mean:<18.4f} {error:<18.4f}")
+                print(f"{injection:<12} {mean:<18.6f} {error:<18.6f}")
 
 
-def save_summary_csv(
-    results,
-    target_masses,
-    include_area_fraction,
-    output_folder,
-    output_filename,
-):
-    """Save the printed injection, mean, and SEM results as one CSV."""
-    metrics = ["centroid", "fwhm"]
-    if include_area_fraction:
-        metrics.append("area_fraction")
-
+def save_summary_csv(results, target_masses, output_folder, output_filename):
+    """Save plotted deltas and SEM values as one CSV."""
     rows = []
     for peak_name in target_masses:
-        for metric in metrics:
+        for metric in METRICS:
             data = results[peak_name][metric]
-            metric_name = METRICS[metric]["title"].replace("\n", " ")
             for injection, mean, error in zip(
                 data["injections"], data["mean"], data["se"]
             ):
                 rows.append(
                     {
                         "Peak": peak_name,
-                        "Metric": metric_name,
+                        "Metric": METRICS[metric]["table_name"],
+                        "Reference Injection": REFERENCE_INJECTION,
+                        "Reference Mean": data["reference_mean"],
                         "Injections": injection,
-                        "Mean": mean,
+                        "Delta": mean,
                         "SEM": error,
                     }
                 )
@@ -650,15 +631,21 @@ def save_summary_csv(
     output_path.mkdir(parents=True, exist_ok=True)
     csv_filename = f"{Path(output_filename).stem}_summary.csv"
     csv_file = output_path / csv_filename
-    pd.DataFrame(
-        rows,
-        columns=["Peak", "Metric", "Injections", "Mean", "SEM"],
-    ).to_csv(csv_file, index=False)
+    columns = [
+        "Peak",
+        "Metric",
+        "Reference Injection",
+        "Reference Mean",
+        "Injections",
+        "Delta",
+        "SEM",
+    ]
+    pd.DataFrame(rows, columns=columns).to_csv(csv_file, index=False)
     print(f"\nSummary CSV saved as '{csv_file}'")
 
 
 def main():
-    """Run the interactive ion-statistics workflow."""
+    """Run the interactive delta-plot workflow."""
     settings = get_user_inputs()
     print("\nStarting DAT file analysis...")
     all_data = process_all_data(
@@ -669,29 +656,40 @@ def main():
     if not all_data:
         print("\nNo data was processed. Please check folder paths and file names.")
         return
+    if REFERENCE_INJECTION not in all_data:
+        print(
+            f"\nInjection {REFERENCE_INJECTION} was not found. "
+            "Deltas cannot be calculated."
+        )
+        return
 
-    results = calculate_statistics(
+    raw_results = calculate_statistics(
         all_data, settings["target_masses"], len(settings["folders"])
     )
-    create_summary_tables(
-        results,
-        settings["target_masses"],
-        settings["include_area_fraction"],
+    delta_results = calculate_deltas(
+        raw_results, settings["target_masses"]
     )
+    if not any(
+        metric_has_data(delta_results, settings["target_masses"], metric)
+        for metric in METRICS
+    ):
+        print(
+            f"\nNo peaks had usable injection {REFERENCE_INJECTION} reference data."
+        )
+        return
+
+    create_summary_tables(delta_results, settings["target_masses"])
     save_summary_csv(
-        results,
+        delta_results,
         settings["target_masses"],
-        settings["include_area_fraction"],
         settings["output_folder"],
         settings["output_filename"],
     )
     plot_results(
-        results,
+        delta_results,
         settings["target_masses"],
         settings["output_folder"],
         settings["output_filename"],
-        settings["show_theoretical_mass"],
-        settings["include_area_fraction"],
     )
     print("\nAnalysis complete!")
 
