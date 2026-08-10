@@ -92,7 +92,7 @@ def make_figure() -> plt.Figure:
     axis.set_xlim(*MASS_LIMITS_KDA)
     axis.set_ylim(0.0, 124.0)
     axis.set_xticks(np.arange(5.0, 40.1, 5.0))
-    axis.set_yticks([0.0, 50.0, 100.0], labels=["0%", "%", "100%"])
+    axis.set_yticks([0.0, 50.0, 100.0], labels=["0", "%", "100"])
     axis.set_xlabel("Mass (kDa)")
 
     axis.spines["top"].set_visible(False)

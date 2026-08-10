@@ -125,7 +125,7 @@ def style_axis(
     if show_y_axis:
         axis.spines["left"].set_linewidth(1.5)
         axis.spines["left"].set_bounds(0.0, 100.0)
-        axis.set_yticks([0.0, 50.0, 100.0], labels=["0%", "%", "100%"])
+        axis.set_yticks([0.0, 50.0, 100.0], labels=["0", "%", "100"])
     else:
         axis.spines["left"].set_visible(False)
         axis.set_yticks([])
