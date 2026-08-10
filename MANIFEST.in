@@ -33,7 +33,7 @@ recursive-exclude unidec/iFAMS/pyqtgraph/ *
 recursive-exclude unidec/bin/old_waters/ *
 recursive-exclude unidec/bin/TestSpectra/test_1_unidecfiles/ *
 recursive-exclude unidec/IsoDec/src_cmake *
-exclude unidec/IsoDec/*.bin
+exclude unidec/IsoDec/modelparams/*.bin
 exclude unidec/IsoDec/IsoGen/*.bin
 
 exclude unidec/bin/mkl_def.2.dll

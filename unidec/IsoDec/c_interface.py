@@ -153,7 +153,7 @@ class IsoDecWrapper:
         if dllpath is None:
             dllpath = default_dll_path
 
-        modelpath = '\\'.join(dllpath.split("\\")[:-1])
+        modelpath = os.path.join(os.path.dirname(os.path.abspath(dllpath)), "modelparams")
 
         self.modeldir = modelpath
 

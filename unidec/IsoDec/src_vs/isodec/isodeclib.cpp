@@ -1300,7 +1300,7 @@ void run()
 	printf("Starting Dll\n");
 
 	char modelfile[500];
-	strcpy(modelfile, "C:\\Python\\UniDec3\\unidec\\IsoDec\\phase_model_2.bin");
+	strcpy(modelfile, "C:\\Python\\UniDec3\\unidec\\IsoDec\\modelparams\\phase_model_2.bin");
 
 	char filename[500];
 	strcpy(filename, "C:\\Data\\IsoNN\\test2.txt");

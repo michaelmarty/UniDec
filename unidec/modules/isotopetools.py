@@ -98,6 +98,7 @@ def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467, iso
     dist = dist[b1]
 
     # Convert to m/z
+    charge = int(charge)
     if abs(charge) >=1:
         dist[:, 0] = (dist[:, 0] + float(charge) * adductmass) / float(abs(charge))
 

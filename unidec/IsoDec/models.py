@@ -88,11 +88,11 @@ class PhaseModel:
             if platform.system() == "Linux":
                 # working_dir = "/xdisk/mtmarty/mtmarty/training/"
                 filename = inspect.getframeinfo(inspect.currentframe()).filename
-                working_dir = os.path.dirname(os.path.abspath(filename))
+                working_dir = os.path.join(os.path.dirname(os.path.abspath(filename)), "modelparams")
             else:
                 # working_dir = "C:\\Data\\IsoNN\\"
                 filename = inspect.getframeinfo(inspect.currentframe()).filename
-                working_dir = os.path.dirname(os.path.abspath(filename))
+                working_dir = os.path.join(os.path.dirname(os.path.abspath(filename)), "modelparams")
 
         self.working_dir = working_dir
 
@@ -152,16 +152,16 @@ class PhaseModel:
             if torch.backends.mps.is_available()
             else "cpu"
         )
-        print(f"Using {self.device} device")
+        # print(f"Using {self.device} device")
 
         self.get_model(modelid)
         if os.path.isfile(self.savepath) and not forcenew:
             self.load_model()
-            print("Loaded Weights:", self.savepath)
+            # print("Loaded Weights:", self.savepath)
         else:
             print("Starting Model From Scratch. Let's ride!")
         self.model = self.model.to(self.device)
-        print("Loaded Model:", self.model)
+        # print("Loaded Model:", self.model)
 
     def get_class_weights(self, dataloader):
         """
@@ -209,11 +209,14 @@ class PhaseModel:
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.1)
         self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=1, gamma=0.95)
 
-    def load_model(self):
+    def load_model(self, savepath=None):
         """
         Load model from savepath.
         :return: None
         """
+        if savepath is not None:
+            self.savepath = os.path.join(self.working_dir, savepath)
+
         if os.path.isfile(self.savepath):
             try:
                 if torch.cuda.is_available() is True:

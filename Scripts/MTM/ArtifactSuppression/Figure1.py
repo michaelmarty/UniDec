@@ -88,11 +88,25 @@ massdat_topn2 = run_deconvolution(spectrum, topn=2)
 massdat_topx005 = run_deconvolution(spectrum, topx=0.05)
 massdat_topx001 = run_deconvolution(spectrum, topx=0.01)
 
-fig, axes = plt.subplots(5, 2, figsize=(6.5, 7))
+fig = plt.figure(figsize=(6.5, 6.5))
+outer_grid = fig.add_gridspec(
+    2,
+    1,
+    height_ratios=[1, 4],
+    hspace=0.2,
+)
+top_grid = outer_grid[0].subgridspec(1, 2, wspace=0.25)
+mass_grid = outer_grid[1].subgridspec(4, 2, hspace=0.08, wspace=0.25)
+axes = np.empty((5, 2), dtype=object)
+for column in range(2):
+    axes[0, column] = fig.add_subplot(top_grid[0, column])
+    for row in range(1, 5):
+        axes[row, column] = fig.add_subplot(mass_grid[row - 1, column])
 flat_axes = axes.flat
 
 axes[0, 0].plot(spectrum[:, 0], normalize(spectrum))
 axes[0, 0].set_xlabel(r'$\mathit{m/z}$')
+
 
 mass_datasets = [
     massdat,
@@ -107,6 +121,7 @@ mass_datasets = [
 ]
 for axis, data in zip(list(flat_axes)[1:], mass_datasets):
     axis.plot(data[:, 0] / 1000, normalize(data))
+    axis.set_ylim(0, 1)
 
 ypos = 15
 for axis in (axes[0, 1], axes[2, 0], axes[3, 0], axes[4, 0]):
@@ -142,10 +157,17 @@ for axis in axes.flat:
 for axis in axes[:, 1:].flat:
     axis.tick_params(axis='y', labelleft=False)
 
-axes[0, 0].set_ylim(0, 115)
+# Panel A retains its m/z tick labels. Hide numeric x labels on the other
+# intermediate mass panels, while preserving their axes and tick marks.
+axes[0, 1].tick_params(axis='x', labelbottom=False)
+for axis in axes[1:-1].flat:
+    axis.tick_params(axis='x', labelbottom=False)
+    axis.set_yticks([0, 50, 100], labels=['', '%', '100'])
+
+axes[0, 0].set_ylim(0, 100)
 label_primary_charge_states(axes[0, 0], spectrum, params, ztab)
 
-plt.tight_layout()
+fig.subplots_adjust(left=0.1, right=0.98, bottom=0.08, top=0.96)
 
 os.chdir(r"C:\Users\mm96978\The University of Texas at Austin\MartyLab - General\Papers\Artifact Suppression\Figures")
 plt.savefig("Figure1.png", dpi=300)
