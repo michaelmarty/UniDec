@@ -97,7 +97,20 @@ for i, mass in enumerate(masses):
         run_deconvolution(spectrum, massrange, sat=2)
     )
 
-fig, axes = plt.subplots(5, 2, figsize=(6.5, 8))
+fig = plt.figure(figsize=(6.5, 8))
+outer_grid = fig.add_gridspec(
+    2,
+    1,
+    height_ratios=[1, 4],
+    hspace=0.05,
+)
+spectrum_grid = outer_grid[0].subgridspec(1, 2, wspace=0.25)
+mass_grid = outer_grid[1].subgridspec(4, 2, hspace=0.08, wspace=0.25)
+axes = np.empty((5, 2), dtype=object)
+for column in range(2):
+    axes[0, column] = fig.add_subplot(spectrum_grid[0, column])
+    for row in range(1, 5):
+        axes[row, column] = fig.add_subplot(mass_grid[row - 1, column])
 
 for column, datasets in enumerate(
         zip(
@@ -168,6 +181,10 @@ for panel_index, axis in enumerate(axes.flat):
 for axis in axes[:, 1:].flat:
     axis.tick_params(axis='y', labelleft=False)
 
+for axis in axes[1:-1].flat:
+    axis.tick_params(axis='x', labelbottom=False)
+    axis.set_yticks([0, 50, 100], labels=['', '%', '100'])
+
 for column, (mass, spectrum) in enumerate(zip(masses, spectra)):
     label_most_intense_charge(axes[0, column], spectrum, mass)
 
@@ -188,7 +205,7 @@ for row, column in red_bar_panels:
         color='red', linewidth=3
     )
 
-plt.tight_layout()
+fig.subplots_adjust(left=0.1, right=0.98, bottom=0.08, top=0.96)
 
 os.chdir(
     r"C:\Users\mm96978\The University of Texas at Austin"
