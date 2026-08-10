@@ -10,9 +10,9 @@ from unidec.IsoDec.encoding import *
 mpl.use('WxAgg')
 os.chdir("C:\\Users\\marty\\University of Arizona\\martylab - Documents\\Papers\\IsoDec\\Figures")
 
-modelpath = "C:\\Python\\UniDec3\\unidec\\IsoDec\\phase_model_4.pth"
+modelpath = "C:\\Python\\UniDec3\\unidec\\IsoDec\\modelparams\\phase_model_4.pth"
 
-# modelpath = "C:\\Python\\UniDec3\\unidec\\IsoDec\\phase_model_8.pth"
+# modelpath = "C:\\Python\\UniDec3\\unidec\\IsoDec\\modelparams\\phase_model_8.pth"
 
 model = torch.load(modelpath, weights_only=True)
 

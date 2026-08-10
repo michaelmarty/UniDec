@@ -162,8 +162,8 @@ if system == "Windows":
     a.datas += [('isodeclib.lib', 'unidec\\IsoDec\\isodeclib.lib', 'BINARY')]
     a.datas += [('isogen.dll', 'unidec\\IsoDec\\isogen.dll', 'BINARY')]
 
-    a.datas += [('phase_model_8.bin', 'unidec\\IsoDec\\phase_model_8.bin', 'BINARY')]
-    a.datas += [('phase_model_4.bin', 'unidec\\IsoDec\\phase_model_4.bin', 'BINARY')]
+    a.datas += [('modelparams/phase_model_8.bin', 'unidec\\IsoDec\\modelparams\\phase_model_8.bin', 'BINARY')]
+    a.datas += [('modelparams/phase_model_4.bin', 'unidec\\IsoDec\\modelparams\\phase_model_4.bin', 'BINARY')]
 
 
 #LINUX DEPENDENCIES:

@@ -43,8 +43,9 @@ def bin_to_header(bin_file, header_file, varname="model_weights"):
 if __name__ == "__main__":
     isodec_dir = Path(__file__).resolve().parent
 
-    input_pth = isodec_dir / "phase_model_8.pth"
-    output_bin = isodec_dir / "phase_model_8.bin"
+    model_dir = isodec_dir / "modelparams"
+    input_pth = model_dir / "phase_model_8.pth"
+    output_bin = model_dir / "phase_model_8.bin"
     output_header = isodec_dir / "src_cmake" / "phase_model_8.h"
     variable_name = "phase_model_8_bin"
 

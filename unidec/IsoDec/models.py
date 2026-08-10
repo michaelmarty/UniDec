@@ -88,11 +88,11 @@ class PhaseModel:
             if platform.system() == "Linux":
                 # working_dir = "/xdisk/mtmarty/mtmarty/training/"
                 filename = inspect.getframeinfo(inspect.currentframe()).filename
-                working_dir = os.path.dirname(os.path.abspath(filename))
+                working_dir = os.path.join(os.path.dirname(os.path.abspath(filename)), "modelparams")
             else:
                 # working_dir = "C:\\Data\\IsoNN\\"
                 filename = inspect.getframeinfo(inspect.currentframe()).filename
-                working_dir = os.path.dirname(os.path.abspath(filename))
+                working_dir = os.path.join(os.path.dirname(os.path.abspath(filename)), "modelparams")
 
         self.working_dir = working_dir
 

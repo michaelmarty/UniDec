@@ -31,7 +31,7 @@ phases = encode_phase(example)
 
 
 
-model = "C:\\Python\\UniDec3\\unidec\\IsoDec\\phase_model_8.pth"
+model = "C:\\Python\\UniDec3\\unidec\\IsoDec\\modelparams\\phase_model_8.pth"
 
 outfile = "C:\\Data\\IsoNN\\phase_model_8.bin"
 
