@@ -9,21 +9,34 @@ import os
 import time
 
 
-def run_training(dirs, phaseres, mode="centroid", phaselock=0, force_new=True, epochs=10,
-                 batchsize=32, double_percent=0.4):
+def get_model_input_settings(phaseres, phaselock, mode):
+    """Return the data keys and model filename for a profile-model input set."""
     if mode == "centroid":
         centroidkey = "centroids"
-        short = 'c_'
+        short = "c_"
     elif mode == "profile":
         centroidkey = "profiles"
-        short = 'p_'
+        short = "p_"
     elif mode == "both":
         centroidkey = "both"
-        short = 'b_'
+        short = "b_"
     else:
         raise ValueError("Mode must be 'centroid', 'profile', or 'both'.")
 
-    ematkey = "emat_" + short + str(phaseres) + "_" + str(phaselock)
+    phaseres = int(phaseres)
+    phaselock = int(phaselock)
+    if phaseres not in (1, 4, 8):
+        raise ValueError("Phase resolution must be 1, 4, or 8.")
+    if phaselock not in (0, 1):
+        raise ValueError("Phase lock must be 0 or 1.")
+    ematkey = f"emat_{short}{phaseres}_{phaselock}"
+    model_name = f"phase_model_{short}{phaseres}_{phaselock}.pth"
+    return ematkey, centroidkey, model_name
+
+
+def run_training(dirs, phaseres, mode="centroid", phaselock=0, force_new=True, epochs=10,
+                 batchsize=32, double_percent=0.4):
+    ematkey, centroidkey, _ = get_model_input_settings(phaseres, phaselock, mode)
 
     eng = IsoDecEngine(phaseres=phaseres)
     eng.create_merged_dataloader(dirs, f"profile", noise_percent=0, batchsize=batchsize,

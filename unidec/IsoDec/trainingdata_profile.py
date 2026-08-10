@@ -82,6 +82,37 @@ def process_dir_list(topdir, dirlist, check_existing=True):
     print(f"Total time: {t2 - t1:.2f} seconds")
 
 
+def load_training_data(topdir, dirlist):
+    training_data = []
+    for subdir in dirlist:
+        directory = os.path.join(topdir, subdir)
+        if os.path.isdir(directory):
+            for file in os.listdir(directory):
+                if file.endswith("_profile_data.pkl"):
+                    full_path = os.path.join(directory, file)
+                    print(f"Loading training data from {full_path}")
+                    with open(full_path, "rb") as infile:
+                        pks = pickle.load(infile)
+                        for peak in pks:
+                            training_data.append(peak.z)
+        else:
+            print(f"Directory {directory} does not exist.")
+    print(f"Loaded training data from {len(training_data)} peaks.")
+    print(f"Max charge state: {max(training_data)}")
+    return training_data
+
+def plot_z_dist(training_data, topdir=None):
+    z_values = [z for z in training_data]
+    plt.hist(z_values, bins=np.arange(min(z_values), max(z_values) + 1) - 0.5, density=True)
+    plt.xlabel("Charge State (z)")
+    plt.ylabel("Frequency")
+    plt.title("Distribution of Charge States in Training Data")
+    outfile = os.path.join(topdir, "charge_state_distribution") if topdir else "charge_state_distribution"
+    plt.savefig(outfile + ".png", dpi=300, transparent=True)
+    plt.savefig(outfile + ".pdf", transparent=True)
+    plt.show()
+
+
 data_dirs = ["MSV000090488",
              "MSV000091923",
              "PXD045560",
@@ -96,6 +127,12 @@ data_dirs = ["MSV000090488",
 
 if __name__ == "__main__":
     topdir= r"Z:\Group Share\JGP"
+
+    td = load_training_data(topdir, data_dirs)
+    plot_z_dist(td, topdir)
+    exit()
+
+
     process_dir_list(topdir, data_dirs, check_existing=True)
     exit()
 
