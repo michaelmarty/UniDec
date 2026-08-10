@@ -35,6 +35,7 @@ def run_training(dirs, phaseres, mode="centroid", phaselock=0, force_new=True, e
 
 
 if __name__ == "__main__":
+    # TODO: Rework the model to use the new ones, test the old training data on the new models, new ROCs, check if old encoding flag is needed
 
     topdirectory = "/groups/mtmarty/data"
     topdirectory = "Z:\\Group Share\\JGP\\"
