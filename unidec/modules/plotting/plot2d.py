@@ -37,6 +37,7 @@ class Plot2dBase(PlotBase):
         Data can be added using two methods:
             1. If dat is specified, it will look for an N x 3 list of x,y,z values
             2. If xvals, yvals, and zgrid are filled, it will plot zgrid assuming its shape is (len(xvals),len(yvals))
+
         :param dat: N x 3 list in [x,y,z] format of data to be plotted
         :param config: UniDecConfig object
         :param xvals: x-axis values

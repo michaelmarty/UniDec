@@ -18,7 +18,7 @@ def: include
 
 ## d: \\subdir$ ## Filter for directory
 
-d: \\.git
+d: \\.git$
 d: \\.idea
 d: \\build
 d: \\dist
@@ -52,7 +52,6 @@ f: \.*docker_commands.txt$
 f: \.*dockerignore
 f: \.*hashing.py
 f: \.*MANIFEST.in
-f: \.*pyproject.toml
 f: \.*oldisodecfunctions.py
 f: \.*build.bat
 

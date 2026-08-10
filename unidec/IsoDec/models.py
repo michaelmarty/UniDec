@@ -229,13 +229,18 @@ class PhaseModel:
         else:
             print("Model not found:", self.savepath)
 
-    def save_model(self):
+    def save_model(self, savepath=None):
         """
         Save model to savepath.
+        :param savepath: Path to save the model. If None, uses the current savepath.
         :return: None
         """
         if self.model is None:
             self.setup_model()
+
+        if savepath is not None:
+            self.savepath = os.path.join(self.working_dir, savepath)
+
         torch.save(self.model.state_dict(), self.savepath)
         save_model_to_binary(self.model, self.savepath.replace(".pth", ".bin"))
         print("Model saved:", self.savepath, self.savepath.replace(".pth", ".bin"))
@@ -313,7 +318,7 @@ class PhaseModel:
         correct /= size
         print(f"Test Error: \n Accuracy: {(100 * correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
 
-        return baddata
+        return baddata, correct
 
     def predict(self, centroids):
         """

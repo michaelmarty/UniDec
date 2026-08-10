@@ -459,16 +459,19 @@ def header_desc(file_path):
 
 
 def search_extern(file_path, search_string, split_skip=False):
-    # note that split_skip will go +1 on what is returned to get around non-ASCII unit issue
-    # e.g. Pusher Interval (uS) where u is Greek mu, search for "Pusher Interval" and then set split_skip = True
-    """
-    Pass in each string left of target value.
-    An example,
-        target
-        ------
-        Trap Wave Velocity (m/s)	300
-        search string='Trap Wave Velocity (m/s)'
-        returns :: 300
+    """Find a value in a Waters ``_extern.inf`` parameter file.
+
+    For example, searching for ``"Trap Wave Velocity (m/s)"`` in a line
+    containing ``"Trap Wave Velocity (m/s) 300"`` returns ``"300"``.
+
+    ``split_skip`` advances one additional field to accommodate parameters
+    containing non-ASCII unit characters, such as the Greek mu in a pusher
+    interval label.
+
+    :param file_path: Directory containing ``_extern.inf``.
+    :param search_string: Text immediately preceding the target value.
+    :param split_skip: Whether to skip one additional field.
+    :return: The matching value, if found.
     """
     global param_file_cache
 

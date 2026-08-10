@@ -230,7 +230,7 @@ class RawFileReader(object):
             except:
                 self.analog1 = None
                 self.analog2 = None
-                print("Error getting analog data")
+                # print("Error getting analog data")
             return self.injection_time, self.resolution, self.analog1, self.analog2
         except:
             self.header = None

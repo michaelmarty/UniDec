@@ -10,7 +10,7 @@ mpl.use('WxAgg')
 os.chdir("C:\\Users\\marty\\University of Arizona\\martylab - Documents\\Papers\\IsoDec\\Figures")
 path = "Z:\\Group Share\\JGP\\PXD019247\\20170105_L_MaD_ColC4_Ecoli20161108-12_01.pkl"
 
-tr, te, zd = encode_phase_file(path, save=False)
+tr, te, zd = encode_phase_file(path)
 
 plt.figure()
 

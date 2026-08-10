@@ -307,7 +307,7 @@ class GridDeconWindow(wx.Frame):
 
 
 if __name__ == "__main__":
-    dir_name = "C:\\MassLynx\\Mike.PRO\Data\\150521\\mzML\\Aqpz_05_Ramp3\\"
+    dir_name = "C:\\MassLynx\\Mike.PRO\\Data\\150521\\mzML\\Aqpz_05_Ramp3\\"
     file_name = "MTM_150521_AqpZ_05_POPC_Ramp_1-5pbar_20mit100.txt"
     # dir_name = "C:\Data\Others\Miranda\sample_data\MC_20170904_1to1_aB_C137S_11500_520_HCD300_CAL_unidecfiles"
     # dir_name = "C:\Data\Others\Miranda\sample_data\MC_20170904_1to1_aB_C137S_11000_520_HCD300_CAL_unidecfiles"
