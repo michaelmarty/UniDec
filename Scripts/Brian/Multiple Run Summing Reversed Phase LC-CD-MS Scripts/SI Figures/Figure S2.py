@@ -408,7 +408,7 @@ def make_figure(results: pd.DataFrame) -> plt.Figure:
                 axis.set_xlabel("Number of Injections")
 
             handles, _ = axis.get_legend_handles_labels()
-            if handles:
+            if handles and row == 0 and column == 0:
                 axis.legend(frameon=False, fontsize=LEGEND_FONT_SIZE, loc="best")
 
     figure.tight_layout(rect=(0.03, 0, 1, 1), h_pad=2.2, w_pad=2.0)
