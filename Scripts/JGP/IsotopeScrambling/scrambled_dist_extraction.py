@@ -1,3 +1,5 @@
+import csv
+
 import numpy as np
 from Scripts.JGP.IsotopeScrambling.MetaMorpheus_tools import *
 import os
@@ -38,6 +40,9 @@ def get_psm_isodist(psm, isogenpep_eng=None, heavy=False, threshold=0.001):
         if isogenpep_eng is None:
             isogenpep_eng = IsoGenPepEngine(isolen=16)
         isodist_intensities = isogenpep_eng.predict(psm.base_sequence)
+
+    if isodist_intensities is None:
+        return None
 
     if "|" in psm.monoisotopic_mass:
         split = psm.monoisotopic_mass.split('|')
@@ -230,6 +235,77 @@ def has_isotope_shape(matched_intensities,
 
     return True
 
+def get_psm_experimental_dist(psm, reader, scan_orders, lipid_quant_config):
+    #This is the isodist adjusted to match the position in m/z space. No intensity scaling or shifting performed
+    light_isodist = get_psm_isodist(psm)
+
+    if light_isodist is None:
+        return None
+
+    min_mz = psm.precursor_mz - 5
+    max_mz = psm.precursor_mz + 10
+
+    precursor_spectrum = datachop(reader.grab_centroid_data(psm.ms1_scan_num), min_mz, max_mz)
+
+    top_n = 2
+    indices = np.argsort(light_isodist[:, 1])[-top_n:][::-1]
+    most_abundant_mzs = light_isodist[indices, 0]
+
+    rt_tol = 2
+    min_rt = psm.retention_time - rt_tol
+    min_scan_idx = fastnearest(reader.times, min_rt)
+    max_rt = psm.retention_time + rt_tol
+    max_scan_idx = fastnearest(reader.times, max_rt)
+
+    mask = (np.array(scan_orders[min_scan_idx:max_scan_idx+1]) == 1)
+
+    ppm_tol = 20
+    mz_tol = (most_abundant_mzs[0] / 1000000) * ppm_tol
+
+    eics = []
+    for i in range(len(most_abundant_mzs)):
+        eics.append(reader.get_eic(most_abundant_mzs[i], mz_tol=mz_tol, rt_range=[min_rt, max_rt])[mask])
+
+    int_indices = get_integration_indices(eics[0], eics[1], psm.retention_time, lipid_quant_config)
+
+    averaged_centroided =None
+    profile = None
+    if int_indices is None:
+        print("No averaging window found.")
+        averaged_centroided = precursor_spectrum
+    else:
+        min_avgd_rt = eics[0][int_indices[0], 0]
+        max_avgd_rt = eics[0][int_indices[len(int_indices) - 1], 0]
+        averaged_centroided, profile = get_averaged_spectrum(psm, reader, min_avgd_rt, max_avgd_rt, scan_orders)
+        averaged_centroided = datachop(averaged_centroided, min_mz, max_mz)
+
+    bestshift, light_css, light_matched_intensities = match_isodist(averaged_centroided, light_isodist, psm, min_css=0.6, no_shift=True)
+
+    if light_matched_intensities is None:
+        print("No distribution found")
+        return None
+    # print("CSS:", light_css)
+    #
+    # for i in range(len(averaged_centroided_copy)):
+    #     plt.vlines(averaged_centroided_copy[i, 0], 0, averaged_centroided_copy[i, 1])
+    # plt.plot(light_isodist[:, 0], light_isodist[:, 1], color='r')
+    # plt.show()
+
+    match_count = np.count_nonzero(np.array(light_matched_intensities))
+    matched_frac = match_count / len(light_matched_intensities)
+
+    if light_css < 0.6:
+        #print("Failed Heavy css")
+        return None
+    if matched_frac < 0.6:
+        #print("Failed matched frac")
+        return None
+    if not has_isotope_shape(light_matched_intensities, light_isodist[:,1]):
+        print("Failed Diff Shape.")
+        return None
+
+    return light_matched_intensities / max(light_matched_intensities)
+
 
 def extract_dist_for_psm(psm, reader, scan_orders, lipid_quant_config, isogenpep_eng=None):
     #This is the isodist adjusted to match the position in m/z space. No intensity scaling or shifting performed
@@ -393,6 +469,65 @@ def process_file_set(psm_filepaths, raw_filepaths, lipid_quant_config, isogenpep
 
     return all_dists, all_seqs, all_full_seqs
 
+
+def process_file_set_new(psm_filepaths, raw_filepaths, lipid_quant_config, isogenpep_eng=None):
+    validate_filepaths(psm_filepaths)
+    validate_filepaths(raw_filepaths)
+
+    all_dists = []
+    all_seqs = []
+    all_full_seqs = []
+
+    for i in range(len(psm_filepaths)):
+        filename = os.path.splitext(raw_filepaths[i])[0]
+        print("Processing ", filename)
+
+        psms = load_psm_file(psm_filepaths[i])
+
+        reader = ImporterFactory.create_importer(raw_filepaths[i])
+        scan_orders = [1 for i in range(len(reader.scans))]
+        for i in range(len(reader.scans)):
+            scan_orders[i] = reader.get_ms_order(reader.scans[i])
+
+        heavy_dists = []
+        seqs = []
+        full_seqs = []
+
+        psms_to_process = []
+        for psm in psms:
+            if ('K' in psm.base_sequence and psm.qvalue < 0.01 and psm.target_decoy_contaminant == "T" and "Mus" in psm.organism
+                    and "13C6_15N2" in psm.mods and "|" not in psm.base_sequence):
+                psms_to_process.append(psm)
+
+
+        for i in range(len(psms_to_process)):
+            if i % 10 == 0:
+                print("Processing peptide " + str(i) + " of " + str(len(psms_to_process)))
+            psm = psms_to_process[i]
+            heavy_dist = get_psm_experimental_dist(psm, reader, scan_orders, lipid_quant_config)
+            if heavy_dist is not None:
+                heavy_dists.append(heavy_dist)
+                seqs.append(psm.base_sequence)
+                full_seqs.append(psm.full_sequence)
+
+        print("Found " + str(len(heavy_dists)) + " training dists.")
+        print(os.getcwd())
+        # Find max length
+        max_len = 16
+
+        # Create padded array
+        padded_dists = np.zeros((len(heavy_dists), max_len))
+        all_dists.extend(heavy_dists)
+        all_seqs.extend(seqs)
+        all_full_seqs.extend(full_seqs)
+
+        for i, d in enumerate(heavy_dists):
+            padded_dists[i, :len(d)] = d
+        np.savez_compressed(filename + "_mouse_dists_with_diffshape.npz", dists=padded_dists, seqs=seqs, full_seqs=full_seqs)
+
+    return all_dists, all_seqs, all_full_seqs
+
+
 def add_seqs_to_unique(existing_unique, to_add):
     for seq in to_add:
         if seq not in existing_unique:
@@ -405,7 +540,7 @@ def load_results_from_npzs(raw_filepaths):
     full_seqs = []
     for raw_file in raw_filepaths:
         filename = os.path.splitext(raw_file)[0]
-        data = np.load(filename + "_transfer_dists.npz")
+        data = np.load(filename + "_mouse_dists_with_diffshape.npz")
         dists.extend(data['dists'])
         seqs.extend(data['seqs'])
         full_seqs.extend(data['full_seqs'])
@@ -461,7 +596,7 @@ def find_dist_pairs(d12_results, d24_results, d36_results, d48_results, d60_resu
     add_seqs_to_unique(unique_full_seqs, d48_fullseqs)
     add_seqs_to_unique(unique_full_seqs, d60_fullseqs)
 
-    print("Found " + str(len(unique_full_seqs)) + " unique base sequences")
+    print("Found " + str(len(unique_full_seqs)) + " unique full sequences")
 
     base_seqs = []
     mean_dists = []
@@ -476,7 +611,7 @@ def find_dist_pairs(d12_results, d24_results, d36_results, d48_results, d60_resu
         d60_indices = [i for i, val in enumerate(d60_fullseqs) if val == fullseq]
 
         base_seq = convert_fullseq_to_baseseq(fullseq)
-        print("Base seq: ", base_seq)
+        # print("Base seq: ", base_seq)
         theoretical_dist = fft_pep_seq_to_dist(base_seq, isolen=8)
 
         dists = []
@@ -520,16 +655,17 @@ def find_dist_pairs(d12_results, d24_results, d36_results, d48_results, d60_resu
 
         filtered_distributions = dists[mask]
         mean_dist = average_dists(filtered_distributions)
+        mean_dist = mean_dist / max(mean_dist)
         bad_dists = dists[oppo_mask]
 
-        print("Removed " + str(len(dists) - len(filtered_distributions)) + " distributions.")
+        # print("Removed " + str(len(dists) - len(filtered_distributions)) + " distributions.")
 
         # for filtered_dist in filtered_distributions:
         #     plt.plot(filtered_dist, color='b')
         # for bad_dist in bad_dists:
         #     plt.plot(bad_dist, color='r', linestyle='--')
-        # plt.plot(theoretical_dist, color='k', linewidth=2, label="THEORETICAL")
-        # plt.plot(mean_dist, color='b', linewidth=2, linestyle='--')
+        # plt.plot(theoretical_dist, color='k', linewidth=4, label="THEORETICAL")
+        # plt.plot(mean_dist, color='b', linewidth=4, linestyle='--', label='MEAN')
         # plt.legend()
         # plt.show()
 
@@ -541,6 +677,12 @@ def find_dist_pairs(d12_results, d24_results, d36_results, d48_results, d60_resu
 
     np.savez_compressed("transfer_learning_dists_" + str(len(base_seqs)) + ".npz",
                         seqs=base_seqs, dists=mean_dists)
+
+    with open("transfer_learning_dists_" + str(len(base_seqs)) + ".tsv", "w", newline="") as f:
+        writer = csv.writer(f, delimiter="\t")
+        writer.writerow(["Base Sequence", "Averaged Isotope Distribution (comma separated)"])
+        for name, vals in zip(base_seqs, mean_dists):
+            writer.writerow([name, ",".join(map(str, vals))])
 
     aa_counts = Counter(bigseq)
     aas = []
@@ -559,13 +701,15 @@ def make_figure_for_psm(psm, reader, scan_orders, lipid_quant_config, engine):
     #This is the isodist adjusted to match the position in m/z space. No intensity scaling or shifting performed
     light_isodist = get_psm_isodist(psm)
 
-    min_mz = psm.precursor_mz - 2
-    max_mz = psm.precursor_mz + 10
+    # min_mz = psm.precursor_mz - 2
+    # max_mz = psm.precursor_mz + 12
+    min_mz = 1000
+    max_mz = 1012
 
     precursor_spectrum = datachop(reader.grab_centroid_data(psm.ms1_scan_num), min_mz, max_mz)
     precursor_spectrum_copy = precursor_spectrum.copy()
 
-    bestshift, light_css, light_matched_intensities = match_isodist(precursor_spectrum, light_isodist, psm)
+    bestshift, light_css, light_matched_intensities = match_isodist(precursor_spectrum, light_isodist, psm, no_shift=True)
 
     top_n = 2
     indices = np.argsort(light_isodist[:, 1])[-top_n:][::-1]
@@ -598,13 +742,13 @@ def make_figure_for_psm(psm, reader, scan_orders, lipid_quant_config, engine):
         max_avgd_rt = eics[0][int_indices[len(int_indices) - 1], 0]
         averaged_centroided, profile = get_averaged_spectrum(psm, reader, min_avgd_rt, max_avgd_rt, scan_orders)
         averaged_centroided = datachop(averaged_centroided, min_mz, max_mz)
-        profile = datachop(profile, min_mz, max_mz)
+
 
     averaged_centroided_copy = averaged_centroided.copy()
     averaged_centroided_copy1 = averaged_centroided.copy()
+    averaged_centroided_copy2 = averaged_centroided.copy()
 
-    bestshift, light_css, light_matched_intensities = match_isodist(averaged_centroided, light_isodist, psm)
-
+    bestshift, light_css, light_matched_intensities = match_isodist(averaged_centroided, light_isodist, psm, no_shift=True)
 
     if engine is None:
         heavy_isodist = light_isodist.copy()
@@ -618,12 +762,24 @@ def make_figure_for_psm(psm, reader, scan_orders, lipid_quant_config, engine):
     heavy_isodist[:,0] += k_shift
     original_heavy[:,0] += k_shift
 
-
-
-    heavy_bestshift, heavy_css, heavy_matched_intensities = match_isodist(averaged_centroided, heavy_isodist, psm, min_css=0.5, no_shift=True)
+    heavy_bestshift, heavy_css, heavy_matched_intensities = match_isodist(averaged_centroided_copy, heavy_isodist, psm, min_css=0.5, no_shift=True)
     og_heavy_bestshift, og_heavy_css, og_heavy_matched_intensities = match_isodist(averaged_centroided_copy1, original_heavy, psm, min_css=0.5, no_shift=True)
 
+    if heavy_matched_intensities is None:
+        return
+
+    heavy_nonzeros = 0
+    for i in range(len(heavy_matched_intensities)):
+        if heavy_matched_intensities[i] > 0:
+            heavy_nonzeros += 1
+
+
+    # if heavy_css < 0.9 or heavy_nonzeros / len(heavy_matched_intensities) < 0.6:
+    #     return
+
+
     heavy_mono_mz = ((float(psm.monoisotopic_mass) + (psm.precursor_charge * proton_mass)) / psm.precursor_charge) + k_shift
+
 
     # Set backend to Agg
     mpl.use('WxAgg')
@@ -643,18 +799,18 @@ def make_figure_for_psm(psm, reader, scan_orders, lipid_quant_config, engine):
     save_figs = True
 
     if True:
-        light_rect = patches.Rectangle((1001.5, 0), 3, 0.6e7, linewidth=0, facecolor=CB_color_cycle[0], alpha=0.3)
-        heavy_rect = patches.Rectangle((1006, 0), 6, 8e7, linewidth=0, facecolor=CB_color_cycle[1], alpha=0.3)
+        light_rect = patches.Rectangle((1001.5, 0), 3, 1e7, linewidth=0, facecolor=CB_color_cycle[0], alpha=0.3)
+        heavy_rect = patches.Rectangle((1006, 0), 6, 4e7, linewidth=0, facecolor=CB_color_cycle[1], alpha=0.3)
 
         fig, ax = plt.subplots(figsize=(6,3.5))
         ax.add_patch(light_rect)
         ax.add_patch(heavy_rect)
-        for i in range(len(averaged_centroided_copy)):
-            plt.vlines(averaged_centroided_copy[i,0], 0, averaged_centroided_copy[i,1], color='k', linewidth=2)
-        plt.xlim(1000, 1012)
-        plt.ylim(0,8e7)
+        for i in range(len(averaged_centroided_copy2)):
+            plt.vlines(averaged_centroided_copy2[i,0], 0, averaged_centroided_copy2[i,1], color='k', linewidth=2)
+        plt.xlim(min_mz, max_mz)
+        plt.ylim(0,4e7)
         plt.xticks([1000, 1002, 1004, 1006, 1008, 1010, 1012], fontsize=tick_size)
-        plt.yticks(ticks=[0,4e7,8e7], labels=["0","4e7","8e7"], fontsize=tick_size)
+        plt.yticks(ticks=[0,2e7,4e7], labels=["0","2e7","4e7"], fontsize=tick_size)
         plt.xlabel('m/z', fontstyle='italic', fontsize=label_size)
         plt.ylabel("Intensity", fontsize=label_size)
         plt.gca().spines['top'].set_visible(False)
@@ -670,18 +826,15 @@ def make_figure_for_psm(psm, reader, scan_orders, lipid_quant_config, engine):
             plt.savefig(r"C:\Users\Admin\OneDrive\Desktop\martylab\IsoGen\Figures\scrambled_dist_spectrum.png", dpi=300, transparent=True)
         plt.show()
 
-    if False:
-        light_min_mz = 1001.5
-        light_max_mz = 1004.5
-
+    if True:
         fig,ax = plt.subplots(figsize=(3,3))
         for i in range(len(averaged_centroided_copy)):
             plt.vlines(averaged_centroided_copy[i,0], 0, averaged_centroided_copy[i,1], linewidth=2, color='k')
         plt.plot(light_isodist[:, 0], light_isodist[:, 1], color=CB_color_cycle[0], linewidth=2)
-        plt.ylim(0, 0.6e7)
-        plt.xticks([1001, 1002, 1003, 1004], fontsize=tick_size)
-        plt.yticks(ticks=[0, 3e6, 6e6], labels=["0","3e6","6e6"], fontsize=tick_size)
-        plt.xlim(light_min_mz, light_max_mz)
+        plt.ylim(0, 1e7)
+        plt.xticks([1002, 1003, 1004], fontsize=tick_size)
+        plt.yticks(ticks=[0, 5e6, 1e7], labels=["0","5e6","1e7"], fontsize=tick_size)
+        plt.xlim(1001.5, 1004.5)
         plt.xlabel('m/z', fontstyle='italic', fontsize=label_size)
         plt.ylabel("Intensity", fontsize=label_size)
         plt.gca().spines['top'].set_visible(False)
@@ -695,19 +848,16 @@ def make_figure_for_psm(psm, reader, scan_orders, lipid_quant_config, engine):
             plt.savefig(r"C:\Users\Admin\OneDrive\Desktop\martylab\IsoGen\Figures\scrambled_dist_light.png", dpi=300, transparent=True)
         plt.show()
 
-    if False:
-        heavy_min_mz = 1006
-        heavy_max_mz = 1012
-
+    if True:
         fig,ax = plt.subplots(figsize=(3,3))
-        for i in range(len(averaged_centroided_copy)):
-            plt.vlines(averaged_centroided_copy[i,0], 0, averaged_centroided_copy[i,1], linewidth=2, color='k')
+        for i in range(len(averaged_centroided_copy2)):
+            plt.vlines(averaged_centroided_copy2[i,0], 0, averaged_centroided_copy2[i,1], linewidth=2, color='k')
         plt.plot(heavy_isodist[:, 0], heavy_isodist[:, 1], color=CB_color_cycle[1], linewidth=2)
         plt.plot(original_heavy[:,0], original_heavy[:,1], color=CB_color_cycle[2], linestyle='--', linewidth=2)
-        plt.ylim(0, 8e7)
+        plt.ylim(0, 4e7)
         plt.xticks([1006, 1008, 1010, 1012], fontsize=tick_size)
-        plt.yticks(ticks=[0, 4e7, 8e7], labels=["0","4e7","8e7"], fontsize=tick_size)
-        plt.xlim(heavy_min_mz, heavy_max_mz)
+        plt.yticks(ticks=[0, 2e7, 4e7], labels=["0","2e7","4e7"], fontsize=tick_size)
+        plt.xlim(1006, 1012)
         plt.xlabel('m/z', fontstyle='italic', fontsize=label_size)
         plt.ylabel("Intensity", fontsize=label_size)
         plt.gca().spines['top'].set_visible(False)
@@ -724,16 +874,152 @@ def make_figure_for_psm(psm, reader, scan_orders, lipid_quant_config, engine):
     return
 
 
+def make_figure_for_psm_mouse_only(psm, reader, scan_orders, lipid_quant_config, engine):
+    #This is the isodist adjusted to match the position in m/z space. No intensity scaling or shifting performed
+    light_isodist = get_psm_isodist(psm)
+
+    if light_isodist is None:
+        return
+
+    # min_mz = psm.precursor_mz - 2
+    # max_mz = psm.precursor_mz + 6
+
+    min_mz = 866
+    max_mz = 872
+
+    precursor_spectrum = datachop(reader.grab_centroid_data(psm.ms1_scan_num), min_mz, max_mz)
+    precursor_spectrum_copy = precursor_spectrum.copy()
+
+    bestshift, light_css, light_matched_intensities = match_isodist(precursor_spectrum, light_isodist, psm, no_shift=True)
+
+    top_n = 2
+    indices = np.argsort(light_isodist[:, 1])[-top_n:][::-1]
+    most_abundant_mzs = light_isodist[indices, 0]
+
+    rt_tol = 2
+    min_rt = psm.retention_time - rt_tol
+    min_scan_idx = fastnearest(reader.times, min_rt)
+    max_rt = psm.retention_time + rt_tol
+    max_scan_idx = fastnearest(reader.times, max_rt)
+
+    mask = (np.array(scan_orders[min_scan_idx:max_scan_idx+1]) == 1)
+
+    ppm_tol = 20
+    mz_tol = (most_abundant_mzs[0] / 1000000) * ppm_tol
+
+    eics = []
+    for i in range(len(most_abundant_mzs)):
+        eics.append(reader.get_eic(most_abundant_mzs[i], mz_tol=mz_tol, rt_range=[min_rt, max_rt])[mask])
+
+    int_indices = get_integration_indices(eics[0], eics[1], psm.retention_time, lipid_quant_config)
+
+    averaged_centroided =None
+    profile = None
+    if int_indices is None:
+        print("No averaging window found.")
+        averaged_centroided = precursor_spectrum_copy
+    else:
+        min_avgd_rt = eics[0][int_indices[0], 0]
+        max_avgd_rt = eics[0][int_indices[len(int_indices) - 1], 0]
+        averaged_centroided, profile = get_averaged_spectrum(psm, reader, min_avgd_rt, max_avgd_rt, scan_orders)
+        averaged_centroided = datachop(averaged_centroided, min_mz, max_mz)
+
+
+    averaged_centroided_copy = averaged_centroided.copy()
+    averaged_centroided_copy1 = averaged_centroided.copy()
+    averaged_centroided_copy2 = averaged_centroided.copy()
+
+    bestshift, light_css, light_matched_intensities = match_isodist(averaged_centroided, light_isodist, psm, no_shift=True)
+
+    if engine is None:
+        heavy_isodist = light_isodist.copy()
+    else:
+        heavy_isodist = get_psm_isodist(psm, heavy=True, isogenpep_eng=engine)
+
+    a,b,heavy_matched_intensities = match_isodist(averaged_centroided_copy, heavy_isodist, psm, no_shift=True)
+
+    # Set backend to Agg
+    mpl.use('WxAgg')
+    rcParams['ps.useafm'] = True
+    rcParams['ps.fonttype'] = 42
+    rcParams['pdf.fonttype'] = 42
+    rcParams['font.family'] = 'Arial'
+
+    tick_size = 16
+    label_size = 20
+    linewidth = 3
+
+    CB_color_cycle = ['#377eb8', '#ff7f00', '#4daf4a',
+                      '#f781bf', '#a65628', '#984ea3',
+                      '#999999', '#e41a1c', '#dede00']
+
+    save_figs = True
+
+    if False:
+        light_rect = patches.Rectangle((1001.5, 0), 3, 1e7, linewidth=0, facecolor=CB_color_cycle[0], alpha=0.3)
+        heavy_rect = patches.Rectangle((1006, 0), 6, 4e7, linewidth=0, facecolor=CB_color_cycle[1], alpha=0.3)
+
+        fig, ax = plt.subplots(figsize=(6,3.5))
+        # ax.add_patch(light_rect)
+        # ax.add_patch(heavy_rect)
+        for i in range(len(averaged_centroided_copy2)):
+            plt.vlines(averaged_centroided_copy2[i,0], 0, averaged_centroided_copy2[i,1], color='k', linewidth=2)
+        # plt.xlim(min_mz, max_mz)
+        # plt.ylim(0,4e7)
+        # plt.xticks([1000, 1002, 1004, 1006, 1008, 1010, 1012], fontsize=tick_size)
+        # plt.yticks(ticks=[0,2e7,4e7], labels=["0","2e7","4e7"], fontsize=tick_size)
+        plt.xlabel('m/z', fontstyle='italic', fontsize=label_size)
+        plt.ylabel("Intensity", fontsize=label_size)
+        plt.gca().spines['top'].set_visible(False)
+        plt.gca().spines['right'].set_visible(False)
+        plt.gca().spines['bottom'].set_linewidth(2)
+        plt.gca().spines['left'].set_linewidth(2)
+        plt.xticks(fontsize=tick_size)
+        plt.yticks(fontsize=tick_size)
+        plt.tick_params(length=5, width=2)
+        plt.tight_layout()
+        if save_figs:
+            plt.savefig(r"C:\Users\Admin\OneDrive\Desktop\martylab\IsoGen\Figures\scrambled_dist_spectrum.pdf", dpi=300, transparent=True)
+            plt.savefig(r"C:\Users\Admin\OneDrive\Desktop\martylab\IsoGen\Figures\scrambled_dist_spectrum.png", dpi=300, transparent=True)
+        plt.show()
+
+    if True:
+        fig,ax = plt.subplots(figsize=(3,3))
+        for i in range(len(averaged_centroided_copy1)):
+            plt.vlines(averaged_centroided_copy1[i,0], 0, averaged_centroided_copy1[i,1], linewidth=2, color='k')
+        plt.plot(light_isodist[:, 0], light_isodist[:, 1], color=CB_color_cycle[0], linewidth=2, linestyle='--', label="NN-Pre")
+        plt.plot(heavy_isodist[:,0], heavy_isodist[:,1], color=CB_color_cycle[1], linewidth=2, label="NN-Post")
+        plt.ylim(0, 6e5)
+        plt.yticks(ticks=[0, 3e5, 6e5], labels=["0","3e5","6e5"], fontsize=tick_size)
+        plt.xlim(866, 872)
+        plt.xticks([866, 868, 870, 872], fontsize=tick_size)
+        plt.xlabel('m/z', fontstyle='italic', fontsize=label_size)
+        plt.ylabel("Intensity", fontsize=label_size)
+        plt.gca().spines['top'].set_visible(False)
+        plt.gca().spines['right'].set_visible(False)
+        plt.gca().spines['bottom'].set_linewidth(2)
+        plt.gca().spines['left'].set_linewidth(2)
+        plt.tick_params(length=5, width=2)
+        plt.legend(frameon=True, edgecolor="black", fontsize=12)
+        plt.tight_layout()
+        if save_figs:
+            plt.savefig(r"C:\Users\Admin\OneDrive\Desktop\martylab\IsoGen\Figures\Fig6_mouse_pep1.pdf", dpi=300, transparent=True)
+            plt.savefig(r"C:\Users\Admin\OneDrive\Desktop\martylab\IsoGen\Figures\Fig6_mouse_pep1.png", dpi=300, transparent=True)
+        plt.show()
+
+    return
+
+
 if __name__ == "__main__":
     # Set backend to Agg
     mpl.use('WxAgg')
 
     os.chdir(r"C:\Users\Admin\Documents\martylab\Protein\IsotopeScrambling\Turnover")
 
-    d12_psm_filepaths = [r"FullLightSearch\Task3-SearchTask\Individual File Results\190404_Graft_12d_1-calib_Peptides.psmtsv",
-                     r"FullLightSearch\Task3-SearchTask\Individual File Results\190404_Graft_12d_2-calib_Peptides.psmtsv",
-                    r"FullLightSearch\Task3-SearchTask\Individual File Results\190404_Graft_12d_3-calib_Peptides.psmtsv",
-                     r"FullLightSearch\Task3-SearchTask\Individual File Results\190404_Graft_12d_4-calib_Peptides.psmtsv"]
+    d12_psm_filepaths = [r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190404_Graft_12d_1_Peptides.psmtsv",
+                     r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190404_Graft_12d_2_Peptides.psmtsv",
+                    r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190404_Graft_12d_3_Peptides.psmtsv",
+                     r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190404_Graft_12d_4_Peptides.psmtsv"]
 
     d12_raw_filepaths = [r"190404_Graft_12d_1.raw",
                          r"190404_Graft_12d_2.raw",
@@ -741,11 +1027,11 @@ if __name__ == "__main__":
                          r"190404_Graft_12d_4.raw"]
 
 
-    d24_psm_filepaths = [r"FullLightSearch\Task3-SearchTask\Individual File Results\190404_Graft_24d_1-calib_Peptides.psmtsv",
-                     r"FullLightSearch\Task3-SearchTask\Individual File Results\190404_Graft_24d_2-calib_Peptides.psmtsv",
-                    r"FullLightSearch\Task3-SearchTask\Individual File Results\190405_Graft_24d_3-calib_Peptides.psmtsv",
-                     r"FullLightSearch\Task3-SearchTask\Individual File Results\190405_Graft_24d_4-calib_Peptides.psmtsv",
-                     r"FullLightSearch\Task3-SearchTask\Individual File Results\190405_Graft_24d_5-calib_Peptides.psmtsv"]
+    d24_psm_filepaths = [r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190404_Graft_24d_1_Peptides.psmtsv",
+                     r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190404_Graft_24d_2_Peptides.psmtsv",
+                    r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190405_Graft_24d_3_Peptides.psmtsv",
+                     r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190405_Graft_24d_4_Peptides.psmtsv",
+                     r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190405_Graft_24d_5_Peptides.psmtsv"]
 
     d24_raw_filepaths = [r"190404_Graft_24d_1.raw",
                          r"190404_Graft_24d_2.raw",
@@ -755,11 +1041,11 @@ if __name__ == "__main__":
 
 
     d36_psm_filepaths = [
-        r"FullLightSearch\Task3-SearchTask\Individual File Results\190405_Graft_36d_1-calib_Peptides.psmtsv",
-        r"FullLightSearch\Task3-SearchTask\Individual File Results\190405_Graft_36d_2-calib_Peptides.psmtsv",
-        r"FullLightSearch\Task3-SearchTask\Individual File Results\190405_Graft_36d_3-calib_Peptides.psmtsv",
-        r"FullLightSearch\Task3-SearchTask\Individual File Results\190405_Graft_36d_4-calib_Peptides.psmtsv",
-        r"FullLightSearch\Task3-SearchTask\Individual File Results\190405_Graft_36d_5-calib_Peptides.psmtsv"]
+        r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190405_Graft_36d_1_Peptides.psmtsv",
+        r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190405_Graft_36d_2_Peptides.psmtsv",
+        r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190405_Graft_36d_3_Peptides.psmtsv",
+        r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190405_Graft_36d_4_Peptides.psmtsv",
+        r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190405_Graft_36d_5_Peptides.psmtsv"]
 
     d36_raw_filepaths = [r"190405_Graft_36d_1.raw",
                          r"190405_Graft_36d_2.raw",
@@ -769,11 +1055,11 @@ if __name__ == "__main__":
 
 
     d48_psm_filepaths = [
-        r"FullLightSearch\Task3-SearchTask\Individual File Results\190406_Graft_d48_1-calib_Peptides.psmtsv",
-        r"FullLightSearch\Task3-SearchTask\Individual File Results\190406_Graft_d48_2-calib_Peptides.psmtsv",
-        r"FullLightSearch\Task3-SearchTask\Individual File Results\190406_Graft_d48_3_Peptides.psmtsv",
-        r"FullLightSearch\Task3-SearchTask\Individual File Results\190406_Graft_d48_4-calib_Peptides.psmtsv",
-        r"FullLightSearch\Task3-SearchTask\Individual File Results\190406_Graft_d48_5_Peptides.psmtsv"]
+        r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190406_Graft_d48_1_Peptides.psmtsv",
+        r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190406_Graft_d48_2_Peptides.psmtsv",
+        r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190406_Graft_d48_3_Peptides.psmtsv",
+        r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190406_Graft_d48_4_Peptides.psmtsv",
+        r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190406_Graft_d48_5_Peptides.psmtsv"]
 
     d48_raw_filepaths = [r"190406_Graft_d48_1.raw",
                          r"190406_Graft_d48_2.raw",
@@ -783,11 +1069,11 @@ if __name__ == "__main__":
 
 
     d60_psm_filepaths = [
-        r"FullLightSearch\Task3-SearchTask\Individual File Results\190406_Graft_d60_1_Peptides.psmtsv",
-        r"FullLightSearch\Task3-SearchTask\Individual File Results\190406_Graft_d60_2-calib_Peptides.psmtsv",
-        r"FullLightSearch\Task3-SearchTask\Individual File Results\190406_Graft_d60_3-calib_Peptides.psmtsv",
-        r"FullLightSearch\Task3-SearchTask\Individual File Results\190406_Graft_d60_4-calib_Peptides.psmtsv",
-        r"FullLightSearch\Task3-SearchTask\Individual File Results\190406_Graft_d60_5-calib_Peptides.psmtsv"]
+        r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190406_Graft_d60_1_Peptides.psmtsv",
+        r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190406_Graft_d60_2_Peptides.psmtsv",
+        r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190406_Graft_d60_3_Peptides.psmtsv",
+        r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190406_Graft_d60_4_Peptides.psmtsv",
+        r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190406_Graft_d60_5_Peptides.psmtsv"]
 
     d60_raw_filepaths = [r"190406_Graft_d60_1.raw",
                          r"190406_Graft_d60_2.raw",
@@ -808,8 +1094,8 @@ if __name__ == "__main__":
     if True:
         eng = IsoGenPepEngine(isolen=16)
 
-        psm_file = r"FullLightSearch\Task3-SearchTask\Individual File Results\190404_Graft_24d_1-calib_Peptides.psmtsv"
-        raw_file = r"190404_Graft_24d_1.raw"
+        psm_file = r"FullFixedHeavyK\Task3-SearchTask\Individual File Results\190404_Graft_24d_2_Peptides.psmtsv"
+        raw_file = r"190404_Graft_24d_2.raw"
 
         psms = load_psm_file(psm_file)
         reader = ImporterFactory.create_importer(raw_file)
@@ -819,23 +1105,27 @@ if __name__ == "__main__":
 
         psm = None
         for p in psms:
-            if p.ms1_scan_num == 21506:
-                psm = p
-                break
+            # print(p.base_sequence)
+            # make_figure_for_psm_mouse_only(p, reader, scan_orders, config, eng)
+            if 'LPSDVVEESARASVTVLGDILGSAMQNTQDLLK' in p.base_sequence:
+                print(p.ms1_scan_num)
+                make_figure_for_psm_mouse_only(p, reader, scan_orders, config, eng)
+            # if p.ms1_scan_num == 22307:
+            #     psm = p
+            #     break
 
-        print(psm.full_sequence)
         exit()
+        print(psm.full_sequence)
         make_figure_for_psm(psm, reader, scan_orders, config, eng)
         exit()
 
 
-
-    #d12_results = process_file_set(d12_psm_filepaths, d12_raw_filepaths, config, isogenpep_eng)
-    d24_results = process_file_set(d24_psm_filepaths, d24_raw_filepaths, config, isogenpep_eng)
-    d36_results = process_file_set(d36_psm_filepaths, d36_raw_filepaths, config, isogenpep_eng)
-    d48_results = process_file_set(d48_psm_filepaths, d48_raw_filepaths, config, isogenpep_eng)
-    d60_results = process_file_set(d60_psm_filepaths, d60_raw_filepaths, config, isogenpep_eng)
-    exit()
+    # d12_results = process_file_set_new(d12_psm_filepaths, d12_raw_filepaths, config, isogenpep_eng)
+    # d24_results = process_file_set_new(d24_psm_filepaths, d24_raw_filepaths, config, isogenpep_eng)
+    # d36_results = process_file_set_new(d36_psm_filepaths, d36_raw_filepaths, config, isogenpep_eng)
+    # d48_results = process_file_set_new(d48_psm_filepaths, d48_raw_filepaths, config, isogenpep_eng)
+    # d60_results = process_file_set_new(d60_psm_filepaths, d60_raw_filepaths, config, isogenpep_eng)
+    # exit()
 
     d12_results = load_results_from_npzs(d12_raw_filepaths)
     d24_results = load_results_from_npzs(d24_raw_filepaths)

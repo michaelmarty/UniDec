@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 from numpy import fft as fftpack
 from unidec.IsoDec.IsoGen.isogenc import *
@@ -32,12 +34,16 @@ c = np.array([1,0.010816,0,0])
 n = np.array([1,0.008,0,0])
 o = np.array([1, 0.0004, 0.002, 0])
 s = np.array([1, 0.0079, 0.044, 0])
+n_heavy = np.array([0,1,0,0])
+c_heavy = np.array([0,1,0,0])
 
 h = np.append(h, buffer)
 c = np.append(c, buffer)
 n = np.append(n, buffer)
 o = np.append(o, buffer)
 s = np.append(s, buffer)
+n_heavy = np.append(n_heavy, buffer)
+c_heavy = np.append(c_heavy, buffer)
 
 dt = np.dtype(np.complex128)
 hft = fftpack.rfft(h).astype(dt)
@@ -45,6 +51,8 @@ cft = fftpack.rfft(c).astype(dt)
 nft = fftpack.rfft(n).astype(dt)
 oft = fftpack.rfft(o).astype(dt)
 sft = fftpack.rfft(s).astype(dt)
+c_heavy_ft = fftpack.rfft(c_heavy).astype(dt)
+n_heavy_ft = fftpack.rfft(n_heavy).astype(dt)
 
 pre_ft = np.array([cft, hft, nft, oft, sft])
 
@@ -93,6 +101,9 @@ aa_dists = {
 # W = [1.0, 0.16055, 0.013895, 0.000859, 4e-05, 1e-06, 0.0, 0.0]
 # Y = [1.0, 0.126835, 0.011251, 0.000752, 3.8e-05, 2e-06, 0.0, 0.0]
 
+
+K_heavy = [1.0, 0.01755, 0.00209, 3.4e-05, 0.0, 0.0, 0.0, 0.0]
+
 def initialize_aa_preft(isolength=64):
     buffer = np.zeros(isolength)
     dt = np.dtype(np.complex128)
@@ -105,6 +116,21 @@ def initialize_aa_preft(isolength=64):
 
     return aa_preft
 
+def initialize_aa_preft_heavyK(isolength=64):
+    buffer = np.zeros(isolength)
+    dt = np.dtype(np.complex128)
+
+    aa_preft = {}
+
+    for key,value in aa_dists.items():
+        if key == 'K':
+            v = np.append(K_heavy, buffer)
+            aa_preft[key] = fftpack.rfft(v).astype(dt)
+        else:
+            v = np.append(value, buffer)
+            aa_preft[key] = fftpack.rfft(v).astype(dt)
+
+    return aa_preft
 
 def pepseq_to_isolist(seq):
     isolist = np.array([0,2,0,1,0])
@@ -168,10 +194,10 @@ def add_noise_to_dist(dist, noise_level=0.2):
 
 def get_aa_isodist(aa):
     isolist = aa_elementalcomp_dict[aa]
-    dist = isojim_local(isolist, 8)
+    dist = isojim_local(isolist, 16)
     print("AA: ", aa)
-    print("Dist: [" + str(round(dist[0], 6)) + ", " + str(round(dist[1], 6)) + ", " + str(round(dist[2], 6)) + ", " + str(round(dist[3], 6)) + ", " +
-          str(round(dist[4], 6)) + ", " + str(round(dist[5], 6)) + ", " + str(round(dist[6], 6)) + ", " + str(round(dist[7], 6)) + "]")
+    print("Dist: [" + str(round(dist[8], 6)) + ", " + str(round(dist[9], 6)) + ", " + str(round(dist[10], 6)) + ", " + str(round(dist[11], 6)) + ", " +
+          str(round(dist[12], 6)) + ", " + str(round(dist[13], 6)) + ", " + str(round(dist[14], 6)) + ", " + str(round(dist[15], 6)) + "]")
 
 
 def get_tryptic_peptides(min_length=7, max_length=50):
@@ -200,6 +226,7 @@ def select_random_seqs(all_seqs, n=1000):
     selected = [all_seqs[i] for i in inds]
     return selected
 
+
 def assess_model_performance(all_seqs, aa_preft, isogenpep_engine):
     css_vals = []
     for seq in all_seqs:
@@ -210,6 +237,7 @@ def assess_model_performance(all_seqs, aa_preft, isogenpep_engine):
 
     return np.array(css_vals)
 
+
 def assess_model_performance_inputdists(seqs, dists, engine):
     css_vals = []
     for i in range(len(dists)):
@@ -218,6 +246,51 @@ def assess_model_performance_inputdists(seqs, dists, engine):
         css = calculate_cosinesimilarity(nn_dist, true_dist)
         css_vals.append(css)
     return np.array(css_vals)
+
+class Histogram:
+    def __init__(self, min, max, step):
+        self.min = min
+        self.max = max
+        self.step = step
+        self.bin_count = math.ceil((max - min)/ step)
+        self.bins = [0 for i in range(self.bin_count+1)]
+        self.bin_mins = self.populate_bin_mins()
+        self.bin_fracs = None
+
+
+    def populate_bin_mins(self):
+        bin_mins = [0 for i in range(self.bin_count + 1)]
+        bin_mins[0] = self.min
+        for i in range(1, self.bin_count+1):
+            bin_mins[i] = bin_mins[i-1] + self.step
+        return bin_mins
+
+    def add_value(self, value):
+        bin = math.floor((value - self.min) / self.step)
+        self.bins[bin] += 1
+
+    def add_list(self, list):
+        for value in list:
+            self.add_value(value)
+
+    def add_existing_hist(self, hist):
+        if hist.min != self.min or hist.max != self.max or hist.step != self.step:
+            print("Unable to merge histograms with different parameters.")
+            return
+
+        for i, val in enumerate(hist.bins):
+            self.bins[i] += val
+
+    def populate_bin_fracs(self, normalize=True):
+        total = sum(self.bins)
+        self.bin_fracs = [[] for i in range(self.bin_count + 1)]
+        for i,v in enumerate(self.bins):
+            self.bin_fracs[i] = self.bins[i] / total
+
+        if normalize:
+            self.bin_fracs = np.array(self.bin_fracs) / max(self.bin_fracs)
+
+
 
 def reset_model():
     original_pth_path = r"C:\Python\UniDecDev\unidec\IsoDec\IsoGen\OriginalModels\isogenpep_model_16.pth"
@@ -252,8 +325,7 @@ def transfer_train_and_test_inputdists(training_seqs, training_dists, test_seqs,
 
     transfertrained_css_vals = assess_model_performance_inputdists(test_seqs, test_dists, engine)
 
-
-    reset_model()
+    #reset_model()
     return transfertrained_css_vals
 
 def transfer_train_and_test(all_seqs, aa_preft, n_training=1000, forcenew=False, input_eng=None):
@@ -295,9 +367,7 @@ def transfer_train_and_test(all_seqs, aa_preft, n_training=1000, forcenew=False,
 
 
 if __name__ == "__main__":
-    # seq = aas = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
-    # for aa in seq:
-    #     get_aa_isodist(aa)
+    # get_aa_isodist('K')
     # exit()
 
     os.chdir(r"C:\Users\Admin\Documents\martylab\Protein\IsotopeScrambling\Turnover")
@@ -305,6 +375,18 @@ if __name__ == "__main__":
     # Set backend to Agg
     mpl.use('WxAgg')
     aa_preft = initialize_aa_preft(1024)
+    aa_preft_heavyk = initialize_aa_preft_heavyK(1024)
+
+    if False:
+        seq = "GDGKLVVIWPPR"
+        light_isodist = isojim_aa(seq, aa_preft)
+        heavy_isodist = isojim_aa(seq, aa_preft_heavyk)
+
+        plt.plot(light_isodist, label="Light")
+        plt.plot(heavy_isodist, label="Heavy")
+        plt.legend()
+        plt.show()
+        exit()
 
     if False:
         rcParams['ps.useafm'] = True
@@ -435,20 +517,37 @@ if __name__ == "__main__":
             pickle.dump(random_init_trained_css_values, myFile)
         exit()
 
-    if False:
+    if True:
         reset_model()
-        data = np.load("transfer_learning_dists_261.npz")
+        data = np.load("transfer_learning_dists_8762.npz")
         dists = data['dists']
         seqs = data['seqs']
 
-        iterations = 100
+        max_len = 50
+
+        filtered = [
+            (seq, dist)
+            for seq, dist in zip(seqs, dists)
+            if len(seq) < max_len
+        ]
+
+        seqs = [seq for seq, dist in filtered]
+        dists = [dist for seq, dist in filtered]
+
+        iterations = 1
         untrained_avg_css_vals = []
         trained_avg_css_vals = []
+
+        untrained_histogram = Histogram(0,1, 0.01)
+        trained_histogram = Histogram(0,1,0.01)
 
         for i in range(iterations):
             trainper = 0.9
             ntrain = int(round(trainper*len(dists)))
             ntest = len(dists) - ntrain
+
+            untrained_hist = Histogram(0, 1, 0.01)
+            trained_hist = Histogram(0, 1, 0.01)
 
             train_indices= random.sample(range(0,len(dists)), ntrain)
             all_indices = range(0,len(dists))
@@ -462,14 +561,19 @@ if __name__ == "__main__":
             eng = IsoGenPepEngine(isolen=16)
 
             untrained_css_vals = assess_model_performance_inputdists(seqs, dists, eng)
+            untrained_hist.add_list(untrained_css_vals)
+            untrained_histogram.add_existing_hist(untrained_hist)
+
             untrained_avg_css_vals.append(np.average(untrained_css_vals))
 
             eng = None
 
-            trained_css_vals = transfer_train_and_test_inputdists(training_seqs, training_dists, test_seqs, test_dists, engine=eng, forcenew=True)
+            trained_css_vals = transfer_train_and_test_inputdists(training_seqs, training_dists, test_seqs, test_dists, engine=eng, forcenew=False)
+            trained_hist.add_list(trained_css_vals)
+            trained_histogram.add_existing_hist(trained_hist)
             trained_avg_css_vals.append(np.average(trained_css_vals))
 
-        reset_model()
+        #reset_model()
         avg_diff = np.array(trained_avg_css_vals) - np.array(untrained_avg_css_vals)
         diff_std = np.std(avg_diff)
         diff_ci = 1.96 * (diff_std / np.sqrt(iterations))
@@ -478,8 +582,44 @@ if __name__ == "__main__":
         print("Average untrained: ", np.average(untrained_avg_css_vals))
         print("Average trained: ", np.average(trained_avg_css_vals))
 
+        untrained_histogram.populate_bin_fracs(normalize=False)
+        trained_histogram.populate_bin_fracs(normalize=False)
 
-    if True:
+        # Set backend to Agg
+        mpl.use('WxAgg')
+        rcParams['ps.useafm'] = True
+        rcParams['ps.fonttype'] = 42
+        rcParams['pdf.fonttype'] = 42
+        rcParams['font.family'] = 'Arial'
+
+        tick_size = 16
+        label_size = 20
+        linewidth = 3
+
+        CB_color_cycle = ['#377eb8', '#ff7f00', '#4daf4a',
+                          '#f781bf', '#a65628', '#984ea3',
+                          '#999999', '#e41a1c', '#dede00']
+
+        plt.plot(untrained_histogram.bin_mins, untrained_histogram.bin_fracs, linewidth=2, color='r', label="Untrained")
+        plt.plot(trained_histogram.bin_mins, trained_histogram.bin_fracs, linewidth=2, color='b', label="Trained")
+        plt.xlim(0.7,1.01)
+        plt.xlabel("CSS", fontsize=label_size)
+        plt.ylabel("Fraction", fontsize=label_size)
+        plt.xticks([0.7,0.8,0.9,1], labels=["0.7", "0.8", "0.9", "1"], fontsize=tick_size)
+        plt.yticks([0,0.3,0.6], labels=["0", "0.3", "0.6"], fontsize=tick_size)
+        plt.gca().spines['top'].set_visible(False)
+        plt.gca().spines['right'].set_visible(False)
+        plt.gca().spines['bottom'].set_linewidth(2)
+        plt.gca().spines['left'].set_linewidth(2)
+        plt.tick_params(length=5, width=2)
+        plt.legend(ncol=2, frameon=True, edgecolor="black", fontsize=16, loc='upper center')
+        plt.tight_layout()
+        # plt.savefig(r"C:\Users\Admin\OneDrive\Desktop\martylab\IsoGen\Figures\IsoGen_Figure7.pdf", dpi=300, transparent=True)
+        # plt.savefig(r"C:\Users\Admin\OneDrive\Desktop\martylab\IsoGen\Figures\IsoGen_Figure7.png", dpi=300, transparent=True)
+        plt.show()
+
+
+    if False:
         # Set backend to Agg
         mpl.use('WxAgg')
 

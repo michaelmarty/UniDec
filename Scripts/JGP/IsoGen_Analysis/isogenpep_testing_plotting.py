@@ -87,7 +87,7 @@ CB_color_cycle = ['#377eb8', '#ff7f00', '#4daf4a',
 
 
 
-save_figs = True
+save_figs = False
 
 include_molmass = False
 
@@ -483,7 +483,7 @@ if False:
     plt.show()
 
 #Plot separately the mass and sequence methods by mass
-if False:
+if True:
     #Mass methods avg times
     plt.plot(masses, fft_mass_avgtimes_bymass, label="FFT", linewidth=linewidth, color=CB_color_cycle[0])
     plt.plot(masses, nn_mass_avgtimes_bymass, label="NN", linewidth=linewidth, color=CB_color_cycle[2])

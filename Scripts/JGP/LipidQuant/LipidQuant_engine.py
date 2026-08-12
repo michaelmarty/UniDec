@@ -14,6 +14,7 @@ import multiprocessing as mp
 from concurrent.futures import ThreadPoolExecutor
 import builtins
 from Scripts.JGP.LipidQuant.quantification_results_plotting import *
+from numba import njit
 
 #This stops it from printing that it can't find a
 #particular term when reading the mzML files.
@@ -267,16 +268,20 @@ def check_valid_peak(xic_mono, xic_iso1, peak, config):
     current_left_increasing = 0
     current_right_increasing = 0
 
+    mono_int = xic_mono[:,1]
+
+    intensity_threshold = peak_intensity * config.min_intensity_ratio
+
     for j in range(1, len(xic_mono)):
         left_idx = nearest_idx - j
         right_idx = nearest_idx + j
 
         if adding_peaks_left:
-            if left_idx >= 0 and xic_mono[left_idx, 1] / peak_intensity > config.min_intensity_ratio:
+            if left_idx >= 0 and mono_int[left_idx] > intensity_threshold:
                 left_integration_indices.append(left_idx)
 
                 # Check for poorly resolved peaks
-                if xic_mono[left_idx, 1] > previous_left_intensity:
+                if mono_int[left_idx] > previous_left_intensity:
                     current_left_increasing += 1
                     if current_left_increasing >= config.max_increasing:
                         # we remove the recent increasing values
@@ -291,10 +296,10 @@ def check_valid_peak(xic_mono, xic_iso1, peak, config):
                 adding_peaks_left = False
 
         if adding_peaks_right:
-            if right_idx < len(xic_mono) and xic_mono[right_idx, 1] / peak_intensity > config.min_intensity_ratio:
+            if right_idx < len(xic_mono) and mono_int[right_idx] > intensity_threshold:
                 right_integration_indices.append(right_idx)
 
-                if xic_mono[right_idx, 1] > previous_right_intensity:
+                if mono_int[right_idx] > previous_right_intensity:
                     current_right_increasing += 1
 
                     if current_right_increasing >= config.max_increasing:
@@ -310,9 +315,9 @@ def check_valid_peak(xic_mono, xic_iso1, peak, config):
                 adding_peaks_right = False
 
         if right_idx < len(xic_mono):
-            previous_right_intensity = xic_mono[right_idx, 1]
+            previous_right_intensity = mono_int[right_idx]
         if left_idx >= 0:
-            previous_left_intensity = xic_mono[left_idx, 1]
+            previous_left_intensity = mono_int[left_idx]
 
         if not adding_peaks_left and not adding_peaks_right:
             break

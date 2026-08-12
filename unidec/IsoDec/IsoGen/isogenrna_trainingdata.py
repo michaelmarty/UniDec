@@ -259,7 +259,7 @@ def create_n_random_rnas(length, n=1000):
 
 
 if __name__ == "__main__":
-    os.chdir(r"C:\Users\Admin\Documents\martylab\RNA_SeqData\Assessment")
+    os.chdir(r"C:\Users\Admin\Documents\martylab\RNA_SeqData\Training\More")
 
     if False:
         nuc_ratios = [[0.25, 0.25, 0.25, 0.25],
@@ -304,8 +304,8 @@ if __name__ == "__main__":
 
     if True:
         seqs = []
-        min_length = 5
-        max_length = 500
+        min_length = 180
+        max_length = 520
         n =  500
         for i in range(min_length, max_length+1):
             print("Processing length ", str(i))
