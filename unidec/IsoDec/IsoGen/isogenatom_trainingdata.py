@@ -38,7 +38,7 @@ if __name__ == "__main__":
     starttime= time.perf_counter()
 
     # Search pubchem and get all atomic formulas
-    os.chdir("Z:\Group Share\JGP\PubChem")
+    os.chdir(r"Z:\Group Share\JGP\PubChem")
     fname = "CID-Mass.txt"
     formulas = np.genfromtxt(fname, dtype=str, delimiter="\t", max_rows=100000000, usecols=[1])
     formulas = cleanup_formulas(formulas)

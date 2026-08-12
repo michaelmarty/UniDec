@@ -2,8 +2,8 @@ import os
 import pandas as pd
 from PublicScripts.Lipids.RT_Correction import correct_dataset_rts
 
-topdir = r"Z:\Group Share\Shivam\DDA"
-topdir = r"Z:\Group Share\Shivam\IQX Stellar 3\FinalResults"
+
+topdir = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\Final Results\DDA Pipeline"
 os.chdir(topdir)
 
 df = pd.read_csv("Combined_DDA.csv")

@@ -10,11 +10,8 @@ import joblib
 
 mpl.use("WxAgg")
 
-topdir = r"Z:\Group Share\Shivam\DDA"
-topdir = r"Z:\Group Share\Shivam\Final_results"
-topdir = r"Z:\Group Share\Shivam\IQX Stellar 3\FinalResults"
-# topdir = r"Z:\Group Share\Annika\IQ-X\Feb 2026 UntDDA\MSDial\Marked Low Score\RTP2"
-# topdir = r"Z:\Group Share\Annika\IQX vs Stellar DDA\RTP2 Peak Masters and xml"
+topdir = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\Final Results\DDA Pipeline"
+
 
 os.chdir(topdir)
 

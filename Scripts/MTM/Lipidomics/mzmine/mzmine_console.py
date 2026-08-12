@@ -1,5 +1,6 @@
 import subprocess
 from pathlib import Path
+import os
 
 mzmine_path = Path(r"C:\Program Files\mzmine\mzmine_console.exe")
 
@@ -30,5 +31,14 @@ def run_mzmine_batch(batchfile):
 
 
 if __name__ == "__main__":
-    batchfile = r"\\marty-nas.cm.utexas.edu\MartyLab\Group Share\Annika\DDA_Compare\mzmine\Stellar_Pos_batch_no_na.mzbatch"
-    run_mzmine_batch(batchfile)
+    dirname = r"\\marty-nas.cm.utexas.edu\MartyLab\Group Share\Annika\DDA_Compare\mzmine"
+    batchfiles = ["Stellar_Pos_batch_sumcomp.mzbatch",
+                  "OTOT_Pos_batch_sumcomp.mzbatch",
+                  "IQX_Pos_batch_sumcomp.mzbatch",
+                  "OTIT_Pos_batch_sumcomp.mzbatch",
+                  "ITIT_Pos_batch_sumcomp.mzbatch",
+                  "Apex_Pos_batch_sumcomp.mzbatch"]
+
+    os.chdir(dirname)
+    for batchfile in batchfiles:
+        run_mzmine_batch(batchfile)

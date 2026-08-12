@@ -3,39 +3,56 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+import sys
+import tomllib
+from datetime import date
+from pathlib import Path
+
+# Make the repository importable on Windows and in the Linux Pages runner.
+repository_root = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(repository_root))
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'UniDec'
-copyright = '2025, University of Arizona'
+with (repository_root / 'pyproject.toml').open('rb') as pyproject_file:
+    project_metadata = tomllib.load(pyproject_file)['project']
+
+project = project_metadata['name']
+copyright = f'{date.today().year}, University of Arizona'
 author = 'Michael Marty'
-release = '8.1.0'
+release = project_metadata['version']
+version = release
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
-# cd to unidec_doc
-# sphinx-apidoc -f -o source ..\unidec
-# .\make.bat html
+# Run unidec_doc/generate.bat on Windows to regenerate the API pages and build HTML.
 
-import sys, os
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'myst_parser']
 
-sys.path.append("C:\\Python\\UniDec\\unidec")
-
-topdir = os.path.abspath('..\\..\\unidec')
-print(topdir)
-sys.path.insert(0, topdir)
-
-topdir = os.path.abspath('..\\..')
-print(topdir)
-sys.path.insert(0, topdir)
-
-#for x in os.walk('..\\..\\unidec'):
-  #sys.path.insert(0, x[0])
-
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinx.ext.coverage']  # , 'myst_parser']
-
-templates_path = ['_templates']
-# exclude_patterns = ["**/thermo_reader", "**/waters_importer"]
+# Avoid importing optional GUI, training, vendor, and platform-specific
+# dependencies on the documentation runner.
+autodoc_mock_imports = [
+    'Scripts',
+    'System',
+    'ThermoFisher',
+    'clr',
+    'isogen_tools',
+    'isogenatom',
+    'isogenatom_trainingdata',
+    'isogenpep_trainingdata',
+    'massql',
+    'matchms',
+    'molmass',
+    'mpld3',
+    'sqlalchemy',
+    'torch',
+    'torchvision',
+    'unidec.IsoDec.IsoGen.isogenc',
+    'unidec.IsoDec.isogenwrapper',
+    'unidec.modules.unidecwrapper',
+    'wx',
+]
 
 source_suffix = {
     '.rst': 'restructuredtext',
@@ -46,5 +63,4 @@ source_suffix = {
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'classic'
-html_static_path = ['_static']
+html_theme = 'furo'

@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from IsoDec.trainingdata import *
+from unidec.IsoDec.trainingdata import *
 
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"

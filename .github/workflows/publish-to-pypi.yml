@@ -1,0 +1,92 @@
+name: Publish Python package
+
+on:
+  push:
+    tags:
+      - "*"
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: Package index to publish to
+        required: true
+        default: testpypi
+        type: choice
+        options:
+          - testpypi
+          - pypi
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and test distributions
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out the tagged source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install packaging tools
+        run: python -m pip install --upgrade build twine
+
+      - name: Build wheel and source distribution
+        run: python -m build --outdir distpypi
+
+      - name: Check distribution metadata
+        run: python -m twine check distpypi/*
+
+      - name: Install and smoke-test the wheel
+        shell: pwsh
+        run: |
+          python -m venv .venv
+          .venv\Scripts\python -m pip install --upgrade pip
+          $wheel = (Get-ChildItem -LiteralPath distpypi -Filter *.whl).FullName
+          .venv\Scripts\python -m pip install $wheel
+          .venv\Scripts\python -m unidec.IsoDec .\unidec\bin\TestSpectra\test_2.txt -precentroided
+          .venv\Scripts\python -m unidec .\unidec\bin\TestSpectra\test_1.txt
+
+      - name: Store distributions
+        uses: actions/upload-artifact@v5
+        with:
+          name: python-package-distributions
+          path: distpypi/
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish distributions
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event_name == 'workflow_dispatch' && inputs.repository || 'pypi' }}
+      url: ${{ (github.event_name == 'workflow_dispatch' && inputs.repository == 'testpypi') && 'https://test.pypi.org/p/UniDec' || 'https://pypi.org/p/UniDec' }}
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v6
+        with:
+          name: python-package-distributions
+          path: distpypi/
+
+      - name: Publish distributions to TestPyPI
+        if: github.event_name == 'workflow_dispatch' && inputs.repository == 'testpypi'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: distpypi/
+          repository-url: https://test.pypi.org/legacy/
+
+      - name: Publish distributions to PyPI
+        if: github.event_name != 'workflow_dispatch' || inputs.repository == 'pypi'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: distpypi/

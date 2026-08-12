@@ -5,7 +5,8 @@ from unidec.modules import isotopetools as iso
 __author__ = 'Michael.Marty'
 
 
-def make_mass_spectrum(array, zrange=(10, 50), mzrange=(2000, 10000), mz_bin_size=1, adductmass=1.00727647, psfun=0,
+def make_mass_spectrum(array, zrange=(10, 50), mzrange=(2000, 10000), mz_bin_size=1,
+                       adductmass=1.00727647, psfun=0,
                        noise=0, baseline=0, **kwargs):
     """
     Create a new mass spectrum.
@@ -108,8 +109,7 @@ def simple_params(masslist, intlist=None, resolution=1000, zwidth=2, rlist=None,
     :param intlist: list of intensities (default is None which gives all as 1)
     :param resolution: Mass resolution (delta m/m), Overridden if rlist is not None
     :param zwidth: Standard deviation of charge state distribution
-    :param rlist: List of resolution values for each corresponding mass.
-    If None, will use a single resolution for all defined by resolution.
+    :param rlist: List of resolution values for each corresponding mass. If ``None``, use ``resolution`` for all.
     :param kwargs: Extra keywords
     :return: P x 5 array of parameters [mass, mass fwhm, z avg, z std dev, intensity]
     """

@@ -6,7 +6,7 @@ rem Run Tests on test_GUI and test_MUD and and ImporterTest
 
 rem build pyinstaller upload
 
-rem build docker and commit (see docker_commands.txt)
+rem Docker image is built, tested, and published by .github/workflows/publish-to-docker-hub.yml
 
 rem build wheel
     rem python -m build -o .\distpypi
@@ -16,12 +16,12 @@ rem test wheel
     rem install wheel with: pip install .\distpypi\UniDec-8.0.0-py3-none-any.whl
     rem test with: python -m unidec.IsoDec .\unidec\bin\TestSpectra\test_2.txt -precentroided
     rem test UniDec with: python -m unidec .\unidec\bin\TestSpectra\test_1.txt
+    rem deactivate venv with: deactivate
 rem python -m twine upload --repository testpypi .\distpypi\* --config-file .pypirc (check that old wheels are deleted)
 rem redo last line with pypi instead of testpypi
 rem install with: pip install unidec and test in venv
 
-rem update docs with .\unidec_doc\make.bat html
-rem paste docs into UniDecDocumentation and push to git
+rem Documentation is built and deployed by .github/workflows/deploy-documentation.yml
 
 echo "Building"
 C:\Python313\Scripts\pyinstaller.exe GUniDec.spec --noconfirm

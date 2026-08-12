@@ -1,7 +1,7 @@
 from PublicScripts.Lipids.LipidFunctions import *
 import os
 
-topdir = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs"
+topdir = r"Z:\Group Share\Annika\Stellar\FAM\May 2026"
 os.chdir(topdir)
 
 # df = pd.read_csv("Combined_DDA_RT_Corrected_FullNames.csv")

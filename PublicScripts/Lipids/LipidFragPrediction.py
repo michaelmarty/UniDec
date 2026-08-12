@@ -37,7 +37,7 @@ CAR	[M]+	positive	85.03
 CASE	[M+NH4]+	positive	383.37	
 CE	[M+NH4]+	positive		18.01
 CL	[M+NH4]+	positive		17.03
-CL	[M-H]-	negative	153	
+CL	[M-H]-	negative	152.995834	
 CerP	[M+H]+	positive		18.01,79.97,97.98,115.99
 CerP	[M-H]-	negative	78.96,96.97	18.01
 Cer_ADS	[M+CH3COO]-	negative		60.02,78.03,92.05,108.04
@@ -75,14 +75,17 @@ Cer_NS	[M-H]-	negative		30.01,32.03,48.02
 CoQ	[M+H]+	positive	197.08	
 DCAE	[M+NH4]+	positive	357.28	
 DCAE	[M-H]-	negative	373.27	374.28
-DGCC	[M+H]+	positive	104.11,132.1	
+DGCC	[M+H]+	positive	104.11,132.1
+DGDG	[M+NH4]+	positive		341.13,359.14
+DG	[M+Na]+	positive		18.01
+DGTS	[M+H]+	positive	144.1,236.15		
 DGDG	[M+CH3COO]-	negative	379.12,397.14,415.15	60.02
 DGDG	[M+HCOO]-	negative	379.12,397.14,415.15	46.01
 DGDG	[M+NH4]+	positive		341.13,359.14
 DGGA	[M+NH4]+	positive		211.07
 DGTS	[M+H]+	positive	144.1,236.15	
 DHSph	[M+H]+	positive	81.07,95.09	18.01,36.02,48.02
-DLCL	[M-H]-	negative	153	
+DLCL	[M-H]-	negative	152.995834	
 EtherDG	[M+NH4]+	positive		35.04
 EtherDGDG	[M+CH3COO]-	negative		60.02
 EtherDGDG	[M+HCOO]-	negative		46.01
@@ -92,7 +95,7 @@ EtherLPC	[M+HCOO]-	negative	78.96,168.04	60.02,149.11
 EtherLPC	[M+H]+	positive	86.1,104.11,125.0,184.07	
 EtherLPE	[M+H]+	positive		154.03,172.04
 EtherLPE	[M-H]-	negative	78.96,140.01	
-EtherLPG	[M-H]-	negative	78.96,153.0,171.01	228.04
+EtherLPG	[M-H]-	negative	78.96,152.995834,171.01	228.04
 EtherMGDG	[M+CH3COO]-	negative		60.02
 EtherMGDG	[M+HCOO]-	negative		46.01
 EtherMGDG	[M+NH4]+	positive		197.09
@@ -102,7 +105,7 @@ EtherPC	[M+CH3COO]-	negative	224.07	74.04
 EtherPC	[M+HCOO]-	negative	224.07	60.02
 EtherPC	[M+H]+	positive	184.07	183.07
 EtherPE	[M+H]+	positive		141.02
-EtherPG	[M-H]-	negative	153	
+EtherPG	[M-H]-	negative	152.995834	
 EtherPI	[M-H]-	negative	241.01	
 EtherPS	[M-H]-	negative		87.03
 EtherSMGDG	[M-H]-	negative	96.96,241.0	
@@ -142,23 +145,23 @@ HexCer_NS	[M+H]+	positive		162.05,180.06,198.07
 HexCer_NS	[M-H]-	negative	179.06	162.05
 LDGCC	[M+H]+	positive	104.11,132.1	
 LDGTS	[M+H]+	positive	144.1,218.14,236.15	18.01
-LNAPE	[M-H]-	negative	153	
-LNAPS	[M-H]-	negative	153	
-LPA	[M-H]-	negative	78.96,153.0	
+LNAPE	[M-H]-	negative	152.995834	
+LNAPS	[M-H]-	negative	152.995834	
+LPA	[M-H]-	negative	78.96,152.995834	
 LPC	[M+CH3COO]-	negative	224.07	74.04
 LPC	[M+HCOO]-	negative	224.07	60.02
 LPC	[M+H]+	positive	184.07,104.1070	18.01
 LPC	[M+Na]+	positive	86.1,104.11	59.07
 LPE	[M+H]+	positive		141.02
 LPE	[M-H]-	negative	196.04	
-LPG	[M-H]-	negative	153.0,227.03,245.04	228.04
-LPI	[M-H]-	negative	78.96,153.0,241.01,315.05	316.06
-LPS	[M-H]-	negative	78.96,153.0	87.03,241.04
+LPG	[M-H]-	negative	152.995834,227.03,245.04	228.04
+LPI	[M-H]-	negative	78.96,152.995834,241.01,315.05	316.06
+LPS	[M-H]-	negative	78.96,152.995834	87.03,241.04
 MG	[M+NH4]+	positive		17.0,35.01
 MGDG	[M+CH3COO]-	negative	253.09	60.02
 MGDG	[M+HCOO]-	negative	253.09	46.01
 MGDG	[M+NH4]+	positive		197.09
-MLCL	[M-H]-	negative	153	
+MLCL	[M-H]-	negative	152.995834	
 NAGly	[M+H]+	positive	76.04	
 NAGly	[M+NH4]+	positive	76.04	17.03
 NAGly	[M-H]-	negative	74.02	
@@ -170,7 +173,7 @@ OxPC	[M+HCOO]-	negative	224.07	60.02
 OxPE	[M-H]-	negative	196.04	
 OxPI	[M-H]-	negative	241.01,297.04	
 OxPS	[M-H]-	negative		87.03
-PA	[M-H]-	negative	153	
+PA	[M-H]-	negative	152.995834	
 PC	[M+CH3COO]-	negative	224.07	74.04
 PC	[M+HCOO]-	negative	224.07	60.02
 PC	[M+H]+	positive	184.07	
@@ -329,7 +332,8 @@ acelated_classes = ["AHexCer", "ASM"]
 adduct_nls = {"[M+CH3COO]-": [60.02], "[M+HCOO]-": [46.01], "[M+NH4]+": [17.0266, 35.037]}
 
 
-def predict_tail_fragments(tail, hgfrags=[], hgbases=[], hgnls=[], adduct="[M-H]-", classname="", mode="negative"):
+def predict_tail_fragments(tail, hgfrags=[], hgbases=[], hgnls=[],
+                           adduct="[M-H]-", classname="", mode="negative"):
     # If hgfrags is a string, split by comma
     if isinstance(hgfrags, str):
         hgfrags = hgfrags.split(",")
@@ -439,7 +443,7 @@ def predict_tail_fragments(tail, hgfrags=[], hgbases=[], hgnls=[], adduct="[M-H]
         num_carbons = int(parts[0])
         num_double_bonds = int(parts[1])
     except ValueError:
-        print("Error parsing tail:", tail)
+        print("Error parsing tail:", tail, parts)
         return fragments, nls
 
     acylmass = num_carbons * mass_ch2 - mass_h + 2 * mass_o - (num_double_bonds * 2 * mass_h)
@@ -516,6 +520,7 @@ def predict_tail_fragments(tail, hgfrags=[], hgbases=[], hgnls=[], adduct="[M-H]
         nls["FA(-H)-(H2O)"] = mass + mass_h  # Neutral loss of fatty acid (-H2O)
         nls["FA+G"] = mass + mass_glycerol - mass_h2o + mass_h  # Neutral loss of FA + glycerol
         nls["FA+GP"] = fragments["FA+GP(-H2O)"] + mass_h
+        nls["FA(+O-H2O)"] = mass - mass_h2o
 
         # For Ceramides
         nls["FA(+O+H2O)"] = mass + mass_h2o
@@ -655,7 +660,10 @@ def predict_tail_fragments(tail, hgfrags=[], hgbases=[], hgnls=[], adduct="[M-H]
     elif mode == "positive":
         fragments["FA(+OH)"] = mass + mass_h
         fragments["FA(-H)"] = mass - mass_h2o + mass_h
-        fragments["FA(+OH-OH)"] = mass - mass_h2o + 2 * mass_h
+        fragments["FA(+O-H2O)"] = mass - mass_h2o + 2 * mass_h
+        fragments["FA(+O-2H2O)"] = mass - 2 * mass_h2o + 2 * mass_h
+        fragments["FA(+O-3H2O)"] = mass - 3 * mass_h2o + 2 * mass_h
+        fragments["FA(+O-CH4O2)"] = mass + 2 * mass_h - mass_c - 2 * mass_o - 4 * mass_h
         fragments["FA(+G)"] = mass + mass_glycerol - mass_h2o + mass_h
         fragments["FA(+G-OH)"] = mass + mass_glycerol - 2 * mass_h2o + 2 * mass_h
         fragments["FA(+GP)"] = mass + mass_glycerol + mass_phosphate - 2 * mass_h2o + 3 * mass_h
@@ -672,6 +680,45 @@ def predict_tail_fragments(tail, hgfrags=[], hgbases=[], hgnls=[], adduct="[M-H]
         nls["FA(-H)"] = mass - mass_h2o + mass_h
         nls["FA(+O+H2O)"] = mass + mass_h2o
         nls["FA(+OH+H2O)"] = mass + mass_h2o + mass_h
+
+        # Sodium-adducted PC combined neutral losses
+        if adduct == "[M+Na]+":
+            # Neutral fatty acid + trimethylamine, C3H9N
+            nls["FA(+O-C3H9N)"] = (
+                    mass
+                    + mass_h
+                    + 3 * mass_c
+                    + 9 * mass_h
+                    + mass_n
+            )
+
+            # Neutral fatty acid + phosphocholine, C5H14NO4P
+            nls["FA(+O-C5H14NO4P)"] = (
+                    mass
+                    + mass_h
+                    + 5 * mass_c
+                    + 14 * mass_h
+                    + mass_n
+                    + 4 * mass_o
+                    + mass_p
+            )
+
+        # For Ceramides
+        # fragments["FA(+SL)"] = mass + mass_slfrag - mass_o
+        # fragments["FA(+SL-H2O)"] = mass + mass_slfrag - mass_h2o - mass_o
+        # fragments["FA(+SL-2H2O)"] = mass + mass_slfrag - 2 * mass_h2o - mass_o
+        # fragments["FA(+O+NC2H3O3)"] = mass + 3 * mass_h + 2 * mass_c + mass_n + 3 * mass_o
+        # fragments["FA(+O+CHO)"] = mass + mass_c + mass_o + mass_h
+        #
+        # fragments["FA(+NH+C2H2+H3O)"] = mass - mass_o + mass_n + 3 * mass_h + 2 * mass_c + mass_h2o + mass_h
+        # fragments["FA(+NH+C3H4O+H3O)"] = mass - mass_o + mass_n + 5 * mass_h + 3 * mass_c + mass_o + mass_h2o + mass_h
+        # fragments["FA(A)"] = acylmass
+        # fragments["FA(+O)"] = mass
+        # fragments["FA(A+OH)"] = acylmass + mass_o + mass_h
+        # fragments["FA(A+CO2H2)"] = acylmass + 2 * mass_o + mass_c + 2 * mass_h
+        # fragments["FA(-O)"] = mass - mass_o
+        # # nls["FA(-H)"] = mass - mass_o
+        # fragments["FA(A-2CHO)"] = acylmass - mass_o - 2 * mass_c + mass_h
 
         for hgbase in hgbases:
             hgbase = float(hgbase)
@@ -777,13 +824,36 @@ def merge_lists(fraglist, nllist):
     return fraglist, nllist
 
 
-def assign_df_fragments(df, hgdf=None, verbose=False, tol=0.05):
+def set_tolcol(df, dcol="Dataset", lr_keywords = ["IT", "Stellar"], hrtol=0.05, lrtol=0.7):
+    # Set a new column Tolerance based on the dataset name
+    tolcol = []
+    for i, row in df.iterrows():
+        dname = row[dcol]
+        if any([kw in dname for kw in lr_keywords]):
+            tolcol.append(lrtol)
+        else:
+            tolcol.append(hrtol)
+
+    df["Tolerance"] = tolcol
+    return df
+
+
+def assign_df_fragments(df, hgdf=None, verbose=False, tol=0.05, tolcol=None, auto_tolcol=False):
     if "T1" not in df.columns:
         df = set_basic_tail_names(df, columnname="Metabolite name")
 
+    if auto_tolcol:
+        df = set_tolcol(df)
+        tolcol = "Tolerance"
+
     outrows = []
     for i, row in df.iterrows():
-        row = assign_ref_match(row, tol=tol, hgdf=hgdf, verbose=verbose)
+        if tolcol is None:
+            tolval = tol
+        else:
+            tolval = row[tolcol]
+
+        row = assign_ref_match(row, tol=tolval, hgdf=hgdf, verbose=verbose)
         outrows.append(row)
 
     return pd.DataFrame(outrows)
@@ -1037,9 +1107,9 @@ def skyline_tail_namer(tldf):
     return outdf
 
 if __name__ == "__main__":
-    cname = "PC"
-    adduct = "[M+H]+"
-    tails = ["18:1", "22:1"]
+    cname = "Cer"
+    adduct = "[M-H]"
+    tails = ["16:0;2O"]
     fragdict, nldict = gen_fragdict(cname, adduct, tails)
     print("Fragments:")
     for k, v in fragdict.items():

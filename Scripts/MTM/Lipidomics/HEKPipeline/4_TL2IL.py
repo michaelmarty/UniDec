@@ -2,13 +2,13 @@ import pandas as pd
 import os
 from PublicScripts.Lipids.LipidFunctions import tl_to_il, derplicate_il
 
-topdir = r"Z:\Group Share\Farhana\Stellar"
+topdir = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\RT Shifting"
 os.chdir(topdir)
 
-tlpath = r"CleanedAdducts_AllDatasets_TransList_MM_Clean16.csv"
-outpath = r"HEKExtr_MM_IsoList_Clean16.csv"
-
+tlpath = r"Combined_DDA_TransitionLists_Updated.csv"
+outpath = r"Combined_DDA_IsolationLists_Updated.csv"
 tldf = pd.read_csv(tlpath)
+
 
 ildf = tl_to_il(tldf)
 print(len(ildf))

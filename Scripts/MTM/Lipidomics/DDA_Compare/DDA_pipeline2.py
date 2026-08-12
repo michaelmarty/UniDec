@@ -4,10 +4,10 @@ from PublicScripts.Lipids.RT_Correction import correct_dataset_rts
 
 mpl.use("WxAgg")
 
-topdir = r"Z:\Group Share\Annika\DDA_Compare\mzmine"
+topdir = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\Final Results\DDA Pipeline"
 os.chdir(topdir)
 
-datasets = ["Stellar", "OTOT", "OTIT", "ITIT", "IQX", "Apex"]
+datasets = ["Stellar", "OTOT", "OTIT", "ITIT"]
 
 if True:
     df = prep_datasets(topdir, datasets, dtype="mzmine", rttol=0.3) # 1

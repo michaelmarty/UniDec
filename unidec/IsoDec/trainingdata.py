@@ -12,11 +12,13 @@ from unidec.UniDecImporter.ImporterFactory import ImporterFactory, recognized_ty
 
 @njit(fastmath=True)
 def match_peaks(centroids: np.array, isodist: np.array, tol: float = 5.0) -> Tuple[List[int], List[int]]:
+    """Match centroid peaks to an isotope distribution.
+
+    :param centroids: Centroided spectrum with m/z values in the first column.
+    :param isodist: Isotope distribution with m/z values in the first column.
+    :param tol: Matching tolerance.
+    :return: Indices of the matched centroid and isotope-distribution peaks.
     """
-    matchingpeaks = matchms.similarity.spectrum_similarity_functions.find_matches(centroids[:, 0],
-                                                                                  isodist[:, 0], tol)
-    matchedindexes = [match[0] for match in matchingpeaks]
-    isomatches = [match[1] for match in matchingpeaks]"""
     matchedindexes, isomatches = find_matches(centroids[:, 0], isodist[:, 0], tol)
     return matchedindexes, isomatches
 
@@ -189,7 +191,7 @@ def process_dir(directory):
 
 if __name__ == "__main__":
     starttime = time.perf_counter()
-    directory = "Z:\Group Share\JGP\PXD027650"
+    directory = r"Z:\Group Share\JGP\PXD027650"
     directory = "Z:\\Group Share\\JGP\\PXD041357"
     directory = "Z:\\Group Share\\JGP\\PXD042298"
     directory = "Z:\\Group Share\\JGP\\PXD042921"

@@ -68,7 +68,7 @@ class IsoDecEngine:
         self.test_centroids = []
         self.training_centroids = []
         self.config.verbose = verbose
-        self.version = "1.0.0"
+        self.version = "2.0.0"
 
         self.pks = MatchedCollection()
 
@@ -92,287 +92,250 @@ class IsoDecEngine:
         else:
             self.wrapper = None
 
-
         self.reader = None
         self.predmode = 0
+        self.ematkey="emat"
+        self.centroidkey="centroids"
 
-    def drop_ones(self, percentage=0.8):
+    def _get_augmentation_data(self, dataset):
+        """Return the mutable data collection selected for augmentation."""
+        if dataset == "training":
+            data = self.training_data
+        elif dataset == "test":
+            data = self.test_data
+        else:
+            raise ValueError("dataset must be 'training' or 'test'")
+
+        if data is None:
+            raise ValueError(f"{dataset.capitalize()} data has not been loaded")
+        return data
+
+    def drop_ones(self, percentage=0.8, dataset="training"):
         """
-        Drop 80% of the training data with charge 1
+        Drop charge-1 samples from the selected data collection.
         :param percentage: Percentage of data to drop
+        :param dataset: Data collection to modify: ``"training"`` or ``"test"``
         :return: None
         """
-        print("Dropping charge 1 data:", percentage)
-        z = self.training_data[1]
-        emat = self.training_data[0]
-        centroids = self.training_data[2]
+        data = self._get_augmentation_data(dataset)
+        print(f"Dropping charge 1 data from {dataset} data:", percentage)
+        z = data[1]
+        emat = data[0]
+        centroids = data[2]
         keep = []
         for i in range(len(z)):
             if z[i] != 1 or np.random.rand() < percentage:
                 keep.append(i)
-        self.training_data = [emat[keep], z[keep], [centroids[i] for i in keep]]
-        print("New Length:", len(self.training_data[0]))
+        data[:] = [emat[keep], z[keep], [centroids[i] for i in keep]]
+        print("New Length:", len(data[0]))
 
-    def add_harmonics(self, harmonic_percent=0.4):
+    def add_harmonics(self, harmonic_percent=0.4, dataset="training"):
         """
-        Add harmonics at 2x charge to the training and test data
+        Add harmonics at 2x charge to the selected data collection.
         :param harmonic_percent: Percent of total data to add as harmonics
+        :param dataset: Data collection to modify: ``"training"`` or ``"test"``
         :return: None
         """
-        ltraining = len(self.training_data[0])
-        ltest = len(self.test_data[0])
-        nharm = int(ltraining * harmonic_percent)
-        print(f"Adding {nharm} harmonic samples to training data")
+        data = self._get_augmentation_data(dataset)
+        data_length = len(data[0])
+        nharm = int(data_length * harmonic_percent)
+        print(f"Adding {nharm} harmonic samples to {dataset} data")
+        if nharm == 0:
+            return
+
         emats = []
         zs = []
         tempcentroids = []
-        for i in range(nharm):
-            index = np.random.randint(0, ltraining - 1)
-            centroid = self.training_data[2][index]
-            z = self.training_data[1][index]
+        for _ in range(nharm):
+            index = np.random.randint(data_length)
+            centroid = data[2][index]
+            z = data[1][index]
             emat, centroid2 = encode_harmonic(centroid, z, phaseres=self.config.phaseres)
             emats.append(emat)
             zs.append(z)
             tempcentroids.append(centroid2)
 
-        self.training_data[0] = np.concatenate((self.training_data[0], emats), axis=0)
-        self.training_data[1] = np.concatenate((self.training_data[1], zs), axis=0)
-        self.training_data[2] = self.training_data[2] + tempcentroids
+        data[0] = np.concatenate((data[0], emats), axis=0)
+        data[1] = np.concatenate((data[1], zs), axis=0)
+        data[2] = data[2] + tempcentroids
 
-        nharmtest = int(ltest * harmonic_percent)
-        print(f"Adding {nharmtest} harmonic samples to test data")
-        emats = []
-        zs = []
-        tempcentroids = []
-        for i in range(nharmtest):
-            index = np.random.randint(0, ltest - 1)
-            centroid = self.test_data[2][index]
-            z = self.test_data[1][index]
-            emat, centroid2 = encode_harmonic(centroid, z, phaseres=self.config.phaseres)
-            emats.append(emat)
-            zs.append(z)
-            tempcentroids.append(centroid2)
-
-        self.test_data[0] = np.concatenate((self.test_data[0], emats), axis=0)
-        self.test_data[1] = np.concatenate((self.test_data[1], zs), axis=0)
-        self.test_data[2] = self.test_data[2] + tempcentroids
-
-    def add_noise(self, noise_percent):
+    def add_noise(self, noise_percent, dataset="training"):
         """
-        Add noise to the training and test data
+        Add noise to the selected data collection.
         :param noise_percent: Percent of total data to add as noise
+        :param dataset: Data collection to modify: ``"training"`` or ``"test"``
         :return: None
         """
-        ltraining = len(self.training_data[0])
-        ltest = len(self.test_data[0])
-        nnoise = int(ltraining * noise_percent)
-        print(f"Adding {nnoise} noise samples to training data")
+        data = self._get_augmentation_data(dataset)
+        data_length = len(data[0])
+        nnoise = int(data_length * noise_percent)
+        print(f"Adding {nnoise} noise samples to {dataset} data")
+        if nnoise == 0:
+            return
+
         emats = []
         zs = []
         tempcentroids = []
-        for i in range(nnoise):
-            index = np.random.randint(0, ltraining - 1)
-            centroid = self.training_data[2][index]
+        for _ in range(nnoise):
+            index = np.random.randint(data_length)
+            centroid = data[2][index]
             emat, centroid, z = encode_noise(centroid[0, 0], np.amax(centroid[:, 1]), phaseres=self.config.phaseres)
             emats.append(emat)
             zs.append(0)
             tempcentroids.append(centroid)
 
-        self.training_data[0] = np.concatenate((self.training_data[0], emats), axis=0)
-        self.training_data[1] = np.concatenate((self.training_data[1], zs), axis=0)
-        self.training_data[2] = self.training_data[2] + tempcentroids
+        data[0] = np.concatenate((data[0], emats), axis=0)
+        data[1] = np.concatenate((data[1], zs), axis=0)
+        data[2] = data[2] + tempcentroids
 
-        nnoisetest = int(ltest * noise_percent)
-        print(f"Adding {nnoisetest} noise samples to test data")
-        emats = []
-        zs = []
-        tempcentroids = []
-        for i in range(nnoisetest):
-            index = np.random.randint(0, ltest - 1)
-            centroid = self.test_data[2][index]
-            emat, centroid, z = encode_noise(centroid[0, 0], np.amax(centroid[:, 1]), phaseres=self.config.phaseres)
-            emats.append(emat)
-            zs.append(0)
-            tempcentroids.append(centroid)
-
-        self.test_data[0] = np.concatenate((self.test_data[0], emats), axis=0)
-        self.test_data[1] = np.concatenate((self.test_data[1], zs), axis=0)
-        self.test_data[2] = self.test_data[2] + tempcentroids
-
-    def add_doubles(self, double_percent):
+    def add_doubles(self, double_percent, dataset="training"):
         """
-        Add double peaks to the training and test data
+        Add double peaks to the selected data collection.
         :param double_percent: Percent of total data to add as double peaks
+        :param dataset: Data collection to modify: ``"training"`` or ``"test"``
         :return: None
         """
-        ltraining = len(self.training_data[0])
-        ltest = len(self.test_data[0])
-        ndouble = int(ltraining * double_percent)
-        print(f"Adding {ndouble} double samples in training data")
+        data = self._get_augmentation_data(dataset)
+        data_length = len(data[0])
+        ndouble = int(data_length * double_percent)
+        print(f"Adding {ndouble} double samples in {dataset} data")
+        if ndouble == 0:
+            return
+
         emats = []
         zs = []
         tempcentroids = []
-        for i in range(ndouble):
-            index = np.random.randint(0, ltraining - 1)
-            centroid1 = self.training_data[2][index]
-            index2 = np.random.randint(0, ltraining - 1)
-            centroid2 = self.training_data[2][index2]
-            z = self.training_data[1][index]
+        for _ in range(ndouble):
+            index = np.random.randint(data_length)
+            centroid1 = data[2][index]
+            index2 = np.random.randint(data_length)
+            centroid2 = data[2][index2]
+            z = data[1][index]
             emat, centroid = encode_double(centroid1, centroid2, phaseres=self.config.phaseres)
             emats.append(emat)
             zs.append(z)
             tempcentroids.append(centroid)
 
-        self.training_data[0] = np.concatenate((self.training_data[0], emats), axis=0)
-        self.training_data[1] = np.concatenate((self.training_data[1], zs), axis=0)
-        self.training_data[2] = self.training_data[2] + tempcentroids
+        data[0] = np.concatenate((data[0], emats), axis=0)
+        data[1] = np.concatenate((data[1], zs), axis=0)
+        data[2] = data[2] + tempcentroids
 
-        ndoubletest = int(ltest * double_percent)
-        print(f"Adding {ndoubletest} double samples in test data")
-        emats = []
-        zs = []
-        tempcentroids = []
-        for i in range(ndoubletest):
-            index = np.random.randint(0, ltest - 1)
-            index2 = np.random.randint(0, ltest - 1)
-            centroid1 = self.test_data[2][index]
-            centroid2 = self.test_data[2][index2]
-            z = self.test_data[1][index]
-            emat, centroid = encode_double(centroid1, centroid2, phaseres=self.config.phaseres)
-            emats.append(emat)
-            zs.append(z)
-            tempcentroids.append(centroid)
-
-        self.test_data[0] = np.concatenate((self.test_data[0], emats), axis=0)
-        self.test_data[1] = np.concatenate((self.test_data[1], zs), axis=0)
-        self.test_data[2] = self.test_data[2] + tempcentroids
-
-    def equilize_data(self):
-        ltraining = len(self.training_data[0])
-        zdata = self.training_data[1]
-        zcounts = np.bincount(zdata)[1:]
-        thebar = np.median(zcounts)
-        uz = np.arange(1, len(zcounts) + 1)
-        print("Equilizing Data. The Bar:", thebar)
-
-        if len(uz) != len(zcounts):
-            raise ValueError("Unique Zs and Z Counts are not the same length")
-
-        if thebar <= 1:
-            thebar = 10
-
-        emats = []
-        zs = []
-        tempcentroids = []
-        for i in range(1, 50):
-            if i not in uz:
-                num = 0
-            else:
-                num = zcounts[np.where(uz == i)[0][0]]
-
-            if num < thebar:
-                n = int(thebar - num)
-                for j in range(n):
-                    index = np.random.randint(0, ltraining - 1)
-                    centroid1 = self.training_data[2][index]
-                    z = self.training_data[1][index]
-                    emat, centroid = encode_synthetic(centroid1, z, i, phaseres=self.config.phaseres)
-                    emats.append(emat)
-                    zs.append(i)
-                    tempcentroids.append(centroid)
-                    # cplot(centroid)
-                    # plt.show()
-
-        self.training_data[0] = np.concatenate((self.training_data[0], emats), axis=0)
-        self.training_data[1] = np.concatenate((self.training_data[1], zs), axis=0)
-        self.training_data[2] = self.training_data[2] + tempcentroids
-
-        ltest = len(self.test_data[0])
-        zdata = self.test_data[1]
-        zcounts = np.bincount(zdata)[1:]
-        thebar = np.median(zcounts)
-        uz = np.arange(1, len(zcounts) + 1)
-
-        if len(uz) != len(zcounts):
-            raise ValueError("Unique Zs and Z Counts are not the same length")
-
-        if thebar <= 1:
-            thebar = 10
-
-        emats = []
-        zs = []
-        tempcentroids = []
-        for i in range(1, 50):
-            if i not in uz:
-                num = 0
-            else:
-                num = zcounts[np.where(uz == i)[0][0]]
-
-            if num < thebar:
-                n = int(thebar - num)
-                for j in range(n):
-                    index = np.random.randint(0, ltest - 1)
-                    centroid1 = self.test_data[2][index]
-                    z = self.test_data[1][index]
-                    emat, centroid = encode_synthetic(centroid1, z, i, phaseres=self.config.phaseres)
-                    emats.append(emat)
-                    zs.append(i)
-                    tempcentroids.append(centroid)
-                    # cplot(centroid)
-                    # plt.show()
-
-        self.test_data[0] = np.concatenate((self.test_data[0], emats), axis=0)
-        self.test_data[1] = np.concatenate((self.test_data[1], zs), axis=0)
-        self.test_data[2] = self.test_data[2] + tempcentroids
-
-
-    def load_training_data(self, training_path, test_path=None, noise_percent=0.0, double_percent=0.4,
-                           harmonic_percent=0.0, onedrop_percent=0.0, equilize=False):
+    def equilize_data(self, dataset="training"):
         """
-        Load training data from a file
-        :param training_path: Path to the training data file or name of the file tag
-        :param test_path: Optional path to the test data file or name of the file tag.
-                            If not, will default to same as training_path
-        :param noise_percent: The percent of noise to add to the training and test data
-        :param double_percent: The percent of double peaks to add to the training and test data
-        :param harmonic_percent: The percent of harmonic peaks to add to the training and test data
+        Equalize charge-state representation in the selected data collection.
+        :param dataset: Data collection to modify: ``"training"`` or ``"test"``
+        :return: None
+        """
+        data = self._get_augmentation_data(dataset)
+        data_length = len(data[0])
+        if data_length == 0:
+            return
+
+        zdata = data[1]
+        zcounts = np.bincount(zdata)[1:]
+        thebar = np.median(zcounts)
+        uz = np.arange(1, len(zcounts) + 1)
+        print(f"Equilizing {dataset} data. The Bar:", thebar)
+
+        if len(uz) != len(zcounts):
+            raise ValueError("Unique Zs and Z Counts are not the same length")
+
+        if thebar <= 1:
+            thebar = 10
+
+        emats = []
+        zs = []
+        tempcentroids = []
+        for i in range(1, 50):
+            if i not in uz:
+                num = 0
+            else:
+                num = zcounts[np.where(uz == i)[0][0]]
+
+            if num < thebar:
+                n = int(thebar - num)
+                for _ in range(n):
+                    index = np.random.randint(data_length)
+                    centroid1 = data[2][index]
+                    z = data[1][index]
+                    emat, centroid = encode_synthetic(centroid1, z, i, phaseres=self.config.phaseres)
+                    emats.append(emat)
+                    zs.append(i)
+                    tempcentroids.append(centroid)
+
+        if not emats:
+            return
+
+        data[0] = np.concatenate((data[0], emats), axis=0)
+        data[1] = np.concatenate((data[1], zs), axis=0)
+        data[2] = data[2] + tempcentroids
+
+    def load_data(self, data_path, dataset="training", noise_percent=0.0, double_percent=0.4,
+                  harmonic_percent=0.0, onedrop_percent=0.0, equilize=False,
+                  ematkey="emat", centroidkey="centroids"):
+        """
+        Load and augment one training or test data collection from a file.
+        :param data_path: Path to an NPZ file or its file tag
+        :param dataset: Data collection to load: ``"training"`` or ``"test"``
+        :param noise_percent: The percent of noise samples to add
+        :param double_percent: The percent of double-peak samples to add
+        :param harmonic_percent: The percent of harmonic samples to add
         :param onedrop_percent: The percent of charge 1 data to drop
         :param equilize: Whether to equilize the data
+        :param ematkey: The key for the encoded matrix in the npz file
+        :param centroidkey: The key for the centroids in the npz file
         :return: None
         """
+        if dataset not in ("training", "test"):
+            raise ValueError("dataset must be 'training' or 'test'")
+
+        data_path = os.fspath(data_path)
         ext = ".npz"
-        if ext not in training_path:
-            training_path = "training_data_" + training_path + ext
+        if not data_path.lower().endswith(ext):
+            directory, tag = os.path.split(data_path)
+            data_path = os.path.join(directory, f"{dataset}_data_{tag}{ext}")
 
-        if test_path is None:
-            test_path = training_path.replace("training", "test")
-        elif ext not in test_path:
-            test_path = "test_data_" + test_path + ext
+        with np.load(data_path, allow_pickle=True) as loaded:
+            if centroidkey in ("centroids", "profiles"):
+                data = [loaded[ematkey], loaded["z"], list(loaded[centroidkey])]
+            elif centroidkey == "both":
+                centroid_ematkey = ematkey.replace("emat_p_", "emat_c_").replace("emat_b_", "emat_c_")
+                profile_ematkey = centroid_ematkey.replace("emat_c_", "emat_p_")
+                centroid_data = [loaded[centroid_ematkey], loaded["z"], list(loaded["centroids"])]
+                profile_data = [loaded[profile_ematkey], loaded["z"], list(loaded["profiles"])]
+                data = [
+                    np.concatenate((centroid_data[0], profile_data[0]), axis=0),
+                    np.concatenate((centroid_data[1], profile_data[1]), axis=0),
+                    centroid_data[2] + profile_data[2],
+                ]
+            else:
+                raise ValueError("centroidkey must be 'centroids', 'profiles', or 'both'")
 
-        td = np.load(training_path, allow_pickle=True)
-        self.training_data = [td["emat"], td["z"], list(td["centroids"])]
-        td = np.load(test_path, allow_pickle=True)
-        self.test_data = [td["emat"], td["z"], list(td["centroids"])]
+        if dataset == "training":
+            self.training_data = data
+        else:
+            self.test_data = data
 
         if onedrop_percent > 0:
-            self.drop_ones(percentage=onedrop_percent)
+            self.drop_ones(percentage=onedrop_percent, dataset=dataset)
 
         if harmonic_percent > 0:
-            self.add_harmonics(harmonic_percent)
+            self.add_harmonics(harmonic_percent, dataset=dataset)
 
         if double_percent > 0:
-            self.add_doubles(double_percent)
+            self.add_doubles(double_percent, dataset=dataset)
 
         if noise_percent > 0:
-            self.add_noise(noise_percent)
+            self.add_noise(noise_percent, dataset=dataset)
 
         if equilize:
-            self.equilize_data()
+            self.equilize_data(dataset=dataset)
 
-        print("Loaded:", len(self.training_data[0]), "Training Samples")
+        print(f"Loaded: {len(data[0])} {dataset.capitalize()} Samples")
 
     def create_training_dataloader(self, training_path, test_path=None, noise_percent=0, batchsize=None,
-                                   double_percent=0.4, harmonic_percent=0, one_drop_percent=0, equalize=False):
+                                   double_percent=0.4, harmonic_percent=0, one_drop_percent=0, equalize=False,
+                                   ematkey="emat", centroidkey="centroids"):
         """
         Create the training and test dataloaders from a single file path
         :param training_path: Path to the training data file or name of the file tag
@@ -388,9 +351,21 @@ class IsoDecEngine:
         if batchsize is not None:
             self.config.batch_size = batchsize
 
-        self.load_training_data(training_path, test_path=test_path, noise_percent=noise_percent,
-                                double_percent=double_percent, harmonic_percent=harmonic_percent,
-                                onedrop_percent=one_drop_percent, equalize=equalize)
+        self.load_data(training_path, dataset="training", noise_percent=noise_percent,
+                       double_percent=double_percent, harmonic_percent=harmonic_percent,
+                       ematkey=ematkey, centroidkey=centroidkey, onedrop_percent=one_drop_percent,
+                       equilize=equalize)
+
+        if test_path is None:
+            test_path = os.fspath(training_path)
+            if test_path.lower().endswith(".npz"):
+                directory, filename = os.path.split(test_path)
+                test_path = os.path.join(directory, filename.replace("training", "test", 1))
+
+        self.load_data(test_path, dataset="test", noise_percent=noise_percent,
+                       double_percent=double_percent, harmonic_percent=harmonic_percent,
+                       ematkey=ematkey, centroidkey=centroidkey, onedrop_percent=one_drop_percent,
+                       equilize=equalize)
 
         self.training_data = IsoDecDataset(self.training_data[0], self.training_data[1])
         self.test_data = IsoDecDataset(self.test_data[0], self.test_data[1])
@@ -401,52 +376,81 @@ class IsoDecEngine:
                                           pin_memory=False)
 
     def create_merged_dataloader(self, dirs, training_path, noise_percent=0.0, batchsize=None, double_percent=0.4,
-                                 harmonic_percent=0.0, onedrop_percent=0.0, equilize=False):
+                                 harmonic_percent=0.0, onedrop_percent=0.0, equilize=False, ematkey="emat",
+                                 centroidkey="centroids", dataset="both"):
         """
         Create a merged dataloader from multiple directories. Looks for common file names and merges them together
         :param dirs: Directories to look in
-        :param training_path: File name or tag, fed to load_training_data
+        :param training_path: File name or tag, fed to load_data
         :param noise_percent: Percent of noise to add to the training and test data
         :param batchsize: Batch size for training
         :param double_percent: Percent of double peaks to add to the training and test data
         :param harmonic_percent: Percent of harmonic peaks to add to the training and test data
         :param onedrop_percent: Percent of charge 1 data to drop
         :param equilize: Whether to equilize the data
+        :param dataset: Data to import: ``"training"``, ``"test"``, or ``"both"``
         :return:
         """
+        if dataset not in ("training", "test", "both"):
+            raise ValueError("dataset must be 'training', 'test', or 'both'")
+
         if batchsize is not None:
             self.config.batch_size = batchsize
 
         training_data = []
         test_data = []
+        load_training = dataset in ("training", "both")
+        load_test = dataset in ("test", "both")
+
+        self.ematkey = ematkey
+        self.centroidkey = centroidkey
+        self.training_data = None
+        self.test_data = None
+        self.training_centroids = []
+        self.test_centroids = []
+        self.train_dataloader = None
+        self.test_dataloader = None
 
         for d in dirs:
             os.chdir(d)
             print(d)
-            self.load_training_data(training_path, noise_percent=noise_percent, double_percent=double_percent,
-                                    harmonic_percent=harmonic_percent, onedrop_percent=onedrop_percent,
-                                    equilize=equilize)
-            training_data.append(self.training_data)
-            test_data.append(self.test_data)
+            if load_training:
+                self.load_data(training_path, dataset="training", noise_percent=noise_percent,
+                               double_percent=double_percent, harmonic_percent=harmonic_percent,
+                               onedrop_percent=onedrop_percent, ematkey=ematkey,
+                               centroidkey=centroidkey, equilize=equilize)
+                training_data.append(self.training_data)
 
-        self.training_data = [np.concatenate([t[0] for t in training_data], axis=0),
-                              np.concatenate([t[1] for t in training_data], axis=0)]
-        self.test_data = [np.concatenate([t[0] for t in test_data], axis=0),
-                          np.concatenate([t[1] for t in test_data], axis=0)]
+            if load_test:
+                test_path = os.fspath(training_path)
+                if test_path.lower().endswith(".npz"):
+                    directory, filename = os.path.split(test_path)
+                    test_path = os.path.join(directory, filename.replace("training", "test", 1))
+                self.load_data(test_path, dataset="test", noise_percent=noise_percent,
+                               double_percent=double_percent, harmonic_percent=harmonic_percent,
+                               onedrop_percent=onedrop_percent, ematkey=ematkey,
+                               centroidkey=centroidkey, equilize=equilize)
+                test_data.append(self.test_data)
 
-        self.training_centroids = list(chain(*[t[2] for t in training_data]))
-        self.test_centroids = list(chain(*[t[2] for t in test_data]))
+        if load_training:
+            merged_training = [np.concatenate([data[0] for data in training_data], axis=0),
+                               np.concatenate([data[1] for data in training_data], axis=0)]
+            self.training_centroids = list(chain(*[data[2] for data in training_data]))
+            self.training_data = IsoDecDataset(merged_training[0], merged_training[1])
+            self.train_dataloader = DataLoader(
+                self.training_data, batch_size=self.config.batch_size, shuffle=True, pin_memory=True
+            )
+            print(f"Training Data Length: {len(self.training_data)}")
 
-        self.training_data = IsoDecDataset(self.training_data[0], self.training_data[1])
-        self.test_data = IsoDecDataset(self.test_data[0], self.test_data[1])
-
-        self.train_dataloader = DataLoader(self.training_data, batch_size=self.config.batch_size, shuffle=True,
-                                           pin_memory=True)
-        self.test_dataloader = DataLoader(self.test_data, batch_size=self.config.test_batch_size, shuffle=False,
-                                          pin_memory=True)
-
-        print(f"Training Data Length: {len(self.training_data)}")
-        print(f"Test Data Length: {len(self.test_data)}")
+        if load_test:
+            merged_test = [np.concatenate([data[0] for data in test_data], axis=0),
+                           np.concatenate([data[1] for data in test_data], axis=0)]
+            self.test_centroids = list(chain(*[data[2] for data in test_data]))
+            self.test_data = IsoDecDataset(merged_test[0], merged_test[1])
+            self.test_dataloader = DataLoader(
+                self.test_data, batch_size=self.config.test_batch_size, shuffle=False, pin_memory=True
+            )
+            print(f"Test Data Length: {len(self.test_data)}")
 
         # plot_zdist(self)
 
@@ -460,17 +464,26 @@ class IsoDecEngine:
         """
         starttime = time.perf_counter()
 
+        accuracy_score=0
+
         if self.train_dataloader is None or self.test_dataloader is None:
             raise ValueError("DataLoaders not created. Run create_training_dataloader first.")
         self.phasemodel.get_class_weights(self.train_dataloader)
         for t in range(epochs):
             print(f"Epoch {t + 1}\n-------------------------------")
             self.phasemodel.train_model(self.train_dataloader, lossfn=lossfn, forcenew=forcenew)
-            self.phasemodel.evaluate_model(self.test_dataloader)
+            _, accuracy_score = self.phasemodel.evaluate_model(self.test_dataloader)
+
+        if self.ematkey != "emat":
+            output = self.ematkey.replace("emat_", "")
+            savepath = f"phase_model_{output}.pth"
+        else:
+            savepath = None
 
         if save:
-            self.phasemodel.save_model()
+            self.phasemodel.save_model(savepath)
         print("Done! Time:", time.perf_counter() - starttime)
+        return accuracy_score
 
     def save_bad_data(self, filename="bad_data.pkl", maxbad=50):
         """

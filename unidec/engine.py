@@ -51,6 +51,7 @@ class UniDec(UniDecEngine):
         self.errorgrid = None
         self.infile = None
         self.outfile = None
+        self.configfile = None
         opts = None
         if "ignore_args" in kwargs:
             ignore_args = kwargs["ignore_args"]
@@ -58,10 +59,10 @@ class UniDec(UniDecEngine):
             ignore_args = False
         if not ignore_args:
             try:
-                opts, args = getopt.getopt(sys.argv[1:], "f:o:", ["file=", "out="])
+                opts, args = getopt.getopt(sys.argv[1:], "f:o:c:", ["file=", "out=", "config="])
             except getopt.GetoptError as e:
                 print("Error in Argv. Likely unknown option: ", sys.argv, e)
-                print("Known options: -f, -o")
+                print("Known options: -f, -o, -c")
 
             # print("ARGS:", args)
             # print("KWARGS:", kwargs)
@@ -74,6 +75,9 @@ class UniDec(UniDecEngine):
                     if opt in ("-o", "--out"):
                         self.outfile = arg
                         print("Output File:", self.outfile)
+                    if opt in ("-c", "--config"):
+                        self.configfile = arg
+                        print("Config File:", self.configfile)
             if ud.isempty(opts) or self.infile is None:
                 if len(args) > 0:
                     maybe_file = args[0]
@@ -111,9 +115,10 @@ class UniDec(UniDecEngine):
         if file_directory is None:
             file_directory = os.path.dirname(file_name)
             file_name = os.path.basename(file_name)
-        if '.d' not in file_directory and '.raw' not in file_directory:
-            file_path = os.path.join(file_directory, file_name)
-        else:
+
+        file_path = os.path.join(file_directory, file_name)
+
+        if not os.path.isfile(file_path) and ('.d' not in file_directory or '.raw' not in file_directory):
             try:
                 file_path = file_directory
             except:
@@ -196,10 +201,14 @@ class UniDec(UniDecEngine):
             self.config.procflag = 0
 
         # Initialize Config
-        if os.path.isfile(self.config.confname) and not refresh:
-            self.load_config(self.config.confname)
-        else:
+        if self.configfile is not None:
+            self.load_config(self.configfile)
             self.export_config()
+        else:
+            if os.path.isfile(self.config.confname) and not refresh:
+                self.load_config(self.config.confname)
+            else:
+                self.export_config()
 
         self.auto_polarity(importer = curr_importer)
 
@@ -1411,7 +1420,7 @@ class UniDec(UniDecEngine):
 
         # Open it
         self.open_file(fname, testdir, **kwargs)
-        self.config.maxmz, self.config.minmz = np.amin(data[:, 0]), np.amax(data[:, 0])
+        self.config.minmz, self.config.maxmz = np.amin(data[:, 0]), np.amax(data[:, 0])
         # self.config.default_isotopic_res()
 
     def get_spectrum_peaks(self, threshold=0.05, window=None):

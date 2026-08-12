@@ -283,7 +283,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	precompute_fft2D(peakshape, size, peakshape_FFT);
 	complex_conjugate(peakshape_FFT, inverse_peakshape_FFT, lines);
 
-	printf("Peak Shape Set\n");
+	printf("Peak Shape Set, %d %d %f\n", config.psfun, config.zpsfun, Max(peakshape, size[0] * size[1]));
 
 
 	//Set up charge blur

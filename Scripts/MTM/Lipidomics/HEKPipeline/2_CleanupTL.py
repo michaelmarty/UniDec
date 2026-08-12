@@ -6,8 +6,8 @@ from PublicScripts.Lipids.LipidFunctions import rename_overlapping_species
 topdir = r"Z:\Group Share\Annika\Stellar\HEK\tMS2\CurrentData"
 os.chdir(topdir)
 
-filepath = r"CleanedAdducts_AllDatasets_TransList_MM_Clean11.csv"
-outfile = filepath.replace("_Clean11.csv", "_Clean12.csv")
+filepath = r"Fixed_UltimateSplash_TransList_Clean4.csv"
+outfile = filepath.replace("_Clean4.csv", "_UdpdatedAdducts.csv")
 
 df = pd.read_csv(filepath)
 
@@ -17,7 +17,7 @@ df_filtered = df[df["Product Mz"] < (df["Precursor Mz"] - 5)]
 # Drop classes with these names
 drop_classes = ["ASM", "EtherSMGDG", "EtherTG", "MGDG", "EtherMGDG", "LNAPS", "LNAPE", "DLCL", "EtherLPG", "MLCL",
                 "AHexCer", "HexCer_NDS", "EtherPS", "OxPE", "EtherDG", "DGDG", "NATau", "PE_Cer", "HBMP", "PEtOH", "DGGA", "ADGGA", "Cer_AS", "EtherLPE",
-                "HexCer_HDS", "HexCer_AP", "HexCer_EOS", "BRSE", "Sph", "SHex"
+                "HexCer_HDS", "HexCer_AP", "HexCer_EOS", "BRSE", "Sph", "SHex", "EtherPG", "EtherPI", "PI_Cer", "PMeOH", "Cer_ADS"
 
 ]
 df_filtered = df_filtered[~df_filtered["Molecule List Name"].isin(drop_classes)]
@@ -65,7 +65,8 @@ drop_names = ["CL 14:0_18:1_16:1_16:1", r"Cer 19:0;2O/43:0", r"Cer 18:1;O2/40:2"
               "SM 46:7;2|SM 18:1;2/28:6", "SM 46:8;2", "SM 46:9;2", "SM 47:2;2", "SM 47:7;2", "SM 47:8;2", "SM 47:9;2", "SM 48:7;2|SM 18:1;2/30:6", "SM 48:8;2", "SM 50:1;2|SM 18:1;2/32:0", "SM 50:2;2", "SM 51:0;2", "SM 51:3;2", "SM 52:1;2",
               "SM 53:0;2", "SM 54:0;2", "SM 54:1;2|SM 18:1;2/36:0", "SM 54:5;2|SM 16:3;2/38:2", "SM 58:7;2|SM 36:2;2/22:5", "SM 60:2;2|SM 18:1;2/42:1", "SM 60:7;2", "SM 60:7;2|SM 34:2;2/26:5", "SM 60:8;2|SM 34:3;2/26:5", "SM 62:8;2|SM 24:1;2/38:7",
               "SM 62:9;2", "SM 35:6;2", "SM 36:5;2", "SM 36:6;2", "SM 36:7;2",  "SM 38:6;2", "SM 38:7;2", "SM 39:7;2", "SM 40:6;2", "SM 40:9;2", "SM 42:6;2", "SM 42:7;2", "SM 42:8;2", "SM 43:6;2", "SM 43:8;2", "SM 43:9;2",
-              "SM 44:7;2", "SM 44:8;2", "SM 45:5;2|SM 15:2;2/30:3", "LPA 15:1", "LPA 16:1", "LPA 17:2", "LPA 20:5", "LPA 24:0", "LPC 23:0", "LPC O_18:4",
+              "SM 44:7;2", "SM 44:8;2", "SM 45:5;2|SM 15:2;2/30:3", "LPA 15:1", "LPA 16:1", "LPA 17:2", "LPA 20:5", "LPA 24:0", "LPC 23:0", "LPC O_18:4", "LPA 16:2", "LPA 17:0",
+              "LPA 17:1", "LPA 22:3",
               "LPS 16:3", "PA 35:2|PA 17:1_18:1", "PC 29:2", "PC 34:6", "PC 52:0|PC 21:0_31:0", "PC O_35:5|PC O_18:5_17:0", "PC O_38:9", "PC O_42:6|PC O_26:6_16:0", "PC O_51:0",
                "PG 31:0|PG 14:0_17:0", "SM 41:10;2", "Cer 44:0;2|Cer 20:0;2/24:0", "Cer 44:3;4|Cer 28:2;3(FA 16:0)", "Cer 45:3;4|Cer 14:1;2/15:1;O(FA 16:0)", "Cer 45:4;4|Cer 27:2;3(FA 18:1)", "Cer 48:2;2|Cer 34:2;2/14:0",
                 "Cer 48:3;2|Cer 18:1;2/30:2", "Cer 49:3;4|Cer 33:2;3(FA 16:0)", "Cer 50:3;2|Cer 18:1;2/32:2", "Cer 42:0;3|Cer 18:0;3/24:0", "DG 40:4|DG 18:1_22:3", "Hex2Cer 55:12;2", "HexCer 41:1;2|HexCer 18:1;2/23:0",

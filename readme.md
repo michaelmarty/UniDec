@@ -13,41 +13,75 @@ Please contact mtmarty@email.arizona.edu for questions, suggestions, or with any
 
 ## Installation
 
+### Binary download 
+
 UniDec may be downloaded from [https://github.com/michaelmarty/UniDec/releases](https://github.com/michaelmarty/UniDec/releases).
 
 This compiled version is compatible with 64-bit Windows. It a portable binary, so it does not need a conventional installation.
 Just unzip the folder, put it somewhere convenient, if you are still having issues 
 run the INSTALLER.cmd as administrator,(only have to do this once)
-then click the GUI_UniDec.exe file in the folder to launch.
+then click the GUI_UniDec.exe file in the folder to launch. 
+
+**If you are seeing issues loading Thermo data or having other bugs,** first delete the folder, then right click on the zip file. Select "Properties" and click "Unblock". Finally, unzip it again and launch it.
 
 To use the PDF report generator, install [MikTex](https://miktex.org) and select install packages automatically from the installation options. You may need to add this to your system path so that PDFLatex is found from the command line. 
 
-### Linux Install
+### Pip install
 
-To install on linux start with making a virtual environment. 
+Unidec can also be installed via the pip package manager.
+Start by `cd`ing to the directory where you want UniDec to be stored,
+and making a virtual environment: 
 
-    virtualenv env
+    python -m venv venv
 	
-Then clone this repo with `git clone ....`
+Then clone this repo with `git clone https://github.com/michaelmarty/UniDec.git`
 
-With your directory tree looking like:
+This will result in a directory (visible with `ls`) looking like:
 
 	./
-    env/
+    venv/
 	UniDec/
 
-Then install the dependencies:
+Then install the package:
 
-    pip install -r UniDec/requirements.txt
+    pip install ./UniDec/
 
-Then install UniDec as a dependency from the git repository you downloaded:
-
-	pip install -e UniDec/
-	
-Then you can run the launcher
+Then you can run the launcher:
 
     python -m unidec.Launcher
 
+This also allows calling the program from the system command line, so `unidec <args>`
+will run the unidec command line program, and `gunidec` will open the unidec GUI.
+
+### Linux install
+
+On linux, you need to deal with getting `wxPython` installed and available to UniDec
+before installing UniDec.
+
+1. `cd UniDec/unidec/src` to get to the source directory of the UniDec engine.
+2. Follow the instructions at the top of `./linux_<package manager>_deps.txt` to
+install the dependencies for your package manager. If your package manager isn't
+listed, you'll need to figure out which packages provide these libraries.
+3.  Make a virtual envionment which passes this installation through:
+
+	pip -m venv venv --system-site-packages
+
+If you're on an x86_64 machine and step 1 did not throw any errors, then you
+will likely be able to proceed with the Pip install as shown above, as there
+is a compiled version of the UniDec engine binary in `unidec/bin/unideclinux`.
+If you are on an Arm or other non-x86_64 system, or if running UniDec from
+within the GUI throws errors (in the terminal window), you may need to recompile
+the UniDec engine:
+
+    `./unidec/src/compilelinux.sh`
+
+When UniDec is restarted, the engine should now be accessible.
+
+There are a couple of known issues with the GTK UI used under Linux:
+
+- The window does not open with the same proportions as on Windows, but this
+can be adjusted once it's open.
+- Mouse drags to zoom into plots aren't registered correctly under Wayland.
 
 ## Tutorial
 
@@ -183,7 +217,7 @@ If you are interested in binaries for Mac and Linux, I would recommend building 
 
 ## UniDec Documentation
 
-Documentation is for the Python engine and GUI and can be found at http://michaelmarty.github.io/UniDecDocumentation/. Sorry, it's no great documentation, and I'm way behind on completing it. I'm still working on documenting some of the windows and extensions (including MetaUniDec and C code), but the core features should be here.
+Documentation for the Python engine and GUI can be found at https://michaelmarty.github.io/UniDecDev/. Sorry, it's no great documentation, and I'm way behind on completing it. I'm still working on documenting some of the windows and extensions (including MetaUniDec and C code), but the core features should be here.
 
 My goal is that this documentation will allow you to use the power of the UniDec python engine for scripting data analysis routines and performing custom analysis. Also, it will allow you to add new modules to the UniDec GUI.
 
@@ -236,7 +270,44 @@ The main GUI class is Launcher. You can launch the Launcher from the command lin
 
 Of course, using the pre-compiled version means you don't need to know Python at all and can just click the GUI_UniDec.exe icon to launch the program and get started. However you choose to do it, happy deconvolving!
 
+## Contributing
+
+We welcome contributions from people of all background. We are generally not interested in contributions from bots. Unfortunately, we have seen a rise in AI-generated code contributions that are not reviewed or tested by the contributor and that contain errors. This creates extra work for the maintainers and can introduce bugs and security vulnerabilities into the codebase.
+
+Before accepting contributions, we ask that you email us at mtmarty@utexas.edu to introduce yourself.
+Also, we expect that contributors carefully review any AI-generated code outputs and test the results before submitting.
+Contributions that appear to be generated by AI without review and testing may be rejected. Contributions with clear mistakes and errors will be rejected. Contributors should review the CODE_OF_CONDUCT.md file for more information.
+
+
 ## Change Log
+
+v.8.2.1
+
+Added new harmonic and satellite suppression parameters, copied nearly exactly from 2015.
+
+Renamed other harmonic and satellite suppression parameters to be more descriptive.
+
+v.8.2.0
+
+Added in new experimental charge restraint features.
+
+Added -c option to unidec command line arguments to allow for specifying a config file.
+
+Fixed major bug with parameters being mixed up between isotope mode and regular. Should fix any speed or negative mode issues.
+
+Fixed bug where .d or .raw in file names could cause text files to fail to import.
+
+Added text about unblocking to the readme.
+
+v.8.1.3
+
+Removed Integration Range box from MetaUniDec and UniChrom. It actually didn't do anything.
+
+Renamed peak pooling (PP) with UCCD to multiple runs summed (MRS) to be more descriptive.
+
+Fixed bug with SplitGL charge peak shape on UCD. 
+
+Fixed zipping and building bugs. Wasn't actually signed properly before.
 
 v.8.1.2
 

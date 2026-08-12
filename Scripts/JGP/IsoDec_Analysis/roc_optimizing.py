@@ -256,9 +256,9 @@ falsepos = 0
 
 
 #region TopFD Initial Processing
-uvpd_topfd = read_msalign_to_matchedcollection("Z:\\Group Share\\JGP\\JPST001885\\UVPD_Test\\MASH_Workflows\\10uMCA25+UVPDLPT1,0mJ1pFullP_3_20240813_142813_TopFD_1_1\\input_topfd_ms2.msalign", uvpd_spectrum)
-etd_topfd = read_msalign_to_matchedcollection("Z:\\Group Share\\JGP\\js8b05641_si_001\\MASH_Workflows\\1500_scans_200K_16 fills-qb1_20240815_120332_TopFD_1_1\\1500_scans_200K_16 fills-qb1_ms2.msalign", etd_spectrum)
-tof_topfd = read_msalign_to_matchedcollection("Z:\\Group Share\\JGP\\MSV000094542\\raw\RAW\\MASH_Workflows\\ECD Apomyoglobin (16+) 6560 (2.5A, 25v) 0002_20250102_120613_TopFD_1_1\\ECD Apomyoglobin (16+) 6560 (2.5A, 25v) 0002_peaks_ms2.msalign", tof_spectrum)
+uvpd_topfd = read_msalign_to_matchedcollection(r"Z:\\Group Share\\JGP\\JPST001885\\UVPD_Test\\MASH_Workflows\\10uMCA25+UVPDLPT1,0mJ1pFullP_3_20240813_142813_TopFD_1_1\\input_topfd_ms2.msalign", uvpd_spectrum)
+etd_topfd = read_msalign_to_matchedcollection(r"Z:\\Group Share\\JGP\\js8b05641_si_001\\MASH_Workflows\\1500_scans_200K_16 fills-qb1_20240815_120332_TopFD_1_1\\1500_scans_200K_16 fills-qb1_ms2.msalign", etd_spectrum)
+tof_topfd = read_msalign_to_matchedcollection(r"Z:\\Group Share\\JGP\\MSV000094542\\raw\RAW\\MASH_Workflows\\ECD Apomyoglobin (16+) 6560 (2.5A, 25v) 0002_20250102_120613_TopFD_1_1\\ECD Apomyoglobin (16+) 6560 (2.5A, 25v) 0002_peaks_ms2.msalign", tof_spectrum)
 
 shared, u1, u2 = compare_annotated(uvpd_annotated, uvpd_topfd, ppmtol=50, maxshift=3)
 
@@ -425,7 +425,7 @@ for i in range(len(engines)):
     roc_df[engine_names[i] + "-AC"] = [x[1] for x in best_combinations[i]]
     roc_df[engine_names[i] + "-KD"] = [x[2] for x in best_combinations[i]]
 try:
-    roc_df.to_csv("Z:\\Group Share\\JGP\\IsoDec_figs\\uvpd_etd_p_r_curve_data.csv")
+    roc_df.to_csv("Z:\\Group Share\\JGP\\IsoDec_figs\\uvpd_etd_p_r_curve_data3.csv")
 except:
     pass
 
@@ -447,8 +447,8 @@ plt.ylim(0, 1.05)
 plt.xticks(np.arange(0,1.1,0.5), fontsize=16)
 plt.yticks(np.arange(0,1.1,0.5), fontsize=16)
 plt.tight_layout()
-plt.savefig("Z:\\\Group Share\\\JGP\\\IsoDec_figs\\uvpd_etd_roc2.pdf", dpi=300, transparent=True)
-plt.savefig("Z:\\\Group Share\\\JGP\\\IsoDec_figs\\uvpd_etd_roc2.png", dpi=300, transparent=True)
+plt.savefig("Z:\\Group Share\\JGP\\IsoDec_figs\\uvpd_etd_roc3.pdf", dpi=300, transparent=True)
+plt.savefig("Z:\\Group Share\\JGP\\IsoDec_figs\\uvpd_etd_roc3.png", dpi=300, transparent=True)
 plt.show()
 plt.figure()
 

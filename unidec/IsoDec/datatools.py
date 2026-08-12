@@ -14,6 +14,7 @@ def fastnearest(array, target):
     :param target: Value
     :return: np.argmin(np.abs(array - target))
     """
+    array = np.array(array)
     if array.size == 0:
         return 0
     start = 0

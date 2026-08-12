@@ -578,7 +578,7 @@ class UniDecCD(engine.UniDec):
             harray[boo3] = 0
 
         if not ud.isempty(self.config.smashlist) and self.config.smashflag == 1:
-            print("Smashing: ", self.config.smashlist)
+            #print("Smashing: ", self.config.smashlist)
             for i in range(len(self.config.smashlist)):
                 smashrange = self.config.smashlist[i]
                 # Filter values
