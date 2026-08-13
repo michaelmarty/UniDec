@@ -79,7 +79,7 @@ class PhaseModel:
     Includes functions to train, evaluate, and predict charge states.
     """
 
-    def __init__(self, working_dir=None):
+    def __init__(self, working_dir=None, phaseres=4):
         """
         Initialize the model. Set the working directory
         :param working_dir:
@@ -105,10 +105,18 @@ class PhaseModel:
         self.modelid = None
         self.savepath = None
         self.indexes = None
-        self.dims = [50, 8]
+
         self.class_weights = None
 
-        self.modelid = 0
+        if phaseres == 4:
+            self.dims = [50, 8]
+            self.modelid = 0
+        if phaseres == 8:
+            self.dims = [50, 8]
+            self.modelid = 1
+        if phaseres == 1:
+            self.dims = [50, 1]
+            self.modelid = 2
         # self.get_model(self.modelid)
 
     def get_model(self, modelid):
@@ -135,6 +143,24 @@ class PhaseModel:
             raise ValueError("Model ID not recognized")
 
         self.savepath = os.path.join(self.working_dir, savename)
+
+    def model_size(self):
+        """
+        Get the number of parameters in the model.
+        :return: Number of parameters in the model
+        """
+        if self.model is None:
+            self.setup_model()
+        model_params = sum(p.numel() for p in self.model.parameters())
+        print(f"Model has {model_params} parameters")
+
+        model_tparams = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+        print(f"Model has {model_tparams} trainable parameters")
+
+        # Dimensions of the model
+        for name, param in self.model.named_parameters():
+            print(f"Layer: {name} | Size: {param.size()} | Requires Grad: {param.requires_grad}")
+        return model_params, model_tparams
 
     def setup_model(self, modelid=None, forcenew=False):
         """
@@ -512,8 +538,8 @@ class FocalLoss(nn.Module):
 
 
 if __name__ == "__main__":
-    model = PhaseModel()
-    model.save_model()
+    model = PhaseModel(phaseres=1)
+    print(model.model_size())
     z = model.predict(example)
     print(z)
 

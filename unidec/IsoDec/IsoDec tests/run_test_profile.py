@@ -50,7 +50,7 @@ def load_test_data(dirs, phaseres, phaselock, mode):
     return eng
 
 
-def get_model_accuracy(model_input, dirs, model_dir=None, model_override=None, topdir=None):
+def get_model_accuracy(model_input, dirs, model_dir=None, model_override=None, topdir=None, save_test_data_flag=True):
     """Evaluate one trained profile model against the training script's test data.
 
     Parameters
@@ -91,14 +91,17 @@ def get_model_accuracy(model_input, dirs, model_dir=None, model_override=None, t
     if isinstance(dirs, (str, os.PathLike)):
         dirs = [dirs]
 
-    # Check if save file already exists
-    outfile = os.path.join(topdir if topdir is not None else os.getcwd(),
-                           f"test_dataloader_{phaseres}_{phaselock}_{mode}.pth")
-    if os.path.isfile(outfile):
-        eng = load_test_data_from_file(phaseres, phaselock, mode, topdir=topdir)
+    if save_test_data_flag:
+        # Check if save file already exists
+        outfile = os.path.join(topdir if topdir is not None else os.getcwd(),
+                               f"test_dataloader_{phaseres}_{phaselock}_{mode}.pth")
+        if os.path.isfile(outfile):
+            eng = load_test_data_from_file(phaseres, phaselock, mode, topdir=topdir)
+        else:
+            eng = load_test_data(dirs, phaseres, phaselock, mode)
+            save_test_data(eng, phaseres, phaselock, mode, overwrite=True, topdir=topdir)
     else:
         eng = load_test_data(dirs, phaseres, phaselock, mode)
-        save_test_data(eng, phaseres, phaselock, mode, overwrite=True, topdir=topdir)
 
     eng.phasemodel.setup_training(forcenew=False)
     eng.phasemodel.load_model(model_path)
@@ -216,15 +219,17 @@ def test_grid(phaseres, dirs, topdir=None):
 if __name__ == "__main__":
     topdirectory = "/groups/mtmarty/data"
     topdirectory = "Z:\\Group Share\\JGP\\"
+    testdir = "Z:\\Group Share\\JGP\\TestData\\"
 
-    dirs = [os.path.join(topdirectory, d) for d in data_dirs]
-
-    test_grid(4, dirs=dirs, topdir=topdirectory)
-
-    exit()
+    # dirs = [os.path.join(topdirectory, d) for d in data_dirs]
+    #
+    # test_grid(4, dirs=dirs, topdir=topdirectory)
+    #
+    # exit()
     # Example usage
     model_input = (8, 1, "profile")
 
     # dirs = ["path/to/training_data", "path/to/test_data"]
-    accuracy = get_model_accuracy(model_input, dirs, model_override="p_8_0", topdir=topdirectory)
+    dirs = ["PXD069439"]
+    accuracy = get_model_accuracy(model_input, dirs, model_override="b_8_1", topdir=topdirectory)
     print(f"Model accuracy: {accuracy:.4f}")
