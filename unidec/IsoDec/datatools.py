@@ -14,8 +14,10 @@ def fastnearest(array, target):
     :param target: Value
     :return: np.argmin(np.abs(array - target))
     """
-    array = np.array(array)
-    if array.size == 0:
+    # Do not call np.array here. Numba cannot compile np.array() when the
+    # argument is already an ndarray (Numba 0.61+), and all operations below
+    # work directly with either an ndarray or a list-like sequence.
+    if len(array) == 0:
         return 0
     start = 0
     length = len(array) - 1
