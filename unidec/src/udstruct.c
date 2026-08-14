@@ -324,9 +324,11 @@ Config LoadConfig(Config config, const char *filename) {
             // printf(" peakshapeinflate"); }
             if (strstr(x, "isotopemode") != NULL) { config.isotopemode = strtol(y, &endptr, 10); } // printf(" isotopemode"); }
             if (strstr(x, "orbimode") != NULL) { config.orbimode = strtol(y, &endptr, 10); } // printf(" orbimode"); }
+            if (strstr(x, "datanorm") != NULL) { config.datanorm = strtol(y, &endptr, 10); } // printf(" datanorm"); }
             if (strstr(x, "imflag") != NULL) { config.imflag = strtol(y, &endptr, 10); } // printf(" imflag"); }
             if (strstr(x, "cdmsflag") != NULL) { config.cdmsflag = strtol(y, &endptr, 10); } // printf(" imflag"); }
             if (strstr(x, "linflag") != NULL) { config.linflag = strtol(y, &endptr, 10); } // printf(" linflag"); }
+
             //IM Parameters
             if (strstr(x, "csig") != NULL) { config.csig = strtof(y, &endptr); } // printf(" csig"); }
             if (strstr(x, "dtsig") != NULL) { config.dtsig = strtof(y, &endptr); } // printf(" dtsig"); }
