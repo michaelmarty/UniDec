@@ -106,28 +106,5 @@ if __name__ == "__main__":
     # plt.legend()
     # plt.show()
     exit()
-    #
-    #
-    # eng = IsoGenWrapper(dllpath=dllpath)
-    # n = 10000
-    # random_masses = np.random.uniform(1000, 60000, n)
-    # starttime = time.perf_counter()
-    # for mass in random_masses:
-    #     dist = eng.gen_isodist(mass)
-    #
-    # print("Isogen Time:", time.perf_counter()-starttime)
-    # print("Microseconds Per:", (time.perf_counter()-starttime)/n* 1e6)
-    #
-    # starttime = time.perf_counter()
-    # for mass in random_masses:
-    #     dist = eng.gen_isomike(mass)
-    #
-    # print("Isomike Time:", time.perf_counter()-starttime)
-    # print("Microseconds Per:", (time.perf_counter()-starttime)/n* 1e6)
-    #
-    # starttime = time.perf_counter()
-    # for mass in random_masses:
-    #     dist = eng.gen_isofft(mass)
-    #
-    # print("FFT Time:", time.perf_counter()-starttime)
-    # print("Microseconds Per:", (time.perf_counter()-starttime)/n * 1e6)
+
+

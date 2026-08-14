@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import time
 from numpy import fft as fftpack
-from unidec.modules.isotopetools import isomike
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
@@ -126,7 +125,6 @@ def gen_training_data(n, isolen=128, massrange=[100, 1000000], log=False):
         randmasses = np.power(10, rlog)
     else:
         randmasses = np.random.uniform(massrange[0], massrange[1], n)
-    # dists = [isomike(mass=m, length=isolen) for m in randmasses]
     dists = [true_dist(m, isolen) for m in randmasses]
     return randmasses, np.array(dists)
 
@@ -498,37 +496,6 @@ if __name__ == "__main__":
         eng.train(n, 10, 1024, forcenew=False)
 
 
-    if False:
-        input, target = gen_training_data(10000, isolen=isolen)
-        # Prime each equation prior to timing
-        dist = model.predict(1000)
-        fastdist = isomike(1000)
-        truedist = true_dist(1000, isolen)
-
-        # Time each algorithm on how fast it can calc inputs
-        start = time.perf_counter()
-        for m in input:
-            dist = model.predict(m)
-        end = time.perf_counter()
-        print("Model Time:", end - start, "Per:", (end - start) / len(input))
-
-        start = time.perf_counter()
-        dists = model.batch_predict(input)
-        end = time.perf_counter()
-        print("Model Batch Time:", end - start, "Per:", (end - start) / len(input))
-
-        start = time.perf_counter()
-        for m in input:
-            fastdist = isomike(m, length=isolen)
-        end = time.perf_counter()
-        print("Fast Time:", end - start, "Per:", (end - start) / len(input))
-
-        start = time.perf_counter()
-        for m in input:
-            truedist = true_dist(m, isolength=isolen)
-        end = time.perf_counter()
-        print("True Time:", end - start, "Per:", (end - start) / len(input))
-
     # exit()
     testmasses = [100, 1000, 10000, 50000, 100000, 1000000]
     testmasses = [110000, 230000, 450000, 670000, 890000, 1000000]
@@ -536,12 +503,10 @@ if __name__ == "__main__":
         isolen = eng.get_isolen(m)[0]
         maxval = isolen
         dist = eng.predict(m)
-        fastdist = isomike(m, length=isolen)
         truedist = true_dist(m, isolength=isolen)
 
         plt.subplot(2, 3, i + 1)
         plt.plot(dist * 100, label="AI", color="b")
-        plt.plot(fastdist * 100, label="Fast", color="g")
         plt.plot(truedist * 100, color="k", label="True")
         plt.xlim(0, maxval)
         plt.title(str(m) + " Da")

@@ -127,7 +127,6 @@ def gen_training_data(n, isolen=128, massrange=[100, 1000000], log=False):
         randmasses = np.power(10, rlog)
     else:
         randmasses = np.random.uniform(massrange[0], massrange[1], n)
-    # dists = [isomike(mass=m, length=isolen) for m in randmasses]
     dists = [fft_pep_mass_to_dist(m, isolen) for m in randmasses]
     return randmasses, np.array(dists)
 
