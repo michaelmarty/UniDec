@@ -42,15 +42,54 @@ target_compile_definitions(isogen PUBLIC ISOGEN_BUILD_DLL)
 
 
 if(MSVC)
+    # x64 keeps using the bundled import library exactly as before, so nothing has to be installed for
+    # the existing Windows build. Other Windows architectures cannot: fftw/fftw3.lib is x86-64 only
+    # (every one of its 429 COFF members is AMD64), so arm64 has to get FFTW from somewhere else.
+    # vcpkg's fftw3 port supports all triplets, so "vcpkg install fftw3:arm64-windows" plus its
+    # toolchain file is enough.
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(AMD64|amd64|x86_64)$")
+        set(FFTW3_LIBRARY "${FFTW_DIR}/fftw3.lib")
+        message(STATUS "FFTW3_LIBRARY (bundled x64): ${FFTW3_LIBRARY}")
+    else()
+        find_library(FFTW3_LIBRARY NAMES fftw3 libfftw3)
+        if(NOT FFTW3_LIBRARY)
+            message(FATAL_ERROR
+                "FFTW3 not found for ${CMAKE_SYSTEM_PROCESSOR}, and the bundled fftw/fftw3.lib is "
+                "x86-64 only. Install it for this architecture and point CMake at it, for example:\n"
+                "  vcpkg install fftw3:arm64-windows\n"
+                "  cmake -DCMAKE_TOOLCHAIN_FILE=<vcpkg>/scripts/buildsystems/vcpkg.cmake "
+                "-DVCPKG_TARGET_TRIPLET=arm64-windows ...")
+        endif()
+        message(STATUS "FFTW3_LIBRARY (found): ${FFTW3_LIBRARY}")
+    endif()
     add_library(fftw3 STATIC IMPORTED)
-    set_target_properties(fftw3 PROPERTIES IMPORTED_LOCATION ${FFTW_DIR}/fftw3.lib)
+    set_target_properties(fftw3 PROPERTIES IMPORTED_LOCATION ${FFTW3_LIBRARY})
 else()
     message(STATUS "Not MSVC")
     message(STATUS "CMAKE_C_COMPILER_ID: ${CMAKE_C_COMPILER_ID}")
-    #    set(FFTW_LIB "/usr/lib/x86_64-linux-gnu/libfftw3.so")
-    #target_link_libraries(isogendep PUBLIC ${FFTW_LIB})
+    # Locate FFTW rather than hardcoding a path. The previous absolute
+    # /usr/lib/x86_64-linux-gnu/libfftw3.so is Debian-and-x86-64 only, so it misses macOS (.dylib,
+    # and a Homebrew prefix that differs between Apple Silicon and Intel) and arm64 Linux
+    # (/usr/lib/aarch64-linux-gnu).
+    find_library(FFTW3_LIBRARY NAMES fftw3 libfftw3
+        HINTS ENV FFTW3_DIR
+        PATH_SUFFIXES lib)
+    find_path(FFTW3_INCLUDE_DIR NAMES fftw3.h
+        HINTS ENV FFTW3_DIR
+        PATH_SUFFIXES include)
+
+    if(NOT FFTW3_LIBRARY)
+        message(FATAL_ERROR
+            "FFTW3 not found. Install it (apt: libfftw3-dev, brew: fftw, dnf: fftw-devel) "
+            "or set FFTW3_DIR to its prefix.")
+    endif()
+
+    message(STATUS "FFTW3_LIBRARY: ${FFTW3_LIBRARY}")
     add_library(fftw3 SHARED IMPORTED)
-    set_target_properties(fftw3 PROPERTIES IMPORTED_LOCATION /usr/lib/x86_64-linux-gnu/libfftw3.so)
+    set_target_properties(fftw3 PROPERTIES IMPORTED_LOCATION ${FFTW3_LIBRARY})
+    if(FFTW3_INCLUDE_DIR)
+        target_include_directories(isogen PUBLIC ${FFTW3_INCLUDE_DIR})
+    endif()
     target_link_libraries(isogen PUBLIC m)
 endif()
 
@@ -78,8 +117,16 @@ if(HAVE_AVX2_EXTENSIONS)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${AVX_FLAGS}")
 else()
     message(STATUS "Not Using AVX2")
-    find_package(OpenMP REQUIRED)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
+    # Every arm64 build lands here, since there is no AVX2 to detect. OpenMP is optional rather than
+    # required because Apple Clang does not ship it: an unrecognised "#pragma omp" is ignored, so the
+    # library still builds and runs, with that one loop single-threaded.
+    find_package(OpenMP)
+    if(OpenMP_C_FOUND)
+        message(STATUS "OpenMP found")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    else()
+        message(STATUS "OpenMP not found - building single-threaded")
+    endif()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
 endif()
 
