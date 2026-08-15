@@ -1,0 +1,108 @@
+# Builds the IsoDec native libraries on every platform they can be built for, and uploads them as
+# artifacts. The point is that a maintainer no longer has to build isodeclib by hand on each platform
+# to find out whether it still compiles there: a pull request says so.
+#
+# Nothing here publishes or commits binaries. The libraries currently committed under
+# unidec/IsoDec/ are untouched, so the Python package keeps working exactly as it does now. Whether
+# CI-built binaries should replace them, or be attached to releases instead, is a maintainer decision
+# and deliberately not made here.
+name: Build IsoDec
+
+on:
+  push:
+    paths:
+      - 'unidec/IsoDec/src_cmake/**'
+      - '.github/workflows/build-isodec.yml'
+  pull_request:
+    paths:
+      - 'unidec/IsoDec/src_cmake/**'
+      - '.github/workflows/build-isodec.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # One platform failing should not hide the state of the others, which is the whole point of a
+      # matrix here.
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x64
+            os: ubuntu-24.04
+          - name: linux-arm64
+            os: ubuntu-24.04-arm
+          - name: macos-arm64
+            os: macos-14
+          - name: macos-x64
+            os: macos-13
+          - name: windows-x64
+            os: windows-latest
+          # Needs FFTW from vcpkg: the bundled import library is x86-64 only. vcpkg's fftw3 port
+          # supports all triplets and the runner image ships vcpkg already.
+          - name: windows-arm64
+            os: windows-11-arm
+            vcpkg_triplet: arm64-windows
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install FFTW (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfftw3-dev
+
+      # FFTW comes from Homebrew here. Note that no OpenMP is installed: Apple Clang does not ship it,
+      # and the build is expected to report "OpenMP not found - building single-threaded" rather than
+      # fail. That is worth exercising, because it is the configuration most macOS users will have.
+      - name: Install FFTW (macOS)
+        if: runner.os == 'macOS'
+        run: brew install fftw
+
+      # Windows x64 links the FFTW import library bundled at src_cmake/fftw/, so there is nothing to
+      # install there. Windows arm64 cannot use it and gets FFTW from vcpkg instead.
+      - name: Install FFTW via vcpkg (Windows on Arm)
+        if: matrix.vcpkg_triplet != ''
+        shell: pwsh
+        run: |
+          # VCPKG_INSTALLATION_ROOT rather than a hardcoded C:\vcpkg, because the path differs
+          # between runner images.
+          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install fftw3:${{ matrix.vcpkg_triplet }}
+          $toolchain = "$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake".Replace('\','/')
+          "EXTRA_CMAKE_ARGS=-DCMAKE_TOOLCHAIN_FILE=$toolchain -DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_triplet }}" |
+            Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Configure
+        shell: bash
+        run: cmake -S unidec/IsoDec/src_cmake -B build -DCMAKE_BUILD_TYPE=Release $EXTRA_CMAKE_ARGS
+
+      - name: Build
+        run: cmake --build build --config Release -j 4
+
+      # Proves the library computes rather than merely links, which matters most on arm64: there is no
+      # AVX2 there, so it takes the scalar #else branch of matrix_vector_multiply. A build that links
+      # but produces nothing would pass a compile-only check.
+      - name: Run isodec_test on example data
+        shell: bash
+        run: |
+          set -e
+          exe=$(find build -maxdepth 2 -name 'isodec_test' -o -maxdepth 2 -name 'isodec_test.exe' | head -1)
+          echo "Using $exe"
+          cp "unidec/bin/Example Data/IsoDec/test2.txt" ./isodec_ci_input.txt
+          "$exe" ./isodec_ci_input.txt
+          # isodec_test writes <input>.out; a run that matched nothing is a failure worth catching.
+          test -s ./isodec_ci_input.txt.out
+          echo "matches written: $(wc -l < ./isodec_ci_input.txt.out)"
+
+      - name: Upload libraries
+        uses: actions/upload-artifact@v4
+        with:
+          name: isodec-${{ matrix.name }}
+          if-no-files-found: error
+          path: |
+            build/**/isodeclib.*
+            build/**/isogen.*
+            !build/**/*.o
+            !build/**/*.obj
