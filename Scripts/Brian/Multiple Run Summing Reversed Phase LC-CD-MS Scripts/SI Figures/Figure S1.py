@@ -18,7 +18,7 @@ CHROMATOGRAMS = [
             r"\20260327_BHT_agilentc8column_protienmix_CDMS_0o1mgmLs_"
             r"set1_merged_21_unidecfiles\TIC_decon.txt"
         ),
-        "Replicate 1",
+        "Rep 1",
         "#0072B2",
     ),
     (
@@ -28,7 +28,7 @@ CHROMATOGRAMS = [
             r"\20260327_BHT_agilentc8column_protienmix_CDMS_0o1mgmLs_"
             r"set2_merged_21_unidecfiles\TIC_decon.txt"
         ),
-        "Replicate 2",
+        "Rep 2",
         "#D55E00",
     ),
     (
@@ -38,7 +38,7 @@ CHROMATOGRAMS = [
             r"\20260327_BHT_agilentc8column_protienmix_CDMS_0o1mgmLs_"
             r"set3_merged_21_unidecfiles\TIC_decon.txt"
         ),
-        "Replicate 3",
+        "Rep 3",
         "#009E73",
     ),
 ]
@@ -51,9 +51,13 @@ SPREADSHEET = Path(
 )
 
 TIME_LIMITS = (0.0, 5.5)
-FIGURE_SIZE_INCHES = (7.0, 3.25)
+FIGURE_SIZE_INCHES = (6.5, 3.25)
 OUTPUT_DPI = 300
-OUTPUT_DIRECTORY = Path(__file__).resolve().parent
+OUTPUT_DIRECTORY = Path(
+    r"C:\Users\bht442\The University of Texas at Austin"
+    r"\MartyLab - General\Papers\Muliple Run Summing Reversed Phase LC-CD-MS"
+    r"\Figures for Manuscript\Supporting Information Figures\Figure S1"
+)
 OUTPUT_PNG = OUTPUT_DIRECTORY / "Figure S1.png"
 OUTPUT_PDF = OUTPUT_DIRECTORY / "Figure S1.pdf"
 
@@ -213,7 +217,7 @@ def make_figure() -> plt.Figure:
         loc="upper left",
         bbox_to_anchor=(0.12, 1.0),
         frameon=False,
-        fontsize=9.5,
+        fontsize=10,
         handlelength=2.0,
         borderaxespad=0.0,
     )
@@ -269,9 +273,9 @@ def make_figure() -> plt.Figure:
     axes[1].text(
         0.05,
         0.76,
-        f"y = {slope:,.1f}x + {intercept:,.1f}\n$R^2$ = {r_squared:.5f}",
+        f"y = {slope:,.1f}x + {intercept:,.1f}\nR² = {r_squared:.5f}",
         transform=axes[1].transAxes,
-        fontsize=8.5,
+        fontsize=10,
         ha="left",
         va="top",
     )
@@ -294,13 +298,14 @@ def main() -> None:
             "font.family": "Arial",
             "font.size": 12,
             "axes.labelsize": 13,
-            "legend.fontsize": 9.5,
+            "legend.fontsize": 10,
             "pdf.fonttype": 42,
             "ps.fonttype": 42,
             "savefig.transparent": True,
         }
     )
 
+    OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
     figure = make_figure()
     # Avoid bbox_inches="tight" so the saved files remain exactly 7 inches wide.
     figure.savefig(OUTPUT_PNG, dpi=OUTPUT_DPI, transparent=True)

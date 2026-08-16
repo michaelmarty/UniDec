@@ -17,9 +17,13 @@ SPREADSHEET = Path(
     r"\IgM-like Fusion Total Ion Scatter Plot.xlsx"
 )
 
-FIGURE_SIZE_INCHES = (7.0, 4.2)
+FIGURE_SIZE_INCHES = (6.5, 4.2)
 OUTPUT_DPI = 300
-OUTPUT_DIRECTORY = Path(__file__).resolve().parent
+OUTPUT_DIRECTORY = Path(
+    r"C:\Users\bht442\The University of Texas at Austin"
+    r"\MartyLab - General\Papers\Muliple Run Summing Reversed Phase LC-CD-MS"
+    r"\Figures for Manuscript\Supporting Information Figures\Figure S9"
+)
 OUTPUT_PNG = OUTPUT_DIRECTORY / "Figure S9.png"
 OUTPUT_PDF = OUTPUT_DIRECTORY / "Figure S9.pdf"
 
@@ -181,9 +185,9 @@ def make_figure(table: np.ndarray) -> tuple[plt.Figure, float, float, float]:
         0.05,
         0.76,
         f"y = {slope:,.1f}x {intercept_operator} {abs(intercept):,.1f}\n"
-        f"$R^2$ = {r_squared:.5f}",
+        f"R² = {r_squared:.5f}",
         transform=axis.transAxes,
-        fontsize=8.5,
+        fontsize=10,
         ha="left",
         va="top",
     )
@@ -212,6 +216,7 @@ def main() -> None:
         }
     )
 
+    OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
     _, table = load_spreadsheet(SPREADSHEET)
     validate_statistics(table, SPREADSHEET)
     figure, slope, intercept, r_squared = make_figure(table)

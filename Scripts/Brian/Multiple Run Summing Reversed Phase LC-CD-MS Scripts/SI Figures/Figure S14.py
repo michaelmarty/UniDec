@@ -50,16 +50,20 @@ MASS_TOLERANCE_DA = 100.0
 EXPECTED_INJECTIONS = tuple(range(1, 22))
 REFERENCE_INJECTION = 21
 OUTPUT_DPI = 300
-OUTPUT_DIRECTORY = Path(__file__).resolve().parent
+OUTPUT_DIRECTORY = Path(
+    r"C:\Users\bht442\The University of Texas at Austin"
+    r"\MartyLab - General\Papers\Muliple Run Summing Reversed Phase LC-CD-MS"
+    r"\Figures for Manuscript\Supporting Information Figures\Figure S14"
+)
 OUTPUT_PNG = OUTPUT_DIRECTORY / "Figure S14.png"
 OUTPUT_PDF = OUTPUT_DIRECTORY / "Figure S14.pdf"
 OUTPUT_CSV = OUTPUT_DIRECTORY / "Figure S14_results.csv"
 
-BASE_FONT_SIZE = 8.5
+BASE_FONT_SIZE = 10
 PANEL_TITLE_FONT_SIZE = 10
 SUBPLOT_LABEL_FONT_SIZE = 11
-LEGEND_FONT_SIZE = 6
-FIGURE_SIZE_INCHES = (7.0, 4.0)
+LEGEND_FONT_SIZE = 10
+FIGURE_SIZE_INCHES = (6.5, 4.0)
 AXIS_STROKE_WIDTH = 0.8
 
 REQUIRED_COLUMNS = {
@@ -73,19 +77,19 @@ METRICS = {
     "centroid": {
         "title": "Mass Centroid",
         "source": "Mass Centroid (Da)",
-        "ylabel": f"Delta from Injection {REFERENCE_INJECTION} (Da)",
+        "ylabel": f"Δ from {REFERENCE_INJECTION} INJ (Da)",
         "minimum_limit": 1.0,
     },
     "fwhm": {
         "title": "FWHM",
         "source": "FWHM (Da)",
-        "ylabel": f"Delta from Injection {REFERENCE_INJECTION} (Da)",
+        "ylabel": f"Δ from {REFERENCE_INJECTION} INJ (Da)",
         "minimum_limit": 1.0,
     },
     "area_fraction": {
         "title": "Sum-Normalized\nPeak Area Fraction",
         "source": "Sum-Normalized Peak Area Fraction",
-        "ylabel": f"Delta from Injection {REFERENCE_INJECTION}",
+        "ylabel": f"Δ from {REFERENCE_INJECTION} INJ",
         "minimum_limit": 0.01,
     },
 }
@@ -353,7 +357,7 @@ def make_figure(results: pd.DataFrame) -> plt.Figure:
 
         set_delta_axis_limits(axis, metric_results, metric["minimum_limit"])
         axis.xaxis.set_major_locator(MaxNLocator(nbins=6, integer=True))
-        axis.set_xlabel("Number of Injections")
+        axis.set_xlabel("Number of injections")
         axis.set_ylabel(metric["ylabel"])
         axis.spines["top"].set_visible(False)
         axis.spines["right"].set_visible(False)
@@ -390,6 +394,7 @@ def main() -> None:
         }
     )
 
+    OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
     measurements = collect_measurements()
     results = create_delta_results(measurements)
     results.to_csv(OUTPUT_CSV, index=False, float_format="%.10g")

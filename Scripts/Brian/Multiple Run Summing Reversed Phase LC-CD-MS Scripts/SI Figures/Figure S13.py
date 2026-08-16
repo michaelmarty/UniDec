@@ -36,18 +36,22 @@ MASS_TOLERANCE_DA = 100.0
 EXPECTED_INJECTIONS = tuple(range(1, 22))
 HIGHLIGHT_INJECTION = 21
 OUTPUT_DPI = 300
-OUTPUT_DIRECTORY = Path(__file__).resolve().parent
+OUTPUT_DIRECTORY = Path(
+    r"C:\Users\bht442\The University of Texas at Austin"
+    r"\MartyLab - General\Papers\Muliple Run Summing Reversed Phase LC-CD-MS"
+    r"\Figures for Manuscript\Supporting Information Figures\Figure S13"
+)
 OUTPUT_PNG = OUTPUT_DIRECTORY / "Figure S13.png"
 OUTPUT_PDF = OUTPUT_DIRECTORY / "Figure S13.pdf"
 OUTPUT_CSV = OUTPUT_DIRECTORY / "Figure S13_results.csv"
 
 Y_TICK_INTERVALS_PER_SIDE = 2
-BASE_FONT_SIZE = 8.5
+BASE_FONT_SIZE = 10
 GRID_HEADER_FONT_SIZE = 10
 SUBPLOT_LABEL_FONT_SIZE = 11
-LEGEND_FONT_SIZE = 5.5
+LEGEND_FONT_SIZE = 10
 LEGEND_LOCATION = "lower left"
-FIGURE_SIZE_INCHES = (7.0, 8.0)
+FIGURE_SIZE_INCHES = (6.5, 8.0)
 PEAK_LABEL_OFFSET_POINTS = 10
 AXIS_STROKE_WIDTH = 0.8
 MEASUREMENT_LABEL = "peak"
@@ -377,7 +381,7 @@ def make_figure(results: pd.DataFrame) -> plt.Figure:
                     color="black",
                     linestyle="-",
                     linewidth=1.4,
-                    label="Theoretical mass",
+                    label="Theo. mass",
                     zorder=1.5,
                 )
 
@@ -395,7 +399,7 @@ def make_figure(results: pd.DataFrame) -> plt.Figure:
                         alpha=0.45,
                         linewidth=0,
                         label=(
-                            f"{HIGHLIGHT_INJECTION} injections mean +/- SEM"
+                            f"{HIGHLIGHT_INJECTION} INJ\n± SEM"
                         ),
                         zorder=1,
                     )
@@ -434,7 +438,7 @@ def make_figure(results: pd.DataFrame) -> plt.Figure:
             axis.tick_params(width=AXIS_STROKE_WIDTH)
 
             if row == len(TARGET_MASSES) - 1:
-                axis.set_xlabel("Number of Injections")
+                axis.set_xlabel("Number of injections")
 
             handles, _ = axis.get_legend_handles_labels()
             if handles and row == 0 and column == 0:
@@ -460,6 +464,7 @@ def main() -> None:
         }
     )
 
+    OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
     measurements = collect_measurements()
     results = create_results_table(measurements)
     results.to_csv(OUTPUT_CSV, index=False, float_format="%.10g")
