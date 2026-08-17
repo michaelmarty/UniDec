@@ -22,9 +22,13 @@ PROTEINS = [
     ("Carbonic Anhydrase", 29024.63, "D"),
 ]
 
-FIGURE_SIZE_INCHES = (7.0, 3.5)
+FIGURE_SIZE_INCHES = (6.5, 3.7)
 OUTPUT_DPI = 300
-OUTPUT_DIRECTORY = Path(__file__).resolve().parent
+OUTPUT_DIRECTORY = Path(
+    r"C:\Users\bht442\The University of Texas at Austin"
+    r"\MartyLab - General\Papers\Muliple Run Summing Reversed Phase LC-CD-MS"
+    r"\Figures for Manuscript\Supporting Information Figures\Figure S3"
+)
 OUTPUT_PNG = OUTPUT_DIRECTORY / "Figure S3.png"
 OUTPUT_PDF = OUTPUT_DIRECTORY / "Figure S3.pdf"
 
@@ -105,7 +109,7 @@ def format_treatment_label(treatment: str) -> str:
     normalized = treatment.lower()
     bin_width = "0.1" if normalized.startswith("0.1") else "1"
     if "frequency corrected" in normalized:
-        return f"{bin_width} $m/z$ bin\nfrequency corrected"
+        return f"{bin_width} $m/z$ bin +FC"
     return f"{bin_width} $m/z$ bin"
 
 
@@ -119,8 +123,9 @@ def set_mass_limits(
     lower_value = float(np.min(all_values))
     upper_value = float(np.max(all_values))
     span = upper_value - lower_value
-    padding = max(span * 0.18, 0.5)
-    axis.set_ylim(lower_value - padding, upper_value + padding)
+    lower_padding = max(span * 0.18, 0.5)
+    upper_padding = max(span * 0.40, 0.5)
+    axis.set_ylim(lower_value - lower_padding, upper_value + upper_padding)
     axis.yaxis.set_major_locator(MaxNLocator(nbins=5))
     axis.yaxis.set_major_formatter(StrMethodFormatter("{x:,.1f}"))
     axis.yaxis.get_offset_text().set_visible(False)
@@ -175,7 +180,7 @@ def make_figure(treatments: list[str], values: np.ndarray) -> plt.Figure:
             color=THEORETICAL_COLOR,
             linestyle=(0, (4, 3)),
             linewidth=1.2,
-            label="Theoretical mass",
+            label="Theo. mass",
             zorder=3,
         )
 
@@ -188,7 +193,7 @@ def make_figure(treatments: list[str], values: np.ndarray) -> plt.Figure:
             pad=8,
         )
         axis.set_xticks(x_positions, labels=treatment_labels)
-        axis.tick_params(axis="x", labelrotation=38, labelsize=7.5)
+        axis.tick_params(axis="x", labelrotation=35, labelsize=8.5)
         for label in axis.get_xticklabels():
             label.set_horizontalalignment("right")
             label.set_rotation_mode("anchor")
@@ -196,9 +201,10 @@ def make_figure(treatments: list[str], values: np.ndarray) -> plt.Figure:
 
         if index == 0:
             axis.legend(
-                loc="upper right",
+                loc="upper left",
+                bbox_to_anchor=(0.03, 0.90),
                 frameon=False,
-                fontsize=7.5,
+                fontsize=10,
                 handlelength=2.2,
             )
 
@@ -210,16 +216,17 @@ def main() -> None:
     plt.rcParams.update(
         {
             "font.family": "Arial",
-            "font.size": 9,
-            "axes.labelsize": 9.5,
-            "xtick.labelsize": 8,
-            "ytick.labelsize": 8,
+            "font.size": 10,
+            "axes.labelsize": 11,
+            "xtick.labelsize": 10,
+            "ytick.labelsize": 10,
             "pdf.fonttype": 42,
             "ps.fonttype": 42,
             "savefig.transparent": True,
         }
     )
 
+    OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
     treatments, values = load_figure_data(SPREADSHEET)
     figure = make_figure(treatments, values)
     figure.savefig(OUTPUT_PNG, dpi=OUTPUT_DPI, transparent=True)

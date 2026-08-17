@@ -49,9 +49,13 @@ SAMPLE_SOURCES = (
     ),
 )
 
-FIGURE_SIZE_INCHES = (7.0, 8.5)
+FIGURE_SIZE_INCHES = (6.5, 8.5)
 OUTPUT_DPI = 300
-OUTPUT_DIRECTORY = Path(__file__).resolve().parent
+OUTPUT_DIRECTORY = Path(
+    r"C:\Users\bht442\The University of Texas at Austin"
+    r"\MartyLab - General\Papers\Muliple Run Summing Reversed Phase LC-CD-MS"
+    r"\Figures for Manuscript\Supporting Information Figures\Figure S11"
+)
 OUTPUT_PNG = OUTPUT_DIRECTORY / "Figure S11.png"
 OUTPUT_PDF = OUTPUT_DIRECTORY / "Figure S11.pdf"
 
@@ -220,9 +224,9 @@ def plot_scatter_panel(
         0.05,
         0.76,
         f"y = {slope:,.1f}x {intercept_operator} {abs(intercept):,.1f}\n"
-        f"$R^2$ = {r_squared:.5f}",
+        f"R² = {r_squared:.5f}",
         transform=axis.transAxes,
-        fontsize=8.5,
+        fontsize=10,
         ha="left",
         va="top",
     )
@@ -266,6 +270,7 @@ def main() -> None:
         }
     )
 
+    OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
     tables = []
     for source in SAMPLE_SOURCES:
         _, table = load_spreadsheet(source.path)

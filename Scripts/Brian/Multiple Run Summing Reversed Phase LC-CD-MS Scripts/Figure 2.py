@@ -112,17 +112,17 @@ def make_figure() -> plt.Figure:
     panel_a = [
         (TIC_21, "Total ion chromatogram", "#000000"),
         (
-            TWENTY_ONE_INJECTION_DIR / "Swoop_mz__1153_z__11_decon.txt",
+            TWENTY_ONE_INJECTION_DIR / "Swoop_mz__1130_z__11_decon.txt",
             "Cytochrome C EIC",
             "#0072B2",
         ),
         (
-            TWENTY_ONE_INJECTION_DIR / "Swoop_mz__1326_z__13_decon.txt",
+            TWENTY_ONE_INJECTION_DIR / "Swoop_mz__1210_z__14_decon.txt",
             "Myoglobin EIC",
             "#009E73",
         ),
         (
-            TWENTY_ONE_INJECTION_DIR / "Swoop_mz__1433_z__20_decon.txt",
+            TWENTY_ONE_INJECTION_DIR / "Swoop_mz__1337_z__22_decon.txt",
             "Carbonic Anhydrase EIC",
             "#CC79A7",
         ),
