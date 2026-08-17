@@ -5,9 +5,6 @@ include unidec_src/*.sh
 include **.dll
 include unidec/__main__.py
 recursive-include unidec/bin *
-include unidec/IsoDec/*.dll
-include unidec/IsoDec/*.lib
-include unidec/IsoDec/*.so
 
 exclude *.spec
 exclude test_GUI.py
@@ -32,9 +29,6 @@ recursive-exclude PublicScripts/ *
 recursive-exclude unidec/iFAMS/pyqtgraph/ *
 recursive-exclude unidec/bin/old_waters/ *
 recursive-exclude unidec/bin/TestSpectra/test_1_unidecfiles/ *
-recursive-exclude unidec/IsoDec/src_cmake *
-exclude unidec/IsoDec/modelparams/*.bin
-exclude unidec/IsoDec/IsoGen/*.bin
 
 exclude unidec/bin/mkl_def.2.dll
 exclude unidec/bin/mkl_avx2.2.dll

@@ -1,6 +1,6 @@
 import numpy as np
 
-from unidec.IsoDec.datatools import fastnearest
+from isodec.datatools import fastnearest
 from unidec.UniDecImporter.Importer import Importer
 from unidec.UniDecImporter.Thermo.RawFileReader import RawFileReader as rr
 

@@ -1,9 +1,8 @@
 import numpy as np
 import time
-# from scipy import fftpack
-from numpy import fft as fftpack
+# Legacy isojim implementation used numpy.fft; IsoGen now handles these calculations.
+# from numpy import fft as fftpack
 from numba import njit
-# import unidec.IsoDec.isogenwrapper as isogen
 import isogen
 
 
@@ -107,7 +106,7 @@ def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467, iso
 #@njit(fastmath=True)
 def fast_calc_averagine_isotope_dist_dualoutput(mass, charge=1, adductmass=1.007276467, isotopethresh: float = 0.01, type = "PEPTIDE"):
     # Predict Isotopic Intensities
-    intensities = isogen.fft_gen_isodist(mass, type)
+    intensities = isogen.isodist(mass, type=type, method="FFT", dist_only=True)
     # Calculate masses for these
     masses = np.arange(0, len(intensities)) * mass_diff_c + mass
 
@@ -151,65 +150,68 @@ def makemass(testmass):
 
 
 isolength = 1024
-buffer = np.zeros(isolength)
-h = np.array([1, 0.000115, 0, 0])
-c = np.array([1, 0.01082, 0, 0])
-n = np.array([1, 0.0037, 0, 0])
-o = np.array([1, 0.0004, 0.002, 0])
-s = np.array([1, 0.0079, 0.044, 0])
-
-h = np.append(h, buffer)
-c = np.append(c, buffer)
-n = np.append(n, buffer)
-o = np.append(o, buffer)
-s = np.append(s, buffer)
-
-dt = np.dtype(np.complex128)
-hft = fftpack.rfft(h).astype(dt)
-cft = fftpack.rfft(c).astype(dt)
-nft = fftpack.rfft(n).astype(dt)
-oft = fftpack.rfft(o).astype(dt)
-sft = fftpack.rfft(s).astype(dt)
 
 
-pre_ft = np.array([cft, hft, nft, oft, sft])
+def _formula_from_isolist(isolist, elements):
+    return "".join(f"{element}{int(count)}" for element, count in zip(elements, isolist) if count)
 
 
-# @njit(fastmath=True)
 def isojim(isolist, length):
-    """Thanks to Jim Prell for Sketching this Code"""
-    '''
-    Takes as in input a list of numbers of elements in the order above [C, H, N, O, S]
-    Calculates the aggregated isotope distribution based on the input list.
-    '''
-    num_atoms = len(isolist)
-    allft = 0
+    """Calculate a CHNOS isotope distribution using IsoGen."""
+    formula = _formula_from_isolist(isolist, ("C", "H", "N", "O", "S"))
+    return isogen.isodist(formula, type="ATOM", isolen=length, method="FFT", dist_only=True)
 
-    for i in range(num_atoms):
-        if i == 0:
-            allft = pre_ft[i] ** isolist[i]
-        else:
-            allft = allft * (pre_ft[i] ** isolist[i])
 
-    allift = np.abs(fftpack.irfft(allft))
-    # allift = np.abs(allift)
-    allift = allift / np.amax(allift)
-    return allift[:length]  # .astype(nb.float64)
-
-# @njit(fastmath=True)
 def isojim_rna(isolist, length):
-    numc = isolist[0]
-    numh = isolist[1]
-    numn = isolist[2]
-    numo = isolist[3]
-    nump = isolist[4]
+    """Calculate a CHNOP isotope distribution using IsoGen."""
+    formula = _formula_from_isolist(isolist, ("C", "H", "N", "O", "P"))
+    return isogen.isodist(formula, type="ATOM", isolen=length, method="FFT", dist_only=True)
 
-    allft = cft ** numc * hft ** numh * nft ** numn * oft ** numo # * pft ** nump # Only 1 P isotope
 
-    allift = np.abs(fftpack.irfft(allft))
-    # allift = np.abs(allift)
-    allift = allift / np.amax(allift)
-    return allift[:length]  # .astype(nb.float64)
+# Legacy local FFT implementation retained for reference. IsoGen now supplies the
+# isotope data, formula parsing, FFT calculation, and normalization used above.
+# buffer = np.zeros(isolength)
+# h = np.array([1, 0.000115, 0, 0])
+# c = np.array([1, 0.01082, 0, 0])
+# n = np.array([1, 0.0037, 0, 0])
+# o = np.array([1, 0.0004, 0.002, 0])
+# s = np.array([1, 0.0079, 0.044, 0])
+#
+# h = np.append(h, buffer)
+# c = np.append(c, buffer)
+# n = np.append(n, buffer)
+# o = np.append(o, buffer)
+# s = np.append(s, buffer)
+#
+# dt = np.dtype(np.complex128)
+# hft = fftpack.rfft(h).astype(dt)
+# cft = fftpack.rfft(c).astype(dt)
+# nft = fftpack.rfft(n).astype(dt)
+# oft = fftpack.rfft(o).astype(dt)
+# sft = fftpack.rfft(s).astype(dt)
+# pre_ft = np.array([cft, hft, nft, oft, sft])
+#
+#
+# def isojim(isolist, length):
+#     """Thanks to Jim Prell for sketching this code."""
+#     num_atoms = len(isolist)
+#     allft = 0
+#     for i in range(num_atoms):
+#         if i == 0:
+#             allft = pre_ft[i] ** isolist[i]
+#         else:
+#             allft = allft * (pre_ft[i] ** isolist[i])
+#     allift = np.abs(fftpack.irfft(allft))
+#     allift = allift / np.amax(allift)
+#     return allift[:length]
+#
+#
+# def isojim_rna(isolist, length):
+#     numc, numh, numn, numo, nump = isolist
+#     allft = cft ** numc * hft ** numh * nft ** numn * oft ** numo
+#     allift = np.abs(fftpack.irfft(allft))
+#     allift = allift / np.amax(allift)
+#     return allift[:length]
 
 
 # @njit(fastmath=True)
