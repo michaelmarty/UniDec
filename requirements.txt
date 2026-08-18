@@ -22,7 +22,7 @@ pillow
 plotly
 pubsub
 pymzml
-isodec>=2.0.0b2
+isodec>=2.0.1
 pyisogen>=1.0.8
 pyparsing
 Pypubsub

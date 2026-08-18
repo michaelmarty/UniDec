@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "UniDec"
-version = "8.2.1"
+version = "8.3.0"
 description = "Universal Deconvolution of Mass and Ion Mobility Spectra"
 readme = "readme.md"
 authors = [{ name = "Michael Marty", email = "mtmarty@utexas.edu" }]
@@ -19,7 +19,7 @@ classifiers = [
 keywords = ["Mass Spectrometry", "Ion Mobility", "Deconvolution"]
 dependencies = ["numpy>=2.0.0", "scipy>=1.2", "matplotlib>=3.7", 'pandas',
                       "pymzml", "natsort", "networkx", "h5py", "pypubsub", "numba",
-                      "pyimzml", "isodec>=2.0.0b2", "pyisogen>=1.0.8", "pythonnet", "pyteomics",
+                      "pyimzml", "isodec>=2.0.1", "pyisogen>=1.0.8", "pythonnet", "pyteomics",
                       "lxml", "lxml_html_clean", "pywin32"]
 requires-python = ">=3.10"
 

@@ -285,7 +285,7 @@ v.8.3.0
 
 Fixed bug where datanorm wasn't being loaded into UniDecCD.
 
-Working on refactoring isotope calculation tools to make use of improved IsoGen package.
+Updated to IsoDec 2.0.1 and refactored isotope calculation tools to use IsoGen's mass/intensity distribution API.
 
 v.8.2.1
 

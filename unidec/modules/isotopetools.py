@@ -81,18 +81,11 @@ isotopes = np.array([[[12., 98.90], [13.0033548, 1.10], [0, 0], [0, 0]],
 
 #@njit(fastmath=True)
 def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467, isolen=128, threshold=0.001):
-    # Predict Isotopic Intensities
-    intensities = isogen.isodist(mass, isolen=isolen, dist_only=True)
-    # Calculate masses for these
-    masses = np.arange(0, len(intensities)) * mass_diff_c + mass
-
-    # Load Into Array
-    dist = np.zeros((len(masses), 2))
-    dist[:, 0] = masses
-    dist[:, 1] = intensities
+    # IsoGen returns neutral masses and intensities together.
+    dist = isogen.isodist(mass, isolen=isolen, method="FFT")
 
     # Filter Low Intensities
-    b1 = intensities > np.amax(intensities) * threshold
+    b1 = dist[:, 1] > np.amax(dist[:, 1]) * threshold
     dist = dist[b1]
 
     # Convert to m/z
@@ -105,23 +98,15 @@ def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467, iso
 
 #@njit(fastmath=True)
 def fast_calc_averagine_isotope_dist_dualoutput(mass, charge=1, adductmass=1.007276467, isotopethresh: float = 0.01, type = "PEPTIDE"):
-    # Predict Isotopic Intensities
-    intensities = isogen.isodist(mass, type=type, method="FFT", dist_only=True)
-    # Calculate masses for these
-    masses = np.arange(0, len(intensities)) * mass_diff_c + mass
-
-    # Load Into Array
-    dist = np.zeros((len(masses), 2))
-    dist[:, 0] = masses
-    dist[:, 1] = intensities
+    # IsoGen returns neutral masses and intensities together.
+    massdist = isogen.isodist(mass, type=type, method="FFT")
 
     # Filter Low Intensities
-    b1 = intensities > np.amax(intensities) * isotopethresh
-
-    dist = dist[b1]
+    b1 = massdist[:, 1] > np.amax(massdist[:, 1]) * isotopethresh
+    massdist = massdist[b1]
 
     # Convert to m/z
-    massdist = dist.copy()
+    dist = massdist.copy()
 
     if abs(charge) >=1:
         dist[:, 0] = (dist[:, 0] + float(charge) * adductmass) / float(abs(charge))
@@ -159,13 +144,13 @@ def _formula_from_isolist(isolist, elements):
 def isojim(isolist, length):
     """Calculate a CHNOS isotope distribution using IsoGen."""
     formula = _formula_from_isolist(isolist, ("C", "H", "N", "O", "S"))
-    return isogen.isodist(formula, type="ATOM", isolen=length, method="FFT", dist_only=True)
+    return isogen.isodist(formula, type="ATOM", isolen=length, method="FFT")[:, 1]
 
 
 def isojim_rna(isolist, length):
     """Calculate a CHNOP isotope distribution using IsoGen."""
     formula = _formula_from_isolist(isolist, ("C", "H", "N", "O", "P"))
-    return isogen.isodist(formula, type="ATOM", isolen=length, method="FFT", dist_only=True)
+    return isogen.isodist(formula, type="ATOM", isolen=length, method="FFT")[:, 1]
 
 
 # Legacy local FFT implementation retained for reference. IsoGen now supplies the
