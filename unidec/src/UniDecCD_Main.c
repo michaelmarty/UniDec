@@ -198,8 +198,6 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	lines = getfilelength(config.infile);
 
 	// printf("Length of data: %d\n", lines);
-	// Print datanorm value
-	printf("Datanorm: %d\n", config.datanorm);
 
 	int size[3] = { 0,0,0 };
 
@@ -326,10 +324,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	memcpy(blur, dataInt, matsize);
 	memcpy(oldblur, blur, matsize);
 
-	// Calculate the sum of blur
-	float blursum = Sum(blur, lines);
-
-	printf("Iterating. Initial Sum = %f\n", blursum);
+	printf("Iterating.");
 	//Iterating
 	float conv=0;
 	int off = 0;
@@ -397,7 +392,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 
 	}
 
-	printf("Completed Iterations. Final Sum = %f\n", Sum(blur, lines));
+	printf("Completed Iterations");
 	//Writing outputs
 
 	//Outputting Fit Reconvolved Data as newblur2
@@ -414,7 +409,6 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	//Write the fitdat file
 	char* suffixfit = "fitdat";
 	write1D(config.outfile, suffixfit, newblur2, lines);
-
 
 	//Writing Main Output
 
@@ -438,9 +432,6 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	}
 	//Write the Output file
 	ApplyCutoff(blur, 0, lines);
-
-	//Print sum of blur
-	printf("Sum of blur = %f\n", Sum(blur, lines));
 
 	// Write to binary
 	//char* suffixfit = "";

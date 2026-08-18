@@ -21,7 +21,7 @@ from unidec.UniChrom import ChromApp
 from unidec.UPP import UPPApp
 from unidec.modules import unidecstructure
 from unidec.UniChromCD import UniChromCDApp
-from unidec.IsoDec.IsoDecGUI import IsoDecPres
+from unidec.IsoDecGUI import IsoDecPres
 import wx.py as py
 import os
 import sys

@@ -1,13 +1,13 @@
 import unidec.tools as ud
 from unidec.modules.unidec_presbase import UniDecPres
-from unidec.IsoDec.runtime import IsoDecRuntime
-from unidec.IsoDec.IDGUI.IsoDecView import IsoDecView
+from isodec.runtime import IsoDecRuntime
+from unidec.modules.gui_elements.IsoDecView import IsoDecView
 from unidec.engine import UniDec
 import os
 import wx
 import time
 from unidec.modules.peakstructure import Peaks
-from unidec.IsoDec.datatools import get_all_centroids
+from isodec.datatools import get_all_centroids
 import numpy as np
 from unidec.modules.isolated_packages import FileDialogs
 import platform

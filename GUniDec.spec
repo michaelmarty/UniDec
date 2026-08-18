@@ -7,7 +7,7 @@ import zipfile
 import time
 import fnmatch
 from multiprocessing import freeze_support
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs, collect_submodules
 from os import listdir
 from PyInstaller import compat
 import matplotlib
@@ -85,9 +85,23 @@ excludeslist = [
 ]
 
 
+# Preserve the wheel layouts expected by the native-library loaders:
+# isogen/bin/<library>, isodec/bin/<library>, and their binary model files.
+native_package_binaries = collect_dynamic_libs('isogen') + collect_dynamic_libs('isodec')
+native_package_datas = (
+    collect_data_files(
+        'isogen',
+        includes=['models/*.bin', 'comp_model_parameters/*.txt'],
+    )
+    + collect_data_files('isodec', includes=['modelparams/*.bin'])
+)
+
+
 # Analysis of packages
 a = Analysis(['unidec\\Launcher.py'],
              pathex=[os.getcwd()],
+             binaries=native_package_binaries,
+             datas=native_package_datas,
              excludes=excludeslist,
              hiddenimports=hiddenimportslist,
              hookspath=None,
@@ -158,20 +172,9 @@ if system == "Windows":
     # a.datas += [('WiffReaderCOM.dll', 'unidec\\UniDecImporter\\Sciex\\WiffReaderCOM.dll', 'BINARY')]
     # a.datas += [('zlib.net.dll', 'unidec\\UniDecImporter\\Sciex\\zlib.net.dll', 'BINARY')]
 
-    a.datas += [('isodeclib.dll', 'unidec\\IsoDec\\isodeclib.dll', 'BINARY')]
-    a.datas += [('isodeclib.lib', 'unidec\\IsoDec\\isodeclib.lib', 'BINARY')]
-    a.datas += [('isogen.dll', 'unidec\\IsoDec\\isogen.dll', 'BINARY')]
-
-    a.datas += [('modelparams/phase_model_8.bin', 'unidec\\IsoDec\\modelparams\\phase_model_8.bin', 'BINARY')]
-    a.datas += [('modelparams/phase_model_4.bin', 'unidec\\IsoDec\\modelparams\\phase_model_4.bin', 'BINARY')]
-
-
 #LINUX DEPENDENCIES:
 elif system == "Linux":
     a.datas += [('unideclinux', 'unidec/bin/unideclinux', 'BINARY')]
-    a.datas += [('isodeclib.so', 'unidec/IsoDec/isodeclib.so', 'BINARY')]
-    a.datas += [('libfftw3.so', 'unidec/IsoDec/libfftw3.so', 'BINARY')]
-    a.datas += [('isogen.so', 'unidec/IsoDec/isogen.so', 'BINARY')]
 
 
 a.datas += [('cacert.pem', os.path.join('unidec\\bin', 'cacert.pem'), 'DATA')]
