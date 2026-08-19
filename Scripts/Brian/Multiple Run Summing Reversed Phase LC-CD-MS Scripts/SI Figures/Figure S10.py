@@ -346,9 +346,7 @@ def make_figure(results: pd.DataFrame) -> plt.Figure:
                         facecolor=highlight_color,
                         alpha=0.45,
                         linewidth=0,
-                        label=(
-                            f"{HIGHLIGHT_INJECTION} INJ\n± SEM"
-                        ),
+                        label=f"{HIGHLIGHT_INJECTION} INJ ± SEM",
                         zorder=1,
                     )
 

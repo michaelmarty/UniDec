@@ -49,7 +49,7 @@ SAMPLE_SOURCES = (
     ),
 )
 
-FIGURE_SIZE_INCHES = (6.5, 8.5)
+FIGURE_SIZE_INCHES = (6.5, 8.0)
 OUTPUT_DPI = 300
 OUTPUT_DIRECTORY = Path(
     r"C:\Users\bht442\The University of Texas at Austin"
@@ -235,7 +235,19 @@ def plot_scatter_panel(
     axis.set_xticks([1, 5, 10, 15, 20])
     axis.set_xlabel("Number of injections")
     axis.set_ylabel("Total Number of Ions")
-    axis.set_title(source.title, fontsize=12, fontweight="bold", pad=7)
+    axis.annotate(
+        source.title,
+        xy=(0, 0.5),
+        xytext=(-axis.yaxis.labelpad - 10, 0),
+        xycoords=axis.yaxis.label,
+        textcoords="offset points",
+        ha="right",
+        va="center",
+        multialignment="center",
+        fontsize=12,
+        fontweight="bold",
+        rotation=90,
+    )
     axis.yaxis.set_major_locator(MaxNLocator(nbins=5, integer=True))
     axis.yaxis.set_major_formatter(StrMethodFormatter("{x:,.0f}"))
 

@@ -43,7 +43,7 @@ SPECTRUM_SOURCES = (
         linestyle="-",
     ),
     SpectrumSource(
-        label=r"1 $m/z$ bin +FC",
+        label=r"1 $m/z$ bin + FC",
         path=Path(
             r"Z:\Group Share\BHT\Temp\Paper\DMT"
             r"\Protein Mix 21 Injections Set 1 Frequency Correction Test\merged"
@@ -54,7 +54,7 @@ SPECTRUM_SOURCES = (
         linestyle=(0, (5, 2)),
     ),
     SpectrumSource(
-        label=r"0.1 $m/z$ bin +FC",
+        label=r"0.1 $m/z$ bin + FC",
         path=Path(
             r"Z:\Group Share\BHT\Temp\Paper\DMT"
             r"\Protein Mix 21 Injections Set 1 Frequency Correction Test\merged"
@@ -228,7 +228,7 @@ def make_figure(distributions: tuple[np.ndarray, ...]) -> plt.Figure:
     axes[0].legend(
         handles=trace_handles,
         loc="lower center",
-        bbox_to_anchor=(0.5, 1.20),
+        bbox_to_anchor=(0.5, 1.25),
         ncols=2,
         frameon=False,
         fontsize=10,

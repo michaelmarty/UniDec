@@ -33,11 +33,15 @@ TIME_LIMITS = (0.0, 5.5)
 # slightly so that coincident features remain visible.
 STAGGER_STEP = 10.0
 
-OUTPUT_DIRECTORY = Path(__file__).resolve().parent
+OUTPUT_DIRECTORY = Path(
+    r"C:\Users\bht442\The University of Texas at Austin\MartyLab - General\Papers"
+    r"\Muliple Run Summing Reversed Phase LC-CD-MS\Figures for Manuscript\Figure 2"
+)
 OUTPUT_PNG = OUTPUT_DIRECTORY / "Figure 2.png"
 OUTPUT_PDF = OUTPUT_DIRECTORY / "Figure 2.pdf"
 FIGURE_SIZE_INCHES = (3.25, 6.5)
 OUTPUT_DPI = 300
+MINIMUM_FONT_SIZE = 10
 
 
 def load_chromatogram(path: Path) -> tuple[np.ndarray, np.ndarray]:
@@ -78,7 +82,12 @@ def style_axis(
     axis.spines["right"].set_visible(False)
     axis.spines["left"].set_linewidth(1.5)
     axis.spines["bottom"].set_linewidth(1.5)
-    axis.tick_params(direction="out", width=1.5, length=6)
+    axis.tick_params(
+        direction="out",
+        width=1.5,
+        length=6,
+        labelsize=MINIMUM_FONT_SIZE,
+    )
     axis.set_xlim(*TIME_LIMITS)
     axis.text(
         0.015,
@@ -93,18 +102,12 @@ def style_axis(
     )
 
 
-def hide_y_axis(axis: plt.Axes) -> None:
-    """Hide the y-axis while retaining the data scaling."""
-    axis.set_ylabel("")
-    axis.set_yticks([])
-    axis.spines["left"].set_visible(False)
-    axis.tick_params(axis="y", left=False, labelleft=False)
-
-
-def style_percent_axis(axis: plt.Axes, upper_limit: float = 104.0) -> None:
-    """Set the normalized range while keeping the y-axis hidden."""
+def style_percent_axis(axis: plt.Axes, upper_limit: float = 124.0) -> None:
+    """Show a 0--100% scale while retaining headroom above the spine."""
     axis.set_ylim(0.0, upper_limit)
-    hide_y_axis(axis)
+    axis.set_ylabel("")
+    axis.set_yticks([0.0, 50.0, 100.0], labels=["0", "%", "100"])
+    axis.spines["left"].set_bounds(0.0, 100.0)
 
 
 def make_figure() -> plt.Figure:
@@ -129,8 +132,8 @@ def make_figure() -> plt.Figure:
     ]
     comparison = [
         (ENSEMBLE_CHROMATOGRAM, "Ensemble MS", "#333333"),
-        (TIC_1, "1-injection CD-MS", "#0072B2"),
-        (TIC_21, "21-injection CD-MS", "#D55E00"),
+        (TIC_1, "1 INJ CD-MS", "#0072B2"),
+        (TIC_21, "21 INJ CD-MS", "#D55E00"),
     ]
 
     figure, axes = plt.subplots(
@@ -138,12 +141,18 @@ def make_figure() -> plt.Figure:
         ncols=1,
         sharex=True,
         figsize=FIGURE_SIZE_INCHES,
+        gridspec_kw={"height_ratios": [1, 1, 1]},
         constrained_layout=True,
     )
 
     # A: raw TIC and protein-specific EIC overlays (no normalization).
+    maximum_panel_a_ion_count = 0.0
     for path, label, color in panel_a:
         time, intensity = load_chromatogram(path)
+        maximum_panel_a_ion_count = max(
+            maximum_panel_a_ion_count,
+            float(np.max(intensity)),
+        )
         if path != TIC_21:
             retention_time = float(time[np.argmax(intensity)])
             axes[0].axvline(
@@ -155,27 +164,34 @@ def make_figure() -> plt.Figure:
                 zorder=3,
             )
             protein_name = label.removesuffix(" EIC")
-            if protein_name in {"Cytochrome C", "Myoglobin"}:
-                label_x = retention_time - (
-                    0.01 if protein_name == "Myoglobin" else 0.08
-                )
-                label_y = 0.79 if protein_name == "Myoglobin" else 0.96
+            multiline_alignment = "center"
+            if protein_name == "Cytochrome C":
+                label_x = retention_time + 0.10
+                label_y = 0.90
+                horizontal_alignment = "left"
+            elif protein_name == "Myoglobin":
+                label_x = retention_time - 0.08
+                label_y = 0.68
                 horizontal_alignment = "right"
             else:
-                label_x = retention_time + (
-                    0.12 if protein_name == "Carbonic Anhydrase" else 0.08
-                )
-                label_y = 0.96
+                label_x = retention_time + 0.10
+                label_y = 0.90
                 horizontal_alignment = "left"
+            display_name = {
+                "Cytochrome C": "Cyt. C",
+                "Myoglobin": "Myo.",
+                "Carbonic Anhydrase": "Carb. Anh.",
+            }.get(protein_name, protein_name)
             axes[0].text(
                 label_x,
                 label_y,
-                f"{protein_name}\n{retention_time:.2f} min",
+                f"{display_name}\n{retention_time:.2f} min",
                 transform=axes[0].get_xaxis_transform(),
                 color=color,
-                fontsize=7.0,
+                fontsize=MINIMUM_FONT_SIZE,
                 fontweight="normal",
                 ha=horizontal_alignment,
+                multialignment=multiline_alignment,
                 va="top",
                 zorder=4,
             )
@@ -187,9 +203,8 @@ def make_figure() -> plt.Figure:
             label=label,
             zorder=2,
         )
-    style_axis(axes[0], "A", panel_letter_y=0.78)
-    axes[0].set_ylim(bottom=0.0)
-    hide_y_axis(axes[0])
+    style_axis(axes[0], "A")
+    axes[0].set_ylabel("Ion count")
 
     # B: normalized comparison with a small vertical offset between traces.
     offsets = STAGGER_STEP * np.arange(len(comparison) - 1, -1, -1)
@@ -203,23 +218,25 @@ def make_figure() -> plt.Figure:
             label=label,
         )
     style_axis(axes[1], "B")
-    # Leave a clear band above the staggered traces for the three-row legend.
-    style_percent_axis(axes[1], upper_limit=180.0)
+    style_percent_axis(axes[1])
     axes[1].legend(
         loc="upper left",
-        bbox_to_anchor=(0.12, 1.0),
+        bbox_to_anchor=(0.12, 0.98),
         ncols=1,
         frameon=False,
-        fontsize=9.5,
-        handlelength=2.0,
+        fontsize=MINIMUM_FONT_SIZE,
+        handlelength=1.5,
         borderaxespad=0.0,
     )
 
     # C: raw (not normalized) one- and twenty-one-injection CD-MS TICs.
-    maximum_raw_ion_count = 0.0
+    maximum_panel_c_ion_count = 0.0
     for path, label, color in comparison[1:]:
         time, intensity = load_chromatogram(path)
-        maximum_raw_ion_count = max(maximum_raw_ion_count, float(np.max(intensity)))
+        maximum_panel_c_ion_count = max(
+            maximum_panel_c_ion_count,
+            float(np.max(intensity)),
+        )
         axes[2].plot(
             time,
             intensity,
@@ -230,13 +247,19 @@ def make_figure() -> plt.Figure:
     style_axis(axes[2], "C")
     axes[2].set_ylabel("Ion count")
     axes[2].set_xlabel("Time (min)")
-    # Reserve headroom for the legend instead of placing it over a raw TIC peak.
-    axes[2].set_ylim(0.0, maximum_raw_ion_count * 1.40)
+    # Use the same raw-count range for A and C, with room for C's legend.
+    shared_raw_upper_limit = max(
+        maximum_panel_a_ion_count,
+        maximum_panel_c_ion_count,
+    ) * 1.40
+    axes[0].set_ylim(0.0, shared_raw_upper_limit)
+    axes[2].set_ylim(0.0, shared_raw_upper_limit)
     axes[2].legend(
         loc="upper left",
-        bbox_to_anchor=(0.12, 1.0),
+        bbox_to_anchor=(0.12, 0.98),
         frameon=False,
-        fontsize=9.5,
+        fontsize=MINIMUM_FONT_SIZE,
+        handlelength=1.5,
         borderaxespad=0.0,
     )
 
@@ -249,7 +272,7 @@ def main() -> None:
             "font.family": "Arial",
             "font.size": 12,
             "axes.labelsize": 13,
-            "legend.fontsize": 9.5,
+            "legend.fontsize": MINIMUM_FONT_SIZE,
             "pdf.fonttype": 42,
             "ps.fonttype": 42,
             "savefig.transparent": True,

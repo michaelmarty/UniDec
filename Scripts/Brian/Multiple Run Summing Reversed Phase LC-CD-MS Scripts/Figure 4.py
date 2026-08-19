@@ -10,7 +10,11 @@ TIME_LIMITS = (0.0, 5.5)
 STAGGER_STEP = 10.0
 FIGURE_SIZE_INCHES = (3.25, 6.5)
 OUTPUT_DPI = 300
-OUTPUT_DIRECTORY = Path(__file__).resolve().parent
+MINIMUM_FONT_SIZE = 10
+OUTPUT_DIRECTORY = Path(
+    r"C:\Users\bht442\The University of Texas at Austin\MartyLab - General\Papers"
+    r"\Muliple Run Summing Reversed Phase LC-CD-MS\Figures for Manuscript\Figure 4"
+)
 OUTPUT_PNG = OUTPUT_DIRECTORY / "Figure 4.png"
 OUTPUT_PDF = OUTPUT_DIRECTORY / "Figure 4.pdf"
 
@@ -38,7 +42,7 @@ PANELS = [
                     r"\20260330_BHT_agilentc8column_watersmAb_CMDS_20msINJ_set1_"
                     r"0o1mgmLs_merged_1_unidecfiles\TIC_chrom.txt"
                 ),
-                "1-injection CD-MS",
+                "1 INJ CD-MS",
                 ONE_INJECTION_COLOR,
             ),
             (
@@ -48,7 +52,7 @@ PANELS = [
                     r"\20260330_BHT_agilentc8column_watersmAb_CMDS_20msINJ_set1_"
                     r"0o1mgmLs_merged_21_unidecfiles\TIC_decon.txt"
                 ),
-                "21-injection CD-MS",
+                "21 INJ CD-MS",
                 TWENTY_ONE_INJECTION_COLOR,
             ),
         ],
@@ -72,7 +76,7 @@ PANELS = [
                     r"\20260331_BHT_agilentc8column_AmgenhumanmAb_PRO35304_CMDS_"
                     r"20msINJ_set1_0o1mgmLs_merged_1_unidecfiles\TIC_chrom.txt"
                 ),
-                "1-injection CD-MS",
+                "1 INJ CD-MS",
                 ONE_INJECTION_COLOR,
             ),
             (
@@ -82,7 +86,7 @@ PANELS = [
                     r"\20260331_BHT_agilentc8column_AmgenhumanmAb_PRO35304_CMDS_"
                     r"20msINJ_set1_0o1mgmLs_merged_21_unidecfiles\TIC_decon.txt"
                 ),
-                "21-injection CD-MS",
+                "21 INJ CD-MS",
                 TWENTY_ONE_INJECTION_COLOR,
             ),
         ],
@@ -106,7 +110,7 @@ PANELS = [
                     r"\20260401_BHT_agilentc8column_AmgenrabbitmAb_EPA13724_CMDS_"
                     r"20msINJ_set1_0o1mgmLs_merged_1_unidecfiles\TIC_chrom.txt"
                 ),
-                "1-injection CD-MS",
+                "1 INJ CD-MS",
                 ONE_INJECTION_COLOR,
             ),
             (
@@ -116,7 +120,7 @@ PANELS = [
                     r"\20260401_BHT_agilentc8column_AmgenrabbitmAb_EPA13724_CMDS_"
                     r"20msINJ_set1_0o1mgmLs_merged_21_unidecfiles\TIC_decon.txt"
                 ),
-                "21-injection CD-MS",
+                "21 INJ CD-MS",
                 TWENTY_ONE_INJECTION_COLOR,
             ),
         ],
@@ -169,16 +173,24 @@ def style_axis(axis: plt.Axes, panel_letter: str, sample_label: str) -> None:
         ha="center",
         va="center",
     )
+    # Center the sample name on the visible 0--100 portion of the y-axis.
+    axis.yaxis.set_label_coords(-0.27, 50.0 / 180.0)
     axis.spines["top"].set_visible(False)
     axis.spines["right"].set_visible(False)
-    axis.spines["left"].set_visible(False)
+    axis.spines["left"].set_visible(True)
+    axis.spines["left"].set_linewidth(1.5)
+    axis.spines["left"].set_bounds(0.0, 100.0)
     axis.spines["bottom"].set_linewidth(1.5)
-    axis.set_yticks([])
-    axis.tick_params(axis="x", direction="out", width=1.5, length=6)
-    axis.tick_params(axis="y", left=False, labelleft=False)
+    axis.set_yticks([0.0, 50.0, 100.0], labels=["0", "%", "100"])
+    axis.tick_params(
+        direction="out",
+        width=1.5,
+        length=6,
+        labelsize=MINIMUM_FONT_SIZE,
+    )
     axis.text(
         0.015,
-        0.97,
+        0.80,
         panel_letter,
         transform=axis.transAxes,
         fontsize=16,
@@ -201,11 +213,8 @@ def make_figure() -> plt.Figure:
 
     offsets = STAGGER_STEP * np.arange(2, -1, -1)
     for axis, (panel_letter, sample_label, datasets) in zip(axes, PANELS):
-        retention_time = None
         for (path, label, color), offset in zip(datasets, offsets):
             time, intensity = load_chromatogram(path)
-            if label == "21-injection CD-MS":
-                retention_time = float(time[np.argmax(intensity)])
             axis.plot(
                 time,
                 normalize_to_percent(intensity) + offset,
@@ -216,34 +225,14 @@ def make_figure() -> plt.Figure:
             )
 
         style_axis(axis, panel_letter, sample_label)
-        if retention_time is not None:
-            axis.axvline(
-                retention_time,
-                ymin=0.0,
-                ymax=0.72,
-                color="#000000",
-                linestyle=(0, (4, 3)),
-                linewidth=1.5,
-                zorder=3,
-            )
-            axis.text(
-                retention_time - 0.08,
-                0.73,
-                f"{retention_time:.2f} min",
-                transform=axis.get_xaxis_transform(),
-                color="#000000",
-                fontsize=7.0,
-                ha="right",
-                va="bottom",
-                zorder=4,
-            )
         if panel_letter == "A":
             axis.legend(
                 loc="upper right",
+                bbox_to_anchor=(0.98, 0.80),
                 frameon=False,
-                fontsize=9.5,
+                fontsize=MINIMUM_FONT_SIZE,
                 handlelength=2.0,
-                borderaxespad=0.2,
+                borderaxespad=0.0,
             )
 
     axes[-1].set_xlabel("Time (min)")
@@ -259,7 +248,7 @@ def main() -> None:
             "font.family": "Arial",
             "font.size": 12,
             "axes.labelsize": 13,
-            "legend.fontsize": 9.5,
+            "legend.fontsize": MINIMUM_FONT_SIZE,
             "pdf.fonttype": 42,
             "ps.fonttype": 42,
             "savefig.transparent": True,

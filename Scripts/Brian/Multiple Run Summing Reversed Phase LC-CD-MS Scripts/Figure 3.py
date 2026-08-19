@@ -16,17 +16,17 @@ FILE_PREFIX = (
 DATASETS = [
     (
         DATA_ROOT / f"{FILE_PREFIX}_1_unidecfiles" / f"{FILE_PREFIX}_1_mass.txt",
-        "1 Injection (2,263 ions)",
+        "1 INJ (2,263 ions)",
         "#0072B2",  # Figure 2 blue
     ),
     (
         DATA_ROOT / f"{FILE_PREFIX}_10_unidecfiles" / f"{FILE_PREFIX}_10_mass.txt",
-        "10 Injections (22,321 ions)",
+        "10 INJ (22,321 ions)",
         "#785EF0",  # Colorblind-friendly violet; distinct from Figure 2 green
     ),
     (
         DATA_ROOT / f"{FILE_PREFIX}_21_unidecfiles" / f"{FILE_PREFIX}_21_mass.txt",
-        "21 Injections (47,334 ions)",
+        "21 INJ (47,334 ions)",
         "#D55E00",  # Figure 2 vermillion
     ),
 ]
@@ -35,7 +35,11 @@ MASS_LIMITS_KDA = (5.0, 40.0)
 STAGGER_STEP = 10.0
 FIGURE_SIZE_INCHES = (3.25, 2.5)
 OUTPUT_DPI = 300
-OUTPUT_DIRECTORY = Path(__file__).resolve().parent
+MINIMUM_FONT_SIZE = 10
+OUTPUT_DIRECTORY = Path(
+    r"C:\Users\bht442\The University of Texas at Austin\MartyLab - General\Papers"
+    r"\Muliple Run Summing Reversed Phase LC-CD-MS\Figures for Manuscript\Figure 3"
+)
 OUTPUT_PNG = OUTPUT_DIRECTORY / "Figure 3.png"
 OUTPUT_PDF = OUTPUT_DIRECTORY / "Figure 3.pdf"
 
@@ -100,11 +104,16 @@ def make_figure() -> plt.Figure:
     axis.spines["left"].set_linewidth(1.5)
     axis.spines["left"].set_bounds(0.0, 100.0)
     axis.spines["bottom"].set_linewidth(1.5)
-    axis.tick_params(direction="out", width=1.5, length=6)
+    axis.tick_params(
+        direction="out",
+        width=1.5,
+        length=6,
+        labelsize=MINIMUM_FONT_SIZE,
+    )
     axis.legend(
         loc="upper right",
         frameon=False,
-        fontsize=7.0,
+        fontsize=MINIMUM_FONT_SIZE,
         handlelength=1.5,
         borderaxespad=0.3,
     )
@@ -119,7 +128,7 @@ def main() -> None:
             "font.family": "Arial",
             "font.size": 12,
             "axes.labelsize": 13,
-            "legend.fontsize": 9.5,
+            "legend.fontsize": MINIMUM_FONT_SIZE,
             "pdf.fonttype": 42,
             "ps.fonttype": 42,
             "savefig.transparent": True,

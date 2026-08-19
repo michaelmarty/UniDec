@@ -109,7 +109,7 @@ def format_treatment_label(treatment: str) -> str:
     normalized = treatment.lower()
     bin_width = "0.1" if normalized.startswith("0.1") else "1"
     if "frequency corrected" in normalized:
-        return f"{bin_width} $m/z$ bin +FC"
+        return f"{bin_width} $m/z$ bin + FC"
     return f"{bin_width} $m/z$ bin"
 
 
@@ -193,7 +193,7 @@ def make_figure(treatments: list[str], values: np.ndarray) -> plt.Figure:
             pad=8,
         )
         axis.set_xticks(x_positions, labels=treatment_labels)
-        axis.tick_params(axis="x", labelrotation=35, labelsize=8.5)
+        axis.tick_params(axis="x", labelrotation=35, labelsize=10)
         for label in axis.get_xticklabels():
             label.set_horizontalalignment("right")
             label.set_rotation_mode("anchor")
