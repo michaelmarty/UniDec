@@ -1,6 +1,6 @@
 import os
 import numpy as np
-import unidec.UniDecImporter.ImporterFactory as imp
+import UniDecImporter.ImporterFactory as imp
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import scipy.fft as fft

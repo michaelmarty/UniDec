@@ -1,5 +1,5 @@
 import os
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 import numpy as np
 import pyopenms
 import matplotlib.pyplot as plt

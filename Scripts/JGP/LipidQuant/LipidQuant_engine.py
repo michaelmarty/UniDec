@@ -9,7 +9,7 @@ import time
 import os
 import fnmatch
 from scipy.stats import linregress
-from unidec.UniDecImporter import ImporterFactory
+from UniDecImporter import ImporterFactory
 import multiprocessing as mp
 from concurrent.futures import ThreadPoolExecutor
 import builtins

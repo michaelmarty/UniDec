@@ -15,7 +15,7 @@ import unidec.modules.IM_functions as IM_func
 import unidec.modules.MassSpecBuilder as MSBuild
 from unidec.modules.unidec_enginebase import UniDecEngine
 from unidec.modules.plotting import plot1d, plot2d
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 
 from isodec.runtime import IsoDecRuntime
 

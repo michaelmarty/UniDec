@@ -2,7 +2,7 @@ from unidec.IsoDec.compare_tools import read_manual_annotations, compare_annotat
 from unidec.IsoDec.engine import IsoDecEngine
 from unidec.IsoDec.plots import *
 from unidec.IsoDec.datatools import *
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.IsoDec.match import *
 
 # Set backend to Agg

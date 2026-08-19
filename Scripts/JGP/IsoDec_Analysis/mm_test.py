@@ -1,8 +1,8 @@
 from unidec.IsoDec.match import *
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.IsoDec.engine import IsoDecEngine
 from unidec.IsoDec.plots import *
-from unidec.UniDecImporter.MZML.mzML import *
+from UniDecImporter.MZML.mzML import *
 
 os.chdir("D:\\Johnny\\IsoDec\\TestData")
 

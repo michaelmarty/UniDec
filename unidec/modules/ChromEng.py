@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import unidec.tools as ud
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.metaunidec.mudeng import MetaUniDec
 from unidec.engine import UniDec
 from copy import deepcopy

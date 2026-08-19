@@ -9,7 +9,7 @@ from unidec.IsoDec.datatools import *
 from unidec.IsoDec.match import *
 import pyperclip
 from Scripts.MTM.proteomicstools import *
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.IsoDec.encoding import *
 from unidec.IsoDec.models import *
 

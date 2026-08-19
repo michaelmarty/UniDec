@@ -6,7 +6,7 @@ from unidec.IsoDec.plots import *
 from unidec.IsoDec.datatools import *
 import pyperclip
 from unidec.IsoDec.match import *
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 
 def get_precision_recall(annotated_mc, exp_mc):
     shared, u_annotated, u_exp = compare_annotated(annotated_mc, exp_mc, ppmtol=50, maxshift=3)

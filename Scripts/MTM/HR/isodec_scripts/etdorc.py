@@ -5,7 +5,7 @@ from unidec.IsoDec.engine import IsoDecEngine
 import time
 import matplotlib.pyplot as plt
 from unidec.IsoDec.match import *
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 
 file2 = "Z:\\Group Share\\JGP\\js8b05641_si_001\\1500_scans_200K_16 fills-qb1.raw"
 os.chdir(os.path.dirname(file2))

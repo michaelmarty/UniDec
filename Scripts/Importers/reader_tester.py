@@ -1,5 +1,5 @@
 import os
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 
 agilent_files = ["C:\\Data\\DataExamples\\BSA 1mgmL 0.5uL NativeFIA.d",
                  # "C:\\Data\\DataExamples\\AgilentData\\LYZ-F319-2-11-22-P1-A1.D",

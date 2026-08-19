@@ -8,7 +8,7 @@ from unidec.IsoDec.datatools import *
 import pyperclip
 from unidec.IsoDec.match import *
 from Scripts.MTM.proteomicstools import *
-from unidec.UniDecImporter.Importer import ImporterFactory
+from UniDecImporter.Importer import ImporterFactory
 
 torch.cuda.is_available()
 

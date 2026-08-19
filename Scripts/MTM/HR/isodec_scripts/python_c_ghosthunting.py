@@ -4,7 +4,7 @@ from unidec.IsoDec.plots import *
 from unidec.IsoDec.datatools import *
 import pyperclip
 from unidec.IsoDec.match import *
-from unidec.UniDecImporter.Importer import ImporterFactory
+from UniDecImporter.Importer import ImporterFactory
 
 # Set backend to Agg
 mpl.use("WxAgg")

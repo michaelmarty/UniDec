@@ -1,6 +1,6 @@
 import unidec.tools as ud
 
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 

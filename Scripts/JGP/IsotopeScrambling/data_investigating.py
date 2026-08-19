@@ -1,7 +1,7 @@
 import numpy as np
 from Scripts.JGP.IsotopeScrambling.MetaMorpheus_tools import *
 import os
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 import matplotlib.pyplot as plt
 from unidec.IsoDec.IsoGen.isogenc import *
 from unidec.modules.isotopetools import *

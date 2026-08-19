@@ -18,7 +18,6 @@ EXCLUDE_PATTERNS = [
     PACKAGE_DIRECTORY / "IsoDec" / "isogenwrapper.py",
     PACKAGE_DIRECTORY / "IsoDec" / "IsoGen" / "isogenc.py",
     PACKAGE_DIRECTORY / "IsoDec" / "IsoGen" / "*training*.py",
-    PACKAGE_DIRECTORY / "UniDecImporter" / "ImportTests.py",
     PACKAGE_DIRECTORY / "metaunidec" / "test_MUD.py",
     PACKAGE_DIRECTORY / "modules" / "unidecwrapper.py",
 ]

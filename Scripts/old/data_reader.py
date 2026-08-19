@@ -2,7 +2,7 @@
 #
 # from multiplierz.mzAPI import *
 # from unidec import tools as ud
-# from unidec.UniDecImporter.MZML.mzML import merge_spectra
+# from UniDecImporter.MZML.mzML import merge_spectra
 # from copy import deepcopy
 # import numpy as np
 # import time

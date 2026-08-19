@@ -1,6 +1,6 @@
 from Scripts.MTM.proteomicstools import searchTD
 from unidec.IsoDec.compare_tools import compare_matchedcollections, read_msalign_to_matchedcollection_fast
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.IsoDec.plots import *
 from unidec.IsoDec.datatools import *
 

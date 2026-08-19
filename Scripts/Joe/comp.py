@@ -1,4 +1,4 @@
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 from Scripts.Joe.gaussian import plot_data
 import matplotlib.pyplot as plt
 import numpy as np

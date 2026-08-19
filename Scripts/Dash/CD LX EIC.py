@@ -1,7 +1,7 @@
 import os
 import glob
 import unidec.tools as ud
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import rcParams

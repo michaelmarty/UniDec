@@ -10,8 +10,8 @@ from unidec.IsoDec.datatools import *
 import pyperclip
 import pandas as pd
 from unidec.IsoDec.match import *
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
-from unidec.UniDecImporter.MZML.mzML import *
+from UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.MZML.mzML import *
 from pyteomics import mgf
 
 file = "Z:\\Group Share\\JGP\\PXD019247\\20170105_L_MaD_ColC4_Ecoli20161116-10_01.raw"

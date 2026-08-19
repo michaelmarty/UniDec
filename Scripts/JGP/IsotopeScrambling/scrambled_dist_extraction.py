@@ -4,8 +4,8 @@ import numpy as np
 from Scripts.JGP.IsotopeScrambling.MetaMorpheus_tools import *
 import os
 from unidec.IsoDec.IsoGen.isogenpep import IsoGenPepEngine
-from unidec.UniDecImporter.ImportTools import merge_spectra
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImportTools import merge_spectra
+from UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.IsoDec.IsoGen.isogenc import *
 import matplotlib.pyplot as plt
 from Scripts.JGP.LipidQuant.LipidQuant_engine import *

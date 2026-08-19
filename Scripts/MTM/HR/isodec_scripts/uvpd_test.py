@@ -8,7 +8,7 @@ from unidec.IsoDec.datatools import *
 from unidec.IsoDec.match import *
 import pyperclip
 from Scripts.MTM.proteomicstools import *
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 
 
 def get_precision_recall(annotated_mc, exp_mc):

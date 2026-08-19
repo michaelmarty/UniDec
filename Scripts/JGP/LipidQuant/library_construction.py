@@ -7,7 +7,7 @@ import matplotlib as mpl
 import unidec.IsoDec.datatools as dt
 from Scripts.MTM.Lipidomics.mass_defect_analysis import kendrick_analysis
 from Scripts.LipiDec.AddFeaturestoDF import get_overall_tails, get_class
-from unidec.UniDecImporter.ImportTools import IndexedFile, IndexedScan
+from UniDecImporter.ImportTools import IndexedFile, IndexedScan
 import re
 
 def match_files(directory, string, exclude=None):

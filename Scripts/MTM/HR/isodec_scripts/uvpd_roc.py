@@ -3,7 +3,7 @@ from unidec.IsoDec.engine import IsoDecEngine
 from unidec.IsoDec.plots import *
 from unidec.IsoDec.datatools import *
 from unidec.IsoDec.match import *
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 
 # Set backend to Agg
 mpl.use('WxAgg')

@@ -6,7 +6,7 @@ from scipy.optimize import curve_fit
 from scipy.optimize import minimize
 
 from unidec.tools import calc_FWHM
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.IsoDec.datatools import fastpeakdetect
 from unidec.IsoDec import datatools as dt
 

@@ -1,4 +1,4 @@
-import unidec.UniDecImporter.ImporterFactory as importer_factory
+import UniDecImporter.ImporterFactory as importer_factory
 import os
 import numpy as np
 

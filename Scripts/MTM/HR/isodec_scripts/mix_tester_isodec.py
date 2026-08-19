@@ -4,7 +4,7 @@ from unidec.IsoDec.runtime import IsoDecRuntime
 import matplotlib.pyplot as plt
 from Scripts.Joe.gaussian import *
 
-from unidec.UniDecImporter import ImporterFactory
+from UniDecImporter import ImporterFactory
 from unidec.modules.isotopetools import calc_averagine_isotope_dist
 import numpy as np
 from unidec.IsoDec.plots import plot_pks_ax

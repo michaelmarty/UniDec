@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import unidec.tools as ud
 from unidec.tools import get_autocorr_ratio, is_centroided
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 import scipy.signal as signal
 
 # Set backend to Agg

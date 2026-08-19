@@ -6,7 +6,7 @@ from Scripts.MTM.proteomicstools import *
 import os
 import time
 from brokenaxes import brokenaxes
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 
 
 os.chdir("Z:\\Group Share\\JGP\\JPST001885")

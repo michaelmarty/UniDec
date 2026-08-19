@@ -7,7 +7,7 @@ import os
 import time
 import matplotlib.pyplot as plt
 import unidec.modules.peakstructure as ps
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 
 pd.set_option('mode.chained_assignment', None)
 

@@ -6,8 +6,8 @@ from pyopenms import *
 import os
 import fnmatch
 from copy import deepcopy
-from unidec.UniDecImporter import ImporterFactory
-from unidec.UniDecImporter.ImportTools import *
+from UniDecImporter import ImporterFactory
+from UniDecImporter.ImportTools import *
 
 
 def match_files(directory, string, exclude=None):

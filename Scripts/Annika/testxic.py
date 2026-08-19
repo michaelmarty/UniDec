@@ -2,7 +2,7 @@ import os
 import numpy as np
 import unidec.tools as ud
 
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 import matplotlib.pyplot as plt
 
 path = "Z:\\Group Share\\Annika\\APCI Data\\Equisplash\\20230801_5_1_Eqd7_NotagPOPCCHOL_1_32uM_control.raw"

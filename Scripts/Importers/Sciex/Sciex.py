@@ -1,8 +1,8 @@
 import numpy as np
 from scipy.interpolate import interp1d
 
-from unidec.UniDecImporter import ImporterFactory
-from unidec.UniDecImporter.Importer import Importer
+from UniDecImporter import ImporterFactory
+from UniDecImporter.Importer import Importer
 from Scripts.Importers.Sciex.SciexReader import SciexReader
 import matplotlib as mpl
 from unidec import tools as ud

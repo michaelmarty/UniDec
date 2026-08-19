@@ -4,7 +4,7 @@ from unidec.IsoDec.engine import IsoDecEngine
 import pyperclip
 import pandas as pd
 
-from unidec.UniDecImporter.Importer import ImporterFactory
+from UniDecImporter.Importer import ImporterFactory
 
 
 def process_file(file, comp_MC, remove_noise=False):

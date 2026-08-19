@@ -2,8 +2,7 @@ __author__ = 'Michael.Marty'
 
 import numpy as np
 
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
-from unidec.UniDecImporter.MZML import *
+from UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.modules.hdf5_tools import replace_dataset
 import os
 import fnmatch

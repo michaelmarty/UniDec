@@ -1,5 +1,5 @@
 from Scripts.Importers.Agilent.MZFILE import MZFile as mzFile
-from unidec.UniDecImporter.Importer import *
+from UniDecImporter.Importer import *
 
 
 # When is the msrun scaninfo even being populated ever

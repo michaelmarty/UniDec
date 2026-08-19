@@ -4,7 +4,7 @@ from unidec.IsoDec.match import *
 from Scripts.MTM.proteomicstools import *
 import os
 import time
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 
 file = "Z:\\Group Share\\JGP\\PXD019247\\20170105_L_MaD_ColC4_Ecoli20161108-10_01.raw"
 

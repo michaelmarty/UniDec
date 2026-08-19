@@ -2,11 +2,11 @@ import re
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import unidec.UniDecImporter as UniDecImporter
+import UniDecImporter as UniDecImporter
 import matplotlib
 from matplotlib import rcParams
 from unidec.engine import UniDec
-from unidec.UniDecImporter.ImportTools import merge_spectra
+from UniDecImporter.ImportTools import merge_spectra
 
 matplotlib.use('TkAgg')
 

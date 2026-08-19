@@ -7,7 +7,7 @@ from matplotlib_venn import venn3
 import matplotlib as mpl
 from matplotlib import rcParams
 
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 
 # Set backend to Agg
 mpl.use('WxAgg')

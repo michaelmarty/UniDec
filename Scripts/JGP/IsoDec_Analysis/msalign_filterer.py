@@ -4,7 +4,7 @@ from unidec.IsoDec.msalign_export import *
 import fnmatch
 from matplotlib import rcParams
 
-from unidec.UniDecImporter import ImporterFactory
+from UniDecImporter import ImporterFactory
 
 # Set backend to Agg
 mpl.use('WxAgg')

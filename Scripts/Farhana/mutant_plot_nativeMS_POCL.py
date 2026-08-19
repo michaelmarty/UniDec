@@ -2,7 +2,7 @@ import re
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import unidec.UniDecImporter as UniDecImporter
+import UniDecImporter as UniDecImporter
 import matplotlib
 from matplotlib import rcParams
 

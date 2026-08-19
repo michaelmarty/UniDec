@@ -1,4 +1,4 @@
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.metaunidec.meta_import_wizard import MetaTagTypes as tt
 from unidec.metaunidec import mudeng
 import os

@@ -1,6 +1,6 @@
 from unidec.IsoDec.runtime import  *
 from unidec.IsoDec.engine import *
-from unidec.UniDecImporter.ImporterFactory import *
+from UniDecImporter.ImporterFactory import *
 from unidec.IsoDec.plots import *
 import numpy as np
 from unidec.modules.isotopetools import *

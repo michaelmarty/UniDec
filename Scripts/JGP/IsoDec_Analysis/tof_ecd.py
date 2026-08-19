@@ -4,8 +4,8 @@ from unidec.IsoDec.engine import IsoDecEngine
 from unidec.IsoDec.datatools import *
 import pyperclip
 from unidec.IsoDec.match import *
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
-from unidec.UniDecImporter.MZML.mzML import *
+from UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.MZML.mzML import *
 from pyteomics import mgf
 
 

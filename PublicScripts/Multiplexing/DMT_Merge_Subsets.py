@@ -1,6 +1,6 @@
 import os
 import re
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory as ImpFac
+from UniDecImporter.ImporterFactory import ImporterFactory as ImpFac
 import numpy as np
 
 def strip_dmt_files(folder):

@@ -1,4 +1,4 @@
-from unidec.UniDecImporter import ImporterFactory
+from UniDecImporter import ImporterFactory
 import pandas as pd
 import os
 import subprocess

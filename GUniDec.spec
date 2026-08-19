@@ -95,6 +95,15 @@ native_package_datas = (
     )
     + collect_data_files('isodec', includes=['modelparams/*.bin'])
 )
+importer_hiddenimports = collect_submodules('UniDecImporter')
+importer_package_datas = collect_data_files(
+    'UniDecImporter',
+    includes=[
+        'Thermo/*.dll',
+        'Thermo/RawFileReaderLicense.doc',
+        'Waters/Waters_MassLynxSDK_EULA.txt',
+    ],
+)
 
 
 # Analysis of packages
@@ -103,9 +112,16 @@ a = Analysis(['unidec\\Launcher.py'],
              binaries=native_package_binaries,
              datas=native_package_datas,
              excludes=excludeslist,
-             hiddenimports=hiddenimportslist,
+             hiddenimports=hiddenimportslist + importer_hiddenimports,
              hookspath=None,
              runtime_hooks=None)
+
+# UniDecImporter loads its .NET assemblies by absolute path relative to
+# UniDecImporter/Thermo/RawFileReader.py. Add them after Analysis so PyInstaller
+# preserves that package layout and does not filter them as ordinary binaries.
+for source, destination in importer_package_datas:
+    bundled_path = os.path.join(destination, os.path.basename(source))
+    a.datas.append((bundled_path, source, 'DATA'))
 
 
 
@@ -127,50 +143,9 @@ if system == "Windows":
             a.datas += add
             # print add
 
-    # Thermo DLLS
-    a.datas += [('RawFileReaderLicense.doc', 'unidec\\UniDecImporter\\Thermo\\RawFileReaderLicense.doc', 'BINARY')]
-    a.datas += [('ThermoFisher.CommonCore.Data.dll', 'unidec\\UniDecImporter\\Thermo\\ThermoFisher.CommonCore.Data.dll', 'BINARY')]
-    a.datas += [('ThermoFisher.CommonCore.RawFileReader.dll', 'unidec\\UniDecImporter\\Thermo\\ThermoFisher.CommonCore.RawFileReader.dll', 'BINARY')]
-    a.datas += [('ThermoFisher.CommonCore.MassPrecisionEstimator.dll', 'unidec\\UniDecImporter\\Thermo\\ThermoFisher.CommonCore.MassPrecisionEstimator.dll', 'BINARY')]
-    a.datas += [('ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'unidec\\UniDecImporter\\Thermo\\ThermoFisher.CommonCore.BackgroundSubtraction.dll', 'BINARY')]
-
     # Waters DLLS
     a.datas += [('Waters_MassLynxSDK_EULA.txt', 'unidec\\bin\\Waters_MassLynxSDK_EULA.txt', 'DATA')]
     a.datas += [('CDCReader.exe', 'unidec\\bin\\CDCReader.exe', 'DATA')]
-
-    # a.datas += [('BaseCommon.dll', 'unidec\\UniDecImporter\\Agilent\\BaseCommon.dll', 'BINARY')]
-    # a.datas += [('BaseDataAccess.dll', 'unidec\\UniDecImporter\\Agilent\\BaseDataAccess.dll', 'BINARY')]
-    # a.datas += [('MassSpecDataReader.dll', 'unidec\\UniDecImporter\\Agilent\\MassSpecDataReader.dll', 'BINARY')]
-    # a.datas += [('BaseTof.dll', 'unidec\\UniDecImporter\\Agilent\\BaseTof.dll', 'BINARY')]
-    # a.datas += [('BaseError.dll', 'unidec\\UniDecImporter\\Agilent\\BaseTof.dll', 'BINARY')]
-    # a.datas += [('agtsampleinforw.dll', 'unidec\\UniDecImporter\\Agilent\\agtsampleinforw.dll', 'BINARY')]
-    # a.datas += [('MIDAC.dll', 'unidec\\UniDecImporter\\Agilent\\MIDAC.dll', 'BINARY')]
-    # a.datas += [('msvcp120.dll', 'unidec\\UniDecImporter\\Agilent\\msvcp120.dll', 'BINARY')]
-    # a.datas += [('msvcr120.dll', 'unidec\\UniDecImporter\\Agilent\\msvcr120.dll', 'BINARY')]
-    # a.datas += [('Interop.shell32.dll', 'unidec\\UniDecImporter\\Agilent\\Interop.shell32.dll', 'BINARY')]
-    # a.datas += [('BaseDataAccess.dll.config', 'unidec\\UniDecImporter\\Agilent\\BaseDataAccess.dll.config', 'BINARY')]
-    # a.datas += [('AgtFileSelectionDialog.dll', 'unidec\\UniDecImporter\\Agilent\\AgtFileSelectionDialog.dll', 'BINARY')]
-
-    # a.datas += [('BlaisWiff.dll', 'unidec\\UniDecImporter\\Sciex\\BlaisWiff.dll', 'BINARY')]
-    # a.datas += [('Clearcore2.Compression.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.Compression.dll', 'BINARY')]
-    # a.datas += [('Clearcore2.Data.AnalystDataProvider.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.Data.AnalystDataProvider.dll', 'BINARY')]
-    # a.datas += [('Clearcore2.Data.CommonInterfaces.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.Data.CommonInterfaces.dll', 'BINARY')]
-    # a.datas += [('Clearcore2.Data.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.Data.dll', 'BINARY')]
-    # a.datas += [('Clearcore2.Data.WiffReader.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.Data.WiffReader.dll', 'BINARY')]
-    # a.datas += [('Clearcore2.Muni.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.Muni.dll', 'BINARY')]
-    # a.datas += [('Clearcore2.InternalRawXYProcessing.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.InternalRawXYProcessing.dll', 'BINARY')]
-    # a.datas += [('Clearcore2.RawXYProcessing.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.RawXYProcessing.dll', 'BINARY')]
-    # a.datas += [('Clearcore2.StructuredStorage.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.StructuredStorage.dll', 'BINARY')]
-    # a.datas += [('Clearcore2.Utility.dll', 'unidec\\UniDecImporter\\Sciex\\Clearcore2.Utility.dll', 'BINARY')]
-    # a.datas += [('Sciex.ClearCore.FMan.dll', 'unidec\\UniDecImporter\\Sciex\\Sciex.ClearCore.FMan.dll', 'BINARY')]
-    # a.datas += [('Sciex.Data.Processing.dll', 'unidec\\UniDecImporter\\Sciex\\Sciex.Data.Processing.dll', 'BINARY')]
-    # a.datas += [('Sciex.Data.SimpleTypes.dll', 'unidec\\UniDecImporter\\Sciex\\Sciex.Data.SimpleTypes.dll', 'BINARY')]
-    # a.datas += [('Sciex.Data.XYData.dll', 'unidec\\UniDecImporter\\Sciex\\Sciex.Data.XYData.dll', 'BINARY')]
-    # a.datas += [('Sciex.FMan.dll', 'unidec\\UniDecImporter\\Sciex\\Sciex.FMan.dll', 'BINARY')]
-    # a.datas += [('Sciex.FMan.UI.dll', 'unidec\\UniDecImporter\\Sciex\\Sciex.FMan.UI.dll', 'BINARY')]
-    # a.datas += [('Sciex.TofTof.T2DFman.dll', 'unidec\\UniDecImporter\\Sciex\\Sciex.TofTof.T2DFman.dll', 'BINARY')]
-    # a.datas += [('WiffReaderCOM.dll', 'unidec\\UniDecImporter\\Sciex\\WiffReaderCOM.dll', 'BINARY')]
-    # a.datas += [('zlib.net.dll', 'unidec\\UniDecImporter\\Sciex\\zlib.net.dll', 'BINARY')]
 
 #LINUX DEPENDENCIES:
 elif system == "Linux":

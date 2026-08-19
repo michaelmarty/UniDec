@@ -8,7 +8,7 @@ from sympy.integrals.risch import NonElementaryIntegral
 
 from unidec.IsoDec.datatools import fastpeakdetect, get_fwhm_peak, get_all_centroids
 from unidec.IsoDec import datatools as dt
-from unidec.UniDecImporter import ImporterFactory
+from UniDecImporter import ImporterFactory
 from unidec.IsoDec.engine import IsoDecEngine
 from unidec.IsoDec.match import *
 

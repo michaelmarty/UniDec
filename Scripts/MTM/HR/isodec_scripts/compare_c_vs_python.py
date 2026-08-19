@@ -4,7 +4,7 @@ from unidec.IsoDec.plots import *
 from unidec.IsoDec.datatools import *
 import pyperclip
 from unidec.IsoDec.match import *
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 from Scripts.MTM.proteomicstools import *
 
 # Set backend to Agg

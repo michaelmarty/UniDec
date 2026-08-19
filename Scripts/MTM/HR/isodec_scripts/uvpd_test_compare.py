@@ -1,7 +1,7 @@
 from unidec.IsoDec.compare_tools import get_unique_matchedions, compare_matchedcollections, df_to_matchedcollection
 from unidec.IsoDec.match import *
 from unidec.IsoDec.plots import *
-from unidec.UniDecImporter.Importer import ImporterFactory
+from UniDecImporter.Importer import ImporterFactory
 
 file2 = "Z:\\Group Share\\JGP\\JPST001885\\UVPD_Test\\10uMCA25+UVPDLPT1,0mJ1pFullP_3.raw"
 os.chdir(os.path.dirname(file2))

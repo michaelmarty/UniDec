@@ -5,7 +5,7 @@ import scipy
 import unidec.tools as ud
 
 from unidec.modules.unidec_enginebase import UniDecEngine
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 from copy import deepcopy
 import matplotlib.pyplot as plt
 import scipy.fft as fft
@@ -13,7 +13,7 @@ from unidec.modules import unidecstructure, peakstructure, IM_functions, fitting
 import time
 from unidec import engine
 from scipy.optimize import curve_fit
-from unidec.UniDecImporter import ImportTools as IT
+from UniDecImporter import ImportTools as IT
 
 cdeng_types = [".mzml", ".raw", ".mzxml", ".gz"]
 
