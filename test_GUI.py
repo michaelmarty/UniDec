@@ -12,7 +12,7 @@ testdir = os.path.join(topdir, "TestSpectra")
 
 class TestGUI(unittest.TestCase):
     @classmethod
-    def setUp(cls):
+    def setUpClass(cls):
         os.chdir(topdir)
         cls.app = UniDecApp(ignore_args=True)
 
@@ -20,9 +20,16 @@ class TestGUI(unittest.TestCase):
         cls.testimms = "imms.dat"
         cls.testmzml = "myo.mzML"
 
-    def tearDown(self):
-        wx.CallAfter(self.app.quit_application)
-        self.app.start()
+    @classmethod
+    def tearDownClass(cls):
+        if wx.GetApp() is not None:
+            cls.app.view.on_exit()
+
+    def setUp(self):
+        self.app.on_reset(0)
+        self.app.eng.config.imflag = 0
+        if self.app.view.imflag != 0:
+            self.app.on_flip_mode(0)
 
     # Engine Tests
     def test_unidec_paths(self):
@@ -98,9 +105,6 @@ class TestGUI(unittest.TestCase):
             self.assertTrue(os.path.isfile(self.app.eng.config.outfname + "_Thumb_Figure1.pdf"))
             self.app.on_pdf_report(0)
             self.assertTrue(os.path.isfile(self.app.eng.config.outfname + "_report.pdf"))
-
-        # Test Exit
-        self.app.view.on_exit(0)
 
     def test_auto_IMMS(self):
         self.app.on_flip_mode()
