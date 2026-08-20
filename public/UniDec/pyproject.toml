@@ -25,10 +25,9 @@ requires-python = ">=3.10"
 
 [project.optional-dependencies]
 # install with <installer> install '.[opt-dependency group]'
-dev = ["massql", "pytest", "pyinstaller", "molmass", "mpld3",
+dev = ["pytest", "pyinstaller", "molmass", "mpld3",
     "wxpython>=4.0"]
 img = ['pyimzml']
-exp = ['massql']
 
 [project.urls]
 Homepage = "https://github.com/michaelmarty/UniDec"

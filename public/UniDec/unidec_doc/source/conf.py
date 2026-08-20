@@ -41,7 +41,6 @@ autodoc_mock_imports = [
     'isogenatom',
     'isogenatom_trainingdata',
     'isogenpep_trainingdata',
-    'massql',
     'matchms',
     'molmass',
     'mpld3',
