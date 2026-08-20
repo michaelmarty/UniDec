@@ -32,6 +32,7 @@ exp = ['massql']
 
 [project.urls]
 Homepage = "https://github.com/michaelmarty/UniDec"
+Documentation = "https://michaelmarty.github.io/UniDec/"
 Repository = "https://github.com/michaelmarty/UniDec"
 Issues = "https://github.com/michaelmarty/UniDec/issues"
 
