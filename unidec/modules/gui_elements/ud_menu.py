@@ -343,11 +343,6 @@ class main_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.pres.on_autoformat, self.autoformat)
 
         self.experimentalmenu.AppendSeparator()
-
-        self.menumql = self.experimentalmenu.Append(wx.ID_ANY, "MassQL", "MassQL")
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_mql, self.menumql)
-
-        self.experimentalmenu.AppendSeparator()
         self.menuisotopes = self.experimentalmenu.Append(wx.ID_ANY, "Plot Averagine Isotope Distributions")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_plot_isotope_distribution, self.menuisotopes)
 

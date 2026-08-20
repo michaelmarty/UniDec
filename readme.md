@@ -667,7 +667,6 @@ Fixed bug in Thermo Importer. Fixed bugs with a few parameters in UCD.
 
 Added ability to open .dmt and .i2ms files from STORI analysis.
 
-Added experimental MassQL feature to select peaks that match certain queries. 
 
 Adding experimental High Throughput Screen features in MetaUniDec.
 
@@ -1359,7 +1358,6 @@ DAMAGE.
 
 For portions of this code, copyright and license information differs from
 the above. In these cases, copyright and/or license information is inline.
-
 
 
 

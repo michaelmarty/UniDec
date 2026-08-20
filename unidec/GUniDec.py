@@ -13,7 +13,7 @@ import unidec.modules.IM_windows as IM_wind
 from unidec.modules import Extract2D, masstools, mainwindow, nativez, fft_window, GridDecon, isotopetools
 from unidec.modules import MassDefects, miscwindows
 from unidec.modules.isolated_packages import FileDialogs
-from unidec.modules.isolated_packages import score_window, texmaker, mql_tool
+from unidec.modules.isolated_packages import score_window, texmaker
 import unidec.DataCollector as datacollector
 import unidec.ImportWizard as import_wizard
 import platform
@@ -975,29 +975,6 @@ class UniDecApp(UniDecPres):
                                      pks=self.eng.pks, value=self.eng.config.molig, directory=self.eng.config.udir)
 
 
-    def on_mql(self, e=None):
-        defaultquery = "QUERY scaninfo(MS1DATA) WHERE MS1MZ=X AND MS1MZ=X+760:TOLERANCEMZ=5 FILTER MS1MZ=X"
-        # Launch window to input calibration parameters
-        dialog = miscwindows.SingleInputDialog(self.view, width=800)
-        dialog.initialize_interface(title="MassQL Query",
-                                    message="Query",
-                                    defaultvalue=defaultquery)
-        dialog.ShowModal()
-
-        try:
-            query = dialog.value
-            print("Query:", query)
-        except Exception as e:
-            print("Query failed:", e)
-            query = None
-
-        file = self.eng.config.peaksfile
-        print("MassQL", file)
-        mql = mql_tool.MQL_TOOL(file)
-        mql.query(query, self.eng.pks)
-        self.on_delete()
-        self.view.peakpanel.add_data(self.eng.pks, show="dscore")
-
     def on_2d_grid(self, e=None):
         """
         Opens 2D grid extraction window. Grid extraction parameters are stored at self.eng.config.gridparams.
@@ -1549,5 +1526,4 @@ if __name__ == '__main__':
     # import wx.lib.inspection
     # wx.lib.inspection.InspectionTool().Show()
     app.start()
-
 
