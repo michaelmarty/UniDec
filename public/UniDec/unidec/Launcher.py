@@ -1,6 +1,11 @@
 import warnings
+import os
+import sys
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
+
+if __package__ in (None, ""):
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import wx
 import wx.html
@@ -23,8 +28,6 @@ from unidec.modules import unidecstructure
 from unidec.UniChromCD import UniChromCDApp
 from unidec.IsoDecGUI import IsoDecPres
 import wx.py as py
-import os
-import sys
 import locale
 
 locale.setlocale(locale.LC_ALL, 'C')
