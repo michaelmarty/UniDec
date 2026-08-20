@@ -5,6 +5,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator, StrMethodFormatter
+from matplotlib.transforms import Bbox
 import numpy as np
 import pandas as pd
 
@@ -36,6 +37,7 @@ MASS_TOLERANCE_DA = 100.0
 EXPECTED_INJECTIONS = tuple(range(1, 22))
 HIGHLIGHT_INJECTION = 21
 OUTPUT_DPI = 300
+OUTPUT_PADDING_INCHES = 0.03
 OUTPUT_DIRECTORY = Path(
     r"C:\Users\bht442\The University of Texas at Austin"
     r"\MartyLab - General\Papers\Muliple Run Summing Reversed Phase LC-CD-MS"
@@ -50,8 +52,10 @@ BASE_FONT_SIZE = 10
 GRID_HEADER_FONT_SIZE = 10
 SUBPLOT_LABEL_FONT_SIZE = 11
 LEGEND_FONT_SIZE = 10
-LEGEND_LOCATION = "lower left"
-FIGURE_SIZE_INCHES = (6.5, 8.0)
+GRID_TITLE_PAD_POINTS = 8
+ROW_LAYOUT_PAD = 1.8
+FIGURE_SIZE_INCHES = (6.5, 7.75)
+TOP_LEGEND_MARGIN_INCHES = 0.15
 PEAK_LABEL_OFFSET_POINTS = 10
 AXIS_STROKE_WIDTH = 0.8
 MEASUREMENT_LABEL = "peak"
@@ -315,6 +319,15 @@ def subplot_label(index: int) -> str:
         index -= 1
 
 
+def get_vertical_output_bbox(figure: plt.Figure) -> Bbox:
+    """Crop vertical whitespace while preserving the full 6.5-inch width."""
+    figure.canvas.draw()
+    tight_bbox = figure.get_tightbbox(figure.canvas.get_renderer())
+    bottom = max(0.0, tight_bbox.y0 - OUTPUT_PADDING_INCHES)
+    top = min(figure.get_figheight(), tight_bbox.y1 + OUTPUT_PADDING_INCHES)
+    return Bbox.from_extents(0.0, bottom, figure.get_figwidth(), top)
+
+
 def make_figure(results: pd.DataFrame) -> plt.Figure:
     """Build the grid using the plotting logic from Ion Statistics Grid.py."""
     figure, axes = plt.subplots(
@@ -326,6 +339,8 @@ def make_figure(results: pd.DataFrame) -> plt.Figure:
     )
     point_color = plt.get_cmap("tab10")(0)
     highlight_color = plt.get_cmap("tab10")(2)
+    legend_handles = []
+    legend_labels = []
 
     for row, (protein, theoretical_mass) in enumerate(TARGET_MASSES.items()):
         protein_results = results.loc[results["Protein"] == protein].sort_values(
@@ -343,7 +358,7 @@ def make_figure(results: pd.DataFrame) -> plt.Figure:
                     metric["title"],
                     fontsize=GRID_HEADER_FONT_SIZE,
                     fontweight="bold",
-                    pad=14,
+                    pad=GRID_TITLE_PAD_POINTS,
                 )
 
             if column == 0:
@@ -362,7 +377,7 @@ def make_figure(results: pd.DataFrame) -> plt.Figure:
 
             axis.text(
                 0.97,
-                0.95,
+                0.98,
                 subplot_label(row * len(METRICS) + column),
                 transform=axis.transAxes,
                 fontsize=SUBPLOT_LABEL_FONT_SIZE,
@@ -398,9 +413,7 @@ def make_figure(results: pd.DataFrame) -> plt.Figure:
                         facecolor=highlight_color,
                         alpha=0.45,
                         linewidth=0,
-                        label=(
-                            f"{HIGHLIGHT_INJECTION} INJ\n± SEM"
-                        ),
+                        label=f"{HIGHLIGHT_INJECTION} INJ ± SEM",
                         zorder=1,
                     )
 
@@ -440,15 +453,26 @@ def make_figure(results: pd.DataFrame) -> plt.Figure:
             if row == len(TARGET_MASSES) - 1:
                 axis.set_xlabel("Number of injections")
 
-            handles, _ = axis.get_legend_handles_labels()
+            handles, labels = axis.get_legend_handles_labels()
             if handles and row == 0 and column == 0:
-                axis.legend(
-                    frameon=False,
-                    fontsize=LEGEND_FONT_SIZE,
-                    loc=LEGEND_LOCATION,
-                )
+                legend_handles = handles
+                legend_labels = labels
 
-    figure.tight_layout(rect=(0.03, 0, 1, 1), h_pad=2.2, w_pad=2.0)
+    if legend_handles:
+        figure.legend(
+            legend_handles,
+            legend_labels,
+            loc="upper center",
+            bbox_to_anchor=(0.5, 0.995),
+            ncols=len(legend_handles),
+            frameon=False,
+            fontsize=LEGEND_FONT_SIZE,
+        )
+
+    layout_top = 1 - TOP_LEGEND_MARGIN_INCHES / FIGURE_SIZE_INCHES[1]
+    figure.tight_layout(
+        rect=(0.03, 0, 1, layout_top), h_pad=ROW_LAYOUT_PAD, w_pad=2.0
+    )
     return figure
 
 
@@ -470,15 +494,18 @@ def main() -> None:
     results.to_csv(OUTPUT_CSV, index=False, float_format="%.10g")
 
     figure = make_figure(results)
+    output_bbox = get_vertical_output_bbox(figure)
     figure.savefig(
         OUTPUT_PNG,
         dpi=OUTPUT_DPI,
         transparent=True,
+        bbox_inches=output_bbox,
     )
     figure.savefig(
         OUTPUT_PDF,
         dpi=OUTPUT_DPI,
         transparent=True,
+        bbox_inches=output_bbox,
     )
     plt.close(figure)
 
