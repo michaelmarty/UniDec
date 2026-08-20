@@ -15,7 +15,7 @@ conf.dat
 .svn
 dist
 build
-TestSpectra
+/TestSpectra
 default_conf.dat
 .pypirc
 *.diagsession
