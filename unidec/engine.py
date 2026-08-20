@@ -15,9 +15,9 @@ import unidec.modules.IM_functions as IM_func
 import unidec.modules.MassSpecBuilder as MSBuild
 from unidec.modules.unidec_enginebase import UniDecEngine
 from unidec.modules.plotting import plot1d, plot2d
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 
-from unidec.IsoDec.runtime import IsoDecRuntime
+from isodec.runtime import IsoDecRuntime
 
 # import modules.DoubleDec as dd
 
@@ -1621,7 +1621,7 @@ if __name__ == "__main__":
     dat = eng.open_file(test1, refresh=True)
     newdat, isodists = eng.remove_isodists(dat)
     import matplotlib.pyplot as plt
-    import unidec.IsoDec.plots as plots
+    import isodec.plots as plots
     plt.plot(dat[:, 0], dat[:, 1], label="Original")
     plt.plot(newdat[:, 0], newdat[:, 1], label="No Isodists")
     plots.cplot(isodists)

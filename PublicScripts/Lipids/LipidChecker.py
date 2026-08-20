@@ -586,7 +586,7 @@ if __name__ == "__main__":
             "PS": 6,
             "PA": 6,
             "SM": 4,
-            "PC O": 6,
+            "EtherPC": 6,
             "HexCer": 8
         },
         sm_min_backbone_carbons=16,
@@ -594,7 +594,9 @@ if __name__ == "__main__":
         sm_max_acyl_carbons=26,
         sm_max_backbone_unsaturation=2,
         sm_max_acyl_unsaturation=3,
-        sm_min_total_carbons=30
+        sm_min_total_carbons=30,
+        sm_max_total_carbons=46,
+        etherpc_min_chain_carbons=24
     )
 
     # Restore PC [M+H]+ rows that contain the diagnostic m/z 184 ion.

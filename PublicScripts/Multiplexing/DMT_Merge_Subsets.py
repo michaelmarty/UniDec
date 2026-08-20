@@ -1,6 +1,6 @@
 import os
 import re
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory as ImpFac
+from UniDecImporter.ImporterFactory import ImporterFactory as ImpFac
 import numpy as np
 
 def strip_dmt_files(folder):
@@ -148,7 +148,7 @@ if __name__ == "__main__":
     # Default folder (edit as needed). You can override by passing a folder
     # path as the first command-line argument.
     # Use a raw string for Windows path to avoid escape-sequence warnings
-    folder = r"Z:\Group Share\BHT\Temp\Paper\DMT\High Throughput\Amgen Rabbit IgG 21 Injections Set 3"
+    folder = r"Z:\Group Share\BHT\Temp\Paper\DMT\Protein Mix 21 Injections Set 1 Frequency Correction Test"
     if len(sys.argv) > 1:
         folder = sys.argv[1]
 

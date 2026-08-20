@@ -5,7 +5,7 @@ import unidec.modules.isolated_packages.preset_manager as pm
 import numpy as np
 import os
 
-#from unidec.UniDecImporter.ImportTests import ImportTests
+#from UniDecImporter.ImportTests import ImportTests
 
 
 class main_menu(wx.Menu):

@@ -8,7 +8,7 @@ import time
 import webbrowser
 import sys
 import re
-from unidec.UniDecImporter.ImporterFactory import recognized_types
+from UniDecImporter.ImporterFactory import recognized_types
 
 basic_parameters = [
     ["Sample name", True, "The File Name or Path. File extensions are optional."],

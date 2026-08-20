@@ -197,7 +197,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	int lines=0;
 	lines = getfilelength(config.infile);
 
-	printf("Length of data: %d\n", lines);
+	// printf("Length of data: %d\n", lines);
 
 	int size[3] = { 0,0,0 };
 
@@ -324,7 +324,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	memcpy(blur, dataInt, matsize);
 	memcpy(oldblur, blur, matsize);
 
-	printf("Iterating: \n");
+	printf("Iterating.");
 	//Iterating
 	float conv=0;
 	int off = 0;
@@ -391,7 +391,8 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 		}
 
 	}
-	printf("Completed Iterations\n");
+
+	printf("Completed Iterations");
 	//Writing outputs
 
 	//Outputting Fit Reconvolved Data as newblur2
@@ -408,7 +409,6 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	//Write the fitdat file
 	char* suffixfit = "fitdat";
 	write1D(config.outfile, suffixfit, newblur2, lines);
-
 
 	//Writing Main Output
 

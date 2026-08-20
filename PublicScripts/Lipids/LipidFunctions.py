@@ -2714,7 +2714,11 @@ def flag_weird_lipids(
     sm_max_acyl_carbons=26,
     sm_max_backbone_unsaturation=2,
     sm_max_acyl_unsaturation=3,
-    sm_min_total_carbons=30
+    sm_min_total_carbons=30,
+    sm_max_total_carbons=46,
+
+    # EtherPC-specific structural limit
+    etherpc_min_total_carbons=24
 ):
     """
     Applies general and class-specific lipid sanity checks.
@@ -2732,6 +2736,12 @@ def flag_weird_lipids(
 
         Non-speciated SMs:
             - Minimum total carbon count
+            - Maximum total carbon count
+
+    EtherPC-specific rule:
+        Speciated EtherPCs:
+            - T1 and T2 must each contain at least the specified minimum
+              number of carbons.
 
     PC-specific rule:
         - Flags PCs found only in positive mode and not in negative mode.
@@ -2744,7 +2754,8 @@ def flag_weird_lipids(
     if max_unsaturation_by_class is None:
         max_unsaturation_by_class = {
             "PC": 6,
-            "SM": 4
+            "SM": 4,
+            "EtherPC": 6
         }
 
     if "Overall Match Status" not in df.columns:
@@ -2824,7 +2835,9 @@ def flag_weird_lipids(
 
     print("\nGeneral lipid unsaturation checks:")
 
-    for lipid_class, max_unsaturation in max_unsaturation_by_class.items():
+    for lipid_class, max_unsaturation in (
+        max_unsaturation_by_class.items()
+    ):
         class_excessive_unsaturation = (
             clean_class.eq(lipid_class)
             & total_unsaturation.notna()
@@ -2902,6 +2915,12 @@ def flag_weird_lipids(
         & (t1_carbons < sm_min_total_carbons)
     )
 
+    sm_large_sum_composition = (
+        sum_sm_mask
+        & t1_carbons.notna()
+        & (t1_carbons > sm_max_total_carbons)
+    )
+
     sm_weird_lipid = (
         sm_small_backbone
         | sm_large_backbone
@@ -2909,6 +2928,7 @@ def flag_weird_lipids(
         | sm_unsaturated_backbone
         | sm_unsaturated_acyl_tail
         | sm_small_sum_composition
+        | sm_large_sum_composition
     )
 
     df.loc[
@@ -2959,6 +2979,39 @@ def flag_weird_lipids(
         f"< {sm_min_total_carbons};"
     )
 
+    df.loc[
+        sm_large_sum_composition,
+        "Matched Required Fragments"
+    ] += (
+        f" FLAGGED: non-speciated SM total carbon count "
+        f"> {sm_max_total_carbons};"
+    )
+
+    # ==============================================================
+    # ETHERPC-SPECIFIC TOTAL-CARBON CHECK
+    # ==============================================================
+
+    etherpc_mask = clean_class.eq("EtherPC")
+
+    sum_etherpc_mask = (
+            etherpc_mask
+            & ~clean_lipid_name.str.contains(r"\|", na=False)
+    )
+
+    etherpc_small_sum_composition = (
+            sum_etherpc_mask
+            & t1_carbons.notna()
+            & (t1_carbons < etherpc_min_total_carbons)
+    )
+
+    df.loc[
+        etherpc_small_sum_composition,
+        "Matched Required Fragments"
+    ] += (
+        f" FLAGGED: non-speciated EtherPC total carbon count "
+        f"< {etherpc_min_total_carbons};"
+    )
+
     # ==============================================================
     # PC-SPECIFIC POLARITY CHECK
     # ==============================================================
@@ -2995,9 +3048,14 @@ def flag_weird_lipids(
         "no negative-mode identification found;"
     )
 
+    # ==============================================================
+    # COMBINE ALL SANITY-CHECK FLAGS
+    # ==============================================================
+
     weird_lipid = (
         excessive_unsaturation
         | sm_weird_lipid
+        | etherpc_small_sum_composition
         | pc_positive_only
     )
 
@@ -3011,6 +3069,12 @@ def flag_weird_lipids(
     print(
         "SM rows flagged by structural rules:",
         int(sm_weird_lipid.sum())
+    )
+
+    print(
+        "Non-speciated EtherPC rows flagged for total carbon count below "
+        f"{etherpc_min_total_carbons}:",
+        int(etherpc_small_sum_composition.sum())
     )
 
     print(
@@ -3028,7 +3092,8 @@ def flag_weird_lipids(
         int(weird_lipid.sum())
     )
 
-    # Remove all listed classes that exceed their unsaturation limit.
+    # Continue removing rows that exceed the general unsaturation
+    # limits, as in the original function.
     df = df[~excessive_unsaturation].copy()
 
     return df
@@ -3249,33 +3314,37 @@ def plot_class_dataset_heatmap(
     ax.set_ylabel("Lipid Class")
 
     ax.set_title(
-        "Unique Confirmed Lipid IDs by Class and Dataset"
+        "Confirmed Lipid IDs by Class and Dataset"
     )
 
     # Print the raw count inside every cell
     for row_index in range(len(heatmap_df.index)):
         for col_index in range(len(heatmap_df.columns)):
+            value = heatmap_df.iloc[
+                row_index,
+                col_index
+            ]
 
-            value = int(
-                heatmap_df.iloc[
-                    row_index,
-                    col_index
-                ]
+            text_color = (
+                "white"
+                if value < 40
+                else "black"
             )
 
             ax.text(
                 col_index,
                 row_index,
-                str(value),
+                str(int(value)),
                 ha="center",
                 va="center",
-                fontsize=8
+                fontsize=8,
+                color=text_color
             )
 
     fig.colorbar(
         image,
         ax=ax,
-        label="Unique Confirmed Lipid IDs"
+        label="Confirmed Lipid IDs"
     )
 
     fig.tight_layout()
@@ -3525,7 +3594,7 @@ def plot_total_ids_by_dataset(
     )
 
     ax.set_xlabel("Dataset")
-    ax.set_ylabel("Unique Confirmed Lipid IDs")
+    ax.set_ylabel("Confirmed Lipid IDs")
     ax.set_title("Confirmed Lipid IDs by Dataset")
 
     for i, value in enumerate(counts.values):
@@ -4311,7 +4380,7 @@ def plot_rejected_ids_by_dataset(
         .reindex(datasets, fill_value=0)
     )
 
-    print("\nUnique rejected lipid IDs by dataset:")
+    print("\nRejected lipid IDs by dataset:")
     print(rejected_counts.to_string())
 
     fig, ax = plt.subplots(figsize=(7, 5))
@@ -4324,7 +4393,7 @@ def plot_rejected_ids_by_dataset(
     )
 
     ax.set_xlabel("Dataset")
-    ax.set_ylabel("Unique Rejected Lipid IDs")
+    ax.set_ylabel("Rejected Lipid IDs")
     ax.set_title(
         "Lipid IDs Rejected by Fragment Validation"
     )
@@ -4367,3 +4436,453 @@ def plot_rejected_ids_by_dataset(
 
     return rejected_counts
 
+def plot_true_false_ids_by_dataset(
+    candidate_df,
+    datasets,
+    output_basename="True_False_IDs_by_Dataset",
+    true_color="#4C78A8",
+    false_color="#E45756"
+):
+    """
+    Plot:
+        1. Stacked counts of unique confirmed and rejected lipid IDs
+        2. Percentage of IDs that were confirmed
+
+    Speciated and unspeciated names with the same sum composition
+    are counted as one ID within each dataset and match-status group.
+    """
+
+    plot_df = candidate_df.copy()
+
+    # Clean text columns
+    plot_df["Dataset"] = (
+        plot_df["Dataset"]
+        .astype(str)
+        .str.replace("\u00a0", " ", regex=False)
+        .str.strip()
+    )
+
+    plot_df["Ontology"] = (
+        plot_df["Ontology"]
+        .astype(str)
+        .str.replace("\u00a0", " ", regex=False)
+        .str.strip()
+    )
+
+    true_values = [
+        True,
+        "TRUE",
+        "True",
+        "true",
+        1,
+        "1"
+    ]
+
+
+    # Keep selected datasets
+    plot_df = plot_df[
+        plot_df["Dataset"].isin(datasets)
+    ].copy()
+
+    # Convert detailed names to sum-composition names
+    plot_df["Lipid Match Key"] = (
+        plot_df["Metabolite name"]
+        .astype(str)
+        .str.split("|", n=1)
+        .str[0]
+        .str.strip()
+    )
+
+    # Remove invalid names
+    plot_df = plot_df[
+        ~plot_df["Lipid Match Key"].isin(
+            ["", "nan", "None"]
+        )
+    ].copy()
+
+    plot_df["Confirmed"] = (
+        plot_df["Overall Match Status"]
+        .isin(true_values)
+    )
+
+    # Collapse multiple rows for the same lipid:
+    # if any row is True, the final status is True
+    plot_df = (
+        plot_df
+        .groupby(
+            [
+                "Dataset",
+                "Ontology",
+                "Lipid Match Key"
+            ],
+            as_index=False
+        )["Confirmed"]
+        .any()
+    )
+
+    plot_df["Match Status"] = np.where(
+        plot_df["Confirmed"],
+        "True",
+        "False"
+    )
+
+    counts = (
+        plot_df
+        .groupby(
+            ["Dataset", "Match Status"]
+        )
+        .size()
+        .unstack(fill_value=0)
+        .reindex(
+            index=datasets,
+            columns=["True", "False"],
+            fill_value=0
+        )
+    )
+
+    counts["Total"] = (
+        counts["True"]
+        + counts["False"]
+    )
+
+    counts["Percent True"] = np.where(
+        counts["Total"] > 0,
+        counts["True"] / counts["Total"] * 100,
+        np.nan
+    )
+
+    print("\nTrue and False lipid IDs by dataset:")
+    print(counts.to_string())
+
+    fig, axes = plt.subplots(
+        ncols=2,
+        figsize=(14, 6)
+    )
+
+    count_ax = axes[0]
+    percent_ax = axes[1]
+
+    # Left panel: stacked counts
+    count_ax.bar(
+        counts.index,
+        counts["True"],
+        label="True",
+        color=true_color,
+        edgecolor="black"
+    )
+
+    count_ax.bar(
+        counts.index,
+        counts["False"],
+        bottom=counts["True"],
+        label="False",
+        color=false_color,
+        edgecolor="black"
+    )
+
+    count_ax.set_xlabel("Dataset")
+    count_ax.set_ylabel("Unique Lipid IDs")
+    count_ax.set_title(
+        "Confirmed and Rejected Lipid IDs"
+    )
+
+    count_ax.tick_params(
+        axis="x",
+        rotation=45
+    )
+
+    count_ax.legend(
+        title="Overall Match Status"
+    )
+
+    # Right panel: percent confirmed
+    percent_ax.bar(
+        counts.index,
+        counts["Percent True"],
+        color=true_color,
+        edgecolor="black"
+    )
+
+    percent_ax.set_xlabel("Dataset")
+    percent_ax.set_ylabel("Confirmed IDs (%)")
+    percent_ax.set_title(
+        "Percentage of IDs Confirmed"
+    )
+
+    percent_ax.set_ylim(0, 100)
+
+    percent_ax.tick_params(
+        axis="x",
+        rotation=45
+    )
+
+    fig.tight_layout()
+
+    png_file = f"{output_basename}.png"
+    pdf_file = f"{output_basename}.pdf"
+
+    fig.savefig(
+        png_file,
+        dpi=300,
+        bbox_inches="tight"
+    )
+
+    fig.savefig(
+        pdf_file,
+        bbox_inches="tight"
+    )
+
+    print("\nTrue/False comparison plots saved as:")
+    print(os.path.abspath(png_file))
+    print(os.path.abspath(pdf_file))
+
+    return counts
+
+def plot_scan_counts(
+    scan_counts,
+    output_basename="Mean_MS2_Scans_by_Dataset",
+    bar_color="cornflowerblue",
+    title_size=14,
+    label_size=12,
+    tick_size=10,
+    border_width=1.5
+):
+    scan_series = pd.Series(scan_counts)
+
+    print("\nMean MS/MS scan counts:")
+    print(scan_series.to_string())
+
+    fig, ax = plt.subplots(figsize=(7, 5))
+
+    ax.bar(
+        scan_series.index,
+        scan_series.values,
+        color=bar_color,
+        edgecolor="black"
+    )
+
+    ax.set_xlabel("Dataset")
+    ax.set_ylabel("Mean MS/MS Scans per Run")
+    ax.set_title("Mean MS/MS Scan Count by Dataset")
+    ax.tick_params(axis="x", rotation=45)
+
+    # Remove top and right borders
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    # Format remaining borders
+    ax.spines["left"].set_linewidth(border_width)
+    ax.spines["bottom"].set_linewidth(border_width)
+
+    fig.tight_layout()
+    fig.tight_layout()
+
+    fig.savefig(
+        f"{output_basename}.png",
+        dpi=300,
+        bbox_inches="tight"
+    )
+
+    fig.savefig(
+        f"{output_basename}.pdf",
+        bbox_inches="tight"
+    )
+
+    return scan_series
+
+def plot_confirmed_rejected_separate_bars(
+    confirmed_df,
+    candidate_df,
+    datasets,
+    output_basename="Confirmed_and_Rejected_IDs_by_Dataset",
+    confirmed_color="midnightblue",
+    rejected_color="firebrick",
+    title_size=14,
+    label_size=12,
+    tick_size=10,
+    border_width=1.5
+):
+    """
+    Plot confirmed and rejected unique lipid counts in two side-by-side
+    panels within the same figure.
+    """
+
+    true_values = [
+        True,
+        "TRUE",
+        "True",
+        "true",
+        1,
+        "1"
+    ]
+
+    # -----------------------------
+    # Confirmed IDs
+    # -----------------------------
+    confirmed_plot_df = confirmed_df.copy()
+
+    confirmed_plot_df["Dataset"] = (
+        confirmed_plot_df["Dataset"]
+        .astype(str)
+        .str.replace("\u00a0", " ", regex=False)
+        .str.strip()
+    )
+
+    confirmed_plot_df["Ontology"] = (
+        confirmed_plot_df["Ontology"]
+        .astype(str)
+        .str.replace("\u00a0", " ", regex=False)
+        .str.strip()
+    )
+
+    confirmed_plot_df = confirmed_plot_df[
+        confirmed_plot_df["Overall Match Status"].isin(true_values)
+        & confirmed_plot_df["Dataset"].isin(datasets)
+    ].copy()
+
+    confirmed_plot_df["Lipid Match Key"] = (
+        confirmed_plot_df["Metabolite name"]
+        .astype(str)
+        .str.split("|", n=1)
+        .str[0]
+        .str.strip()
+    )
+
+    confirmed_plot_df = confirmed_plot_df.drop_duplicates(
+        subset=[
+            "Dataset",
+            "Ontology",
+            "Lipid Match Key"
+        ]
+    )
+
+    confirmed_counts = (
+        confirmed_plot_df
+        .groupby("Dataset")
+        .size()
+        .reindex(datasets, fill_value=0)
+    )
+
+    # -----------------------------
+    # Rejected IDs
+    # -----------------------------
+    rejected_plot_df = candidate_df.copy()
+
+    rejected_plot_df["Dataset"] = (
+        rejected_plot_df["Dataset"]
+        .astype(str)
+        .str.replace("\u00a0", " ", regex=False)
+        .str.strip()
+    )
+
+    rejected_plot_df["Ontology"] = (
+        rejected_plot_df["Ontology"]
+        .astype(str)
+        .str.replace("\u00a0", " ", regex=False)
+        .str.strip()
+    )
+
+    rejected_plot_df = rejected_plot_df[
+        ~rejected_plot_df["Overall Match Status"].isin(true_values)
+        & rejected_plot_df["Dataset"].isin(datasets)
+    ].copy()
+
+    rejected_plot_df["Lipid Match Key"] = (
+        rejected_plot_df["Metabolite name"]
+        .astype(str)
+        .str.split("|", n=1)
+        .str[0]
+        .str.strip()
+    )
+
+    rejected_plot_df = rejected_plot_df.drop_duplicates(
+        subset=[
+            "Dataset",
+            "Ontology",
+            "Lipid Match Key"
+        ]
+    )
+
+    rejected_counts = (
+        rejected_plot_df
+        .groupby("Dataset")
+        .size()
+        .reindex(datasets, fill_value=0)
+    )
+
+    print("\nConfirmed lipid IDs:")
+    print(confirmed_counts.to_string())
+
+    print("\nRejected lipid IDs:")
+    print(rejected_counts.to_string())
+
+    # -----------------------------
+    # Plot both panels
+    # -----------------------------
+    fig, axes = plt.subplots(
+        ncols=2,
+        figsize=(14, 6)
+    )
+
+    confirmed_ax = axes[0]
+    rejected_ax = axes[1]
+
+    confirmed_bars = confirmed_ax.bar(
+        confirmed_counts.index,
+        confirmed_counts.values,
+        color=confirmed_color,
+        edgecolor="black",
+        linewidth=border_width
+    )
+
+    confirmed_ax.bar_label(
+        confirmed_bars,
+        padding=3,
+        fontsize=tick_size
+    )
+
+    confirmed_ax.set_xlabel("Dataset")
+    confirmed_ax.set_ylabel("Unique Lipid IDs")
+    confirmed_ax.set_title("Confirmed Lipid IDs")
+    confirmed_ax.tick_params(axis="x", rotation=45)
+
+    rejected_bars = rejected_ax.bar(
+        rejected_counts.index,
+        rejected_counts.values,
+        color=rejected_color,
+        edgecolor="black",
+        linewidth=border_width
+    )
+
+    rejected_ax.bar_label(
+        rejected_bars,
+        padding=3,
+        fontsize=tick_size
+    )
+
+    rejected_ax.set_xlabel("Dataset")
+    rejected_ax.set_ylabel("Unique Lipid IDs")
+    rejected_ax.set_title("Rejected Lipid IDs")
+    rejected_ax.tick_params(axis="x", rotation=45)
+
+    for ax in axes:
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+
+        ax.spines["left"].set_linewidth(border_width)
+        ax.spines["bottom"].set_linewidth(border_width)
+
+    fig.tight_layout()
+
+    fig.savefig(
+        f"{output_basename}.png",
+        dpi=300,
+        bbox_inches="tight"
+    )
+
+    fig.savefig(
+        f"{output_basename}.pdf",
+        bbox_inches="tight"
+    )
+
+    return confirmed_counts, rejected_counts

@@ -4,8 +4,8 @@ import wx.lib.scrolledpanel as scrolled
 import os
 from unidec.modules.plotting import PlottingWindow
 from unidec.modules.gui_elements import peaklistsort
-from unidec.IsoDec.IDGUI import IsoDecControls
-from unidec.IsoDec.IDGUI import IsoDecMenu
+from unidec.modules.gui_elements import IsoDecControls
+from unidec.modules.gui_elements import IsoDecMenu
 
 class IsoDecView(MainwindowBase):
     def __init__(self, parent, title, config, iconfile=None, tabbed=None):
