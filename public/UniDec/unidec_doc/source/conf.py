@@ -8,15 +8,14 @@ import tomllib
 from datetime import date
 from pathlib import Path
 
-# Make the public subtree importable on Windows and in the Linux Pages runner.
+# Make the public repository importable on Windows and in the Linux Pages runner.
 repository_root = Path(__file__).resolve().parents[2]
-public_unidec_root = repository_root / 'public' / 'UniDec'
-sys.path.insert(0, str(public_unidec_root))
+sys.path.insert(0, str(repository_root))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-with (public_unidec_root / 'pyproject.toml').open('rb') as pyproject_file:
+with (repository_root / 'pyproject.toml').open('rb') as pyproject_file:
     project_metadata = tomllib.load(pyproject_file)['project']
 
 project = project_metadata['name']
