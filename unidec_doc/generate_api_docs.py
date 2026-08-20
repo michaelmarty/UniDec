@@ -8,7 +8,8 @@ from sphinx.ext.apidoc import main as apidoc_main
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 SOURCE_DIRECTORY = REPOSITORY_ROOT / "unidec_doc" / "source"
-PACKAGE_DIRECTORY = REPOSITORY_ROOT / "unidec"
+PUBLIC_UNIDEC_ROOT = REPOSITORY_ROOT / "public" / "UniDec"
+PACKAGE_DIRECTORY = PUBLIC_UNIDEC_ROOT / "unidec"
 
 # These are executable training, test, data-generation, or native-library
 # wrappers rather than import-safe public API modules.
