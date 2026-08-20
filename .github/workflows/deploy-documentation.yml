@@ -1,6 +1,23 @@
-name: Deploy documentation to GitHub Pages
+name: Build and deploy documentation
 
 on:
+  push:
+    branches:
+      - dev
+      - master
+    paths:
+      - .github/workflows/deploy-documentation.yml
+      - pyproject.toml
+      - unidec/**
+      - unidec_doc/**
+  pull_request:
+    branches:
+      - master
+    paths:
+      - .github/workflows/deploy-documentation.yml
+      - pyproject.toml
+      - unidec/**
+      - unidec_doc/**
   workflow_dispatch:
 
 permissions:
@@ -54,6 +71,7 @@ jobs:
         run: sphinx-build --builder html --fail-on-warning unidec_doc/source unidec_doc/build/html
 
       - name: Upload GitHub Pages artifact
+        if: github.ref == 'refs/heads/master' || (github.event_name == 'pull_request' && github.base_ref == 'master')
         uses: actions/upload-pages-artifact@v5
         with:
           path: unidec_doc/build/html
@@ -61,6 +79,7 @@ jobs:
   deploy:
     name: Deploy documentation
     needs: build
+    if: github.ref == 'refs/heads/master' || (github.event_name == 'pull_request' && github.base_ref == 'master')
     runs-on: ubuntu-latest
     permissions:
       pages: write

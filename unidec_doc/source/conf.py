@@ -36,11 +36,15 @@ autodoc_mock_imports = [
     'Scripts',
     'System',
     'ThermoFisher',
+    'UniDecImporter',
     'clr',
+    'isodec',
+    'isogen',
     'isogen_tools',
     'isogenatom',
     'isogenatom_trainingdata',
     'isogenpep_trainingdata',
+    'massql',
     'matchms',
     'molmass',
     'mpld3',
@@ -63,3 +67,4 @@ source_suffix = {
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'furo'
+html_baseurl = 'https://michaelmarty.github.io/UniDec/'
