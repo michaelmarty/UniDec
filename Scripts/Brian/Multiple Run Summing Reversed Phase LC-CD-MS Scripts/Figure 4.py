@@ -383,7 +383,7 @@ def plot_zoomed_mass_panel(
             mass_kda[zoom_mask],
             normalized[zoom_mask],
             color=color,
-            linewidth=1.5,
+            linewidth=2.0,
             label=label,
         )
 
