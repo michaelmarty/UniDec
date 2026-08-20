@@ -1,5 +1,13 @@
 import os
+import sys
 from copy import deepcopy
+from pathlib import Path
+
+PUBLIC_UNIDEC_ROOT = Path(__file__).resolve().parents[2] / "public" / "UniDec"
+if not (PUBLIC_UNIDEC_ROOT / "unidec").is_dir():
+    raise RuntimeError(f"UniDec subtree not found at {PUBLIC_UNIDEC_ROOT}")
+sys.path.insert(0, str(PUBLIC_UNIDEC_ROOT))
+
 import numpy as np
 import wx
 import time

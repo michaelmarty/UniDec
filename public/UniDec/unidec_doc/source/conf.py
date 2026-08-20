@@ -8,7 +8,7 @@ import tomllib
 from datetime import date
 from pathlib import Path
 
-# Make the repository importable on Windows and in the Linux Pages runner.
+# Make the public repository importable on Windows and in the Linux Pages runner.
 repository_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(repository_root))
 

@@ -15,7 +15,7 @@ conf.dat
 .svn
 dist
 build
-TestSpectra
+/TestSpectra
 default_conf.dat
 .pypirc
 *.diagsession
@@ -29,9 +29,7 @@ default_conf.dat
 venv.*/
 UniDec.egg-info
 distpypi
-
-unidec/src/x64/
-unidec/src/.vs/
+/private/LegacyWorkingTree/
 
 *recent.txt
 *Mass_Defect*.txt
@@ -65,20 +63,6 @@ unidec/src/.vs/
 *extracts.txt
 *sums.txt
 *Makefile
-unidec/bin/recentCD.txt
-
-unidec/bin/Example Data/IsoDec/test2_unidecfiles*
-unidec/bin/Example Data/IsoDec/test9_unidecfiles*
 Scripts/Importers/reader_tester.py
 /Scripts/MTM/HR/data.txt
-unidec/src/cmake-build*
-unidec/src/x64
-unidec/src/.vs
-unidec/src/Makefile
-unidec/src/UniDec
-unidec/src/out
-/unidec/src/Archive/dead_code.txt
 /Scripts/Aiden/farhana_cb2/
-unidec/src/CMakeFiles/
-/unidec/bin/Example Data/BSA_unidecfiles/BSA_mfile.dat
-/unidec/bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_mzpeakdata.dat

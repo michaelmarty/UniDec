@@ -1,6 +1,14 @@
-import unittest
-from unidec.GUniDec import UniDecApp
 import os
+import sys
+import unittest
+from pathlib import Path
+
+PUBLIC_UNIDEC_ROOT = Path(__file__).resolve().parent / "public" / "UniDec"
+if not (PUBLIC_UNIDEC_ROOT / "unidec").is_dir():
+    raise RuntimeError(f"UniDec subtree not found at {PUBLIC_UNIDEC_ROOT}")
+sys.path.insert(0, str(PUBLIC_UNIDEC_ROOT))
+
+from unidec.GUniDec import UniDecApp
 import wx
 import numpy as np
 

@@ -17,6 +17,15 @@ import shutil
 import subprocess
 
 
+PRIVATE_REPOSITORY_ROOT = os.path.abspath(SPECPATH)
+PUBLIC_UNIDEC_ROOT = os.path.join(PRIVATE_REPOSITORY_ROOT, 'public', 'UniDec')
+PUBLIC_UNIDEC_PACKAGE = os.path.join(PUBLIC_UNIDEC_ROOT, 'unidec')
+
+
+def public_path(*parts):
+    return os.path.join(PUBLIC_UNIDEC_ROOT, *parts)
+
+
 def hashfile(path):
     # BUF_SIZE is totally arbitrary, change for your app!
     BUF_SIZE = 65536  # lets read stuff in 64kb chunks!
@@ -107,8 +116,8 @@ importer_package_datas = collect_data_files(
 
 
 # Analysis of packages
-a = Analysis(['unidec\\Launcher.py'],
-             pathex=[os.getcwd()],
+a = Analysis([public_path('unidec', 'Launcher.py')],
+             pathex=[PUBLIC_UNIDEC_ROOT],
              binaries=native_package_binaries,
              datas=native_package_datas,
              excludes=excludeslist,
@@ -127,9 +136,9 @@ for source, destination in importer_package_datas:
 
 # Add extra things
 if system == "Windows":
-    a.datas += [('UniDec.exe', 'unidec\\bin\\UniDec.exe', 'DATA')]
-    a.datas += [('h5repack.exe', 'unidec\\bin\\h5repack.exe', 'DATA')]
-    a.datas += [('unimod.sqlite', 'unidec\\bin\\unimod.sqlite', 'DATA')]
+    a.datas += [('UniDec.exe', public_path('unidec', 'bin', 'UniDec.exe'), 'DATA')]
+    a.datas += [('h5repack.exe', public_path('unidec', 'bin', 'h5repack.exe'), 'DATA')]
+    a.datas += [('unimod.sqlite', public_path('unidec', 'bin', 'unimod.sqlite'), 'DATA')]
     # a.datas += [('numpy/DLLs', 'unidec\\bin\\mkl_def.2.dll', 'BINARY')]
     # a.datas += [('numpy/DLLs', 'unidec\\bin\\mkl_avx2.2.dll', 'BINARY')]
     # a.datas += [('numpy/DLLs', 'unidec\\bin\\mkl_intel_thread.2.dll', 'BINARY')]
@@ -137,33 +146,33 @@ if system == "Windows":
     a.datas += [('massql\\msql.ebnf', compat.base_prefix + '\\Lib\\site-packages\\massql\\msql.ebnf', 'DATA')]
 
      # Copy over all the DLLs from the bin folder
-    for file in os.listdir('unidec\\bin'):
+    for file in os.listdir(public_path('unidec', 'bin')):
         if fnmatch.fnmatch(file, '*.dll'):
-            add = [(file, 'unidec\\bin\\' + file, 'BINARY')]
+            add = [(file, public_path('unidec', 'bin', file), 'BINARY')]
             a.datas += add
             # print add
 
     # Waters DLLS
-    a.datas += [('Waters_MassLynxSDK_EULA.txt', 'unidec\\bin\\Waters_MassLynxSDK_EULA.txt', 'DATA')]
-    a.datas += [('CDCReader.exe', 'unidec\\bin\\CDCReader.exe', 'DATA')]
+    a.datas += [('Waters_MassLynxSDK_EULA.txt', public_path('unidec', 'bin', 'Waters_MassLynxSDK_EULA.txt'), 'DATA')]
+    a.datas += [('CDCReader.exe', public_path('unidec', 'bin', 'CDCReader.exe'), 'DATA')]
 
 #LINUX DEPENDENCIES:
 elif system == "Linux":
-    a.datas += [('unideclinux', 'unidec/bin/unideclinux', 'BINARY')]
+    a.datas += [('unideclinux', public_path('unidec', 'bin', 'unideclinux'), 'BINARY')]
 
 
-a.datas += [('cacert.pem', os.path.join('unidec\\bin', 'cacert.pem'), 'DATA')]
-a.datas += [('logo.ico', 'unidec\\bin\\logo.ico', 'DATA')]
-a.datas += [('mass_table.csv', 'unidec\\bin\\mass_table.csv', 'DATA')]
-a.datas += [('metaunidec/images/allButton.png', 'metaunidec\\images\\allButton.png', 'DATA')]
-a.datas += [('metaunidec/images/peakRightClick.png', 'metaunidec\\images\\peakRightClick.png', 'DATA')]
-a.datas += [('metaunidec/images/rightClick.png', 'metaunidec\\images\\rightClick.png', 'DATA')]
-a.datas += [('UniDecLogoMR.png', 'unidec\\bin\\UniDecLogoMR.png', 'DATA')]
+a.datas += [('cacert.pem', public_path('unidec', 'bin', 'cacert.pem'), 'DATA')]
+a.datas += [('logo.ico', public_path('unidec', 'bin', 'logo.ico'), 'DATA')]
+a.datas += [('mass_table.csv', public_path('unidec', 'bin', 'mass_table.csv'), 'DATA')]
+a.datas += [('metaunidec/images/allButton.png', public_path('unidec', 'metaunidec', 'images', 'allButton.png'), 'DATA')]
+a.datas += [('metaunidec/images/peakRightClick.png', public_path('unidec', 'metaunidec', 'images', 'peakRightClick.png'), 'DATA')]
+a.datas += [('metaunidec/images/rightClick.png', public_path('unidec', 'metaunidec', 'images', 'rightClick.png'), 'DATA')]
+a.datas += [('UniDecLogoMR.png', public_path('unidec', 'bin', 'UniDecLogoMR.png'), 'DATA')]
 
 a.datas.extend(dir_files(os.path.join(os.path.dirname(pymzml.__file__), 'obo'), 'obo'))
 
-a.datas.extend(dir_files("unidec\\bin\\Presets", 'Presets'))
-a.datas.extend(dir_files("unidec\\bin\\Example Data", 'Example Data'))
+a.datas.extend(dir_files(public_path('unidec', 'bin', 'Presets'), 'Presets'))
+a.datas.extend(dir_files(public_path('unidec', 'bin', 'Example Data'), 'Example Data'))
 a.datas.extend(dir_files(compat.base_prefix + '\\Lib\\site-packages\\matchms\\data', "matchms\\data"))
 
 mkldir = compat.base_prefix + "/Lib/site-packages/numpy/DLLs"
@@ -183,7 +192,7 @@ exe = EXE(pyz,
           debug=True,
           strip=None,
           upx=False,
-          console=True, icon='unidec\\bin\\logo.ico')
+          console=True, icon=public_path('unidec', 'bin', 'logo.ico'))
 coll = COLLECT(exe,
                a.binaries,
                a.zipfiles,
@@ -192,17 +201,17 @@ coll = COLLECT(exe,
                upx=False,
                name=outputdir)
 
-path = "C:\\Python\\UniDecDev\\dist\\UniDec_Windows\\GUI_UniDec.exe"
+path = os.path.join(PRIVATE_REPOSITORY_ROOT, 'dist', 'UniDec_Windows', 'GUI_UniDec.exe')
 import subprocess
 
 
-dst = "C:\\Python\\UniDecDev\\dist\\UniDec_Windows\\obo"
-src = "C:\\Python\\UniDecDev\\dist\\UniDec_Windows\\_internal\\obo"
+dst = os.path.join(PRIVATE_REPOSITORY_ROOT, 'dist', 'UniDec_Windows', 'obo')
+src = os.path.join(PRIVATE_REPOSITORY_ROOT, 'dist', 'UniDec_Windows', '_internal', 'obo')
 
 
 shutil.copytree(src, dst)
-shutil.copy("C:\\Python\\UniDecDev\\readme.md", "C:\\Python\\UniDecDev\\dist\\UniDec_Windows")
-shutil.copy("C:\\Python\\UniDecDev\\INSTALLER.bat", "C:\\Python\\UniDecDev\\dist\\UniDec_Windows")
+shutil.copy(public_path('readme.md'), os.path.join(PRIVATE_REPOSITORY_ROOT, 'dist', 'UniDec_Windows'))
+shutil.copy(public_path('installer.bat'), os.path.join(PRIVATE_REPOSITORY_ROOT, 'dist', 'UniDec_Windows'))
 
 
 out = subprocess.call(path)
@@ -217,7 +226,7 @@ if userin.lower() != 'y':
 
 print("Zipping...")
 # Zip up the final file
-os.chdir("dist")
+os.chdir(os.path.join(PRIVATE_REPOSITORY_ROOT, 'dist'))
 
 zipf = zipfile.ZipFile(zipdirectory, 'w')
 for root, dirs, files in os.walk(outputdir):
