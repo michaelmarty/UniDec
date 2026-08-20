@@ -67,3 +67,4 @@ source_suffix = {
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'furo'
+html_baseurl = 'https://michaelmarty.github.io/UniDec/'
