@@ -1,0 +1,35 @@
+UniDec License:
+
+Copyright (c) 2016, University of Oxford
+              2017-2025, Arizona Board of Regents on behalf of the University of Arizona
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions, and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions, and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+3. Neither the name of the copyright holders nor the
+   names of its contributors may be used to endorse or promote products
+   derived from this software without specific prior written permission.
+4. Any publications that result from use of the software should cite Marty et al. Anal. Chem. 2015.
+   DOI: 10.1021/acs.analchem.5b00140. If UniDec is redistributed or incorporated into other software,
+   it must be clearly indicated to the end user that UniDec is being used, and the request to cite
+   Marty et al. Anal. Chem. 2015. DOI: 10.1021/acs.analchem.5b00140 must be passed on to the end user.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ''AS IS'' AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Note: The Waters MassLynx SDK and DLLs are distributed under a separate license. See Waters_MassLynxSDK_EULA.txt.
+Note: The Thermo RawFileReader code is distributed under a separate license. See RawFileReader.doc.
+Note: Some other 3rd party libraries are distributed under separate licenses, as described in the readme.md file.
