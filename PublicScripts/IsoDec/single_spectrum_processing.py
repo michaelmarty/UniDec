@@ -1,5 +1,5 @@
 from unidec.IsoDec.plots import plot_pks
-from unidec.UniDecImporter import ImporterFactory
+from UniDecImporter import ImporterFactory
 from unidec.IsoDec.runtime import IsoDecRuntime
 import matplotlib.pyplot as plt
 import unidec.tools as ud

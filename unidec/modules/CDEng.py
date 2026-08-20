@@ -4,25 +4,8 @@ import os
 import scipy
 import unidec.tools as ud
 
-#first thing that wants dlls from engine
-# regpath = os.path.dirname(os.path.realpath(__file__))
-# if platform.system() == "Windows":
-#     try:
-#         from unidec.UniDecImporter.Thermo.Thermo import ThermoImporter
-#     except Exception as e:
-#         ud.force_register(regpath)
-#     try:
-#         from Scripts.Importers.Sciex import SciexImporter
-#     except Exception as e:
-#         ud.force_register(regpath)
-#     try:
-#         from unidec.UniDecImporter.Agilent import AgilentImporter
-#     except Exception as e:
-#         ud.force_register(regpath)
-
-
 from unidec.modules.unidec_enginebase import UniDecEngine
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 from copy import deepcopy
 import matplotlib.pyplot as plt
 import scipy.fft as fft
@@ -30,8 +13,8 @@ from unidec.modules import unidecstructure, peakstructure, IM_functions, fitting
 import time
 from unidec import engine
 from scipy.optimize import curve_fit
-from unidec.UniDecImporter import ImportTools as IT
-xp = np
+from UniDecImporter import ImportTools as IT
+
 cdeng_types = [".mzml", ".raw", ".mzxml", ".gz"]
 
 
@@ -81,15 +64,15 @@ def cconv2D_preB(a, B):
     A = fft_fun(a)
     C = A * B
     c = ifft_fun(C, a.shape)
-    return xp.abs(c)
+    return np.abs(c)
 
 
 def softmax(I, beta):
     numz = len(I)
-    E = xp.exp(beta * I)
-    Min2 = xp.amin(E, axis=0)
-    Sum1 = xp.sum(I, axis=0)
-    Sum2 = xp.sum(E, axis=0)
+    E = np.exp(beta * I)
+    Min2 = np.amin(E, axis=0)
+    Sum1 = np.sum(I, axis=0)
+    Sum2 = np.sum(E, axis=0)
     factor = safedivide(Sum1, Sum2 - Min2 * numz)
     I = (E - Min2) * factor
     return I
@@ -473,9 +456,6 @@ class UniDecCD(engine.UniDec):
                 zrange = np.array([np.floor(np.amin(y)), np.ceil(np.amax(y))])
 
         mzaxis = np.arange(mzrange[0] - mzbins / 2., mzrange[1] + mzbins / 2, mzbins)
-        # Weird fix to make this axis even is necessary for CuPy fft for some reason...
-        if len(mzaxis) % 2 == 1:
-            mzaxis = np.arange(mzrange[0] - mzbins / 2., mzrange[1] + 3 * mzbins / 2, mzbins)
         zaxis = np.arange(zrange[0] - zbins / 2., zrange[1] + zbins / 2, zbins)
 
         if self.config.CDiitflag and self.invinjtime is not None:
@@ -522,7 +502,6 @@ class UniDecCD(engine.UniDec):
             harray = IM_functions.subtract_complex_2d(harray.transpose(), self.config).transpose()
 
         harray = self.hist_filter_smash(harray)
-
         return harray
 
     def hist_int_threshold(self, harray, int_threshold):
@@ -814,7 +793,7 @@ class UniDecCD(engine.UniDec):
             self.setup_zsmooth()
 
         # Get the intensities of the Z+1 values
-        upperints = xp.zeros_like(I)
+        upperints = np.zeros_like(I)
         for i, row in enumerate(self.upperindex):
             if i + 1 != len(I):
                 upperints[i] = I[i + 1, row]
@@ -822,7 +801,7 @@ class UniDecCD(engine.UniDec):
                 upperints[i] = I[i, row]
 
         # Get the intensities of the Z-1 values
-        lowerints = xp.zeros_like(I)
+        lowerints = np.zeros_like(I)
         for i, row in enumerate(self.lowerindex):
             if i != 0:
                 lowerints[i] = I[i - 1, row]
@@ -831,11 +810,11 @@ class UniDecCD(engine.UniDec):
 
         floor = self.config.zzsig
         if floor > 0:
-            I = xp.clip(xp.exp(
-                xp.mean(xp.asarray([xp.log(upperints + floor), xp.log(lowerints + floor), xp.log(I + floor)]), axis=0))
+            I = np.clip(np.exp(
+                np.mean(np.asarray([np.log(upperints + floor), np.log(lowerints + floor), np.log(I + floor)]), axis=0))
                         - floor, 0, None)
         else:
-            ratio = xp.abs(floor)
+            ratio = np.abs(floor)
             I = (upperints * ratio + I + lowerints * ratio) / 3.
         return I
 
@@ -860,17 +839,17 @@ class UniDecCD(engine.UniDec):
         if setup:
             self.setup_msmooth()
 
-        upperints = xp.array([d[self.mupperindexes[i]] for i, d in enumerate(I)])
-        lowerints = xp.array([d[self.mlowerindexes[i]] for i, d in enumerate(I)])
+        upperints = np.array([d[self.mupperindexes[i]] for i, d in enumerate(I)])
+        lowerints = np.array([d[self.mlowerindexes[i]] for i, d in enumerate(I)])
 
         floor = self.config.msig
         if floor > 0:
-            I = xp.clip(xp.exp(
-                xp.mean(xp.array([xp.log(upperints + floor), xp.log(lowerints + floor), xp.log(I + floor)]),
+            I = np.clip(np.exp(
+                np.mean(np.array([np.log(upperints + floor), np.log(lowerints + floor), np.log(I + floor)]),
                         axis=0)) - floor,
                         0, None)
         else:
-            ratio = xp.abs(floor)
+            ratio = np.abs(floor)
             I = (upperints * ratio + I + lowerints * ratio) / 3.
 
         return I
@@ -931,7 +910,7 @@ class UniDecCD(engine.UniDec):
         print("Deconvolution iterations: ", i)
         if self.config.datanorm == 1:
             # Normalize the final array
-            I /= xp.amax(I)
+            I /= np.amax(I)
 
         # Get the reconvolved data
         recon = cconv2D_preB(I, ftk)

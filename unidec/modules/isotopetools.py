@@ -1,9 +1,9 @@
 import numpy as np
 import time
-# from scipy import fftpack
-from numpy import fft as fftpack
+# Legacy isojim implementation used numpy.fft; IsoGen now handles these calculations.
+# from numpy import fft as fftpack
 from numba import njit
-import unidec.IsoDec.isogenwrapper as isogen
+import isogen
 
 
 mass_diff_c = 1.0033
@@ -15,89 +15,81 @@ isotopes = np.array([[[12., 98.90], [13.0033548, 1.10], [0, 0], [0, 0]],
                      [[15.9949146, 99.772], [16.9991315, 0.038], [17.9991605, 0.2], [0, 0]],
                      [[31.9720707, 95.02], [32.9714585, 0.75], [33.9678668, 4.21], [35.9760809, 0.02]]])
 
-isoparams = [1.00840852e+00, 1.25318718e-03, 2.37226341e+00, 8.19178000e-04, -4.37741951e-01, 6.64992972e-04,
-             9.94230511e-01, 4.64975237e-01, 1.00529041e-02, 5.81240792e-01]
+# isoparams = [1.00840852e+00, 1.25318718e-03, 2.37226341e+00, 8.19178000e-04, -4.37741951e-01, 6.64992972e-04,
+#              9.94230511e-01, 4.64975237e-01, 1.00529041e-02, 5.81240792e-01]
+#
+#
+# @njit(fastmath=True)
+# def isotopemid(mass: float):
+#     a = -4.37741951e-01  # isoparams[4]
+#     b = 6.64992972e-04  # isoparams[5]
+#     c = 9.94230511e-01  # isoparams[6]
+#     return a + b * pow(mass, c)
+#
+#
+# @njit(fastmath=True)
+# def isotopesig(mass: float):
+#     a = 4.64975237e-01  # isoparams[7]
+#     b = 1.00529041e-02  # isoparams[8]
+#     c = 5.81240792e-01  # isoparams[9]
+#     return a + b * pow(mass, c)
+#
+#
+# @njit(fastmath=True)
+# def isotopealpha(mass: float):
+#     a = 1.00840852e+00  # isoparams[0]
+#     b = 1.25318718e-03  # isoparams[1]
+#     return a * np.exp(-mass * b)
+#
+#
+# @njit(fastmath=True)
+# def isotopebeta(mass: float):
+#     a = 2.37226341e+00  # isoparams[2]
+#     b = 8.19178000e-04  # isoparams[3]
+#     return a * np.exp(-mass * b)
 
 
-@njit(fastmath=True)
-def isotopemid(mass: float):
-    a = -4.37741951e-01  # isoparams[4]
-    b = 6.64992972e-04  # isoparams[5]
-    c = 9.94230511e-01  # isoparams[6]
-    return a + b * pow(mass, c)
-
-
-@njit(fastmath=True)
-def isotopesig(mass: float):
-    a = 4.64975237e-01  # isoparams[7]
-    b = 1.00529041e-02  # isoparams[8]
-    c = 5.81240792e-01  # isoparams[9]
-    return a + b * pow(mass, c)
-
-
-@njit(fastmath=True)
-def isotopealpha(mass: float):
-    a = 1.00840852e+00  # isoparams[0]
-    b = 1.25318718e-03  # isoparams[1]
-    return a * np.exp(-mass * b)
-
-
-@njit(fastmath=True)
-def isotopebeta(mass: float):
-    a = 2.37226341e+00  # isoparams[2]
-    b = 8.19178000e-04  # isoparams[3]
-    return a * np.exp(-mass * b)
-
-
-@njit(fastmath=True)
-def isomike(mass: float, length=128) -> np.ndarray:
-    mid = isotopemid(mass)
-    sig = isotopesig(mass)
-    alpha = isotopealpha(mass)
-    amp = (1.0 - alpha) / (sig * 2.50662827)
-    beta = isotopebeta(mass)
-    maxval = 0
-    isoindex = np.arange(0, length)
-    isotopeval = np.zeros(length)
-    for k in range(length):
-        e = alpha * np.exp(-isoindex[k] * beta)
-        g = amp * np.exp(-pow(isoindex[k] - mid, 2) / (2 * pow(sig, 2)))
-        temp = e + g
-        if temp > maxval:
-            maxval = temp
-        isotopeval[k] = temp
-    return isotopeval / maxval
-
-
-@njit(fastmath=True)
-def makemassmike(testmass: float) -> float:
-    num = testmass / massavgine * avgine
-    intnum = np.array([int(round(n)) for n in num])
-    x = intnum * isotopes[:, 0, 0]
-    minmassint = np.sum(x)
-
-    return minmassint
+# @njit(fastmath=True)
+# def isomike(mass: float, length=128) -> np.ndarray:
+#     mid = isotopemid(mass)
+#     sig = isotopesig(mass)
+#     alpha = isotopealpha(mass)
+#     amp = (1.0 - alpha) / (sig * 2.50662827)
+#     beta = isotopebeta(mass)
+#     maxval = 0
+#     isoindex = np.arange(0, length)
+#     isotopeval = np.zeros(length)
+#     for k in range(length):
+#         e = alpha * np.exp(-isoindex[k] * beta)
+#         g = amp * np.exp(-pow(isoindex[k] - mid, 2) / (2 * pow(sig, 2)))
+#         temp = e + g
+#         if temp > maxval:
+#             maxval = temp
+#         isotopeval[k] = temp
+#     return isotopeval / maxval
+#
+#
+# @njit(fastmath=True)
+# def makemassmike(testmass: float) -> float:
+#     num = testmass / massavgine * avgine
+#     intnum = np.array([int(round(n)) for n in num])
+#     x = intnum * isotopes[:, 0, 0]
+#     minmassint = np.sum(x)
+#
+#     return minmassint
 
 
 #@njit(fastmath=True)
 def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467, isolen=128, threshold=0.001):
-    # Predict Isotopic Intensities
-    # formula, minmassint, intnum = makemass(mass)
-    # intensities = isojim(intnum, isolen)
-    intensities = isogen.fft_gen_isodist(mass, isolen=isolen)
-    # Calculate masses for these
-    masses = np.arange(0, len(intensities)) * mass_diff_c + mass
-
-    # Load Into Array
-    dist = np.zeros((len(masses), 2))
-    dist[:, 0] = masses
-    dist[:, 1] = intensities
+    # IsoGen returns neutral masses and intensities together.
+    dist = isogen.isodist(mass, isolen=isolen, method="FFT")
 
     # Filter Low Intensities
-    b1 = intensities > np.amax(intensities) * threshold
+    b1 = dist[:, 1] > np.amax(dist[:, 1]) * threshold
     dist = dist[b1]
 
     # Convert to m/z
+    charge = int(charge)
     if abs(charge) >=1:
         dist[:, 0] = (dist[:, 0] + float(charge) * adductmass) / float(abs(charge))
 
@@ -106,23 +98,15 @@ def fast_calc_averagine_isotope_dist(mass, charge=1, adductmass=1.007276467, iso
 
 #@njit(fastmath=True)
 def fast_calc_averagine_isotope_dist_dualoutput(mass, charge=1, adductmass=1.007276467, isotopethresh: float = 0.01, type = "PEPTIDE"):
-    # Predict Isotopic Intensities
-    intensities = isogen.fft_gen_isodist(mass, type)
-    # Calculate masses for these
-    masses = np.arange(0, len(intensities)) * mass_diff_c + mass
-
-    # Load Into Array
-    dist = np.zeros((len(masses), 2))
-    dist[:, 0] = masses
-    dist[:, 1] = intensities
+    # IsoGen returns neutral masses and intensities together.
+    massdist = isogen.isodist(mass, type=type, method="FFT")
 
     # Filter Low Intensities
-    b1 = intensities > np.amax(intensities) * isotopethresh
-
-    dist = dist[b1]
+    b1 = massdist[:, 1] > np.amax(massdist[:, 1]) * isotopethresh
+    massdist = massdist[b1]
 
     # Convert to m/z
-    massdist = dist.copy()
+    dist = massdist.copy()
 
     if abs(charge) >=1:
         dist[:, 0] = (dist[:, 0] + float(charge) * adductmass) / float(abs(charge))
@@ -151,72 +135,68 @@ def makemass(testmass):
 
 
 isolength = 1024
-buffer = np.zeros(isolength)
-h = np.array([1, 0.000115, 0, 0])
-c = np.array([1, 0.01082, 0, 0])
-n = np.array([1, 0.0037, 0, 0])
-o = np.array([1, 0.0004, 0.002, 0])
-s = np.array([1, 0.0079, 0.044, 0])
 
 
-
-h = np.append(h, buffer)
-c = np.append(c, buffer)
-n = np.append(n, buffer)
-o = np.append(o, buffer)
-s = np.append(s, buffer)
+def _formula_from_isolist(isolist, elements):
+    return "".join(f"{element}{int(count)}" for element, count in zip(elements, isolist) if count)
 
 
-dt = np.dtype(np.complex128)
-hft = fftpack.rfft(h).astype(dt)
-cft = fftpack.rfft(c).astype(dt)
-nft = fftpack.rfft(n).astype(dt)
-oft = fftpack.rfft(o).astype(dt)
-sft = fftpack.rfft(s).astype(dt)
-
-
-pre_ft = np.array([cft, hft, nft, oft, sft])
-
-
-# @njit(fastmath=True)
 def isojim(isolist, length):
-    """Thanks to Jim Prell for Sketching this Code"""
-    '''
-    Takes as in input a list of numbers of elements in the order above [C, H, N, O, S]
-    Calculates the aggregated isotope distribution based on the input list.
-    '''
-    num_atoms = len(isolist)
-    allft = 0
+    """Calculate a CHNOS isotope distribution using IsoGen."""
+    formula = _formula_from_isolist(isolist, ("C", "H", "N", "O", "S"))
+    return isogen.isodist(formula, type="ATOM", isolen=length, method="FFT")[:, 1]
 
-    for i in range(num_atoms):
-        if i == 0:
-            allft = pre_ft[i] ** isolist[i]
-        else:
-            allft = allft * (pre_ft[i] ** isolist[i])
 
-    allift = np.abs(fftpack.irfft(allft))
-    # allift = np.abs(allift)
-    allift = allift / np.amax(allift)
-    return allift[:length]  # .astype(nb.float64)
-
-# @njit(fastmath=True)
 def isojim_rna(isolist, length):
-    numc = isolist[0]
-    numh = isolist[1]
-    numn = isolist[2]
-    numo = isolist[3]
-    nump = isolist[4]
+    """Calculate a CHNOP isotope distribution using IsoGen."""
+    formula = _formula_from_isolist(isolist, ("C", "H", "N", "O", "P"))
+    return isogen.isodist(formula, type="ATOM", isolen=length, method="FFT")[:, 1]
 
 
-    allft = cft ** numc * hft ** numh * nft ** numn * oft ** numo * pft ** nump
-    #print(type(allft[0]))
-
-    # with nb.objmode(allift='float64[:]'):
-    #    allift = fftpack.irfft(allft)
-    allift = np.abs(fftpack.irfft(allft))
-    # allift = np.abs(allift)
-    allift = allift / np.amax(allift)
-    return allift[:length]  # .astype(nb.float64)
+# Legacy local FFT implementation retained for reference. IsoGen now supplies the
+# isotope data, formula parsing, FFT calculation, and normalization used above.
+# buffer = np.zeros(isolength)
+# h = np.array([1, 0.000115, 0, 0])
+# c = np.array([1, 0.01082, 0, 0])
+# n = np.array([1, 0.0037, 0, 0])
+# o = np.array([1, 0.0004, 0.002, 0])
+# s = np.array([1, 0.0079, 0.044, 0])
+#
+# h = np.append(h, buffer)
+# c = np.append(c, buffer)
+# n = np.append(n, buffer)
+# o = np.append(o, buffer)
+# s = np.append(s, buffer)
+#
+# dt = np.dtype(np.complex128)
+# hft = fftpack.rfft(h).astype(dt)
+# cft = fftpack.rfft(c).astype(dt)
+# nft = fftpack.rfft(n).astype(dt)
+# oft = fftpack.rfft(o).astype(dt)
+# sft = fftpack.rfft(s).astype(dt)
+# pre_ft = np.array([cft, hft, nft, oft, sft])
+#
+#
+# def isojim(isolist, length):
+#     """Thanks to Jim Prell for sketching this code."""
+#     num_atoms = len(isolist)
+#     allft = 0
+#     for i in range(num_atoms):
+#         if i == 0:
+#             allft = pre_ft[i] ** isolist[i]
+#         else:
+#             allft = allft * (pre_ft[i] ** isolist[i])
+#     allift = np.abs(fftpack.irfft(allft))
+#     allift = allift / np.amax(allift)
+#     return allift[:length]
+#
+#
+# def isojim_rna(isolist, length):
+#     numc, numh, numn, numo, nump = isolist
+#     allft = cft ** numc * hft ** numh * nft ** numn * oft ** numo
+#     allift = np.abs(fftpack.irfft(allft))
+#     allift = allift / np.amax(allift)
+#     return allift[:length]
 
 
 # @njit(fastmath=True)
@@ -234,14 +214,11 @@ def predict_charge(mass):
 
 
 # @njit(fastmath=True)
-def calc_averagine_isotope_dist(mass, mono=False, charge=None, adductmass=1.007276467, crop=False, fast=True,
+def calc_averagine_isotope_dist(mass, mono=False, charge=None, adductmass=1.007276467, crop=False,
                                 length=isolength, **kwargs):
-    if fast:
-        minmassint = makemassmike(mass)
-        intensities = isomike(mass)
-    else:
-        _, minmassint, isolist = makemass(mass)
-        intensities = isojim(isolist, length)
+
+    _, minmassint, isolist = makemass(mass)
+    intensities = isojim(isolist, length)
 
     if mono:
         minmassint = mass
@@ -298,29 +275,25 @@ def predict_apex_mono_diff(mass):
 
 
 if __name__ == "__main__":
-    m = 1000
-    formula, minmassint, isolist = makemass(m)
-    x = isojim(isolist)[:10]
-    y = isomike(m)[:10]
-    #print(x, y)
-    print(oft)
-    exit()
-    x = 10 ** np.arange(2, 6, 0.1)
-    y = [get_apex_mono_diff(m) for m in x]
-    fit = np.polyfit(x, y, 1)
-    print(fit)
-    fitdat = [predict_apex_mono_diff(m) for m in x]
-    import matplotlib.pyplot as plt
+    n = 10000
+    random_masses = np.random.uniform(1000, 60000, n)
+    starttime = time.perf_counter()
+    for mass in random_masses:
+        dist = isogen.isodist(mass, method="FFT", dist_only=True)
+    extime = time.perf_counter()-starttime
+    print("Isogen FFT Time:", extime/n * 1e6, "us per call")
 
-    plt.plot(x, y)
-    plt.plot(x, fitdat)
-    plt.show()
+    # Brain
+    starttime = time.perf_counter()
+    for mass in random_masses:
+        dist = isogen.isodist(mass, method="BRAIN", dist_only=True)
+    extime = time.perf_counter()-starttime
+    print("Isogen Brain Time:", extime/n * 1e6, "us per call")
 
-    exit()
-    mval = 1000000
-    startime = time.perf_counter()
-    dist = calc_averagine_isotope_dist(mval)
-    endtime = time.perf_counter()
-    print(endtime - startime)
-    plt.plot(dist[:, 0], dist[:, 1])
-    plt.show()
+    # NN
+    starttime = time.perf_counter()
+    for mass in random_masses:
+        dist = isogen.isodist(mass, method="NN", dist_only=True)
+    extime = time.perf_counter()-starttime
+    print("Isogen NN Time:", extime/n * 1e6, "us per call")
+

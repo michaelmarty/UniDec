@@ -11,7 +11,7 @@ import io
 
 __author__ = 'Michael.Marty'
 
-version = "8.2.1"
+version = "9.0.0"
 
 
 def ofile_reader(path):
@@ -1645,6 +1645,11 @@ class UniDecConfig(object):
                     self.UniDecPath = os.path.join(self.defaultUnidecDir, self.defaultUnidecName)
                     if not os.path.isfile(self.UniDecPath):
                         giveup()
+
+        if self.system == 'Windows' and 'MASSLYNX_RAW_DLL' not in os.environ:
+            masslynx_dll = os.path.join(self.defaultUnidecDir, 'MassLynxRaw.dll')
+            if os.path.isfile(masslynx_dll):
+                os.environ['MASSLYNX_RAW_DLL'] = masslynx_dll
 
         self.UniDecName = self.defaultUnidecName
         self.UniDecDir = self.defaultUnidecDir

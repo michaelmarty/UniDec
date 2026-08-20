@@ -396,7 +396,7 @@ def variable_pw(data, window=5):
 if __name__ == "__main__":
     import os
     import matplotlib.pyplot as plt
-    from unidec.IsoDec.plots import cplot
+    from isodec.plots import cplot
     from unidec.engine import UniDec
     from unidec.modules.unidecwrapper import run_unidec_core
     import time

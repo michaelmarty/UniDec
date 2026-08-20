@@ -1,6 +1,6 @@
 import numpy as np
 
-from unidec.UniDecImporter.ImporterFactory import ImporterFactory
+from UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.modules.hdf5_tools import replace_dataset, get_dataset
 import h5py
 import pandas as pd

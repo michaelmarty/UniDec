@@ -1,0 +1,78 @@
+name: Deploy documentation to GitHub Pages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install documentation tools
+        run: |
+          python -m pip install --upgrade \
+            sphinx \
+            myst-parser \
+            furo \
+            numpy \
+            scipy \
+            matplotlib \
+            pandas \
+            pymzml \
+            natsort \
+            networkx \
+            h5py \
+            pypubsub \
+            numba \
+            pyimzml \
+            pyteomics \
+            lxml \
+            lxml_html_clean
+
+      - name: Generate API documentation
+        run: python unidec_doc/generate_api_docs.py
+
+      - name: Build HTML documentation
+        run: sphinx-build --builder html --fail-on-warning unidec_doc/source unidec_doc/build/html
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: unidec_doc/build/html
+
+  deploy:
+    name: Deploy documentation
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
