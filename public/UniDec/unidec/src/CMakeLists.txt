@@ -89,6 +89,8 @@ add_executable(unidec
         UD_charge.c
         UniDecCD_Main.c
         UniDecCD_Main.h
+        UCCD_Main.c
+        UCCD_Main.h
         MetaUniDec_Main.c
         MetaUniDec_Main.h
 )
