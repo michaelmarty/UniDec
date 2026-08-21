@@ -617,121 +617,6 @@ class HTEng:
         print("Cycle Index:", self.cycleindex, "Cycle Time:", self.config.HTcycletime)
         return ac
 
-    '''
-
-        def htdecon_speedy(self, data):
-            """
-            Deconvolve the data using the HT kernel. Need to call setup_ht first. Currently unused.
-            :param data: 1D data array. Should be same dimension as self.htkernel.
-            :return: Demultiplexed data. Same length as input.
-            """
-            # Do the convolution, and only the convolution... :)
-            return fft.irfft(fft.rfft(data) * self.fftk).real, data
-
-        def decon_3d_fft(self, array, **kwargs):
-            """
-            Developed this to see if it would speed things up. It turns out not to. About half as slow. Leaving in for
-            legacy reasons and because it's super cool code.
-            :param array: 3D array of data to be deconvolved.
-                Should be same length as self.htkernel with the other dimensions set by the harray size.
-            :param kwargs: Keyword arguments. Currently supports "normalize" which normalizes the output to the maximum
-                value.
-            :return: Demultiplexed data array. Same length as input array.
-            """
-            starttime = time.perf_counter()
-            # Slice data to appropriate range
-            dims = np.shape(array)
-            self.indexrange = [self.padindex - self.shiftindex, dims[0] - self.shiftindex]
-            data = array[self.indexrange[0]:self.indexrange[1]]
-            dims2 = np.shape(data)
-            print(dims2)
-
-            # HT Kernel 3D FFT
-            # Create 3D array of copies of 1D kernel
-            kernel3d = np.broadcast_to(self.htkernel[:, np.newaxis, np.newaxis], dims2)
-
-            print("3D Kernel", np.shape(kernel3d), time.perf_counter() - starttime)
-
-            # FFT of kernel3d
-            fftk3d = fft.rfftn(kernel3d).conj()
-            print("3D FFT of Kernel", np.shape(fftk3d), time.perf_counter() - starttime)
-
-            data_fft = fft.rfftn(data)
-            print("3D FFT of Data", np.shape(data_fft), time.perf_counter() - starttime)
-
-            # Deconvolve
-            output = fft.irfftn(data_fft * fftk3d)
-            print("Decon", np.shape(output), time.perf_counter() - starttime)
-            output = np.real(output)
-            if "normalize" in kwargs:
-                if kwargs["normalize"]:
-                    output /= np.amax(output)
-            # Return demultiplexed data
-            return output'''
-
-
-'''
-class UniChromHT(HTEng, ChromEngine):
-    def __init__(self, *args, **kwargs):
-        """
-        Initialize the UniChromHT class. This class is used for handling Hadamard Transform (HT) related operations
-        on chromatograms.
-        :param args: Arguments
-        :param kwargs: Keyword Arguments
-        """
-        super().__init__(*args, **kwargs)
-        print("HT Chromatogram Engine")
-
-    def open_file(self, path):
-        """
-        Open file and set up the time domain.
-        :param path: File path
-        :return: None
-        """
-        self.open_chrom(path)
-        times = self.get_minmax_times()
-        self.config.HTanalysistime = np.amax(times[1])
-        self.fullscans -= np.amin(self.fullscans)
-        self.scans = np.array(self.fullscans)
-        self.parse_file_name(path)
-        print("Loaded File:", path)
-
-    def get_eic(self, massrange):
-        """
-        Get the EIC from the chromatogram.
-        :param massrange: Mass range for EIC selection [low, high]
-        :return:
-        """
-        return self.chromdat.get_eic(mass_range=np.array(massrange))
-
-    def eic_ht(self, massrange):
-        """
-        Get the EIC and run HT on it.
-        :param massrange: Mass range for EIC selection [low, high]
-        :return: Demultiplexed data output
-        """
-        eic = self.get_eic(massrange)
-        print(eic.shape)
-        self.fulltic = eic[:, 1]
-        self.fulltime = eic[:, 0]
-        self.setup_demultiplex()
-        self.htoutput = self.run_demultiplex(self.fulltic)[0]
-        return self.htoutput
-
-    def tic_ht(self, correct=False, **kwargs):
-        """
-        Get the TIC and run HT on it.
-        :param correct: Whether to correct the data for the first peak
-        :param kwargs: Deconvolution keyword arguments
-        :return: Demultiplexed data output
-        """
-        self.fulltic = self.ticdat[:, 1]
-        self.fulltime = self.ticdat[:, 0]
-        self.setup_demultiplex()
-        self.htoutput = self.run_demultiplex(self.fulltic, correct=correct, **kwargs)[0]
-        return self.htoutput
-'''
-
 
 class UniChromCDEng(HTEng, UniDecCD):
     def __init__(self, *args, **kwargs):
@@ -856,7 +741,7 @@ class UniChromCDEng(HTEng, UniDecCD):
         # Create a stack with one histogram for each scan
         self.hstack = np.zeros((len(self.scans), self.topharray.shape[0], self.topharray.shape[1]))
 
-        print("Creating Histograms for Each Scan", time.perf_counter() - starttime)
+        print("Creating Histograms for Each Scan", time.perf_counter() - starttime, self.hstack.shape)
         # Loop through scans and create histograms
         for i, s in enumerate(self.scans):
             # Pull out subset of data for this scan
@@ -906,18 +791,9 @@ class UniChromCDEng(HTEng, UniDecCD):
 
         x = self.farray[:, 0]
         y = self.zarray
-        # Set Up Ranges
-        if mzrange is None:
-            mzrange = [np.floor(np.amin(x)), np.amax(x)]
-        if zrange is None:
-            zrange = [np.floor(np.amin(y)), np.amax(y)]
 
-        # Create Axes
-        mzaxis = np.arange(mzrange[0] - mzbins / 2., mzrange[1] + mzbins / 2, mzbins)
-        # Weird fix to make this axis even is necessary for CuPy fft for some reason...
-        if len(mzaxis) % 2 == 1:
-            mzaxis = np.arange(mzrange[0] - mzbins / 2., mzrange[1] + 3 * mzbins / 2, mzbins)
-        zaxis = np.arange(zrange[0] - zbins / 2., zrange[1] + zbins / 2, zbins)
+        mzaxis, zaxis = self.set_up_hist_axes(x=x, y=y, mzbins=mzbins, zbins=zbins, mzrange=mzrange, zrange=zrange)
+
         self.mzaxis = mzaxis
         self.zaxis = zaxis
 
@@ -995,6 +871,26 @@ class UniChromCDEng(HTEng, UniDecCD):
             pass
         return np.transpose([self.fulltime, fulleic])
 
+    def create_chrom_from_hstack(self, hstack, **kwargs):
+        """
+        Create a chromatogram from the hstack.
+        :param hstack: 3D array of histograms (scans, m/z, z)
+        :param kwargs: Keyword arguments. Currently supports "normalize" which normalizes the output to the maximum.
+        :return: TIC/EIC in 2D array (time, intensity)
+        """
+        fulleic = np.sum(hstack, axis=(1, 2))
+        # Normalize
+        try:
+            if "normalize" in kwargs:
+                if kwargs["normalize"]:
+                    fulleic = fulleic / np.amax(fulleic)
+            else:
+                fulleic /= np.amax(fulleic)
+        except:
+            pass
+        return np.transpose([self.fulltime, fulleic])
+
+
     def get_tic(self, farray=None, **kwargs):
         """
         Get the TIC from the farray.
@@ -1032,32 +928,60 @@ class UniChromCDEng(HTEng, UniDecCD):
             output = np.transpose([self.decontime, self.htoutput])
         return output
 
+    def create_swoop_mask_harray(self, sarray):
+        """
+        Create a boolean mask for the harray based on the Swoop selection.
+        :param sarray: Swoop array, m/z mid, z mid, z spread (vertical), z width (horizontal)
+        :return: Boolean mask array with the same shape as harray
+        """
+        mz, z, zup, zdown = ud.calc_swoop(sarray, adduct_mass=self.config.adductmass)
+        bsum = np.zeros(self.harray.shape, dtype=bool)
+        for i, zval in enumerate(z):
+            b1 = self.ztab >= zdown[i]
+            b2 = self.ztab <= zup[i]
+            bz = b1 & b2
+
+            mzmin, mzmax = ud.get_swoop_mz_minmax(mz, i)
+            b1 = self.mz >= mzmin
+            b2 = self.mz <= mzmax
+            bmz = b1 & b2
+
+            bsum |= np.outer(bz, bmz)
+
+        return bsum
+
+    def create_swoop_mask_farray(self, sarray):
+        """
+        Create a boolean mask for the farray based on the Swoop selection.
+        :param sarray: Swoop array, m/z mid, z mid, z spread (vertical), z width (horizontal)
+        :return: Boolean mask array with the same shape as farray
+        """
+        mz, z, zup, zdown = ud.calc_swoop(sarray, adduct_mass=self.config.adductmass)
+        bsum = np.zeros(len(self.farray), dtype=bool)
+        for i, zval in enumerate(z):
+            if zdown[i] == zup[i]:
+                bz = np.round(self.zarray.astype(float)) == int(zdown[i])
+            else:
+                b1 = self.zarray >= zdown[i]
+                b2 = self.zarray <= zup[i]
+                bz = b1 & b2
+
+            mzmin, mzmax = ud.get_swoop_mz_minmax(mz, i)
+            b1 = self.farray[:, 0] >= mzmin
+            b2 = self.farray[:, 0] <= mzmax
+            bmz = b1 & b2
+
+            bsum |= (bmz & bz)
+
+        return bsum
+
     def extract_swoop_subdata(self, sarray):
         """
         Extract a subdata object based on the Swoop selection.
         :param sarray: Swoop array, m/z mid, z mid, z spread (vertical), z width (horizontal)
         :return: Data Object
         """
-        # Calculate the Swoop m/z range, zrange, upper charge, and lower charge bounds
-        mz, z, zup, zdown = ud.calc_swoop(sarray, adduct_mass=self.config.adductmass)
-        # Create Boolean array
-        bsum = np.zeros(self.harray.shape)
-        # Loop over all charge states
-        for i, zval in enumerate(z):
-            # For each charge state, filter z values within the bounds
-            b1 = self.ztab >= zdown[i]
-            b2 = self.ztab <= zup[i]
-            bz = b1 & b2
-
-            # Filter m/z values within the bounds of that charge state
-            mzmin, mzmax = ud.get_swoop_mz_minmax(mz, i)
-            b1 = self.mz >= mzmin
-            b2 = self.mz <= mzmax
-            bmz = b1 & b2
-
-            # Take everything that is within the charge and m/z range for that charge state
-            # Add rather than multiple because it's OR for each charge state
-            bsum += np.outer(bz, bmz)
+        bsum = self.create_swoop_mask_harray(sarray)
 
         # Create new data object
         newd = deepcopy(self.data)
@@ -1069,46 +993,30 @@ class UniChromCDEng(HTEng, UniDecCD):
         # Return data object
         return newd
 
-    def get_swoop_eic(self, sarray, **kwargs):
+    def get_swoop_eic(self, sarray, mode="h", **kwargs):
         """
         Extract an EIC based on the Swoop selection.
         :param sarray: Swoop array, m/z mid, z mid, z spread (vertical), z width (horizontal)
         :param kwargs: Keywords to be passed down to create_chrom
         :return: Data Object
         """
-        # Calculate the Swoop m/z range, zrange, upper charge, and lower charge bounds
-        mz, z, zup, zdown = ud.calc_swoop(sarray, adduct_mass=self.config.adductmass)
-        # Create Boolean array
-        bsum = np.zeros(len(self.farray))
-        # Loop over all charge states
-        for i, zval in enumerate(z):
-            # For each charge state, filter z values within the bounds
-            if zdown[i] == zup[i]:
-                try:
-                    bz = np.round(self.zarray.astype(float)) == int(zdown[i])
-                except:
-                    print("ERROR:", len(self.zarray), zdown[i])
-                    raise ValueError("Error with zarray and zdown.")
-            else:
-                b1 = self.zarray >= zdown[i]
-                b2 = self.zarray <= zup[i]
-                bz = b1 & b2
-
-            # Filter m/z values within the bounds of that charge state
-            mzmin, mzmax = ud.get_swoop_mz_minmax(mz, i)
-            b1 = self.farray[:, 0] >= mzmin
-            b2 = self.farray[:, 0] <= mzmax
-            bmz = b1 & b2
-
-            # Take everything that is within the charge and m/z range for that charge state
-            # Add rather than multiple because it's OR for each charge state
-            bsum += bmz * bz
-        # Filter farray
-        farray2 = self.farray[bsum.astype(bool)]
-        print(np.sum(farray2))
-        # Create EIC
-        eic = self.create_chrom(farray2, **kwargs)
-        return eic
+        if mode == "f":
+            bsum = self.create_swoop_mask_farray(sarray)
+            # Filter farray
+            farray2 = self.farray[bsum.astype(bool)]
+            # Create EIC
+            eic = self.create_chrom(farray2, **kwargs)
+            return eic
+        elif mode == "h":
+            bsum = self.create_swoop_mask_harray(sarray)
+            # Filter harray
+            hstack = self.fullhstack * bsum
+            # Create EIC
+            eic = self.create_chrom_from_hstack(hstack, **kwargs)
+            return eic
+        else:
+            print("Error: Invalid mode for get_swoop_eic. Must be 'f' or 'h'.")
+            return None
 
     def get_eic(self, mzrange, zrange, **kwargs):
         """

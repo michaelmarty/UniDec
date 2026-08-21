@@ -319,6 +319,7 @@ class UniDecCD(engine.UniDec):
         if len(self.harray) > 0:
             self.harray = self.hist_data_prep()
             self.harray_process(transform=transform)
+            print("Histogram Shape:", self.harray.shape)
             return 1
         else:
             print("ERROR: Empty histogram array on process")
@@ -424,23 +425,17 @@ class UniDecCD(engine.UniDec):
         elif slope < 0 or self.config.subtype == 0:
             self.zarray = self.farray[:, 1] / (np.abs(slope) * self.noise)
 
-    def histogram(self, mzbins=1, zbins=1, x=None, y=None, mzrange=None, zrange=None):
+    def set_up_hist_axes(self, x=None, y=None, mzbins=1, zbins=1, mzrange=None, zrange=None):
         if x is None:
             x = self.farray[:, 0]
 
         if y is None:
             y = self.zarray
 
-        if mzbins < 0.001:
-            print("Error, mzbins too small. Changing to 1", mzbins)
-            mzbins = 1
-            self.config.mzbins = 1
-        self.config.mzbins = mzbins
-        self.config.CDzbins = zbins
         if len(x) == 0:
             print("ERROR: Empty Filtered Array, check settings")
             self.harray = []
-            return 0
+            return [], []
 
         if mzrange is None:
             mzrange = np.array([self.config.minmz, self.config.maxmz])
@@ -457,6 +452,28 @@ class UniDecCD(engine.UniDec):
 
         mzaxis = np.arange(mzrange[0] - mzbins / 2., mzrange[1] + mzbins / 2, mzbins)
         zaxis = np.arange(zrange[0] - zbins / 2., zrange[1] + zbins / 2, zbins)
+        return mzaxis, zaxis
+
+    def histogram(self, mzbins=1, zbins=1, x=None, y=None, mzrange=None, zrange=None):
+        if mzbins < 0.001:
+            print("Error, mzbins too small. Changing to 1", mzbins)
+            mzbins = 1
+            self.config.mzbins = 1
+        self.config.mzbins = mzbins
+        self.config.CDzbins = zbins
+
+        if x is None:
+            x = self.farray[:, 0]
+
+        if y is None:
+            y = self.zarray
+
+        if len(x) == 0:
+            print("ERROR: Empty Filtered Array, check settings")
+            self.harray = []
+            return 0
+
+        mzaxis, zaxis = self.set_up_hist_axes(x=x, y=y, mzbins=mzbins, zbins=zbins, mzrange=mzrange, zrange=zrange)
 
         if self.config.CDiitflag and self.invinjtime is not None:
             weights = self.farray[:, 3]
