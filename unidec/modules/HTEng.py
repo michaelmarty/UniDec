@@ -772,6 +772,26 @@ class UniChromCDEng(HTEng, UniDecCD):
 
         print("Process Time HT:", time.perf_counter() - starttime)
 
+
+    def decon_full_stack(self):
+        if self.fullhstack is None:
+            self.process_data_scans()
+        # Probably should add in harray filtering that is done in
+        # # Filter histogram to remove masses that are not allowed
+        # self.harray = self.hist_mass_filter(self.harray)
+        # # Filter histogram to remove charge states that aren't allowed based on the native charge state filter
+        # self.hist_nativeZ_filter()
+
+        starttime = time.perf_counter()
+        for i, s in enumerate(self.fullscans):
+            if np.amax(self.fullhstack[i]) > 0:
+                self.fullhstack[i] = self.decon_external_call_all(self.fullhstack[i])
+            # Print checkpoints at every 5% of the scans
+            if i % int(len(self.fullscans) / 20) == 0:
+                print("Deconvolution Progress:", int(round(i / len(self.fullscans) * 100)), "%")
+        print("Deconvolution Time Full Stack:", time.perf_counter() - starttime)
+
+
     def prep_hist(self, mzbins=1, zbins=1, mzrange=None, zrange=None):
         """
         Prepare the histogram for process_data_scans CDMS data.
@@ -846,6 +866,9 @@ class UniChromCDEng(HTEng, UniDecCD):
         # Transpose and return
         harray = np.transpose(harray)
         return harray
+
+
+
 
     def create_chrom(self, farray, **kwargs):
         """

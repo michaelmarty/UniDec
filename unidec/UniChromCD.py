@@ -133,8 +133,23 @@ class UniChromCDApp(UniDecCDApp):
         self.makeplot2()
         self.makeplot3()
         self.makeplot4()
-        self.view.SetStatusText("Finished", number=5)
         self.plot_chromatograms()
+        self.view.SetStatusText("Finished", number=5)
+
+        pass
+
+    def on_unidec_stack_button(self, e=None):
+        self.view.SetStatusText("Deconvolving", number=5)
+        # self.view.clear_all_plots()
+        self.export_config(self.eng.config.confname)
+
+        self.eng.decon_full_stack()
+        # self.makeplot1()
+        self.makeplot2()
+        self.makeplot3()
+        self.makeplot4()
+        self.plot_chromatograms()
+        self.view.SetStatusText("Finished", number=5)
         pass
 
     def on_pick_peaks(self, e=None):

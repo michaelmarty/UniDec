@@ -32,7 +32,6 @@ class UniDecCDApp(UniDecApp):
         """
         UniDecPres.__init__(self, *args, **kwargs)
         self.init(*args, **kwargs)
-        self.showht = False
         self.comparedata = None
 
     def init(self, *args, **kwargs):
@@ -230,10 +229,9 @@ class UniDecCDApp(UniDecApp):
         self.view.SetStatusText("Deconvolving", number=5)
         # self.view.clear_all_plots()
         self.export_config(self.eng.config.confname)
-        if self.showht:
-            self.eng.run_deconvolution(process_data=True) # This used to be false, but I can't remember why. Was creating issues.
-        else:
-            self.eng.run_deconvolution()
+
+        self.eng.run_deconvolution()
+
         self.makeplot1()
         self.makeplot2()
         self.makeplot3()
