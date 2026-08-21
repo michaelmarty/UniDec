@@ -135,7 +135,7 @@ class CDMainwindow(MainwindowBase):
             tab6 = wx.Panel(plotwindow)
 
             self.plot1 = PlottingWindow.Plot2d(tab1, smash=1, figsize=figsize, swoop=swoop)
-            self.plot2 = PlottingWindow.Plot1d(tab2, integrate=1, figsize=figsize)
+            self.plot2 = PlottingWindow.Plot1d(tab2, integrate=0, smash=2, figsize=figsize)
             self.plot3 = PlottingWindow.Plot1d(tab3, figsize=figsize)
             self.plot4 = PlottingWindow.Plot1d(tab4, figsize=figsize)
             self.plot5 = PlottingWindow.Plot2d(tab5, smash=2, figsize=figsize)
@@ -192,7 +192,7 @@ class CDMainwindow(MainwindowBase):
             sizerplot = wx.GridBagSizer()
             figsize = self.config.figsize
             self.plot1 = PlottingWindow.Plot2d(plotwindow, smash=1, figsize=figsize, swoop=swoop)
-            self.plot2 = PlottingWindow.Plot1d(plotwindow, integrate=1, figsize=figsize)
+            self.plot2 = PlottingWindow.Plot1d(plotwindow, integrate=0, smash=2, figsize=figsize)
             self.plot3 = PlottingWindow.Plot1d(plotwindow, figsize=figsize)
             self.plot4 = PlottingWindow.Plot1d(plotwindow, figsize=figsize)
             self.plot5 = PlottingWindow.Plot2d(plotwindow, smash=2, figsize=figsize)
@@ -239,6 +239,7 @@ class CDMainwindow(MainwindowBase):
         if self.htmode:
             self.Bind(self.plot5.EVT_MZLIMITS, self.pres.on_select_massz_range, self.plot5)
             self.Bind(self.plot1.EVT_MZLIMITS, self.pres.on_select_mzz_region, self.plot1)
+            self.Bind(self.plot2.EVT_MZLIMITS, self.pres.on_select_mass_range, self.plot2)
             self.Bind(self.plot1.EVT_SWOOP_DRAG, self.pres.on_select_swoop, self.plot1)
 
         self.plots = [self.plot1, self.plot2, self.plot5, self.plot4, self.plot3, self.plot6]

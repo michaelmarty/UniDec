@@ -249,6 +249,20 @@ class UniChromCDApp(UniDecCDApp):
             else:
                 self.add_mass_eic(xlimits, ylimits, color=color, plot=True)
 
+    def on_select_mass_range(self, e=None):
+        self.export_config(self.eng.config.confname)
+        if not wx.GetKeyState(wx.WXK_CONTROL):
+            xlimits, ylimits = self.view.plot2.get_limits()
+            xlimits = np.array(xlimits) * self.view.plot2.kdnorm
+            print("New Mass Limits", xlimits)
+            self.view.plot2.reset_zoom()
+            color = ud.get_color_from_index(len(self.eng.cc.chromatograms))
+
+            if self.eng.ccsstack_ht is not None:
+                self.add_mass_eic(xlimits, color=color, plot=True, ccs=True)
+            else:
+                self.add_mass_eic(xlimits, color=color, plot=True)
+
     def make_tic_plot(self):
         """
         Make the TIC Plot
@@ -535,6 +549,8 @@ class UniChromCDApp(UniDecCDApp):
             if "TIC" not in c.label:
                 if c.sarray is not None and c.sarray[0] != -1:
                     newd = self.eng.extract_swoop_subdata(c.sarray)
+                elif c.massrange is not None:
+                    newd = self.eng.extract_mass_subdata(c.massrange, c.zrange)
                 else:
                     newd = self.eng.extract_subdata(c.mzrange, c.zrange)
                 c.dataobj = newd
