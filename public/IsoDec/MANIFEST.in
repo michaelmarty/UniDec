@@ -1,0 +1,15 @@
+include .gitmodules
+include LICENSE
+include README.md
+include PUBLISHING.md
+include THIRD_PARTY_NOTICES.md
+include pyproject.toml
+include mkdocs.yml
+recursive-include docs *.md
+recursive-include tests *.py *.txt
+recursive-include isodec *.py *.c *.h *.bin *.pth *.cmake CMakeLists.txt
+include extern/IsoGen/LICENSE
+recursive-include extern/IsoGen/src *.c *.cpp *.h *.lib CMakeLists.txt COPYING COPYRIGHT
+prune isodec/src/cmake-build-release-intel-oneapi
+prune isodec/src/cmake-build-release-wsl
+prune isodec/src/CMakeFiles

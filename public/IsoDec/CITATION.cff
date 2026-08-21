@@ -1,0 +1,44 @@
+cff-version: 1.2.0
+message: If you use IsoDec, please cite the IsoDec and IsoGen method papers.
+title: IsoDec
+type: software
+authors:
+  - family-names: Marty
+    given-names: Michael T.
+    email: mtmarty@utexas.edu
+abstract: Charge-state assignment and deconvolution of isotopically resolved mass spectra.
+version: "2.0.0"
+repository-code: "https://github.com/michaelmarty/IsoDec"
+url: "https://michaelmarty.github.io/IsoDec/"
+license: BSD-3-Clause
+keywords:
+  - mass spectrometry
+  - charge-state assignment
+  - deconvolution
+  - isotope distribution
+
+preferred-citation:
+  type: article
+  authors:
+    - family-names: Pavek
+      given-names: John G.
+    - family-names: Bollis
+      given-names: Nicholas E.
+    - family-names: Grimes
+      given-names: Josiah
+    - family-names: Shortreed
+      given-names: Michael R.
+    - family-names: Smith
+      given-names: Lloyd M.
+    - family-names: Marty
+      given-names: Michael T.
+  title: "A Fast Neural Network for Isotopic Charge State Assignment"
+  journal: Journal of the American Chemical Society
+  year: 2025
+  month: 6
+  volume: 147
+  issue: 25
+  start: 21610
+  end: 21620
+  doi: 10.1021/jacs.5c03162
+  url: "https://doi.org/10.1021/jacs.5c03162"
