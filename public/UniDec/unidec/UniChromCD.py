@@ -69,6 +69,7 @@ class UniChromCDApp(UniDecCDApp):
             path2 = r"Z:\Group Share\BHT\Q Exactive HF Data\RPLC-MS\Agilent LC\20251021\20251022_BHT_0.1mgmL_proteinmix_6inj_0.1gas_50inj_zoom_CDMS_C4_2_2025-10-22-08-56-16.dmt"
             path2 = r"Z:\Group Share\BHT\20251030_BHT_POSB_10XDiluted_HEKcelllysate_12INJ_CDMS_C4_3.dmt"
             path2 = r"Z:\Group Share\BHT\Q Exactive HF Data\RPLC-MS\Acquity UPLC\CDMS Injections to Stitch\20251216\Number of Injections Comparison\Carbonic Anhydrase\1 Injection\20251216_BHT_0o1mgmL_carbonicanhydrase_CDMS_2uLinj_1.dmt"
+            path2 = r"C:\Data\CDMS\20260501_BHT_haloc4column_watersmAb_set1_CDMS_0o1mgmL_merged_21.npz"
             try:
                 self.on_open_file(None, None, path=path2)
             except:
@@ -119,6 +120,22 @@ class UniChromCDApp(UniDecCDApp):
         self.eng.cc.clear()
         self.dataprep()
         self.make_tic_plot()
+
+    def on_unidec_button(self, e=None):
+        self.view.SetStatusText("Deconvolving", number=5)
+        # self.view.clear_all_plots()
+        self.export_config(self.eng.config.confname)
+        if self.showht:
+            self.eng.run_deconvolution(process_data=True) # This used to be false, but I can't remember why. Was creating issues.
+        else:
+            self.eng.run_deconvolution()
+        # self.makeplot1()
+        self.makeplot2()
+        self.makeplot3()
+        self.makeplot4()
+        self.view.SetStatusText("Finished", number=5)
+        self.plot_chromatograms()
+        pass
 
     def on_pick_peaks(self, e=None):
         """
