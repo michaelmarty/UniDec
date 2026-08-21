@@ -260,7 +260,7 @@ if __name__ == "__main__":
     eng.analyte_type = "None"
     import platform
     if platform.system() == "Windows":
-        file = "C:\\Python\\UniDecDev\\unidec\\bin\\TestSpectra\\test_2.txt"
+        file = "C:\\Python\\UniDecDev\\public\\UniDec\\unidec\\bin\\TestSpectra\\test_2.txt"
     elif platform.system() == "Linux":
         file = "/mnt/c/Python/UniDecDev/unidec/bin/TestSpectra/test_2.txt"
 
