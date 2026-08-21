@@ -1546,6 +1546,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.foldpanels.Collapse(self.foldpanelht)
             self.foldpanels.Collapse(self.foldpanelft)
             self.foldpanels.Collapse(self.foldpanelim)
+        elif "MRS" in demultiplexmode:
+            self.foldpanels.Collapse(self.foldpanelht)
+            self.foldpanels.Collapse(self.foldpanelft)
+            self.foldpanels.Collapse(self.foldpanelim)
         else:
             print("Unknown demultiplex mode:", demultiplexmode)
 

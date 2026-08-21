@@ -606,6 +606,11 @@ class HTEng:
         # Get peak after largest peak
         maxindex = np.argmax(ac)
         ac = ac[maxindex:]
+
+        if self.config.CDScanCompress > 1:
+            widthguess /= self.config.CDScanCompress
+        widthguess = int(widthguess)
+
         if cycleindexguess is not None:
             maxindex = cycleindexguess
         else:
@@ -1023,6 +1028,9 @@ class UniChromCDEng(HTEng, UniDecCD):
         :param kwargs: Keywords to be passed down to create_chrom
         :return: Data Object
         """
+        if self.fullhstack is None:
+            mode = "f"
+
         if mode == "f":
             bsum = self.create_swoop_mask_farray(sarray)
             # Filter farray

@@ -99,10 +99,10 @@ class UniChromCDApp(UniDecCDApp):
 
     def on_replot(self, e=None):
         self.export_config()
-        self.makeplot1()
-        self.makeplot2()
-        self.makeplot3()
-        self.makeplot4()
+        # self.makeplot1()
+        # self.makeplot2()
+        # self.makeplot3()
+        # self.makeplot4()
         self.makeplot6()
         self.on_replot_chrom()
         pass
@@ -130,9 +130,9 @@ class UniChromCDApp(UniDecCDApp):
         else:
             self.eng.run_deconvolution()
         # self.makeplot1()
-        self.makeplot2()
-        self.makeplot3()
-        self.makeplot4()
+        # self.makeplot2()
+        # self.makeplot3()
+        # self.makeplot4()
         self.plot_chromatograms()
         self.view.SetStatusText("Finished", number=5)
 
@@ -142,13 +142,13 @@ class UniChromCDApp(UniDecCDApp):
         self.view.SetStatusText("Deconvolving", number=5)
         # self.view.clear_all_plots()
         self.export_config(self.eng.config.confname)
-
+        self.eng.run_deconvolution()
         self.eng.decon_full_stack()
         # self.makeplot1()
-        self.makeplot2()
-        self.makeplot3()
-        self.makeplot4()
-        self.plot_chromatograms()
+        # self.makeplot2()
+        # self.makeplot3()
+        # self.makeplot4()
+        self.refresh_eics()
         self.view.SetStatusText("Finished", number=5)
         pass
 
@@ -968,6 +968,35 @@ class UniChromCDApp(UniDecCDApp):
                 self.run_eic_ht(None, None, color=color, sarray=self.eng.sarray)
             else:
                 self.add_eic(None, None, color=color, sarray=self.eng.sarray)
+
+    def refresh_eics(self, e=None):
+        """
+        Refresh the EICs by re-running the EIC extraction and HT if applicable.
+        :param e: Unused event
+        :return: None
+        """
+        self.export_config(self.eng.config.confname)
+        old_chroms = self.eng.cc.chromatograms.copy()
+        self.eng.cc.chromatograms = []
+        for c in old_chroms:
+            if "TIC" not in c.label:
+                if self.showht or self.showccs:
+                    self.run_eic_ht(c.mzrange, c.zrange, color=c.color, sarray=c.sarray)
+                else:
+                    self.add_eic(c.mzrange, c.zrange, color=c.color, sarray=c.sarray)
+            else:
+                self.eng.cc.add_chromatogram(c.chromdat, decondat=c.decondat, ccsdat=c.ccsdat, color=c.color,
+                                             zrange=c.zrange, mzrange=c.mzrange, sarray=c.sarray, label=c.label)
+            # if "Mass EIC" in c.label:
+            #     self.add_mass_eic(c.mzrange, c.zrange, color=c.color, sarray=c.sarray, plot=False)
+            # if "TIC" in c.label:
+            #     self.make_tic_plot()
+            # if "DM_TIC" in c.label:
+            #     self.run_all_ht()
+            # if "Mass_TIC" in c.label:
+            #     self.run_all_mass_transform()
+        self.plot_chromatograms()
+
 
 
 if __name__ == "__main__":
