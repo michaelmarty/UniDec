@@ -23,6 +23,7 @@
 #include "UniDecIM_Main.h"
 #include "MetaUniDec_Main.h"
 #include "UniDecCD_Main.h"
+#include "UCCD_Main.h"
 #include "UD_conv.h"
 
 Config ImportConfig(int argc, char * argv[], Config config);
