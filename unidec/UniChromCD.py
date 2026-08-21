@@ -979,7 +979,7 @@ class UniChromCDApp(UniDecCDApp):
         old_chroms = self.eng.cc.chromatograms.copy()
         self.eng.cc.chromatograms = []
         for c in old_chroms:
-            if "TIC" not in c.label:
+            if "TIC" not in c.label and "Mass" not in c.label:
                 if self.showht or self.showccs:
                     self.run_eic_ht(c.mzrange, c.zrange, color=c.color, sarray=c.sarray)
                 else:
