@@ -460,7 +460,7 @@ class PlottingWindowBase(PlotBase, wx.Panel):
                 event = ScanSelectedEvent(MZLimitsEventType, self.GetId())
                 self.GetEventHandler().ProcessEvent(event)
         elif self.smash == 2:
-            event = ScanSelectedEvent(MZLimitsEventType, self.GetId())
+            event = MZLimitsEvent(MZLimitsEventType, self.GetId())
             self.GetEventHandler().ProcessEvent(event)
         else:
             event = ScanSelectedEvent(ScanSelectedEventType, self.GetId())

@@ -873,8 +873,6 @@ class UniChromCDEng(HTEng, UniDecCD):
         return harray
 
 
-
-
     def create_chrom(self, farray, **kwargs):
         """
         Create a chromatogram from the farray.
@@ -1049,27 +1047,35 @@ class UniChromCDEng(HTEng, UniDecCD):
             print("Error: Invalid mode for get_swoop_eic. Must be 'f' or 'h'.")
             return None
 
-    def get_eic(self, mzrange, zrange, **kwargs):
+    def get_eic(self, mzrange, zrange, mode="h", **kwargs):
         """
-        Get the EIC from the farray.
+        Get the EIC from the feature array or full histogram stack.
         :param mzrange: m/z range
         :param zrange: charge range
+        :param mode: Extraction mode: "f" for the feature array or "h" for the full histogram stack.
         :param kwargs: Keywords to be passed down to create_chrom
         :return: 2D array of EIC (time, intensity)
         """
-        # Filter farray
-        b1 = self.farray[:, 0] >= mzrange[0]
-        b2 = self.farray[:, 0] <= mzrange[1]
-        b3 = self.zarray >= zrange[0]
-        b4 = self.zarray <= zrange[1]
-        b = np.logical_and(b1, b2)
-        b = np.logical_and(b, b3)
-        b = np.logical_and(b, b4)
-        farray2 = self.farray[b]
+        if self.fullhstack is None:
+            mode = "f"
 
-        # Create EIC
-        eic = self.create_chrom(farray2, **kwargs)
-        return eic
+        if mode == "f":
+            b1 = self.farray[:, 0] >= mzrange[0]
+            b2 = self.farray[:, 0] <= mzrange[1]
+            b3 = self.zarray >= zrange[0]
+            b4 = self.zarray <= zrange[1]
+            b = np.logical_and(b1, b2)
+            b = np.logical_and(b, b3)
+            b = np.logical_and(b, b4)
+            return self.create_chrom(self.farray[b], **kwargs)
+
+        if mode == "h":
+            mzmask = (self.mz >= mzrange[0]) & (self.mz <= mzrange[1])
+            zmask = (self.ztab >= zrange[0]) & (self.ztab <= zrange[1])
+            hstack = self.fullhstack[:, zmask, :][:, :, mzmask]
+            return self.create_chrom_from_hstack(hstack, **kwargs)
+
+        raise ValueError("Invalid mode for get_eic. Must be 'f' or 'h'.")
 
     def extract_subdata(self, mzrange, zrange):
         """
@@ -1089,6 +1095,36 @@ class UniChromCDEng(HTEng, UniDecCD):
         newd = deepcopy(self.data)
 
         newh2 = self.harray * b3
+
+        if np.sum(newh2) != 0:
+            newd = self.transform(newh2, newd)
+        # newd = self.transform(newh, newd, ztab=ztab, mz=mz, mass=mass)
+
+        return newd
+
+    def extract_mass_subdata(self, massrange, zrange=None):
+        """
+        Extract a subdata object based on mass and charge range.
+        :param massrange: mass range, [low, high]
+        :param zrange: z range, [low, high]
+        :return: Data Object
+        """
+        b1 = self.mass >= massrange[0]
+        b2 = self.mass <= massrange[1]
+        b = np.logical_and(b1, b2)
+
+        if zrange is not None:
+            b3 = self.ztab >= zrange[0]
+            b4 = self.ztab <= zrange[1]
+            b2 = np.logical_and(b3, b4)
+        else:
+            b2 = np.ones_like(self.ztab, dtype=bool)
+
+        b2 = np.transpose([b2 for _ in range(len(self.mz))])
+
+        newd = deepcopy(self.data)
+
+        newh2 = self.harray * np.logical_and(b, b2)
 
         if np.sum(newh2) != 0:
             newd = self.transform(newh2, newd)
