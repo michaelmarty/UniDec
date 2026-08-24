@@ -1145,6 +1145,7 @@ class UniDecCD(engine.UniDec):
                 f"(time, charge, m/z)={expected_shape}; got {hstack.shape}"
             )
 
+        input_scan_sums = np.sum(hstack, axis=(1, 2), dtype=np.float64)
         write_uccd_binary(self.config.uccdfile, self.fulltime, self.mz, self.ztab, hstack)
         print("Saved Sparse Binary UCCD Input:", self.config.uccdfile)
 
@@ -1165,11 +1166,29 @@ class UniDecCD(engine.UniDec):
             self.config.uccddeconfile,
             expected_axes=(self.fulltime, self.mz, self.ztab),
         )
-        self.data.fitdat, _ = read_uccd_binary(
-            self.config.uccdfitfile,
-            expected_axes=(self.fulltime, self.mz, self.ztab),
-            sum_mz=True,
-        )
+        if self.config.datanorm == 0:
+            output_scan_sums = np.sum(decon, axis=(1, 2), dtype=np.float64)
+            input_sum = np.sum(input_scan_sums)
+            output_sum = np.sum(output_scan_sums)
+            relative_change = (output_sum - input_sum) / input_sum if input_sum != 0 else np.nan
+            nonzero_scans = input_scan_sums != 0
+            if np.any(nonzero_scans):
+                scan_ratios = output_scan_sums[nonzero_scans] / input_scan_sums[nonzero_scans]
+                max_scan_change = np.max(np.abs(scan_ratios - 1))
+            else:
+                max_scan_change = np.nan
+            print(
+                "UCCD signal conservation: input=%.9g output=%.9g "
+                "relative_change=%.3g max_scan_change=%.3g"
+                % (input_sum, output_sum, relative_change, max_scan_change)
+            )
+        # UCCD fit output is temporarily disabled in UCCD_Main.c.
+        # self.data.fitdat, _ = read_uccd_binary(
+        #     self.config.uccdfitfile,
+        #     expected_axes=(self.fulltime, self.mz, self.ztab),
+        #     sum_mz=True,
+        # )
+        self.data.fitdat = None
         print("Loaded Sparse Binary UCCD Output:", self.config.uccddeconfile)
         return decon
 

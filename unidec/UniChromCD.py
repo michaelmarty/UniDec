@@ -517,9 +517,40 @@ class UniChromCDApp(UniDecCDApp):
             except Exception:
                 sarray = [-1, -1, -1, -1]
 
-            if "TIC" in label or self.eng.config.demultiplexmode in label or "Mass EIC" in label:
+            massrange = [-1, -1]
+            massmode = False
+            if len(a) >= 16:
+                try:
+                    massrange = [float(a[13]), float(a[14])]
+                    massmode = str(a[15]).lower() in ("true", "1", "t", "y", "yes")
+                except (TypeError, ValueError):
+                    massrange = [-1, -1]
+                    massmode = False
+
+            # Backward compatibility for the original 13-column format. Old
+            # mass EIC rows did not store massrange/massmode, but the default
+            # label contains the range (for example, "Mass: 142000-151000 z:").
+            if not massmode and label.startswith("Mass:"):
+                try:
+                    mass_text = label.split("Mass:", 1)[1].split(" z:", 1)[0].strip()
+                    massrange = [float(value) for value in mass_text.split("-", 1)]
+                    massmode = len(massrange) == 2
+                except (TypeError, ValueError, IndexError):
+                    massrange = [-1, -1]
+                    massmode = False
+
+            if "TIC" in label or self.eng.config.demultiplexmode in label:
                 continue
-            self.add_eic(mzrange, zrange, color=color, label=label, sarray=sarray, plot=False)
+            if massmode and massrange[0] != -1:
+                # Restore the mass stack without adding a duplicate Mass_TIC
+                # while the saved chromatogram list is being reconstructed.
+                if self.eng.mstack is None:
+                    self.eng.transform_stacks()
+                self.add_mass_eic(massrange, zrange, color=color, label=label, plot=False)
+            elif mzrange[0] != -1 or (sarray[0] != -1 and sarray[1] != -1):
+                self.add_eic(mzrange, zrange, color=color, label=label, sarray=sarray, plot=False)
+            else:
+                print("Skipping chromatogram with no saved extraction range:", label)
             # ht = ht.lower() in ['true', '1', 't', 'y', 'yes', 'yeah']
         self.plot_chromatograms()
 
@@ -548,7 +579,7 @@ class UniChromCDApp(UniDecCDApp):
             if "TIC" not in c.label:
                 if c.sarray is not None and c.sarray[0] != -1:
                     newd = self.eng.extract_swoop_subdata(c.sarray)
-                elif c.massrange is not None:
+                elif c.massmode and c.massrange is not None and c.massrange[0] != -1:
                     newd = self.eng.extract_mass_subdata(c.massrange, c.zrange)
                 else:
                     newd = self.eng.extract_subdata(c.mzrange, c.zrange)
@@ -993,15 +1024,25 @@ class UniChromCDApp(UniDecCDApp):
         self.export_config(self.eng.config.confname)
         old_chroms = self.eng.cc.chromatograms.copy()
         self.eng.cc.chromatograms = []
+
+        # Mass EICs depend on the transformed full stack. Rebuild it once if
+        # any saved chromatograms require it; decon_full_stack invalidates the
+        # old transformed stacks when its UCCD result replaces fullhstack.
+        if any(c.massmode and "TIC" not in c.label for c in old_chroms):
+            self.eng.transform_stacks()
+
         for c in old_chroms:
-            if "TIC" not in c.label and "Mass" not in c.label:
+            if "TIC" in c.label:
+                self.eng.cc.add_chromatogram(c.chromdat, decondat=c.decondat, ccsdat=c.ccsdat, color=c.color,
+                                             zrange=c.zrange, mzrange=c.mzrange, sarray=c.sarray, label=c.label,
+                                             massrange=c.massrange, massmode=c.massmode)
+            elif c.massmode:
+                self.add_mass_eic(c.massrange, c.zrange, color=c.color, label=c.label, plot=False)
+            else:
                 if self.showht or self.showccs:
                     self.run_eic_ht(c.mzrange, c.zrange, color=c.color, sarray=c.sarray)
                 else:
                     self.add_eic(c.mzrange, c.zrange, color=c.color, sarray=c.sarray)
-            else:
-                self.eng.cc.add_chromatogram(c.chromdat, decondat=c.decondat, ccsdat=c.ccsdat, color=c.color,
-                                             zrange=c.zrange, mzrange=c.mzrange, sarray=c.sarray, label=c.label)
             # if "Mass EIC" in c.label:
             #     self.add_mass_eic(c.mzrange, c.zrange, color=c.color, sarray=c.sarray, plot=False)
             # if "TIC" in c.label:

@@ -16,7 +16,9 @@
 #define UCCD_MAGIC "UCCDBIN1"
 #define UCCD_INPUT_SUFFIX "_uccd_input.bin"
 #define UCCD_DECON_SUFFIX "_uccd_decon.bin"
+/* Fit output is temporarily disabled.*/
 #define UCCD_FIT_SUFFIX "_uccd_fit.bin"
+
 #define UCCD_OMP_MIN_LENGTH 32768
 #define UCCD_FFT_PLAN_FLAGS FFTW_MEASURE
 
@@ -496,6 +498,26 @@ static void make_kernel_fft_UCCD(fftwf_complex *kernel_fft,
 }
 
 
+static int normalize_kernel_fft_UCCD(fftwf_complex *kernel_fft,
+                                     const int kernel_length)
+{
+    /* The zero-frequency component is the sum of the real-space kernel.
+     * Dividing the full spectrum by it makes convolution conserve signal. */
+    const float kernel_sum = kernel_fft[0][0];
+    if (kernel_sum == 0 || !isfinite(kernel_sum)) {
+        fprintf(stderr, "Invalid UCCD reconvolution kernel sum: %g\n", kernel_sum);
+        return 0;
+    }
+    const float inverse_sum = 1.0f / kernel_sum;
+    #pragma omp parallel for schedule(static) if(kernel_length >= UCCD_OMP_MIN_LENGTH)
+    for (int i = 0; i < kernel_length; i++) {
+        kernel_fft[i][0] *= inverse_sum;
+        kernel_fft[i][1] *= inverse_sum;
+    }
+    return 1;
+}
+
+
 static void compute_convolution_UCCD(const float *list,
                                      const fftwf_complex *kernel_fft,
                                      const int conjugate_kernel,
@@ -555,15 +577,19 @@ int run_unidec_UCCD(int argc, char *argv[], Config config)
     const time_t starttime = time(NULL);
     char input_filename[550];
     char decon_filename[550];
-    char fit_filename[550];
     if (!make_filename_UCCD(input_filename, sizeof(input_filename),
                             config.outfile, UCCD_INPUT_SUFFIX) ||
         !make_filename_UCCD(decon_filename, sizeof(decon_filename),
-                            config.outfile, UCCD_DECON_SUFFIX) ||
-        !make_filename_UCCD(fit_filename, sizeof(fit_filename),
+                            config.outfile, UCCD_DECON_SUFFIX)) {
+        return 1;
+    }
+    /* Fit output is temporarily disabled.    */
+    char fit_filename[550];
+    if (!make_filename_UCCD(fit_filename, sizeof(fit_filename),
                             config.outfile, UCCD_FIT_SUFFIX)) {
         return 1;
     }
+
     printf("Opening sparse binary UCCD file: %s\n", input_filename);
 
     int size[3] = {0, 0, 0};
@@ -758,6 +784,8 @@ int run_unidec_UCCD(int argc, char *argv[], Config config)
     }
     printf("Completed iterations\n");
 
+    int result = 0;
+    //Fit calculation and _uccd_fit.bin output are temporarily disabled.
     fftconvolve_precomputed_UCCD(newblur2, blur, kernel_fft,
                                 &fft_context, size[2]);
     if (config.datanorm == 1) {
@@ -765,18 +793,23 @@ int run_unidec_UCCD(int argc, char *argv[], Config config)
         if (dmax != 0 && fitmax != 0) { Normalize(lines, newblur2, fitmax / dmax); }
     }
     ApplyCutoff(newblur2, 0, lines);
-    int result = 0;
     if (!write_sparse_UCCD(fit_filename, size, chromext, mzext, zext, newblur2)) {
         result = 1;
         goto cleanup_processing_UCCD;
     }
 
+
     if (config.rawflag == 0) {
         make_kernel_fft_UCCD(kernel_fft, &fft_context, size, chromext, mzext, zext,
-                             0, config.mzsig, 0, config.psfun, config.zpsfun);
+                             config.dtsig, config.mzsig, 0,
+                             config.psfun, config.zpsfun);
+        if (!normalize_kernel_fft_UCCD(kernel_fft, fft_context.kernel_length)) {
+            result = 1;
+            goto cleanup_processing_UCCD;
+        }
         fftconvolve_precomputed_UCCD(blur, blur, kernel_fft,
                                     &fft_context, size[2]);
-        printf("Reconvolved with m/z dimension\n");
+        printf("Reconvolved with chromatography and m/z dimensions\n");
     }
     if (config.datanorm == 1) {
         const float blurmax = Max(blur, lines);
