@@ -16,8 +16,8 @@
 #define UCCD_MAGIC "UCCDBIN1"
 #define UCCD_INPUT_SUFFIX "_uccd_input.bin"
 #define UCCD_DECON_SUFFIX "_uccd_decon.bin"
-/* Fit output is temporarily disabled.*/
-#define UCCD_FIT_SUFFIX "_uccd_fit.bin"
+/* Fit output is temporarily disabled. */
+/* #define UCCD_FIT_SUFFIX "_uccd_fit.bin" */
 
 #define UCCD_OMP_MIN_LENGTH 32768
 #define UCCD_FFT_PLAN_FLAGS FFTW_MEASURE
@@ -208,6 +208,31 @@ static int write_sparse_UCCD(const char *filename, const int size[3],
     printf("Wrote %llu nonzero UCCD values to: %s\n",
            (unsigned long long)nonzero_count, filename);
     return 1;
+}
+
+
+static int collect_nonzero_indices_UCCD(const float *intensity, const int length,
+                                        uint32_t **nonzero_indices)
+{
+    int nonzero_count = 0;
+    for (int i = 0; i < length; i++) {
+        if (intensity[i] != 0) { nonzero_count++; }
+    }
+    *nonzero_indices = NULL;
+    if (nonzero_count == 0) { return 0; }
+
+    *nonzero_indices = malloc((size_t)nonzero_count * sizeof(uint32_t));
+    if (*nonzero_indices == NULL) {
+        fprintf(stderr, "Error allocating UCCD sparse index list\n");
+        return -1;
+    }
+    int output_index = 0;
+    for (int i = 0; i < length; i++) {
+        if (intensity[i] != 0) {
+            (*nonzero_indices)[output_index++] = (uint32_t)i;
+        }
+    }
+    return nonzero_count;
 }
 
 
@@ -518,16 +543,11 @@ static int normalize_kernel_fft_UCCD(fftwf_complex *kernel_fft,
 }
 
 
-static void compute_convolution_UCCD(const float *list,
-                                     const fftwf_complex *kernel_fft,
+static void execute_convolution_UCCD(const fftwf_complex *kernel_fft,
                                      const int conjugate_kernel,
                                      UCCDFFTContext *context,
                                      const int scan_count)
 {
-    #pragma omp parallel for schedule(static) if(context->real_length >= UCCD_OMP_MIN_LENGTH)
-    for (int i = 0; i < context->real_length; i++) {
-        context->real_work[i] = list[i];
-    }
     fftwf_execute(context->forward_plan);
 
     if (context->batched_2d) {
@@ -558,6 +578,44 @@ static void compute_convolution_UCCD(const float *list,
 }
 
 
+static void compute_convolution_UCCD(const float *list,
+                                     const fftwf_complex *kernel_fft,
+                                     const int conjugate_kernel,
+                                     UCCDFFTContext *context,
+                                     const int scan_count)
+{
+    #pragma omp parallel for schedule(static) if(context->real_length >= UCCD_OMP_MIN_LENGTH)
+    for (int i = 0; i < context->real_length; i++) {
+        context->real_work[i] = list[i];
+    }
+    execute_convolution_UCCD(kernel_fft, conjugate_kernel, context, scan_count);
+}
+
+
+static void compute_sparse_correction_UCCD(
+    const float *data_int, const uint32_t *nonzero_indices,
+    const int nonzero_count, const fftwf_complex *kernel_fft,
+    UCCDFFTContext *context, const int scan_count, const float fft_scale,
+    float *ratio_values)
+{
+    /* The Richardson-Lucy ratio is zero wherever the original input is zero.
+     * Save only its nonzero candidates before reusing the FFT output buffer. */
+    #pragma omp parallel for schedule(static) if(nonzero_count >= UCCD_OMP_MIN_LENGTH)
+    for (int i = 0; i < nonzero_count; i++) {
+        const uint32_t index = nonzero_indices[i];
+        const float predicted = context->real_work[index] * fft_scale;
+        ratio_values[i] = predicted != 0 ? data_int[index] / predicted : 0;
+    }
+
+    memset(context->real_work, 0,
+           (size_t)context->real_length * sizeof(float));
+    for (int i = 0; i < nonzero_count; i++) {
+        context->real_work[nonzero_indices[i]] = ratio_values[i];
+    }
+    execute_convolution_UCCD(kernel_fft, 1, context, scan_count);
+}
+
+
 static void fftconvolve_precomputed_UCCD(float *output, const float *input,
                                          const fftwf_complex *kernel_fft,
                                          UCCDFFTContext *context,
@@ -583,12 +641,13 @@ int run_unidec_UCCD(int argc, char *argv[], Config config)
                             config.outfile, UCCD_DECON_SUFFIX)) {
         return 1;
     }
-    /* Fit output is temporarily disabled.    */
+    /* Fit output is temporarily disabled.
     char fit_filename[550];
     if (!make_filename_UCCD(fit_filename, sizeof(fit_filename),
                             config.outfile, UCCD_FIT_SUFFIX)) {
         return 1;
     }
+    */
 
     printf("Opening sparse binary UCCD file: %s\n", input_filename);
 
@@ -602,9 +661,85 @@ int run_unidec_UCCD(int argc, char *argv[], Config config)
     }
 
     const int scan_length = size[0] * size[1];
-    const int lines = scan_length * size[2];
+    const int output_size[3] = {size[0], size[1], size[2]};
+    const int output_lines = scan_length * output_size[2];
     printf("Dimensions: %d chromatography by %d m/z by %d charge: %d total\n",
-           size[2], size[0], size[1], lines);
+           output_size[2], size[0], size[1], output_lines);
+
+    uint32_t *nonzero_indices = NULL;
+    const int nonzero_count = collect_nonzero_indices_UCCD(
+        dataInt, output_lines, &nonzero_indices);
+    if (nonzero_count <= 0) {
+        fprintf(stderr, nonzero_count == 0 ? "UCCD input contains no signal\n" :
+                                             "Error collecting UCCD sparse indexes\n");
+        fftwf_free(dataInt);
+        free(chromext); free(mzext); free(zext);
+        return 1;
+    }
+
+    const int batched_2d = config.dtsig == 0;
+    int compacted_scans = 0;
+    int *active_scans = NULL;
+    if (batched_2d) {
+        char *active_flags = calloc((size_t)output_size[2], sizeof(char));
+        if (active_flags == NULL) {
+            fprintf(stderr, "Error allocating UCCD active-scan flags\n");
+            free(nonzero_indices); fftwf_free(dataInt);
+            free(chromext); free(mzext); free(zext);
+            return 1;
+        }
+        int active_count = 0;
+        for (int i = 0; i < nonzero_count; i++) {
+            const int scan = (int)(nonzero_indices[i] / (uint32_t)scan_length);
+            if (!active_flags[scan]) {
+                active_flags[scan] = 1;
+                active_count++;
+            }
+        }
+
+        if (active_count < output_size[2]) {
+            active_scans = malloc((size_t)active_count * sizeof(int));
+            int *scan_map = malloc((size_t)output_size[2] * sizeof(int));
+            float *compact_data = fftwf_malloc(
+                (size_t)active_count * (size_t)scan_length * sizeof(float));
+            if (active_scans == NULL || scan_map == NULL || compact_data == NULL) {
+                fprintf(stderr, "Error allocating compact UCCD scan arrays\n");
+                free(active_flags); free(active_scans); free(scan_map);
+                fftwf_free(compact_data); free(nonzero_indices); fftwf_free(dataInt);
+                free(chromext); free(mzext); free(zext);
+                return 1;
+            }
+            for (int scan = 0; scan < output_size[2]; scan++) { scan_map[scan] = -1; }
+            int packed_scan = 0;
+            for (int scan = 0; scan < output_size[2]; scan++) {
+                if (active_flags[scan]) {
+                    active_scans[packed_scan] = scan;
+                    scan_map[scan] = packed_scan++;
+                }
+            }
+            memset(compact_data, 0,
+                   (size_t)active_count * (size_t)scan_length * sizeof(float));
+            for (int i = 0; i < nonzero_count; i++) {
+                const uint32_t old_index = nonzero_indices[i];
+                const int original_scan = (int)(old_index / (uint32_t)scan_length);
+                const uint32_t scan_index = old_index % (uint32_t)scan_length;
+                const uint32_t compact_index =
+                    (uint32_t)(scan_map[original_scan] * scan_length) + scan_index;
+                compact_data[compact_index] = dataInt[old_index];
+                nonzero_indices[i] = compact_index;
+            }
+            fftwf_free(dataInt);
+            dataInt = compact_data;
+            size[2] = active_count;
+            compacted_scans = 1;
+            free(scan_map);
+        }
+        printf("Active-scan FFT compaction: %d of %d scans (%d skipped)\n",
+               size[2], output_size[2], output_size[2] - size[2]);
+        free(active_flags);
+    }
+
+    const int lines = scan_length * size[2];
 
     /* The mass/charge smoothing setup only needs one dense m/z-charge scan. */
     float *mzdat = calloc((size_t)scan_length, sizeof(float));
@@ -622,7 +757,8 @@ int run_unidec_UCCD(int argc, char *argv[], Config config)
     }
     const float mzranges[4] = {mzext[0], mzext[size[0] - 1],
                                zext[0], zext[size[1] - 1]};
-    printf("Chromatography range: %f to %f\n", chromext[0], chromext[size[2] - 1]);
+    printf("Chromatography range: %f to %f\n",
+           chromext[0], chromext[output_size[2] - 1]);
     printf("MZ range: %f to %f; charge range: %f to %f\n",
            mzranges[0], mzranges[1], mzranges[2], mzranges[3]);
 
@@ -676,14 +812,16 @@ int run_unidec_UCCD(int argc, char *argv[], Config config)
 
     float *blur = fftwf_malloc((size_t)lines * sizeof(float));
     float *newblur = fftwf_malloc((size_t)lines * sizeof(float));
-    float *newblur2 = fftwf_malloc((size_t)lines * sizeof(float));
     float *oldblur = fftwf_malloc((size_t)lines * sizeof(float));
-    if (blur == NULL || newblur == NULL || newblur2 == NULL || oldblur == NULL) {
+    float *ratio_values = malloc((size_t)nonzero_count * sizeof(float));
+    /* Fit output is temporarily disabled.
+    float *newblur2 = fftwf_malloc((size_t)lines * sizeof(float));
+    */
+    if (blur == NULL || newblur == NULL || oldblur == NULL || ratio_values == NULL) {
         fprintf(stderr, "Error allocating UCCD processing arrays\n");
         return 1;
     }
 
-    const int batched_2d = config.dtsig == 0;
     UCCDFFTContext fft_context;
     if (!initialize_fft_UCCD(&fft_context, size, batched_2d)) {
         destroy_fft_UCCD(&fft_context);
@@ -743,12 +881,9 @@ int run_unidec_UCCD(int argc, char *argv[], Config config)
 
         compute_convolution_UCCD(blur, kernel_fft, 0, &fft_context, size[2]);
         const float fft_scale = 1.0f / (float)fft_context.normalization;
-        #pragma omp parallel for schedule(static) if(lines >= UCCD_OMP_MIN_LENGTH)
-        for (int i = 0; i < lines; i++) {
-            const float predicted = fft_context.real_work[i] * fft_scale;
-            newblur2[i] = predicted != 0 ? dataInt[i] / predicted : 0;
-        }
-        compute_convolution_UCCD(newblur2, kernel_fft, 1, &fft_context, size[2]);
+        compute_sparse_correction_UCCD(
+            dataInt, nonzero_indices, nonzero_count, kernel_fft, &fft_context,
+            size[2], fft_scale, ratio_values);
         #pragma omp parallel for schedule(static) if(lines >= UCCD_OMP_MIN_LENGTH)
         for (int i = 0; i < lines; i++) {
             blur[i] *= fft_context.real_work[i] * fft_scale;
@@ -785,7 +920,8 @@ int run_unidec_UCCD(int argc, char *argv[], Config config)
     printf("Completed iterations\n");
 
     int result = 0;
-    //Fit calculation and _uccd_fit.bin output are temporarily disabled.
+    float *expanded_output = NULL;
+    /* Fit calculation and _uccd_fit.bin output are temporarily disabled.
     fftconvolve_precomputed_UCCD(newblur2, blur, kernel_fft,
                                 &fft_context, size[2]);
     if (config.datanorm == 1) {
@@ -797,7 +933,7 @@ int run_unidec_UCCD(int argc, char *argv[], Config config)
         result = 1;
         goto cleanup_processing_UCCD;
     }
-
+    */
 
     if (config.rawflag == 0) {
         make_kernel_fft_UCCD(kernel_fft, &fft_context, size, chromext, mzext, zext,
@@ -816,14 +952,37 @@ int run_unidec_UCCD(int argc, char *argv[], Config config)
         if (dmax != 0 && blurmax != 0) { Normalize(lines, blur, blurmax / dmax); }
     }
     ApplyCutoff(blur, 0, lines);
-    if (!write_sparse_UCCD(decon_filename, size, chromext, mzext, zext, blur)) {
+    const float *output_data = blur;
+    if (compacted_scans) {
+        expanded_output = fftwf_malloc((size_t)output_lines * sizeof(float));
+        if (expanded_output == NULL) {
+            fprintf(stderr, "Error allocating expanded UCCD output\n");
+            result = 1;
+            goto cleanup_processing_UCCD;
+        }
+        memset(expanded_output, 0, (size_t)output_lines * sizeof(float));
+        #pragma omp parallel for schedule(static) if(size[2] > 1 && lines >= UCCD_OMP_MIN_LENGTH)
+        for (int packed_scan = 0; packed_scan < size[2]; packed_scan++) {
+            memcpy(expanded_output + active_scans[packed_scan] * scan_length,
+                   blur + packed_scan * scan_length,
+                   (size_t)scan_length * sizeof(float));
+        }
+        output_data = expanded_output;
+    }
+    if (!write_sparse_UCCD(decon_filename, output_size, chromext, mzext, zext,
+                           output_data)) {
         result = 1;
     }
 
 cleanup_processing_UCCD:
+    fftwf_free(expanded_output);
     fftwf_free(kernel_fft);
     destroy_fft_UCCD(&fft_context);
-    fftwf_free(blur); fftwf_free(newblur); fftwf_free(newblur2); fftwf_free(oldblur);
+    fftwf_free(blur); fftwf_free(newblur); fftwf_free(oldblur);
+    /* Fit output is temporarily disabled.
+    fftwf_free(newblur2);
+    */
+    free(ratio_values);
 #ifdef UNIDEC_USE_FFTW_THREADS
     fftwf_cleanup_threads();
 #endif
@@ -834,6 +993,7 @@ cleanup_processing_UCCD:
     free(mzdat); free(zdat); fftwf_free(dataInt);
     free(chromext); free(mzext); free(zext);
     free(zupind); free(zloind); free(mupind); free(mloind); free(barr);
+    free(nonzero_indices); free(active_scans);
 
     printf("Done in %ds!\n", (int)difftime(time(NULL), starttime));
     return result;
