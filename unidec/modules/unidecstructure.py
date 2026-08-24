@@ -76,6 +76,9 @@ class UniDecConfig(object):
         self.deconfile = ''
         self.errorfile = ''
         self.fitdatfile = ''
+        self.uccdfile = ''
+        self.uccddeconfile = ''
+        self.uccdfitfile = ''
         self.massgridfile = ''
         self.massdatfile = ''
         self.cdrawextracts = ''
@@ -1353,6 +1356,9 @@ class UniDecConfig(object):
         self.massdatfile = self.outfname + s + "mass.txt"
         self.massgridfile = self.outfname + s + "massgrid.bin"
         self.fitdatfile = self.outfname + s + "fitdat.bin"
+        self.uccdfile = self.outfname + s + "uccd_input.bin"
+        self.uccddeconfile = self.outfname + s + "uccd_decon.bin"
+        self.uccdfitfile = self.outfname + s + "uccd_fit.bin"
         self.errorfile = self.outfname + s + "error.txt"
         self.deconfile = self.outfname + s + "decon.txt"
         self.mzgridfile = self.outfname + s + "grid.bin"

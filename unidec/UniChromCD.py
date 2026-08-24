@@ -142,7 +142,6 @@ class UniChromCDApp(UniDecCDApp):
         self.view.SetStatusText("Deconvolving", number=5)
         # self.view.clear_all_plots()
         self.export_config(self.eng.config.confname)
-        self.eng.run_deconvolution()
         self.eng.decon_full_stack()
         # self.makeplot1()
         # self.makeplot2()

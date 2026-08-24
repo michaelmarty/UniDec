@@ -6,26 +6,205 @@
 
 #include "UCCD_Main.h"
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+#ifdef UNIDEC_USE_MKL
+#include <mkl_service.h>
+#endif
 
-static int readfile4_UCCD(const char *infile, const int length, float *chromdat,
-                          float *mzdat, float *zdat, float *intensity)
+#define UCCD_MAGIC "UCCDBIN1"
+#define UCCD_INPUT_SUFFIX "_uccd_input.bin"
+#define UCCD_DECON_SUFFIX "_uccd_decon.bin"
+#define UCCD_FIT_SUFFIX "_uccd_fit.bin"
+#define UCCD_OMP_MIN_LENGTH 32768
+#define UCCD_FFT_PLAN_FLAGS FFTW_MEASURE
+
+typedef struct {
+    uint32_t index;
+    float intensity;
+} UCCDRecord;
+
+typedef struct {
+    int real_length;
+    int spectrum_length;
+    int kernel_length;
+    int normalization;
+    int batched_2d;
+    float *real_work;
+    fftwf_complex *spectrum_work;
+    fftwf_plan forward_plan;
+    fftwf_plan backward_plan;
+} UCCDFFTContext;
+
+_Static_assert(sizeof(UCCDRecord) == 8, "Unexpected UCCD sparse record padding");
+
+
+static int make_filename_UCCD(char *filename, const size_t length,
+                              const char *outfile, const char *suffix)
 {
-    FILE *file_ptr = fopen(infile, "r");
+    const int written = snprintf(filename, length, "%s%s", outfile, suffix);
+    if (written < 0 || (size_t)written >= length) {
+        fprintf(stderr, "UCCD file name is too long\n");
+        return 0;
+    }
+    return 1;
+}
+
+
+static int read_sparse_UCCD(const char *filename, int size[3],
+                            float **chromext, float **mzext, float **zext,
+                            float **intensity)
+{
+    FILE *file_ptr = fopen(filename, "rb");
     if (file_ptr == NULL) {
-        fprintf(stderr, "Error opening %s\n", infile);
+        fprintf(stderr, "Error opening %s\n", filename);
         return 0;
     }
 
-    for (int i = 0; i < length; i++) {
-        if (fscanf(file_ptr, "%f %f %f %f", &chromdat[i], &mzdat[i],
-                   &zdat[i], &intensity[i]) != 4) {
-            fprintf(stderr, "Error reading row %d from %s; expected four numeric columns\n",
-                    i + 1, infile);
+    char magic[8];
+    uint32_t dimensions[3];
+    uint64_t nonzero_count;
+    if (fread(magic, 1, sizeof(magic), file_ptr) != sizeof(magic) ||
+        memcmp(magic, UCCD_MAGIC, sizeof(magic)) != 0 ||
+        fread(dimensions, sizeof(uint32_t), 3, file_ptr) != 3 ||
+        fread(&nonzero_count, sizeof(uint64_t), 1, file_ptr) != 1) {
+        fprintf(stderr, "Invalid UCCD binary header in %s\n", filename);
+        fclose(file_ptr);
+        return 0;
+    }
+
+    if (dimensions[0] == 0 || dimensions[1] == 0 || dimensions[2] == 0 ||
+        dimensions[0] > INT_MAX || dimensions[1] > INT_MAX || dimensions[2] > INT_MAX) {
+        fprintf(stderr, "Invalid UCCD dimensions in %s\n", filename);
+        fclose(file_ptr);
+        return 0;
+    }
+    size[2] = (int)dimensions[0];
+    size[0] = (int)dimensions[1];
+    size[1] = (int)dimensions[2];
+    const uint64_t total = (uint64_t)size[2] * (uint64_t)size[0] * (uint64_t)size[1];
+    if (total > INT_MAX || total > UINT32_MAX || nonzero_count > total) {
+        fprintf(stderr, "UCCD cube is too large or has an invalid sparse count\n");
+        fclose(file_ptr);
+        return 0;
+    }
+
+    *chromext = calloc((size_t)size[2], sizeof(float));
+    *mzext = calloc((size_t)size[0], sizeof(float));
+    *zext = calloc((size_t)size[1], sizeof(float));
+    *intensity = fftwf_malloc((size_t)total * sizeof(float));
+    if (*chromext == NULL || *mzext == NULL || *zext == NULL || *intensity == NULL) {
+        fprintf(stderr, "Error allocating UCCD input arrays\n");
+        fclose(file_ptr);
+        return 0;
+    }
+    memset(*intensity, 0, (size_t)total * sizeof(float));
+
+    if (fread(*chromext, sizeof(float), (size_t)size[2], file_ptr) != (size_t)size[2] ||
+        fread(*mzext, sizeof(float), (size_t)size[0], file_ptr) != (size_t)size[0] ||
+        fread(*zext, sizeof(float), (size_t)size[1], file_ptr) != (size_t)size[1]) {
+        fprintf(stderr, "Incomplete UCCD axes in %s\n", filename);
+        fclose(file_ptr);
+        return 0;
+    }
+
+    const size_t buffer_length = 65536;
+    UCCDRecord *records = malloc(buffer_length * sizeof(UCCDRecord));
+    if (records == NULL) {
+        fprintf(stderr, "Error allocating UCCD sparse read buffer\n");
+        fclose(file_ptr);
+        return 0;
+    }
+    uint64_t records_left = nonzero_count;
+    while (records_left > 0) {
+        const size_t count = records_left < buffer_length ? (size_t)records_left : buffer_length;
+        if (fread(records, sizeof(UCCDRecord), count, file_ptr) != count) {
+            fprintf(stderr, "Incomplete UCCD sparse data in %s\n", filename);
+            free(records);
             fclose(file_ptr);
             return 0;
         }
+        for (size_t i = 0; i < count; i++) {
+            if (records[i].index >= total) {
+                fprintf(stderr, "Invalid UCCD sparse index in %s\n", filename);
+                free(records);
+                fclose(file_ptr);
+                return 0;
+            }
+            (*intensity)[records[i].index] = records[i].intensity;
+        }
+        records_left -= count;
     }
+    free(records);
     fclose(file_ptr);
+    return 1;
+}
+
+
+static int write_sparse_UCCD(const char *filename, const int size[3],
+                             const float *chromext, const float *mzext,
+                             const float *zext, const float *intensity)
+{
+    const uint64_t total = (uint64_t)size[2] * (uint64_t)size[0] * (uint64_t)size[1];
+    uint64_t nonzero_count = 0;
+    for (uint64_t i = 0; i < total; i++) {
+        if (intensity[i] != 0) { nonzero_count++; }
+    }
+
+    FILE *file_ptr = fopen(filename, "wb");
+    if (file_ptr == NULL) {
+        fprintf(stderr, "Error opening %s\n", filename);
+        return 0;
+    }
+    const uint32_t dimensions[3] = {
+        (uint32_t)size[2], (uint32_t)size[0], (uint32_t)size[1]
+    };
+    if (fwrite(UCCD_MAGIC, 1, 8, file_ptr) != 8 ||
+        fwrite(dimensions, sizeof(uint32_t), 3, file_ptr) != 3 ||
+        fwrite(&nonzero_count, sizeof(uint64_t), 1, file_ptr) != 1 ||
+        fwrite(chromext, sizeof(float), (size_t)size[2], file_ptr) != (size_t)size[2] ||
+        fwrite(mzext, sizeof(float), (size_t)size[0], file_ptr) != (size_t)size[0] ||
+        fwrite(zext, sizeof(float), (size_t)size[1], file_ptr) != (size_t)size[1]) {
+        fprintf(stderr, "Error writing UCCD header or axes to %s\n", filename);
+        fclose(file_ptr);
+        return 0;
+    }
+    const size_t buffer_length = 65536;
+    UCCDRecord *records = malloc(buffer_length * sizeof(UCCDRecord));
+    if (records == NULL) {
+        fprintf(stderr, "Error allocating UCCD sparse write buffer\n");
+        fclose(file_ptr);
+        return 0;
+    }
+    size_t record_count = 0;
+    for (uint64_t i = 0; i < total; i++) {
+        if (intensity[i] != 0) {
+            records[record_count].index = (uint32_t)i;
+            records[record_count].intensity = intensity[i];
+            record_count++;
+            if (record_count == buffer_length) {
+                if (fwrite(records, sizeof(UCCDRecord), record_count, file_ptr) != record_count) {
+                    fprintf(stderr, "Error writing UCCD sparse data to %s\n", filename);
+                    free(records);
+                    fclose(file_ptr);
+                    return 0;
+                }
+                record_count = 0;
+            }
+        }
+    }
+    if (record_count > 0 &&
+        fwrite(records, sizeof(UCCDRecord), record_count, file_ptr) != record_count) {
+        fprintf(stderr, "Error writing UCCD sparse data to %s\n", filename);
+        free(records);
+        fclose(file_ptr);
+        return 0;
+    }
+    free(records);
+    fclose(file_ptr);
+    printf("Wrote %llu nonzero UCCD values to: %s\n",
+           (unsigned long long)nonzero_count, filename);
     return 1;
 }
 
@@ -51,7 +230,6 @@ static float periodic_axis_peak_UCCD(const float *axis, const int length,
 void blur_it_UCCD(float *output, const float *input, const int *upinds,
                   const int *loinds, const int length, const float floor)
 {
-    #pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < length; i++) {
         float i1 = input[i];
         float i2 = input[loinds[i]];
@@ -74,12 +252,70 @@ void blur_it_UCCD(float *output, const float *input, const int *upinds,
 }
 
 
+static void softargmax_scan_UCCD(float *blur, float *scratch,
+                                 const int lengthmz, const int numz,
+                                 const float beta)
+{
+    const int length = lengthmz * numz;
+    memcpy(scratch, blur, (size_t)length * sizeof(float));
+    for (int i = 0; i < lengthmz; i++) {
+        float sum2 = 0;
+        float sum1 = 0;
+        float factor = 0;
+        float min2 = 1.0f;
+        for (int j = 0; j < numz; j++) {
+            const int index = index2D(numz, i, j);
+            const float value = scratch[index];
+            const float exponential = expf(beta * value);
+            sum1 += value;
+            if (exponential < min2) { min2 = exponential; }
+            blur[index] = exponential;
+            sum2 += exponential;
+        }
+        const float denominator = sum2 - min2 * (float)numz;
+        if (denominator != 0) { factor = sum1 / denominator; }
+        for (int j = 0; j < numz; j++) {
+            const int index = index2D(numz, i, j);
+            if (factor > 0) {
+                blur[index] = (blur[index] - min2) * factor;
+            } else {
+                blur[index] = 0;
+            }
+        }
+    }
+}
+
+
+static void point_smoothing_scan_UCCD(float *blur, float *scratch,
+                                      const char *barr, const int lengthmz,
+                                      const int numz, const int width)
+{
+    const int length = lengthmz * numz;
+    memcpy(scratch, blur, (size_t)length * sizeof(float));
+    const float denominator = 1.0f + 2.0f * (float)width;
+    for (int i = 0; i < lengthmz; i++) {
+        const int low = i - width > 0 ? i - width : 0;
+        const int high = i + width + 1 < lengthmz ? i + width + 1 : lengthmz;
+        for (int j = 0; j < numz; j++) {
+            const int index = index2D(numz, i, j);
+            if (barr[index] == 1) {
+                float sum = 0;
+                for (int k = low; k < high; k++) {
+                    sum += scratch[index2D(numz, k, j)];
+                }
+                blur[index] = sum / denominator;
+            }
+        }
+    }
+}
+
+
 void setup_blur_z_UCCD(int *zupind, int *zloind, const float *mzdat,
                        const float *zdat, const int scan_length,
                        const float adductmass, const float mzranges[4],
                        const int size[3])
 {
-    #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for schedule(static) if(scan_length >= UCCD_OMP_MIN_LENGTH)
     for (int i = 0; i < scan_length; i++) {
         const float mz = mzdat[i];
         const float z = zdat[i];
@@ -119,7 +355,7 @@ void setup_blur_m_UCCD(int *mupind, int *mloind, const float *mzdat,
                        const float adductmass, const float mzranges[4],
                        const int size[3], const float molig)
 {
-    #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for schedule(static) if(scan_length >= UCCD_OMP_MIN_LENGTH)
     for (int i = 0; i < scan_length; i++) {
         const float mz = mzdat[i];
         const int zint = (int)zdat[i];
@@ -160,7 +396,7 @@ void make_kernel3D_UCCD(float *peak, const int size[3], const float *chromext,
     }
 
     MakeKernel2D(scan_kernel, size, mzext, zext, mzsig, zsig, psfun, zpsfun);
-    #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for schedule(static) if(size[2] > 1 && scan_length * size[2] >= UCCD_OMP_MIN_LENGTH)
     for (int scan = 0; scan < size[2]; scan++) {
         const float chrom_value = periodic_axis_peak_UCCD(chromext, size[2], scan,
                                                           chromsig, psfun);
@@ -173,131 +409,191 @@ void make_kernel3D_UCCD(float *peak, const int size[3], const float *chromext,
 }
 
 
-void precompute_fft3D_UCCD(const float *list, const int size[3],
-                           fftwf_complex *output)
+static int initialize_fft_UCCD(UCCDFFTContext *context, const int size[3],
+                               const int batched_2d)
 {
-    const int length = size[0] * size[1] * size[2];
-    fftwf_complex *input = fftwf_malloc(sizeof(fftwf_complex) * (size_t)length);
-    if (input == NULL) {
-        fprintf(stderr, "Error allocating UCCD FFT input\n");
-        exit(1);
+    memset(context, 0, sizeof(*context));
+    const int scan_length = size[0] * size[1];
+    context->real_length = scan_length * size[2];
+    context->batched_2d = batched_2d;
+    if (batched_2d) {
+        context->kernel_length = size[0] * (size[1] / 2 + 1);
+        context->spectrum_length = size[2] * context->kernel_length;
+        context->normalization = scan_length;
+    } else {
+        context->kernel_length = size[2] * size[0] * (size[1] / 2 + 1);
+        context->spectrum_length = context->kernel_length;
+        context->normalization = context->real_length;
     }
-    #pragma omp parallel for schedule(dynamic)
-    for (int i = 0; i < length; i++) {
-        input[i][0] = list[i];
-        input[i][1] = 0;
+
+    context->real_work = fftwf_malloc((size_t)context->real_length * sizeof(float));
+    context->spectrum_work = fftwf_malloc(
+        (size_t)context->spectrum_length * sizeof(fftwf_complex));
+    if (context->real_work == NULL || context->spectrum_work == NULL) {
+        fprintf(stderr, "Error allocating UCCD real FFT workspace\n");
+        return 0;
     }
-    fftwf_plan plan = fftwf_plan_dft_3d(size[2], size[0], size[1], input,
-                                        output, FFTW_FORWARD, FFTW_ESTIMATE);
-    fftwf_execute(plan);
-    fftwf_destroy_plan(plan);
-    fftwf_free(input);
+
+    if (batched_2d) {
+        const int dimensions[2] = {size[0], size[1]};
+        context->forward_plan = fftwf_plan_many_dft_r2c(
+            2, dimensions, size[2], context->real_work, NULL, 1, scan_length,
+            context->spectrum_work, NULL, 1, context->kernel_length,
+            UCCD_FFT_PLAN_FLAGS);
+        context->backward_plan = fftwf_plan_many_dft_c2r(
+            2, dimensions, size[2], context->spectrum_work, NULL, 1,
+            context->kernel_length, context->real_work, NULL, 1, scan_length,
+            UCCD_FFT_PLAN_FLAGS);
+    } else {
+        context->forward_plan = fftwf_plan_dft_r2c_3d(
+            size[2], size[0], size[1], context->real_work,
+            context->spectrum_work, UCCD_FFT_PLAN_FLAGS);
+        context->backward_plan = fftwf_plan_dft_c2r_3d(
+            size[2], size[0], size[1], context->spectrum_work,
+            context->real_work, UCCD_FFT_PLAN_FLAGS);
+    }
+    if (context->forward_plan == NULL || context->backward_plan == NULL) {
+        fprintf(stderr, "Error creating UCCD real FFT plans\n");
+        return 0;
+    }
+    return 1;
 }
 
 
-void fftconvolve3D_precomputed_UCCD(float *corr, const float *list,
-                                    const fftwf_complex *kernel_fft,
-                                    const int size[3], fftwf_plan forward_plan,
-                                    fftwf_plan backward_plan,
-                                    fftwf_complex *work,
-                                    fftwf_complex *transform)
+static void destroy_fft_UCCD(UCCDFFTContext *context)
 {
-    const int length = size[0] * size[1] * size[2];
-    #pragma omp parallel for schedule(dynamic)
-    for (int i = 0; i < length; i++) {
-        work[i][0] = list[i];
-        work[i][1] = 0;
-    }
-    fftwf_execute(forward_plan);
-
-    #pragma omp parallel for schedule(dynamic)
-    for (int i = 0; i < length; i++) {
-        const float a = transform[i][0];
-        const float b = transform[i][1];
-        const float c = kernel_fft[i][0];
-        const float d = kernel_fft[i][1];
-        work[i][0] = a * c - b * d;
-        work[i][1] = b * c + a * d;
-    }
-    fftwf_execute(backward_plan);
-
-    #pragma omp parallel for schedule(dynamic)
-    for (int i = 0; i < length; i++) {
-        corr[i] = transform[i][0] / (float)length;
-    }
+    if (context->forward_plan != NULL) { fftwf_destroy_plan(context->forward_plan); }
+    if (context->backward_plan != NULL) { fftwf_destroy_plan(context->backward_plan); }
+    fftwf_free(context->real_work);
+    fftwf_free(context->spectrum_work);
+    memset(context, 0, sizeof(*context));
 }
 
 
-void complex_conjugate_UCCD(const fftwf_complex *input, fftwf_complex *output,
-                            const int length)
+static void make_kernel_fft_UCCD(fftwf_complex *kernel_fft,
+                                 UCCDFFTContext *context, const int size[3],
+                                 const float *chromext, const float *mzext,
+                                 const float *zext, const float chromsig,
+                                 const float mzsig, const float zsig,
+                                 const int psfun, const int zpsfun)
 {
-    #pragma omp parallel for schedule(dynamic)
-    for (int i = 0; i < length; i++) {
-        output[i][0] = input[i][0];
-        output[i][1] = -input[i][1];
+    if (context->batched_2d) {
+        const int scan_length = size[0] * size[1];
+        MakeKernel2D(context->real_work, size, mzext, zext,
+                     mzsig, zsig, psfun, zpsfun);
+        #pragma omp parallel for schedule(static) if(context->real_length >= UCCD_OMP_MIN_LENGTH)
+        for (int scan = 1; scan < size[2]; scan++) {
+            memcpy(context->real_work + scan * scan_length,
+                   context->real_work, (size_t)scan_length * sizeof(float));
+        }
+    } else {
+        make_kernel3D_UCCD(context->real_work, size, chromext, mzext, zext,
+                           chromsig, mzsig, zsig, psfun, zpsfun);
+    }
+    fftwf_execute(context->forward_plan);
+    memcpy(kernel_fft, context->spectrum_work,
+           (size_t)context->kernel_length * sizeof(fftwf_complex));
+}
+
+
+static void compute_convolution_UCCD(const float *list,
+                                     const fftwf_complex *kernel_fft,
+                                     const int conjugate_kernel,
+                                     UCCDFFTContext *context,
+                                     const int scan_count)
+{
+    #pragma omp parallel for schedule(static) if(context->real_length >= UCCD_OMP_MIN_LENGTH)
+    for (int i = 0; i < context->real_length; i++) {
+        context->real_work[i] = list[i];
+    }
+    fftwf_execute(context->forward_plan);
+
+    if (context->batched_2d) {
+        #pragma omp parallel for schedule(static) if(context->spectrum_length >= UCCD_OMP_MIN_LENGTH)
+        for (int scan = 0; scan < scan_count; scan++) {
+            const int offset = scan * context->kernel_length;
+            for (int i = 0; i < context->kernel_length; i++) {
+                const float a = context->spectrum_work[offset + i][0];
+                const float b = context->spectrum_work[offset + i][1];
+                const float c = kernel_fft[i][0];
+                const float d = conjugate_kernel ? -kernel_fft[i][1] : kernel_fft[i][1];
+                context->spectrum_work[offset + i][0] = a * c - b * d;
+                context->spectrum_work[offset + i][1] = b * c + a * d;
+            }
+        }
+    } else {
+        #pragma omp parallel for schedule(static) if(context->spectrum_length >= UCCD_OMP_MIN_LENGTH)
+        for (int i = 0; i < context->spectrum_length; i++) {
+            const float a = context->spectrum_work[i][0];
+            const float b = context->spectrum_work[i][1];
+            const float c = kernel_fft[i][0];
+            const float d = conjugate_kernel ? -kernel_fft[i][1] : kernel_fft[i][1];
+            context->spectrum_work[i][0] = a * c - b * d;
+            context->spectrum_work[i][1] = b * c + a * d;
+        }
+    }
+    fftwf_execute(context->backward_plan);
+}
+
+
+static void fftconvolve_precomputed_UCCD(float *output, const float *input,
+                                         const fftwf_complex *kernel_fft,
+                                         UCCDFFTContext *context,
+                                         const int scan_count)
+{
+    compute_convolution_UCCD(input, kernel_fft, 0, context, scan_count);
+    const float scale = 1.0f / (float)context->normalization;
+    #pragma omp parallel for schedule(static) if(context->real_length >= UCCD_OMP_MIN_LENGTH)
+    for (int i = 0; i < context->real_length; i++) {
+        output[i] = context->real_work[i] * scale;
     }
 }
 
 
 int run_unidec_UCCD(int argc, char *argv[], Config config)
 {
-    (void)argc;
-    (void)argv;
     const time_t starttime = time(NULL);
-    printf("Opening UCCD file: %s\n", config.infile);
-
-    const int lines = getfilelength(config.infile);
-    if (lines <= 0) {
-        fprintf(stderr, "UCCD input contains no data\n");
+    char input_filename[550];
+    char decon_filename[550];
+    char fit_filename[550];
+    if (!make_filename_UCCD(input_filename, sizeof(input_filename),
+                            config.outfile, UCCD_INPUT_SUFFIX) ||
+        !make_filename_UCCD(decon_filename, sizeof(decon_filename),
+                            config.outfile, UCCD_DECON_SUFFIX) ||
+        !make_filename_UCCD(fit_filename, sizeof(fit_filename),
+                            config.outfile, UCCD_FIT_SUFFIX)) {
         return 1;
     }
+    printf("Opening sparse binary UCCD file: %s\n", input_filename);
 
-    float *chromdat = calloc((size_t)lines, sizeof(float));
-    float *mzdat = calloc((size_t)lines, sizeof(float));
-    float *zdat = calloc((size_t)lines, sizeof(float));
-    float *dataInt = calloc((size_t)lines, sizeof(float));
-    if (chromdat == NULL || mzdat == NULL || zdat == NULL || dataInt == NULL) {
-        fprintf(stderr, "Error allocating UCCD data arrays\n");
-        return 1;
-    }
-    if (!readfile4_UCCD(config.infile, lines, chromdat, mzdat, zdat, dataInt)) {
+    int size[3] = {0, 0, 0};
+    float *chromext = NULL;
+    float *mzext = NULL;
+    float *zext = NULL;
+    float *dataInt = NULL;
+    if (!read_sparse_UCCD(input_filename, size, &chromext, &mzext, &zext, &dataInt)) {
         return 2;
     }
 
-    int size[3] = {GetSize0(mzdat, lines), GetSize1(zdat, lines), 0};
     const int scan_length = size[0] * size[1];
-    if (scan_length <= 0 || lines % scan_length != 0) {
-        fprintf(stderr, "UCCD input is not a complete dense m/z-by-charge grid per scan\n");
-        return 2;
-    }
-    size[2] = lines / scan_length;
-    for (int scan = 0; scan < size[2]; scan++) {
-        const int offset = scan * scan_length;
-        if (chromdat[offset] != chromdat[offset + scan_length - 1]) {
-            fprintf(stderr, "Chromatography coordinate changes inside scan %d\n", scan);
-            return 2;
-        }
-        for (int i = 0; i < scan_length; i++) {
-            if (mzdat[offset + i] != mzdat[i] || zdat[offset + i] != zdat[i]) {
-                fprintf(stderr, "m/z-charge grid differs in chromatography scan %d\n", scan);
-                return 2;
-            }
-        }
-    }
+    const int lines = scan_length * size[2];
     printf("Dimensions: %d chromatography by %d m/z by %d charge: %d total\n",
            size[2], size[0], size[1], lines);
 
-    float *chromext = calloc((size_t)size[2], sizeof(float));
-    float *mzext = calloc((size_t)size[0], sizeof(float));
-    float *zext = calloc((size_t)size[1], sizeof(float));
-    if (chromext == NULL || mzext == NULL || zext == NULL) {
-        fprintf(stderr, "Error allocating UCCD axis arrays\n");
+    /* The mass/charge smoothing setup only needs one dense m/z-charge scan. */
+    float *mzdat = calloc((size_t)scan_length, sizeof(float));
+    float *zdat = calloc((size_t)scan_length, sizeof(float));
+    if (mzdat == NULL || zdat == NULL) {
+        fprintf(stderr, "Error allocating UCCD coordinate grid\n");
         return 1;
     }
-    for (int scan = 0; scan < size[2]; scan++) {
-        chromext[scan] = chromdat[scan * scan_length];
+    for (int mzindex = 0; mzindex < size[0]; mzindex++) {
+        for (int zindex = 0; zindex < size[1]; zindex++) {
+            const int index = mzindex * size[1] + zindex;
+            mzdat[index] = mzext[mzindex];
+            zdat[index] = zext[zindex];
+        }
     }
-    PullXY(mzext, zext, mzdat, zdat, size);
     const float mzranges[4] = {mzext[0], mzext[size[0] - 1],
                                zext[0], zext[size[1] - 1]};
     printf("Chromatography range: %f to %f\n", chromext[0], chromext[size[2] - 1]);
@@ -326,82 +622,120 @@ int run_unidec_UCCD(int argc, char *argv[], Config config)
                           config.adductmass, mzranges, size, config.molig);
     }
 
-    float *peakshape = calloc((size_t)lines, sizeof(float));
-    float *mkernel = calloc((size_t)lines, sizeof(float));
-    float *blur = calloc((size_t)lines, sizeof(float));
-    float *newblur = calloc((size_t)lines, sizeof(float));
-    float *newblur2 = calloc((size_t)lines, sizeof(float));
-    float *oldblur = calloc((size_t)lines, sizeof(float));
-    fftwf_complex *work = fftwf_malloc(sizeof(fftwf_complex) * (size_t)lines);
-    fftwf_complex *transform = fftwf_malloc(sizeof(fftwf_complex) * (size_t)lines);
-    fftwf_complex *peakshape_fft = fftwf_malloc(sizeof(fftwf_complex) * (size_t)lines);
-    fftwf_complex *inverse_peakshape_fft = fftwf_malloc(sizeof(fftwf_complex) * (size_t)lines);
-    fftwf_complex *mkernel_fft = fftwf_malloc(sizeof(fftwf_complex) * (size_t)lines);
-    if (peakshape == NULL || mkernel == NULL || blur == NULL || newblur == NULL ||
-        newblur2 == NULL || oldblur == NULL || work == NULL || transform == NULL ||
-        peakshape_fft == NULL || inverse_peakshape_fft == NULL || mkernel_fft == NULL) {
+    const int explicit_thread_count = argc > 3 && strcmp(argv[2], "-nthreads") == 0;
+#ifdef _OPENMP
+    int thread_count = omp_get_max_threads();
+    if (!explicit_thread_count && thread_count > 8) {
+        thread_count = 8;
+        omp_set_num_threads(thread_count);
+    }
+    omp_set_dynamic(0);
+#else
+    const int thread_count = 1;
+#endif
+    printf("UCCD worker threads: %d%s\n", thread_count,
+           explicit_thread_count ? " (requested)" : "");
+
+#ifdef UNIDEC_USE_MKL
+    const int previous_mkl_threads = mkl_set_num_threads_local(thread_count);
+#endif
+#ifdef UNIDEC_USE_FFTW_THREADS
+    const int fftw_threads_initialized = fftwf_init_threads();
+    if (!fftw_threads_initialized) {
+        fprintf(stderr, "Error initializing threaded FFTW for UCCD\n");
+        return 1;
+    }
+    fftwf_plan_with_nthreads(thread_count);
+#endif
+
+    float *blur = fftwf_malloc((size_t)lines * sizeof(float));
+    float *newblur = fftwf_malloc((size_t)lines * sizeof(float));
+    float *newblur2 = fftwf_malloc((size_t)lines * sizeof(float));
+    float *oldblur = fftwf_malloc((size_t)lines * sizeof(float));
+    if (blur == NULL || newblur == NULL || newblur2 == NULL || oldblur == NULL) {
         fprintf(stderr, "Error allocating UCCD processing arrays\n");
         return 1;
     }
 
-    fftwf_plan forward_plan = fftwf_plan_dft_3d(size[2], size[0], size[1], work,
-                                                transform, FFTW_FORWARD, FFTW_ESTIMATE);
-    fftwf_plan backward_plan = fftwf_plan_dft_3d(size[2], size[0], size[1], work,
-                                                 transform, FFTW_BACKWARD, FFTW_ESTIMATE);
-    make_kernel3D_UCCD(peakshape, size, chromext, mzext, zext,
-                       config.csig, config.mzsig, 0,
-                       config.psfun, config.zpsfun);
-    precompute_fft3D_UCCD(peakshape, size, peakshape_fft);
-    complex_conjugate_UCCD(peakshape_fft, inverse_peakshape_fft, lines);
+    const int batched_2d = config.dtsig == 0;
+    UCCDFFTContext fft_context;
+    if (!initialize_fft_UCCD(&fft_context, size, batched_2d)) {
+        destroy_fft_UCCD(&fft_context);
+        return 1;
+    }
+    fftwf_complex *kernel_fft = fftwf_malloc(
+        (size_t)fft_context.kernel_length * sizeof(fftwf_complex));
+    if (kernel_fft == NULL) {
+        fprintf(stderr, "Error allocating UCCD kernel spectrum\n");
+        destroy_fft_UCCD(&fft_context);
+        return 1;
+    }
+
+    printf("Peak widths: chromatography %f, m/z %f, charge %f\n",
+           config.dtsig, config.mzsig, config.csig);
+    printf("FFT mode: %s real transforms\n",
+           batched_2d ? "batched 2-D" : "coupled 3-D");
+    make_kernel_fft_UCCD(kernel_fft, &fft_context, size, chromext, mzext, zext,
+                         config.dtsig, config.mzsig, config.csig,
+                         config.psfun, config.zpsfun);
 
     const size_t matsize = (size_t)lines * sizeof(float);
     memcpy(blur, dataInt, matsize);
     memcpy(oldblur, blur, matsize);
     printf("Iterating.");
-    float conv = 0;
+    double conv = 0;
     int off = 0;
     for (int iteration = 0; iteration < config.numit; iteration++) {
         /* These operations intentionally do not cross chromatography scans. */
-        for (int scan = 0; scan < size[2]; scan++) {
-            const int offset = scan * scan_length;
-            if (config.beta > 0) {
-                softargmax(blur + offset, size[0], size[1], config.beta / betafactor);
-            }
-            if (config.psig > 0) {
-                point_smoothing(blur + offset, barr, size[0], size[1],
-                                abs((int)config.psig));
-            }
-            if (config.zsig != 0) {
-                blur_it_UCCD(newblur + offset, blur + offset, zupind, zloind,
-                             scan_length, config.zsig * dmax);
-                memcpy(blur + offset, newblur + offset,
-                       (size_t)scan_length * sizeof(float));
-            }
-            if (config.msig != 0) {
-                blur_it_UCCD(newblur + offset, blur + offset, mupind, mloind,
-                             scan_length, config.msig * dmax);
-                memcpy(blur + offset, newblur + offset,
-                       (size_t)scan_length * sizeof(float));
+        if (config.beta > 0 || config.psig > 0 || config.zsig != 0 || config.msig != 0) {
+            #pragma omp parallel for schedule(static) if(size[2] > 1 && lines >= UCCD_OMP_MIN_LENGTH)
+            for (int scan = 0; scan < size[2]; scan++) {
+                const int offset = scan * scan_length;
+                float *const scratch = newblur + offset;
+                if (config.beta > 0) {
+                    softargmax_scan_UCCD(blur + offset, scratch, size[0], size[1],
+                                         config.beta / betafactor);
+                }
+                if (config.psig > 0) {
+                    point_smoothing_scan_UCCD(blur + offset, scratch, barr,
+                                              size[0], size[1], abs((int)config.psig));
+                }
+                if (config.zsig != 0) {
+                    blur_it_UCCD(scratch, blur + offset, zupind, zloind,
+                                 scan_length, config.zsig * dmax);
+                    memcpy(blur + offset, scratch,
+                           (size_t)scan_length * sizeof(float));
+                }
+                if (config.msig != 0) {
+                    blur_it_UCCD(scratch, blur + offset, mupind, mloind,
+                                 scan_length, config.msig * dmax);
+                    memcpy(blur + offset, scratch,
+                           (size_t)scan_length * sizeof(float));
+                }
             }
         }
 
-        fftconvolve3D_precomputed_UCCD(newblur, blur, peakshape_fft, size,
-                                      forward_plan, backward_plan, work, transform);
-        #pragma omp parallel for schedule(dynamic)
+        compute_convolution_UCCD(blur, kernel_fft, 0, &fft_context, size[2]);
+        const float fft_scale = 1.0f / (float)fft_context.normalization;
+        #pragma omp parallel for schedule(static) if(lines >= UCCD_OMP_MIN_LENGTH)
         for (int i = 0; i < lines; i++) {
-            newblur2[i] = newblur[i] != 0 ? dataInt[i] / newblur[i] : 0;
+            const float predicted = fft_context.real_work[i] * fft_scale;
+            newblur2[i] = predicted != 0 ? dataInt[i] / predicted : 0;
         }
-        fftconvolve3D_precomputed_UCCD(newblur, newblur2, inverse_peakshape_fft,
-                                      size, forward_plan, backward_plan, work, transform);
-        #pragma omp parallel for schedule(dynamic)
-        for (int i = 0; i < lines; i++) { blur[i] *= newblur[i]; }
+        compute_convolution_UCCD(newblur2, kernel_fft, 1, &fft_context, size[2]);
+        #pragma omp parallel for schedule(static) if(lines >= UCCD_OMP_MIN_LENGTH)
+        for (int i = 0; i < lines; i++) {
+            blur[i] *= fft_context.real_work[i] * fft_scale;
+        }
 
         if (config.numit < 10 || iteration % 10 == 0 || iteration % 10 == 1 ||
             iteration > 0.9 * config.numit) {
-            float diff = 0;
-            float total = 0;
+            double diff = 0;
+            double total = 0;
+            #pragma omp parallel for reduction(+:diff,total) schedule(static) if(lines >= UCCD_OMP_MIN_LENGTH)
             for (int i = 0; i < lines; i++) {
-                diff += powf(blur[i] - oldblur[i], 2);
+                const double delta = (double)blur[i] - (double)oldblur[i];
+                diff += delta * delta;
                 total += blur[i];
             }
             if (total != 0) {
@@ -414,7 +748,7 @@ int run_unidec_UCCD(int argc, char *argv[], Config config)
             }
             if (conv < 0.000001) {
                 if (off == 1 && config.numit > 0) {
-                    printf("Converged in %d iterations.\n", iteration);
+                    printf("Converged in %d iterations.\n", iteration + 1);
                     break;
                 }
                 off = 1;
@@ -424,23 +758,24 @@ int run_unidec_UCCD(int argc, char *argv[], Config config)
     }
     printf("Completed iterations\n");
 
-    memcpy(newblur, blur, matsize);
-    fftconvolve3D_precomputed_UCCD(newblur2, newblur, peakshape_fft, size,
-                                  forward_plan, backward_plan, work, transform);
+    fftconvolve_precomputed_UCCD(newblur2, blur, kernel_fft,
+                                &fft_context, size[2]);
     if (config.datanorm == 1) {
         const float fitmax = Max(newblur2, lines);
         if (dmax != 0 && fitmax != 0) { Normalize(lines, newblur2, fitmax / dmax); }
     }
     ApplyCutoff(newblur2, 0, lines);
-    write1D(config.outfile, "fitdat", newblur2, lines);
+    int result = 0;
+    if (!write_sparse_UCCD(fit_filename, size, chromext, mzext, zext, newblur2)) {
+        result = 1;
+        goto cleanup_processing_UCCD;
+    }
 
     if (config.rawflag == 0) {
-        make_kernel3D_UCCD(mkernel, size, chromext, mzext, zext, 0,
-                           config.mzsig, 0, config.psfun, config.zpsfun);
-        precompute_fft3D_UCCD(mkernel, size, mkernel_fft);
-        memcpy(newblur, blur, matsize);
-        fftconvolve3D_precomputed_UCCD(blur, newblur, mkernel_fft, size,
-                                      forward_plan, backward_plan, work, transform);
+        make_kernel_fft_UCCD(kernel_fft, &fft_context, size, chromext, mzext, zext,
+                             0, config.mzsig, 0, config.psfun, config.zpsfun);
+        fftconvolve_precomputed_UCCD(blur, blur, kernel_fft,
+                                    &fft_context, size[2]);
         printf("Reconvolved with m/z dimension\n");
     }
     if (config.datanorm == 1) {
@@ -448,26 +783,25 @@ int run_unidec_UCCD(int argc, char *argv[], Config config)
         if (dmax != 0 && blurmax != 0) { Normalize(lines, blur, blurmax / dmax); }
     }
     ApplyCutoff(blur, 0, lines);
-
-    char outstring[510];
-    snprintf(outstring, sizeof(outstring), "%s_decon.txt", config.outfile);
-    FILE *out_ptr = fopen(outstring, "w");
-    if (out_ptr == NULL) {
-        fprintf(stderr, "Error opening %s\n", outstring);
-        return 1;
+    if (!write_sparse_UCCD(decon_filename, size, chromext, mzext, zext, blur)) {
+        result = 1;
     }
-    for (int i = 0; i < lines; i++) { fprintf(out_ptr, "%f\n", blur[i]); }
-    fclose(out_ptr);
-    printf("Wrote deconvolution output to: %s\n", outstring);
 
-    free(chromdat); free(mzdat); free(zdat); free(dataInt);
+cleanup_processing_UCCD:
+    fftwf_free(kernel_fft);
+    destroy_fft_UCCD(&fft_context);
+    fftwf_free(blur); fftwf_free(newblur); fftwf_free(newblur2); fftwf_free(oldblur);
+#ifdef UNIDEC_USE_FFTW_THREADS
+    fftwf_cleanup_threads();
+#endif
+#ifdef UNIDEC_USE_MKL
+    mkl_set_num_threads_local(previous_mkl_threads);
+#endif
+
+    free(mzdat); free(zdat); fftwf_free(dataInt);
     free(chromext); free(mzext); free(zext);
     free(zupind); free(zloind); free(mupind); free(mloind); free(barr);
-    free(peakshape); free(mkernel); free(blur); free(newblur); free(newblur2); free(oldblur);
-    fftwf_destroy_plan(forward_plan); fftwf_destroy_plan(backward_plan);
-    fftwf_free(work); fftwf_free(transform); fftwf_free(peakshape_fft);
-    fftwf_free(inverse_peakshape_fft); fftwf_free(mkernel_fft);
 
     printf("Done in %ds!\n", (int)difftime(time(NULL), starttime));
-    return 0;
+    return result;
 }

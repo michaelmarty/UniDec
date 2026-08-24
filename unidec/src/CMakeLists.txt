@@ -95,6 +95,17 @@ add_executable(unidec
         MetaUniDec_Main.h
 )
 
+# The Python package launches the executable from unidec/bin. Keep that copy
+# synchronized with normal IDE/CMake builds; the install target is not run by
+# CLion's regular Build action.
+add_custom_command(TARGET unidec POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${INSTALL_DIR}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "$<TARGET_FILE:unidec>"
+                "${INSTALL_DIR}/$<TARGET_FILE_NAME:unidec>"
+        COMMENT "Deploying unidec executable to ${INSTALL_DIR}"
+)
+
 #target_link_libraries(unidec PRIVATE unideclib)
 #target_include_directories(unideclib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_definitions(unideclib PRIVATE UNIDEC_BUILD_DLL)
@@ -121,9 +132,11 @@ endif()
 # Find MKL (Math Kernel Library)
 find_package(MKL)
 if (MKL_FOUND)
+    target_compile_definitions(unidec PRIVATE UNIDEC_USE_MKL)
+    target_include_directories(unidec PRIVATE "${MKL_ROOT}/include")
     target_link_libraries(unidec PUBLIC ${MKL_LIBRARIES})
-    target_link_libraries(unidec PUBLIC mkl_rt)
-    target_link_libraries(unideclib PUBLIC mkl_rt)
+    target_link_libraries(unidec PUBLIC "${MKL_ROOT}/lib/mkl_rt.lib")
+    target_link_libraries(unideclib PUBLIC "${MKL_ROOT}/lib/mkl_rt.lib")
     include_directories(${MKL_INCLUDE_DIRS})
     set(FFTW_DIR "C:/Program Files (x86)/Intel/oneAPI/mkl/2025.1/include/fftw")
     include_directories("${FFTW_DIR}")
@@ -137,6 +150,11 @@ else()
     link_directories("${FFTW_DIR}")
     target_link_libraries(unidec PUBLIC fftw3f)
     target_link_libraries(unideclib PUBLIC fftw3f)
+    find_library(FFTW3F_THREADS_LIBRARY NAMES fftw3f_threads HINTS "${FFTW_DIR}")
+    if (FFTW3F_THREADS_LIBRARY)
+        target_compile_definitions(unidec PRIVATE UNIDEC_USE_FFTW_THREADS)
+        target_link_libraries(unidec PUBLIC ${FFTW3F_THREADS_LIBRARY})
+    endif()
 endif()
 
 

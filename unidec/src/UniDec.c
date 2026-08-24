@@ -76,6 +76,11 @@ int main(int argc, char *argv[])
 		printf("UniDec Ion Mobility Run\n");
 		result = run_unidec_IM(argc, argv, config);
 	}
+	else if (config.cdmsflag == 2)
+	{
+		printf("UniDec Chromatographic CDMS Run\n");
+		result = run_unidec_UCCD(argc, argv, config);
+	}
 	else if (config.cdmsflag == 1)
 	{
 		printf("UniDecCD Run\n");

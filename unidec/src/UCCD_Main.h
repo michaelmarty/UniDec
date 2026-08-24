@@ -8,6 +8,8 @@
 #define UCCD_MAIN_H
 
 #include <math.h>
+#include <limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,10 +18,16 @@
 #include "udcore.h"
 
 /*
- * UCCD data are dense and ordered as chromatography, m/z, charge.  The input
- * text file has four columns in that same order:
+ * UCCD data are stored in a sparse little-endian binary format. The header is:
  *
- *     chromatography_coordinate  m/z  charge  intensity
+ *     char[8] magic ("UCCDBIN1")
+ *     uint32 chromatography_count, mz_count, charge_count
+ *     uint64 nonzero_count
+ *     float32 chromatography_axis[], mz_axis[], charge_axis[]
+ *     { uint32 flat_index; float32 intensity; } nonzero_values[]
+ *
+ * flat_index addresses dense [chromatography][m/z][charge] storage, with
+ * charge contiguous.
  */
 
 void blur_it_UCCD(float *output, const float *input, const int *upinds,
@@ -37,24 +45,11 @@ void make_kernel3D_UCCD(float *peak, const int size[3], const float *chromext,
                         const float *mzext, const float *zext, float chromsig,
                         float mzsig, float zsig, int psfun, int zpsfun);
 
-void precompute_fft3D_UCCD(const float *list, const int size[3],
-                           fftwf_complex *output);
-
-void fftconvolve3D_precomputed_UCCD(float *corr, const float *list,
-                                    const fftwf_complex *kernel_fft,
-                                    const int size[3], fftwf_plan forward_plan,
-                                    fftwf_plan backward_plan,
-                                    fftwf_complex *work,
-                                    fftwf_complex *transform);
-
-void complex_conjugate_UCCD(const fftwf_complex *input, fftwf_complex *output,
-                            int length);
-
 /*
- * config.csig is the chromatographic peak width, expressed in chromatography-
- * coordinate units.  It uses the peak shape selected by config.psfun, just as
- * config.mzsig does for the m/z axis.  Zero disables chromatography broadening.
- * Charge-axis smoothing remains controlled by config.zsig.
+ * config.dtsig is the chromatographic peak width, expressed in chromatography-
+ * coordinate units. config.mzsig and config.csig are the m/z and charge peak
+ * widths, respectively. Zero disables broadening on the corresponding axis.
+ * Iterative charge-state smoothing remains controlled by config.zsig.
  */
 int run_unidec_UCCD(int argc, char *argv[], Config config);
 
