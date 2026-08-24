@@ -807,6 +807,9 @@ class UniChromCDEng(HTEng, UniDecCD):
         else:
             self.fullhstack = self.decon_external_call_all(self.fullhstack)
 
+        # Any mass/CCS stacks derived from the previous fullhstack are stale.
+        self.clear_arrays(massonly=True)
+
         # Recreate the conventional summed result from the deconvolved stack,
         # then perform the same mass transform normally done at the end of
         # run_deconvolution.
@@ -900,10 +903,17 @@ class UniChromCDEng(HTEng, UniDecCD):
         :param kwargs: Keyword arguments. Currently supports "normalize" which normalizes the output to the maximum.
         :return: TIC/EIC in 2D array (time, intensity)
         """
-        # Count of number of time each scans appears in farray
-        scans, counts = np.unique(farray[:, 2], return_counts=True)
+        # Use the same signal definition as histogramLC. Without injection-time
+        # weighting, each ion contributes one count. With weighting enabled,
+        # both the chromatogram and histogram use column 3 as the ion weight.
+        if self.config.CDiitflag:
+            scans, inverse = np.unique(farray[:, 2], return_inverse=True)
+            weights = np.asarray(farray[:, 3], dtype=float)
+            counts = np.bincount(inverse, weights=weights)
+        else:
+            scans, counts = np.unique(farray[:, 2], return_counts=True)
 
-        fulleic = np.zeros_like(self.fullscans)
+        fulleic = np.zeros(len(self.fullscans), dtype=float)
         for i, s in enumerate(scans):
             fulleic[int(s) - 1] = counts[i]
         # Normalize
