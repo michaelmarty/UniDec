@@ -1,4 +1,5 @@
 import platform
+import struct
 import numpy as np
 import os
 import scipy
@@ -16,6 +17,98 @@ from scipy.optimize import curve_fit
 from UniDecImporter import ImportTools as IT
 
 cdeng_types = [".mzml", ".raw", ".mzxml", ".gz"]
+
+UCCD_BINARY_MAGIC = b"UCCDBIN1"
+UCCD_BINARY_HEADER = struct.Struct("<8sIIIQ")
+UCCD_BINARY_RECORD = np.dtype([("index", "<u4"), ("intensity", "<f4")])
+
+
+def write_uccd_binary(filename, chromaxis, mzaxis, zaxis, hstack):
+    """Write a sparse UCCD cube in [chromatography, m/z, charge] order."""
+    chromaxis = np.asarray(chromaxis, dtype="<f4")
+    mzaxis = np.asarray(mzaxis, dtype="<f4")
+    zaxis = np.asarray(zaxis, dtype="<f4")
+    hstack = np.asarray(hstack)
+    expected_shape = (len(chromaxis), len(zaxis), len(mzaxis))
+    if hstack.shape != expected_shape:
+        raise ValueError(f"UCCD stack must have shape {expected_shape}; got {hstack.shape}")
+
+    total_size = int(np.prod(expected_shape, dtype=np.int64))
+    if total_size > np.iinfo(np.uint32).max:
+        raise ValueError("UCCD cube is too large for 32-bit sparse indexes")
+
+    nonzero_count = int(np.count_nonzero(hstack))
+    with open(filename, "wb") as outfile:
+        outfile.write(UCCD_BINARY_HEADER.pack(
+            UCCD_BINARY_MAGIC, len(chromaxis), len(mzaxis), len(zaxis), nonzero_count
+        ))
+        outfile.write(chromaxis.tobytes())
+        outfile.write(mzaxis.tobytes())
+        outfile.write(zaxis.tobytes())
+
+        # Process one chromatographic slice at a time so the sparse index
+        # arrays do not become another cube-sized allocation.
+        for chromindex, scan in enumerate(hstack):
+            zindex, mzindex = np.nonzero(scan)
+            records = np.empty(len(zindex), dtype=UCCD_BINARY_RECORD)
+            records["index"] = (
+                (chromindex * len(mzaxis) + mzindex) * len(zaxis) + zindex
+            )
+            records["intensity"] = scan[zindex, mzindex]
+            outfile.write(records.tobytes())
+
+
+def read_uccd_binary(filename, expected_axes=None, sum_mz=False):
+    """Read a sparse UCCD cube into Python's [time, charge, m/z] order."""
+    with open(filename, "rb") as infile:
+        header = infile.read(UCCD_BINARY_HEADER.size)
+        if len(header) != UCCD_BINARY_HEADER.size:
+            raise ValueError(f"Incomplete UCCD header in {filename}")
+        magic, nchrom, nmz, nz, nonzero_count = UCCD_BINARY_HEADER.unpack(header)
+        if magic != UCCD_BINARY_MAGIC:
+            raise ValueError(f"Invalid UCCD binary file: {filename}")
+
+        axis_count = nchrom + nmz + nz
+        axis_bytes = infile.read(axis_count * np.dtype("<f4").itemsize)
+        if len(axis_bytes) != axis_count * np.dtype("<f4").itemsize:
+            raise ValueError(f"Incomplete UCCD axes in {filename}")
+        axes = np.frombuffer(axis_bytes, dtype="<f4")
+        chromaxis = axes[:nchrom]
+        mzaxis = axes[nchrom:nchrom + nmz]
+        zaxis = axes[nchrom + nmz:]
+
+        if expected_axes is not None:
+            for name, actual, expected in zip(
+                    ("chromatography", "m/z", "charge"),
+                    (chromaxis, mzaxis, zaxis), expected_axes):
+                expected = np.asarray(expected)
+                if actual.shape != expected.shape or not np.allclose(actual, expected):
+                    raise ValueError(f"UCCD {name} axis does not match the input stack")
+
+        if sum_mz:
+            output = np.zeros(nmz, dtype=np.float32)
+        else:
+            output = np.zeros((nchrom, nz, nmz), dtype=np.float32)
+        chunk_size = 1000000
+        records_left = nonzero_count
+        while records_left:
+            count = min(chunk_size, records_left)
+            record_bytes = infile.read(count * UCCD_BINARY_RECORD.itemsize)
+            if len(record_bytes) != count * UCCD_BINARY_RECORD.itemsize:
+                raise ValueError(f"Incomplete UCCD sparse data in {filename}")
+            records = np.frombuffer(record_bytes, dtype=UCCD_BINARY_RECORD)
+            indexes = records["index"].astype(np.int64)
+            if np.any(indexes >= nchrom * nmz * nz):
+                raise ValueError(f"Out-of-range sparse index in {filename}")
+            chromindex, remainder = divmod(indexes, nmz * nz)
+            mzindex, zindex = divmod(remainder, nz)
+            if sum_mz:
+                np.add.at(output, mzindex, records["intensity"])
+            else:
+                output[chromindex, zindex, mzindex] = records["intensity"]
+            records_left -= count
+
+    return output, (chromaxis, mzaxis, zaxis)
 
 
 
@@ -550,7 +643,7 @@ class UniDecCD(engine.UniDec):
         boo2 = self.mass > massrange[1]
         boo3 = np.logical_or(boo1, boo2)
         # Set values outside range to 0
-        harray[boo3] = 0
+        harray[..., boo3] = 0
         return harray
 
     def hist_filter_smash(self, harray, smashrange=None):
@@ -592,7 +685,9 @@ class UniDecCD(engine.UniDec):
                 harray[boo3] = 0
         return harray
 
-    def hist_nativeZ_filter(self, nativeZrange=None):
+    def hist_nativeZ_filter(self, nativeZrange=None, harray=None):
+        if harray is None:
+            harray = self.harray
         # Get values from config if not supplied
         if nativeZrange is None:
             nativeZrange = [self.config.nativezlb, self.config.nativezub]
@@ -608,7 +703,8 @@ class UniDecCD(engine.UniDec):
             boo2 = offset > nativeZrange[1]
             boo3 = np.logical_or(boo1, boo2)
             # Set values outside range to 0
-            self.harray[boo3] = 0
+            harray[..., boo3] = 0
+        return harray
 
     def create_mass_axis(self, harray=None, mass=None):
         if harray is None:
@@ -1013,7 +1109,7 @@ class UniDecCD(engine.UniDec):
         self.data.fitdat = np.sum(self.data.fitdat, axis=0)
         print("Loaded Output File:", self.config.deconfile)
 
-    def decon_external_call_all(self, harray):
+    def decon_external_call_sequential(self, harray):
         # Check for this
         if self.config.CDzbins != 1 and self.config.zzsig != 0:
             print("ERROR: Charge smoothing is only define for when charges are binned to unit charge")
@@ -1034,6 +1130,48 @@ class UniDecCD(engine.UniDec):
 
         return harray
 
+
+    def decon_external_call_all(self, hstack):
+        """Run the external UniDec deconvolution on a chromatography stack."""
+        if self.config.CDzbins != 1 and self.config.zzsig != 0:
+            print("ERROR: Charge smoothing is only define for when charges are binned to unit charge")
+            return
+
+        hstack = np.asarray(hstack)
+        expected_shape = (len(self.fulltime), len(self.ztab), len(self.mz))
+        if hstack.shape != expected_shape:
+            raise ValueError(
+                "Chromatographic CDMS stack must have shape "
+                f"(time, charge, m/z)={expected_shape}; got {hstack.shape}"
+            )
+
+        write_uccd_binary(self.config.uccdfile, self.fulltime, self.mz, self.ztab, hstack)
+        print("Saved Sparse Binary UCCD Input:", self.config.uccdfile)
+
+        # cdmsflag=2 selects the chromatographic CDMS entry point. Restore the
+        # normal CDMS mode afterward so later single-scan calls remain valid.
+        old_cdmsflag = self.config.cdmsflag
+        try:
+            self.config.cdmsflag = 2
+            self.export_config()
+            result = ud.unidec_call(self.config)
+        finally:
+            self.config.cdmsflag = old_cdmsflag
+            self.export_config()
+        if result != 0:
+            raise RuntimeError(f"Chromatographic UniDec failed with exit code {result}")
+
+        decon, _ = read_uccd_binary(
+            self.config.uccddeconfile,
+            expected_axes=(self.fulltime, self.mz, self.ztab),
+        )
+        self.data.fitdat, _ = read_uccd_binary(
+            self.config.uccdfitfile,
+            expected_axes=(self.fulltime, self.mz, self.ztab),
+            sum_mz=True,
+        )
+        print("Loaded Sparse Binary UCCD Output:", self.config.uccddeconfile)
+        return decon
 
     def extract_intensities(self, mass, minz, maxz, window=25, sdmult=2, noise_mult=0):
         ztab = np.arange(minz, maxz + 1)

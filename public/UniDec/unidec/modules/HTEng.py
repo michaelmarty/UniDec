@@ -778,23 +778,43 @@ class UniChromCDEng(HTEng, UniDecCD):
         print("Process Time HT:", time.perf_counter() - starttime)
 
 
-    def decon_full_stack(self):
+    def decon_full_stack(self, sequential=False):
         if self.fullhstack is None:
             self.process_data_scans()
-        # Probably should add in harray filtering that is done in
-        # # Filter histogram to remove masses that are not allowed
-        # self.harray = self.hist_mass_filter(self.harray)
-        # # Filter histogram to remove charge states that aren't allowed based on the native charge state filter
-        # self.hist_nativeZ_filter()
+
+        # Apply the same pre-deconvolution masks used by run_deconvolution to
+        # every chromatographic slice before exporting the stack.
+        self.fullhstack = self.hist_mass_filter(self.fullhstack)
+        self.fullhstack = self.hist_nativeZ_filter(harray=self.fullhstack)
+        if not np.any(self.fullhstack):
+            print("ERROR: Empty Histogram Stack on Run")
+            return 0
+
+        # Preserve the summed input spectrum used by scoring routines.
+        self.data.data2 = np.transpose([
+            self.mz, np.sum(self.fullhstack, axis=(0, 1))
+        ])
 
         starttime = time.perf_counter()
-        for i, s in enumerate(self.fullscans):
-            if np.amax(self.fullhstack[i]) > 0:
-                self.fullhstack[i] = self.decon_external_call_all(self.fullhstack[i])
-            # Print checkpoints at every 5% of the scans
-            if i % int(len(self.fullscans) / 20) == 0:
-                print("Deconvolution Progress:", int(round(i / len(self.fullscans) * 100)), "%")
+        if sequential:
+            progress_interval = max(1, int(len(self.fullscans) / 20))
+            for i, s in enumerate(self.fullscans):
+                if np.amax(self.fullhstack[i]) > 0:
+                    self.fullhstack[i] = self.decon_external_call_sequential(self.fullhstack[i])
+                # Print checkpoints at every 5% of the scans
+                if i % progress_interval == 0:
+                    print("Deconvolution Progress:", int(round(i / len(self.fullscans) * 100)), "%")
+        else:
+            self.fullhstack = self.decon_external_call_all(self.fullhstack)
+
+        # Recreate the conventional summed result from the deconvolved stack,
+        # then perform the same mass transform normally done at the end of
+        # run_deconvolution.
+        self.harray = np.sum(self.fullhstack, axis=0)
+        self.transform()
+        np.savetxt(self.config.massdatfile, self.data.massdat)
         print("Deconvolution Time Full Stack:", time.perf_counter() - starttime)
+        return 1
 
 
     def prep_hist(self, mzbins=1, zbins=1, mzrange=None, zrange=None):
