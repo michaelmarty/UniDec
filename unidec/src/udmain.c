@@ -92,7 +92,7 @@ int SetupDeconvolution(const Config config, const Input inp, Decon *decon, Intra
 	//
 	//....................................................................
 
-	SetUpPeakShape(config, inp, decon, silent, 1);
+	SetUpPeakShape(config, inp, decon, silent, silent == 0);
 
 	//....................................................
 	//
@@ -322,9 +322,9 @@ void SetupOutputs(const Config config, Decon * decon, const IntraDecon intra, co
 		}
 		else
 		{
-			MakePeakShape1D(config, decon, inp.dataMZ, 0, 0);
+			MakePeakShape1D(config, decon, inp.dataMZ, 0, 0, silent);
 		}
-		printf("mzdist reset: %f\n", config.mzsig);
+		if (silent == 0) { printf("mzdist reset: %f\n", config.mzsig); }
 	}
 
 
@@ -414,8 +414,7 @@ void SetupOutputs(const Config config, Decon * decon, const IntraDecon intra, co
 
 	//Checks to make sure the mass axis is good and makes a dummy axis if not
 	decon->mlen = (int)((massmax - massmin) / config.massbins);
-	int mn = decon->mlen * config.numz;
-	size_t sizemn = (size_t)mn * sizeof(float);
+	const int keep_mass_grid = config.rawflag == 0 || config.rawflag == 1;
 	if (decon->mlen < 1) {
 		printf("ERROR: No masses detected. Length: %d\n", decon->mlen);
 		massmax = config.massub;
@@ -425,9 +424,9 @@ void SetupOutputs(const Config config, Decon * decon, const IntraDecon intra, co
 		//Declare the memory
 		decon->massaxis = calloc(decon->mlen, sizeof(float));
 		decon->massaxisval = calloc(decon->mlen, sizeof(float));
-		decon->massgrid = calloc(mn, sizeof(float));
-		memset(decon->massaxisval, 0, decon->mlen * sizeof(float));
-		memset(decon->massgrid, 0, sizemn);
+		if (keep_mass_grid) {
+			decon->massgrid = calloc((size_t)decon->mlen * config.numz, sizeof(float));
+		}
 
 		//Create the mass axis
 		for (int i = 0; i < decon->mlen; i++)
@@ -441,9 +440,9 @@ void SetupOutputs(const Config config, Decon * decon, const IntraDecon intra, co
 		//Declare the memory
 		decon->massaxis = calloc(decon->mlen, sizeof(float));
 		decon->massaxisval = calloc(decon->mlen, sizeof(float));
-		decon->massgrid = calloc(mn, sizeof(float));
-		memset(decon->massaxisval, 0, decon->mlen * sizeof(float));
-		memset(decon->massgrid, 0, sizemn);
+		if (keep_mass_grid) {
+			decon->massgrid = calloc((size_t)decon->mlen * config.numz, sizeof(float));
+		}
 		if (silent == 0) { printf("Mass axis length: %d\n", decon->mlen); }
 
 
@@ -472,7 +471,7 @@ void SetupOutputs(const Config config, Decon * decon, const IntraDecon intra, co
 		// Scores
 		// .......................................
 
-		if (silent==0) {
+		if (silent == 0 && keep_mass_grid) {
 			//Note this will not execute if the mass axis is bad
 			float scorethreshold = 0;
 			decon->uniscore = score(config, decon, inp, scorethreshold, silent);
@@ -544,7 +543,7 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 	SetupOutputs(config, &decon, intra, inp, silent);
 
 	// Print out time
-	printf("Deconvolution Time: %f\n", (float)(clock() - starttime) / CLOCKS_PER_SEC);
+	if (silent == 0) { printf("Deconvolution Time: %f\n", (float)(clock() - starttime) / CLOCKS_PER_SEC); }
 
 	//Free Memory
 	FreeIntraDecon(intra);

@@ -52,6 +52,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         self.config.filetype = 1
         self.config.metamode = -1
         self.config.linflag = 2
+        self.config.rawflag = 2
 
     def open(self, path, speedy=False):
         st = time.perf_counter()

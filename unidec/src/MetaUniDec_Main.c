@@ -13,6 +13,7 @@ int run_metaunidec(int argc, char* argv[], Config config) {
 	config.file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
 	num = int_attr(config.file_id, "/ms_dataset", "num", num);
 	if (num > 20) { config.silent = 1; }
+	const int meta_output_silent = config.silent;
 
 	int mode = 0;
 	if (argc > 2)
@@ -34,16 +35,11 @@ int run_metaunidec(int argc, char* argv[], Config config) {
 		//Iterate through files
 		for (int i = 0; i < num; i++)
 		{
-			// Stop printing every file for large files
-			if (num > 100) {
-				if (i % (num / 10) == 0) {
-					config.silent = 0;
-				}
-				else
-				{
-					config.silent = 1;
-				}
-			}
+			printf("Spectrum %d/%d\n", i + 1, num);
+			// Per-spectrum peak detection/scoring is not needed for MetaUniDec
+			// grids or merged peaks. Dedicated -peaks and -scanpeaks modes can
+			// generate per-spectrum peak products later when requested.
+			config.silent = 1;
 			// Run either deconvolution or processing
 			config.metamode = i;
 			if (mode == 1)
@@ -62,6 +58,7 @@ int run_metaunidec(int argc, char* argv[], Config config) {
 				run_unidec(argc, argv, config);
 			}
 		}
+		config.silent = meta_output_silent;
 	}
 
 
