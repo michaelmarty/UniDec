@@ -335,7 +335,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 		}
 		// Apply point smoothing
 		if (config.psig > 0) {
-			point_smoothing(blur, barr, size[0], size[1], abs((int)config.psig));
+			point_smoothing(blur, newblur, barr, size[0], size[1], abs((int)config.psig));
 		}
 		// Apply charge smoothing
 		if (config.zsig!=0) {

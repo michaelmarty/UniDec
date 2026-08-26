@@ -104,6 +104,10 @@ struct IntraDecon {
     float * closeval;
     float * closearray;
     float * dataInt2;
+    float * rl_deltas;
+    float * rl_denom;
+    float * smoothing_scratch;
+    float * log_blur;
 };
 
 

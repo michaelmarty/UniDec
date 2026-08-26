@@ -92,6 +92,20 @@ int SetupDeconvolution(const Config config, const Input inp, Decon *decon, Intra
 	decon->blur = calloc(intra->ln, sizeof(float));
 	decon->newblur = calloc(intra->ln, sizeof(float));
 	intra->oldblur = calloc(intra->ln, sizeof(float));
+	intra->rl_deltas = malloc((size_t)config.lengthmz * sizeof(float));
+	intra->rl_denom = malloc((size_t)config.lengthmz * sizeof(float));
+	if (config.psig >= 1) {
+		intra->smoothing_scratch = malloc((size_t)intra->ln * sizeof(float));
+	}
+	if (config.zsig >= 0 && config.msig >= 0 && intra->numclose > 1) {
+		intra->log_blur = malloc((size_t)intra->ln * sizeof(float));
+	}
+	if (intra->rl_deltas == NULL || intra->rl_denom == NULL ||
+		(config.psig >= 1 && intra->smoothing_scratch == NULL) ||
+		(config.zsig >= 0 && config.msig >= 0 && intra->numclose > 1 && intra->log_blur == NULL)) {
+		fprintf(stderr, "Error allocating iteration scratch arrays.\n");
+		exit(11);
+	}
 
 	if (config.baselineflag == 1) {
 		printf("Auto Baseline Mode On: %d\n", config.aggressiveflag);
@@ -171,14 +185,16 @@ int SetupDeconvolution(const Config config, const Input inp, Decon *decon, Intra
 	return badness;
 }
 
-int CheckConvergence(const Config config, Decon * decon, IntraDecon *intra, int iterations, const int silent) {
+int CheckConvergence(const Config *config, Decon * decon, IntraDecon *intra, int iterations, const int silent) {
 	float diff = 0;
 	float tot = 0;
-	for (int i = 0; i < config.lengthmz * config.numz; i++)
+	#pragma omp parallel for reduction(+:diff,tot) schedule(static)
+	for (int i = 0; i < intra->ln; i++)
 	{
 		if (intra->barr[i] == 1)
 		{
-			diff += powf((decon->blur[i] - intra->oldblur[i]), 2);
+			const float delta = decon->blur[i] - intra->oldblur[i];
+			diff += delta * delta;
 			tot += decon->blur[i];
 		}
 	}
@@ -189,7 +205,7 @@ int CheckConvergence(const Config config, Decon * decon, IntraDecon *intra, int 
 
 	//printf("Iteration: %d Convergence: %f\n", iterations, decon.conv);
 	if (decon->conv < 0.000001) {
-		if (intra->off == 1 && config.numit > 0) {
+		if (intra->off == 1 && config->numit > 0) {
 			if (silent == 0) { printf("Converged in %d iterations.\n", iterations); }
 			return 1;
 		}
@@ -199,65 +215,66 @@ int CheckConvergence(const Config config, Decon * decon, IntraDecon *intra, int 
 	return 0;
 }
 
-void RunIteration(const Config config, Decon *decon, IntraDecon * intra, const Input inp, int iterations) {
+void RunIteration(const Config *config, Decon *decon, IntraDecon * intra, const Input *inp, int iterations) {
 	decon->iterations = iterations;
 	// if (config.minratio > 0){
 	// 	adjust_ratios(config, barr, intra.numclose, closeind, decon.blur);
 	// }
 
 	// Softmax
-	if (config.beta > 0 && iterations > 0)
+	if (config->beta > 0 && iterations > 0)
 	{
-		softargmax(decon->blur, config.lengthmz, config.numz, config.beta/intra->betafactor);
+		softargmax(decon->blur, config->lengthmz, config->numz, config->beta/intra->betafactor);
 		//printf("Beta %f\n", beta);
 		// softmax_peakwidth(config, decon, decon.blur, barr, config.beta/betafactor);
 	}
 
 	// Point Smoothing
-	if (config.psig >= 1 && iterations > 0)
+	if (config->psig >= 1 && iterations > 0)
 	{
-		point_smoothing(decon->blur, intra->barr, config.lengthmz, config.numz, abs((int)config.psig));
+		point_smoothing(decon->blur, intra->smoothing_scratch, intra->barr, config->lengthmz, config->numz,
+			abs((int)config->psig));
 		//printf("Point Smoothed %f\n", config.psig);
 	}
 
 	// Suppression options
-	if (config.suppression_satellite > 0 && iterations > config.suppression_startit) {
-		suppression_satelite(decon->blur, config.lengthmz, config.numz, config.suppression_satellite);
+	if (config->suppression_satellite > 0 && iterations > config->suppression_startit) {
+		suppression_satelite(decon->blur, config->lengthmz, config->numz, config->suppression_satellite);
 	}
 
-	if (config.suppression_harmonic > 0 && iterations > config.suppression_startit) {
-		suppression_harmonic(decon->blur, config.lengthmz, config.numz, inp.nztab);
+	if (config->suppression_harmonic > 0 && iterations > config->suppression_startit) {
+		suppression_harmonic(decon->blur, config->lengthmz, config->numz, inp->nztab);
 	}
 
-	if (config.suppression_topn > 0 && iterations > config.suppression_startit)
+	if (config->suppression_topn > 0 && iterations > config->suppression_startit)
 	{
-		highest_n_chargestates(decon->blur, config.lengthmz, config.numz, config.suppression_topn, config.suppression_percent);
+		highest_n_chargestates(decon->blur, config->lengthmz, config->numz, config->suppression_topn, config->suppression_percent);
 	}
 
-	if (config.suppression_topx > 0 && iterations > config.suppression_startit)
+	if (config->suppression_topx > 0 && iterations > config->suppression_startit)
 	{
-		clip_minor_chargestates(decon->blur, config.lengthmz, config.numz, config.suppression_topx, config.suppression_percent);
+		clip_minor_chargestates(decon->blur, config->lengthmz, config->numz, config->suppression_topx, config->suppression_percent);
 	}
 
 
 	//Run Blurs
-	if (config.zsig >= 0 && config.msig >= 0) {
-		blur_it_mean(*intra, decon->newblur, decon->blur, config.zerolog);
+	if (config->zsig >= 0 && config->msig >= 0) {
+		blur_it_mean(intra, decon->newblur, decon->blur, config->zerolog);
 	}
-	else if (config.zsig > 0 && config.msig < 0)
+	else if (config->zsig > 0 && config->msig < 0)
 	{
-		blur_it_hybrid1(*intra, config.lengthmz, config.numz, decon->newblur, decon->blur, config.zerolog);
+		blur_it_hybrid1(intra, config->lengthmz, config->numz, decon->newblur, decon->blur, config->zerolog);
 	}
-	else if (config.zsig < 0 && config.msig > 0)
+	else if (config->zsig < 0 && config->msig > 0)
 	{
-		blur_it_hybrid2(*intra, config.lengthmz, config.numz, decon->newblur, decon->blur, config.zerolog);
+		blur_it_hybrid2(intra, config->lengthmz, config->numz, decon->newblur, decon->blur, config->zerolog);
 	}
 	else {
-		blur_it(*intra, decon->newblur, decon->blur);
+		blur_it(intra, decon->newblur, decon->blur);
 	}
 
 	//Run Richardson-Lucy Deconvolution
-	deconvolve_iteration_speedy(config, decon, *intra, inp.dataMZ);
+	deconvolve_iteration_speedy(config, decon, intra, inp->dataMZ);
 }
 
 void SetupOutputs(const Config config, Decon * decon, const IntraDecon intra, const Input inp, const int silent) {
@@ -467,14 +484,17 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 
 	if (silent == 0) { printf("Iterating..."); }
 
-	for (int iterations = 0; iterations < abs(config.numit); iterations++)
+	const int max_iterations = abs(config.numit);
+	const int final_convergence_start = 9 * max_iterations / 10;
+	for (int iterations = 0; iterations < max_iterations; iterations++)
 	{
 		// Run the iteration
-		RunIteration(config, &decon, &intra, inp, iterations);
+		RunIteration(&config, &decon, &intra, &inp, iterations);
 
 		//Determine the metrics for conversion. Only do this every 10% to speed up.
-		if ((config.numit < 10 || iterations % 10 == 0 || iterations % 10 == 1 || iterations>0.9 * config.numit)) {
-			int converged = CheckConvergence(config, &decon, &intra, iterations, silent);
+		if (max_iterations < 10 || iterations == 1 || iterations % 10 == 0 ||
+			iterations >= final_convergence_start) {
+			int converged = CheckConvergence(&config, &decon, &intra, iterations, silent);
 			if (converged == 1) { break; }
 		}
 	}

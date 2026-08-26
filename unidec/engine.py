@@ -1614,11 +1614,15 @@ if __name__ == "__main__":
     # eng.config.peakwindow=2000.
     # eng.process_data()
     # eng.run_unidec(silent=False)
-
-    test = "C:\\Python\\UniDec3\\TestSpectra\\test_imms.raw"
-    test1 = "C:\\Users\\MartyLabsOfficePC\\OneDrive - University of Arizona\\Desktop\\20230816_Myoglobin 0666 ugmL 01.wiff"
-    test1 = "C:\\Data\\Volker noisy protein spectra\\Protein+cov-binder_#212#141.txt"
+    test1 = os.path.join(path, filename)
+    # test = "C:\\Python\\UniDec3\\TestSpectra\\test_imms.raw"
+    # test1 = "C:\\Users\\MartyLabsOfficePC\\OneDrive - University of Arizona\\Desktop\\20230816_Myoglobin 0666 ugmL 01.wiff"
+    # test1 = "C:\\Data\\Volker noisy protein spectra\\Protein+cov-binder_#212#141.txt"
     dat = eng.open_file(test1, refresh=True)
+    eng.run_unidec()
+    exit()
+
+
     newdat, isodists = eng.remove_isodists(dat)
     import matplotlib.pyplot as plt
     import isodec.plots as plots
