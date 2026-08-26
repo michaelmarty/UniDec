@@ -786,7 +786,7 @@ class SelectMarker(wx.Dialog):
         hbox5 = wx.BoxSizer(wx.HORIZONTAL)
 
         for i, m in enumerate(self.pks.textmarkers):
-            button = wx.Button(pnl, i, m, size=(35, 35))
+            button = wx.Button(sb, i, m, size=(35, 35))
             hbox5.Add(button, 0)
             button.Bind(wx.EVT_BUTTON, self.on_close)
 

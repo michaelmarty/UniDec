@@ -24,8 +24,10 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         self.extractchoices = {0: "Height", 1: "Local Max", 2: "Area", 3: "Center of Mass", 4: "Local Max Position"}
         self.extractlabels = {0: "Intensity", 1: "Intensity", 2: "Area", 3: "Mass", 4: "Mass"}
 
+        statusbar_log_silencer = wx.LogNull()
         self.CreateStatusBar(7)
-        self.SetStatusWidths([-1, 200, 120, 200, 230, 250, 130])
+        self.SetStatusWidths([-1, -4, -2, -4, -5, -5, -3])
+        del statusbar_log_silencer
         pub.subscribe(self.on_motion, 'newxy')
 
 

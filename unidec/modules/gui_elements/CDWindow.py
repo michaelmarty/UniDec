@@ -92,9 +92,6 @@ class CDMainwindow(MainwindowBase):
         Lays Out Main Panel. Binds some functions to presenter.
         :return: None
         """
-        # Create Status Bar
-        self.CreateStatusBar(7)
-        self.SetStatusWidths([-1, 600, 200, 100, 250, 150, 130])
         # Sizers to develop layout
         # s1 = (min(self.displaysize[0], 1851), self.displaysize[1])
         # s2 = (550, self.displaysize[1])
@@ -297,6 +294,14 @@ class CDMainwindow(MainwindowBase):
         self.SetSizer(sizer)
         sizer.Fit(self)
         self.Layout()
+
+        # wxWidgets 3.3 can log a false SB_GETRECT failure while changing the
+        # native control's field count. Suppress only those construction logs;
+        # relative widths also keep every pane valid on narrow displays.
+        statusbar_log_silencer = wx.LogNull()
+        self.CreateStatusBar(7)
+        self.SetStatusWidths([-1, -12, -4, -2, -5, -3, -3])
+        del statusbar_log_silencer
 
         self.plotpanel.SetMinSize(wx.Size(-1, -1))
         self.plotpanel.Bind(wx.EVT_SIZE, self.resize_plots)

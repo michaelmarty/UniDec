@@ -430,7 +430,9 @@ class UPPApp(wx.Frame):
         panel.SetSizer(sizer)
 
         # Create Status bar
+        statusbar_log_silencer = wx.LogNull()
         self.CreateStatusBar(3)
+        del statusbar_log_silencer
 
         self.Show()
 

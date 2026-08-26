@@ -583,10 +583,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         sb = wx.StaticBox(panel2b, label='Native Charge Offset Range')
         sbs = wx.StaticBoxSizer(sb, orient=wx.HORIZONTAL)
-        self.ctlminnativez = wx.TextCtrl(panel2b, value='', size=wx.Size(75, -1))
-        self.ctlmaxnativez = wx.TextCtrl(panel2b, value='', size=wx.Size(75, -1))
+        self.ctlminnativez = wx.TextCtrl(sb, value='', size=wx.Size(75, -1))
+        self.ctlmaxnativez = wx.TextCtrl(sb, value='', size=wx.Size(75, -1))
         sbs.Add(self.ctlminnativez, flag=wx.LEFT | wx.EXPAND, border=5)
-        sbs.Add(wx.StaticText(panel2b, label=' to '), 0, wx.EXPAND)
+        sbs.Add(wx.StaticText(sb, label=' to '), 0, wx.EXPAND)
         sbs.Add(self.ctlmaxnativez, flag=wx.LEFT | wx.EXPAND, border=5)
         gbox2b.Add(sbs, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
@@ -594,12 +594,12 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         if self.config.imflag == 1:
             sb2 = wx.StaticBox(panel2b, label='Native CCS Offset Range')
             sbs2 = wx.StaticBoxSizer(sb2, orient=wx.HORIZONTAL)
-            self.ctlnativeccslb = wx.TextCtrl(panel2b, value='', size=wx.Size(75, -1))
-            self.ctlnativeccsub = wx.TextCtrl(panel2b, value='', size=wx.Size(75, -1))
+            self.ctlnativeccslb = wx.TextCtrl(sb2, value='', size=wx.Size(75, -1))
+            self.ctlnativeccsub = wx.TextCtrl(sb2, value='', size=wx.Size(75, -1))
             sbs2.Add(self.ctlnativeccslb, flag=wx.LEFT | wx.EXPAND, border=5)
-            sbs2.Add(wx.StaticText(panel2b, label=' to '), 0, wx.EXPAND)
+            sbs2.Add(wx.StaticText(sb2, label=' to '), 0, wx.EXPAND)
             sbs2.Add(self.ctlnativeccsub, flag=wx.LEFT | wx.EXPAND, border=5)
-            sbs2.Add(wx.StaticText(panel2b, label=" \u212B\u00B2 "), 0, wx.EXPAND)
+            sbs2.Add(wx.StaticText(sb2, label=" \u212B\u00B2 "), 0, wx.EXPAND)
             gbox2b.Add(sbs2, (i, 0), span=(1, 2), flag=wx.EXPAND)
             i += 1  # Check
 
@@ -708,12 +708,12 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         sb2 = wx.StaticBox(panel3b, label='Integration Range')
         sbs2 = wx.StaticBoxSizer(sb2, orient=wx.HORIZONTAL)
-        self.ctlintlb = wx.TextCtrl(panel3b, value='', size=wx.Size(75, -1))
-        self.ctlintub = wx.TextCtrl(panel3b, value='', size=wx.Size(75, -1))
+        self.ctlintlb = wx.TextCtrl(sb2, value='', size=wx.Size(75, -1))
+        self.ctlintub = wx.TextCtrl(sb2, value='', size=wx.Size(75, -1))
         sbs2.Add(self.ctlintlb, flag=wx.LEFT | wx.EXPAND, border=5)
-        sbs2.Add(wx.StaticText(panel3b, label=' to '), 0, flag=wx.EXPAND)
+        sbs2.Add(wx.StaticText(sb2, label=' to '), 0, flag=wx.EXPAND)
         sbs2.Add(self.ctlintub, flag=wx.LEFT | wx.EXPAND, border=5)
-        sbs2.Add(wx.StaticText(panel3b, label=' Da '), 0, flag=wx.EXPAND)
+        sbs2.Add(wx.StaticText(sb2, label=' Da '), 0, flag=wx.EXPAND)
         gbox3b.Add(sbs2, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 

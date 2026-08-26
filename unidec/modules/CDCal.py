@@ -164,8 +164,8 @@ class CDCalDialog(wx.Frame):
 
         plotsizer = wx.BoxSizer(wx.HORIZONTAL)
         figsize = (6, 4)
-        self.plot = PlottingWindow.Plot2d(self.pnl, figsize=figsize)
-        self.plot2 = PlottingWindow.Plot2d(self.pnl, figsize=figsize)
+        self.plot = PlottingWindow.Plot2d(sb, figsize=figsize)
+        self.plot2 = PlottingWindow.Plot2d(sb, figsize=figsize)
         plotsizer.Add(self.plot, 1, wx.EXPAND)
         plotsizer.Add(self.plot2, 1, wx.EXPAND)
 
@@ -175,18 +175,18 @@ class CDCalDialog(wx.Frame):
 
 
         vbox2 = wx.BoxSizer(wx.VERTICAL)
-        self.masspanel = CDListCtrlPanel(self.pnl)
-        csvbutton = wx.Button(self.pnl, label="Load from CSV")
+        self.masspanel = CDListCtrlPanel(sb)
+        csvbutton = wx.Button(sb, label="Load from CSV")
         self.Bind(wx.EVT_BUTTON, self.on_load_csv, csvbutton)
         vbox2.Add(csvbutton, 0, wx.EXPAND)
 
-        addbutton = wx.Button(self.pnl, label="Add Line")
+        addbutton = wx.Button(sb, label="Add Line")
         self.Bind(wx.EVT_BUTTON, self.on_add, addbutton)
         vbox2.Add(addbutton, 0, wx.EXPAND)
 
         vbox2.Add(self.masspanel, 0, wx.EXPAND)
 
-        plotbutton = wx.Button(self.pnl, label="Plot Species")
+        plotbutton = wx.Button(sb, label="Plot Species")
         self.Bind(wx.EVT_BUTTON, self.on_plot, plotbutton)
         vbox2.Add(plotbutton, 0, wx.EXPAND)
 
@@ -194,37 +194,37 @@ class CDCalDialog(wx.Frame):
 
 
 
-        sb2 = wx.StaticBox(self.pnl, label='Fit Parameters')
+        sb2 = wx.StaticBox(sb, label='Fit Parameters')
         sbs2 = wx.StaticBoxSizer(sb2, orient=wx.VERTICAL)
         gbox1c = wx.GridBagSizer(wx.VERTICAL)
         size1 = (75, -1)
 
         # Readout
-        self.ctlfit = wx.TextCtrl(self.pnl, value='', size=size1)
+        self.ctlfit = wx.TextCtrl(sb2, value='', size=size1)
         gbox1c.Add(self.ctlfit, (0, 1), span=(1, 1))
-        gbox1c.Add(wx.StaticText(self.pnl, label="Intensity Slope: "), (0, 0),
+        gbox1c.Add(wx.StaticText(sb2, label="Intensity Slope: "), (0, 0),
                    flag=wx.ALIGN_CENTER_VERTICAL)
 
-        self.ctlfit2 = wx.TextCtrl(self.pnl, value='', size=size1)
+        self.ctlfit2 = wx.TextCtrl(sb2, value='', size=size1)
         gbox1c.Add(self.ctlfit2, (1, 1), span=(1, 1))
-        gbox1c.Add(wx.StaticText(self.pnl, label="S/N Slope: "), (1, 0),
+        gbox1c.Add(wx.StaticText(sb2, label="S/N Slope: "), (1, 0),
                    flag=wx.ALIGN_CENTER_VERTICAL)
 
-        self.ctlmzwindow = wx.TextCtrl(self.pnl, value='', size=size1)
+        self.ctlmzwindow = wx.TextCtrl(sb2, value='', size=size1)
         gbox1c.Add(self.ctlmzwindow, (2, 1), span=(1, 1))
-        gbox1c.Add(wx.StaticText(self.pnl, label="m/z Window: "), (2, 0),
+        gbox1c.Add(wx.StaticText(sb2, label="m/z Window: "), (2, 0),
                    flag=wx.ALIGN_CENTER_VERTICAL)
         self.ctlmzwindow.SetValue("25")
 
-        self.ctlnoise = wx.TextCtrl(self.pnl, value='', size=size1)
+        self.ctlnoise = wx.TextCtrl(sb2, value='', size=size1)
         gbox1c.Add(self.ctlnoise, (3, 1), span=(1, 1))
-        gbox1c.Add(wx.StaticText(self.pnl, label="S/N Minimum: "), (3, 0),
+        gbox1c.Add(wx.StaticText(sb2, label="S/N Minimum: "), (3, 0),
                    flag=wx.ALIGN_CENTER_VERTICAL)
         self.ctlnoise.SetValue("0")
 
-        self.ctlsdmult = wx.TextCtrl(self.pnl, value='', size=size1)
+        self.ctlsdmult = wx.TextCtrl(sb2, value='', size=size1)
         gbox1c.Add(self.ctlsdmult, (4, 1), span=(1, 1))
-        gbox1c.Add(wx.StaticText(self.pnl, label="Std Dev Window: "), (4, 0),
+        gbox1c.Add(wx.StaticText(sb2, label="Std Dev Window: "), (4, 0),
                    flag=wx.ALIGN_CENTER_VERTICAL)
         self.ctlsdmult.SetValue("2")
 
