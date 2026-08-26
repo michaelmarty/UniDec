@@ -16,6 +16,29 @@
 
 #include "udmain.h"
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+typedef struct IterationTimings {
+	double softmax;
+	double point_smoothing;
+	double suppression;
+	double blur;
+	double richardson_lucy;
+	double convergence;
+} IterationTimings;
+
+static double IterationWallTime(void) {
+#ifdef _OPENMP
+	return omp_get_wtime();
+#else
+	struct timespec now;
+	timespec_get(&now, TIME_UTC);
+	return (double)now.tv_sec + (double)now.tv_nsec * 1e-9;
+#endif
+}
+
 
 Decon ExitToBlank(const Config config, Decon decon)
 {
@@ -94,14 +117,20 @@ int SetupDeconvolution(const Config config, const Input inp, Decon *decon, Intra
 	intra->oldblur = calloc(intra->ln, sizeof(float));
 	intra->rl_deltas = malloc((size_t)config.lengthmz * sizeof(float));
 	intra->rl_denom = malloc((size_t)config.lengthmz * sizeof(float));
-	if (config.psig >= 1) {
+	const int needs_grid_scratch = config.psig >= 1 || config.suppression_satellite > 0 ||
+		config.suppression_harmonic > 0 || config.suppression_topn > 0 || config.suppression_topx > 0;
+	if (needs_grid_scratch) {
 		intra->smoothing_scratch = malloc((size_t)intra->ln * sizeof(float));
+	}
+	if (config.psig >= 1) {
+		intra->smoothing_sums = malloc((size_t)config.numz * sizeof(float));
 	}
 	if (config.zsig >= 0 && config.msig >= 0 && intra->numclose > 1) {
 		intra->log_blur = malloc((size_t)intra->ln * sizeof(float));
 	}
 	if (intra->rl_deltas == NULL || intra->rl_denom == NULL ||
-		(config.psig >= 1 && intra->smoothing_scratch == NULL) ||
+		(needs_grid_scratch && intra->smoothing_scratch == NULL) ||
+		(config.psig >= 1 && intra->smoothing_sums == NULL) ||
 		(config.zsig >= 0 && config.msig >= 0 && intra->numclose > 1 && intra->log_blur == NULL)) {
 		fprintf(stderr, "Error allocating iteration scratch arrays.\n");
 		exit(11);
@@ -215,7 +244,8 @@ int CheckConvergence(const Config *config, Decon * decon, IntraDecon *intra, int
 	return 0;
 }
 
-void RunIteration(const Config *config, Decon *decon, IntraDecon * intra, const Input *inp, int iterations) {
+void RunIteration(const Config *config, Decon *decon, IntraDecon * intra, const Input *inp, int iterations,
+	IterationTimings *timings) {
 	decon->iterations = iterations;
 	// if (config.minratio > 0){
 	// 	adjust_ratios(config, barr, intra.numclose, closeind, decon.blur);
@@ -224,7 +254,9 @@ void RunIteration(const Config *config, Decon *decon, IntraDecon * intra, const 
 	// Softmax
 	if (config->beta > 0 && iterations > 0)
 	{
+		const double start = timings != NULL ? IterationWallTime() : 0;
 		softargmax(decon->blur, config->lengthmz, config->numz, config->beta/intra->betafactor);
+		if (timings != NULL) { timings->softmax += IterationWallTime() - start; }
 		//printf("Beta %f\n", beta);
 		// softmax_peakwidth(config, decon, decon.blur, barr, config.beta/betafactor);
 	}
@@ -232,32 +264,27 @@ void RunIteration(const Config *config, Decon *decon, IntraDecon * intra, const 
 	// Point Smoothing
 	if (config->psig >= 1 && iterations > 0)
 	{
-		point_smoothing(decon->blur, intra->smoothing_scratch, intra->barr, config->lengthmz, config->numz,
-			abs((int)config->psig));
+		const double start = timings != NULL ? IterationWallTime() : 0;
+		point_smoothing(decon->blur, intra->smoothing_scratch, intra->smoothing_sums, intra->barr,
+			config->lengthmz, config->numz, abs((int)config->psig));
+		if (timings != NULL) { timings->point_smoothing += IterationWallTime() - start; }
 		//printf("Point Smoothed %f\n", config.psig);
 	}
 
 	// Suppression options
-	if (config->suppression_satellite > 0 && iterations > config->suppression_startit) {
-		suppression_satelite(decon->blur, config->lengthmz, config->numz, config->suppression_satellite);
+	const double suppression_start = timings != NULL ? IterationWallTime() : 0;
+	if (iterations > config->suppression_startit &&
+		(config->suppression_satellite > 0 || config->suppression_harmonic > 0 ||
+		 config->suppression_topn > 0 || config->suppression_topx > 0)) {
+		apply_suppressions(decon->blur, intra->smoothing_scratch, config->lengthmz, config->numz,
+			config->suppression_satellite, config->suppression_harmonic, inp->nztab,
+			config->suppression_topn, config->suppression_topx, config->suppression_percent);
 	}
-
-	if (config->suppression_harmonic > 0 && iterations > config->suppression_startit) {
-		suppression_harmonic(decon->blur, config->lengthmz, config->numz, inp->nztab);
-	}
-
-	if (config->suppression_topn > 0 && iterations > config->suppression_startit)
-	{
-		highest_n_chargestates(decon->blur, config->lengthmz, config->numz, config->suppression_topn, config->suppression_percent);
-	}
-
-	if (config->suppression_topx > 0 && iterations > config->suppression_startit)
-	{
-		clip_minor_chargestates(decon->blur, config->lengthmz, config->numz, config->suppression_topx, config->suppression_percent);
-	}
+	if (timings != NULL) { timings->suppression += IterationWallTime() - suppression_start; }
 
 
 	//Run Blurs
+	const double blur_start = timings != NULL ? IterationWallTime() : 0;
 	if (config->zsig >= 0 && config->msig >= 0) {
 		blur_it_mean(intra, decon->newblur, decon->blur, config->zerolog);
 	}
@@ -272,9 +299,12 @@ void RunIteration(const Config *config, Decon *decon, IntraDecon * intra, const 
 	else {
 		blur_it(intra, decon->newblur, decon->blur);
 	}
+	if (timings != NULL) { timings->blur += IterationWallTime() - blur_start; }
 
 	//Run Richardson-Lucy Deconvolution
+	const double rl_start = timings != NULL ? IterationWallTime() : 0;
 	deconvolve_iteration_speedy(config, decon, intra, inp->dataMZ);
+	if (timings != NULL) { timings->richardson_lucy += IterationWallTime() - rl_start; }
 }
 
 void SetupOutputs(const Config config, Decon * decon, const IntraDecon intra, const Input inp, const int silent) {
@@ -486,17 +516,29 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 
 	const int max_iterations = abs(config.numit);
 	const int final_convergence_start = 9 * max_iterations / 10;
+	IterationTimings timings = {0};
+	IterationTimings *timing_ptr = silent == 0 ? &timings : NULL;
 	for (int iterations = 0; iterations < max_iterations; iterations++)
 	{
 		// Run the iteration
-		RunIteration(&config, &decon, &intra, &inp, iterations);
+		RunIteration(&config, &decon, &intra, &inp, iterations, timing_ptr);
 
 		//Determine the metrics for conversion. Only do this every 10% to speed up.
 		if (max_iterations < 10 || iterations == 1 || iterations % 10 == 0 ||
 			iterations >= final_convergence_start) {
+			const double convergence_start = timing_ptr != NULL ? IterationWallTime() : 0;
 			int converged = CheckConvergence(&config, &decon, &intra, iterations, silent);
+			if (timing_ptr != NULL) { timings.convergence += IterationWallTime() - convergence_start; }
 			if (converged == 1) { break; }
 		}
+	}
+	if (timing_ptr != NULL) {
+		const double timed_total = timings.softmax + timings.point_smoothing + timings.suppression +
+			timings.blur + timings.richardson_lucy + timings.convergence;
+		printf("\nIteration Stage Times (s): Softmax %.6f  PointSmooth %.6f  Suppression %.6f  "
+			"Blur %.6f  RichardsonLucy %.6f  Convergence %.6f  Total %.6f\n",
+			timings.softmax, timings.point_smoothing, timings.suppression, timings.blur,
+			timings.richardson_lucy, timings.convergence, timed_total);
 	}
 
 	SetupOutputs(config, &decon, intra, inp, silent);

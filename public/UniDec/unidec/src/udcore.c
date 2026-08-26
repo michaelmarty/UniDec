@@ -579,28 +579,152 @@ void softmax_peakwidth(const Config config, const Decon decon, float *blur, cons
 }
 
 
-void suppression_harmonic(float *blur, const int lengthmz, const int numz, const int *ztab)
+static void fused_satellite_row(float *output, const float *input, const int numz, const int n) {
+    for (int j = n; j < numz - n - 1; j++) {
+        float maxval = 0;
+        const int window_start = j - n;
+        const int window_end = j + n;
+        for (int index = window_start; index <= window_end; index++) {
+            if (input[index] > maxval) { maxval = input[index]; }
+        }
+        for (int index = window_start; index <= window_end; index++) {
+            if (input[index] < maxval) { output[index] = 0; }
+        }
+    }
+}
+
+
+static void fused_harmonic_row(float *output, const float *input, const int end, const int zmin) {
+    for (int j = 0; j < end; j++) {
+        const int j2 = 2 * j + zmin;
+        const float val = input[j];
+        const float val2 = input[j2];
+        if (val < val2) { output[j] = 0; }
+        if (val > val2) { output[j2] = 0; }
+    }
+}
+
+
+static float fused_top_n_threshold(const float *row, float *scratch, const int numz, const int n) {
+    if (n == 1) {
+        float largest = row[0];
+        for (int j = 1; j < numz; j++) {
+            if (row[j] > largest) { largest = row[j]; }
+        }
+        return largest;
+    }
+    if (n == 2) {
+        float largest = -INFINITY;
+        float second_largest = -INFINITY;
+        for (int j = 0; j < numz; j++) {
+            const float value = row[j];
+            if (value > largest) {
+                second_largest = largest;
+                largest = value;
+            }
+            else if (value > second_largest) {
+                second_largest = value;
+            }
+        }
+        return second_largest;
+    }
+
+    memcpy(scratch, row, (size_t) numz * sizeof(float));
+    for (int a = 0; a < n; a++) {
+        int maxidx = a;
+        for (int b = a + 1; b < numz; b++) {
+            if (scratch[b] > scratch[maxidx]) { maxidx = b; }
+        }
+        const float value = scratch[a];
+        scratch[a] = scratch[maxidx];
+        scratch[maxidx] = value;
+    }
+    return scratch[n - 1];
+}
+
+
+static void fused_top_x_row(float *row, const int numz, const float cutoff, const float suppression_percent) {
+    float maxval = 0.0f;
+    for (int j = 0; j < numz; j++) {
+        if (row[j] > maxval) { maxval = row[j]; }
+    }
+    const float threshold = cutoff * maxval;
+    for (int j = 0; j < numz; j++) {
+        if (row[j] < threshold) { row[j] *= suppression_percent; }
+    }
+}
+
+
+void apply_suppressions(float *blur, float *scratch, const int lengthmz, const int numz,
+                        const int satellite_n, const int harmonic, const int *ztab, const int top_n,
+                        const float top_x, const float suppression_percent) {
+    const int use_satellite = satellite_n > 0 && satellite_n < numz / 2;
+    const int use_harmonic = harmonic > 0;
+    const int use_top_n = top_n > 0 && top_n < numz;
+    const int use_top_x = top_x > 0.0f && top_x < 1.0f;
+
+    if (satellite_n > 0 && !use_satellite) {
+        printf("Invalid value for n in suppression_satelite: %d. Must be between 1 and %d.\n",
+               satellite_n, numz / 2 - 1);
+    }
+    if (top_n > 0 && !use_top_n) {
+        printf("Invalid value for n in highest_n_chargestates: %d. Must be between 1 and %d.\n",
+               top_n, numz - 1);
+    }
+    if (top_x > 0.0f && !use_top_x) {
+        printf("Invalid value for zcutoff in clip_minor_chargestates: %f. Must be between 0 and 1.\n", top_x);
+    }
+    if (!use_satellite && !use_harmonic && !use_top_n && !use_top_x) { return; }
+
+    const size_t row_size = (size_t) numz * sizeof(float);
+    if (use_satellite || use_harmonic) {
+        memcpy(scratch, blur, (size_t) lengthmz * row_size);
+    }
+    const int zmin = use_harmonic ? ztab[0] : 0;
+    const int harmonic_end = use_harmonic ? (ztab[numz - 1] / 2) - zmin : 0;
+
+    #pragma omp parallel for schedule(static)
+    for (int i = 0; i < lengthmz; i++) {
+        float *row = blur + (size_t) i * numz;
+        float *temporary_row = scratch + (size_t) i * numz;
+
+        if (use_satellite) {
+            fused_satellite_row(row, temporary_row, numz, satellite_n);
+        }
+        if (use_harmonic) {
+            if (use_satellite) { memcpy(temporary_row, row, row_size); }
+            fused_harmonic_row(row, temporary_row, harmonic_end, zmin);
+        }
+        if (use_top_n) {
+            const float threshold = fused_top_n_threshold(row, temporary_row, numz, top_n);
+            for (int j = 0; j < numz; j++) {
+                if (row[j] < threshold) { row[j] *= suppression_percent; }
+            }
+        }
+        if (use_top_x) {
+            fused_top_x_row(row, numz, top_x, suppression_percent);
+        }
+    }
+}
+
+
+void suppression_harmonic(float *blur, float *scratch, const int lengthmz, const int numz, const int *ztab)
 {
     const size_t len = (size_t) lengthmz * (size_t) numz;
-    float *input = (float *) calloc(len, sizeof(float));
-    if (input == NULL) {
-        fprintf(stderr, "Error allocating memory for suppression_satelite.\n");
-        exit(11);
-    }
-    memcpy(input, blur, len * sizeof(float));
+    memcpy(scratch, blur, len * sizeof(float));
 
     const int zmax = ztab[numz - 1];
     const int zmin = ztab[0];
     const int end = (zmax / 2) - zmin;
 
-    #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < lengthmz; i++)
     {
         for (int j = 0; j < end; j++)
         {
                 const int j2 = 2 * j + zmin;
-                const float val = input[index2D(numz, i, j)];
-                const float val2 = input[index2D(numz, i, j2)];
+                const float val = scratch[index2D(numz, i, j)];
+                const float val2 = scratch[index2D(numz, i, j2)];
             if (val < val2) {
                 blur[index2D(numz, i, j)] = 0;
             }
@@ -609,12 +733,11 @@ void suppression_harmonic(float *blur, const int lengthmz, const int numz, const
             }
         }
     }
-    free(input);
 }
 
 
 
-void suppression_satelite(float *blur, const int lengthmz, const int numz, const int n) {
+void suppression_satelite(float *blur, float *scratch, const int lengthmz, const int numz, const int n) {
     // remove charge states +/- n from local maxes
     if (n<=0 || n>= numz/2) {
         printf("Invalid value for n in suppression_satelite: %d. Must be between 1 and %d.\n", n, numz/2 - 1);
@@ -622,13 +745,8 @@ void suppression_satelite(float *blur, const int lengthmz, const int numz, const
     }
 
     const size_t len = (size_t) lengthmz * (size_t) numz;
-    float *input = (float *) calloc(len, sizeof(float));
-    if (input == NULL) {
-        fprintf(stderr, "Error allocating memory for suppression_satelite.\n");
-        exit(11);
-    }
-    memcpy(input, blur, len * sizeof(float));
-    #pragma omp parallel for schedule(dynamic)
+    memcpy(scratch, blur, len * sizeof(float));
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < lengthmz; i++)
     {
         for (int j = n; j < numz - n -1; j++) {
@@ -636,39 +754,37 @@ void suppression_satelite(float *blur, const int lengthmz, const int numz, const
             for (int k = 0; k < 2*n+1; k++) {
                 const int index = j - n + k;
                 if (index < 0 || index >= numz) {continue;}
-                if (input[index2D(numz, i, index)] > maxval) {
-                    maxval = input[index2D(numz, i, index)];
+                if (scratch[index2D(numz, i, index)] > maxval) {
+                    maxval = scratch[index2D(numz, i, index)];
                 }
             }
 
             for (int k=0; k < 2*n+1; k++) {
                 const int index = j - n + k;
                 if (index < 0 || index >= numz) {continue;}
-                if (input[index2D(numz, i, index)] < maxval) {
+                if (scratch[index2D(numz, i, index)] < maxval) {
                     blur[index2D(numz, i, index)] = 0;
                 }
             }
         }
     }
-    free(input);
 }
 
 
-void highest_n_chargestates(float *blur, const int lengthmz, const int numz, const int n, const float zcutpercent) {
+void highest_n_chargestates(float *blur, float *scratch, const int lengthmz, const int numz, const int n,
+                            const float zcutpercent) {
     if (n <= 0 || n >= numz) {
         printf("Invalid value for n in highest_n_chargestates: %d. Must be between 1 and %d.\n", n, numz - 1);
         return;
     }
     // printf("Keeping only the highest %d charge states. Smashing with %f percent.\n", n, zcutpercent);
 
-    #pragma omp parallel for schedule(auto)
+    const size_t grid_size = (size_t) lengthmz * numz * sizeof(float);
+    memcpy(scratch, blur, grid_size);
+
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < lengthmz; i++) {
-        // Copy this mz point's charge intensities into a local scratch array
-        float *tmp = (float *) malloc((size_t) numz * sizeof(float));
-        if (!tmp) { continue; }
-        for (int j = 0; j < numz; j++) {
-            tmp[j] = blur[index2D(numz, i, j)];
-        }
+        float *tmp = scratch + (size_t) i * numz;
 
         // Partial insertion sort: find the nth largest value as threshold
         // (only sort the first n elements fully — O(n*numz) which is fine for small numz)
@@ -680,8 +796,6 @@ void highest_n_chargestates(float *blur, const int lengthmz, const int numz, con
             const float t = tmp[a]; tmp[a] = tmp[maxidx]; tmp[maxidx] = t;
         }
         const float threshold = tmp[n - 1]; // nth largest value
-
-        free(tmp);
 
         // Zero out any charge state below the threshold
         for (int j = 0; j < numz; j++) {
@@ -700,7 +814,7 @@ void clip_minor_chargestates(float *blur, const int lengthmz, const int numz, co
     }
     // printf("Clipping charge states below %f. Smashing with %f percent.\n", zcutoff, zcutpercent);
 
-    #pragma omp parallel for schedule(auto)
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < lengthmz; i++) {
         // Find the maximum charge state intensity for this mz point
         float maxval = 0.0f;
@@ -720,35 +834,58 @@ void clip_minor_chargestates(float *blur, const int lengthmz, const int numz, co
 }
 
 
-void point_smoothing(float *blur, float *scratch, const char *barr, const int lengthmz, const int numz,
-                     const int width) {
+void point_smoothing(float *blur, float *scratch, float *sums, const char *barr, const int lengthmz,
+                     const int numz, const int width) {
     const float fwidth = (float) width;
-    if (scratch) {
+    if (scratch && sums) {
         const size_t grid_size = (size_t) lengthmz * numz * sizeof(float);
         memcpy(scratch, blur, grid_size);
-        #pragma omp parallel for schedule(auto)
-        for (int j = 0; j < numz; j++) {
-            float sum = 0;
+
+        // Process small contiguous charge blocks. Each worker walks adjacent
+        // values in every m/z row while retaining independent rolling sums.
+        const int charge_block_size = 4;
+        const int num_blocks = (numz + charge_block_size - 1) / charge_block_size;
+        #pragma omp parallel for schedule(static)
+        for (int block = 0; block < num_blocks; block++) {
+            const int charge_start = block * charge_block_size;
+            int charge_end = charge_start + charge_block_size;
+            if (charge_end > numz) { charge_end = numz; }
+
+            for (int j = charge_start; j < charge_end; j++) { sums[j] = 0; }
+
             int initial_high = width + 1;
             if (initial_high > lengthmz) { initial_high = lengthmz; }
 
             for (int k = 0; k < initial_high; k++) {
-                sum += scratch[index2D(numz, k, j)];
+                const float *source_row = scratch + (size_t) k * numz;
+                for (int j = charge_start; j < charge_end; j++) {
+                    sums[j] += source_row[j];
+                }
             }
 
             for (int i = 0; i < lengthmz; i++) {
-                if (barr[index2D(numz, i, j)] == 1) {
-                    blur[index2D(numz, i, j)] = sum / (1.0f + 2.0f * fwidth);
+                float *output_row = blur + (size_t) i * numz;
+                const char *mask_row = barr + (size_t) i * numz;
+                for (int j = charge_start; j < charge_end; j++) {
+                    if (mask_row[j] == 1) {
+                        output_row[j] = sums[j] / (1.0f + 2.0f * fwidth);
+                    }
                 }
 
                 const int remove_index = i - width;
                 if (remove_index >= 0) {
-                    sum -= scratch[index2D(numz, remove_index, j)];
+                    const float *remove_row = scratch + (size_t) remove_index * numz;
+                    for (int j = charge_start; j < charge_end; j++) {
+                        sums[j] -= remove_row[j];
+                    }
                 }
 
                 const int add_index = i + width + 1;
                 if (add_index < lengthmz) {
-                    sum += scratch[index2D(numz, add_index, j)];
+                    const float *add_row = scratch + (size_t) add_index * numz;
+                    for (int j = charge_start; j < charge_end; j++) {
+                        sums[j] += add_row[j];
+                    }
                 }
             }
         }
