@@ -139,8 +139,10 @@ class UniListWindow(MainwindowBase):
         :return: None
         """
         MainwindowBase.__init__(self, parent, title, config, iconfile, tabbed)
+        statusbar_log_silencer = wx.LogNull()
         self.CreateStatusBar(4)
-        self.SetStatusWidths([-1, 150, 150, 150])
+        self.SetStatusWidths([-1, -3, -3, -3])
+        del statusbar_log_silencer
         pub.subscribe(self.on_motion, 'newxy')
         # pub.subscribe(self.on_selection, 'scans_selected')
 

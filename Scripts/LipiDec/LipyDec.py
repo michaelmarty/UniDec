@@ -24,8 +24,10 @@ black_text = wx.Colour(0, 0, 0)
 class LipyDecWindow(wx.Frame):
     def __init__(self, parent, engine=None):
         wx.Frame.__init__(self, parent, title="LipyDec")  # ,size=(-1,-1))
+        statusbar_log_silencer = wx.LogNull()
         self.CreateStatusBar(3)
-        self.SetStatusWidths([-1, 300, 300])
+        self.SetStatusWidths([-1, -3, -3])
+        del statusbar_log_silencer
         pub.subscribe(self.on_motion, 'newxy')
 
         # Setup initial values

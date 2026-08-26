@@ -48,7 +48,7 @@ class PeakTools1d(wx.Dialog):
         sb = wx.StaticBox(pnl, label='Peak Shape Tool')
         sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
 
-        self.plot1 = PlottingWindow.Plot1d(pnl)
+        self.plot1 = PlottingWindow.Plot1d(sb)
 
         self.plot1.plotrefreshtop(self.data[:, 0], self.data[:, 1], title="Data", xlabel="m/z (Th)",
                                   ylabel="Normalized Intensity", zoom="span", zoomout=True)
@@ -57,34 +57,34 @@ class PeakTools1d(wx.Dialog):
         hbox11 = wx.BoxSizer(wx.HORIZONTAL)
 
         hbox10 = wx.BoxSizer(wx.VERTICAL)
-        centerbutton = wx.Button(pnl, label='Reset Range')
+        centerbutton = wx.Button(sb, label='Reset Range')
         centerbutton.Bind(wx.EVT_BUTTON, self.on_reset)
         hbox10.Add(centerbutton, 0, wx.ALIGN_LEFT)
         hbox11.Add(hbox10, 0, wx.ALIGN_LEFT)
 
         hbox9 = wx.BoxSizer(wx.VERTICAL)
-        self.ctlpsfun = wx.RadioBox(pnl, label="Peak Shape Fit Function",
+        self.ctlpsfun = wx.RadioBox(sb, label="Peak Shape Fit Function",
                                     choices=["Gaussian", "Lorentzian", "Split G/L"])
         self.ctlpsfun.SetSelection(self.psfun)
-        fitbutton = wx.Button(pnl, label='Fit Peak Shape')
-        plotbutton = wx.Button(pnl, label='Plot Guess')
+        fitbutton = wx.Button(sb, label='Fit Peak Shape')
+        plotbutton = wx.Button(sb, label='Plot Guess')
         hbox9.Add(self.ctlpsfun, 0, wx.ALIGN_RIGHT)
         hbox8 = wx.BoxSizer(wx.HORIZONTAL)
-        self.ctlmzsig = wx.TextCtrl(pnl, value=str(self.config.mzsig))
-        hbox8.Add(wx.StaticText(pnl, label='Guess for Peak FWHM: '), wx.ALIGN_CENTER_VERTICAL)
+        self.ctlmzsig = wx.TextCtrl(sb, value=str(self.config.mzsig))
+        hbox8.Add(wx.StaticText(sb, label='Guess for Peak FWHM: '), wx.ALIGN_CENTER_VERTICAL)
         hbox8.Add(self.ctlmzsig, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
         hbox9.Add(hbox8, 0, wx.ALIGN_RIGHT)
         hbox9.Add(plotbutton, 0, wx.ALIGN_RIGHT)
         hbox9.Add(fitbutton, 0, wx.ALIGN_RIGHT)
         hbox6 = wx.BoxSizer(wx.HORIZONTAL)
-        self.errorbox = wx.TextCtrl(pnl, value="", style=wx.TE_READONLY)
-        hbox6.Add(wx.StaticText(pnl, label='Error in Fit: '), wx.ALIGN_CENTER_VERTICAL)
+        self.errorbox = wx.TextCtrl(sb, value="", style=wx.TE_READONLY)
+        hbox6.Add(wx.StaticText(sb, label='Error in Fit: '), wx.ALIGN_CENTER_VERTICAL)
         hbox6.Add(self.errorbox, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
         hbox9.Add(hbox6, 0, wx.ALIGN_RIGHT)
 
         hbox7 = wx.BoxSizer(wx.HORIZONTAL)
-        self.resbox = wx.TextCtrl(pnl, value=str(""))
-        hbox7.Add(wx.StaticText(pnl, label='Resolution (M/FWHM): '), wx.ALIGN_CENTER_VERTICAL)
+        self.resbox = wx.TextCtrl(sb, value=str(""))
+        hbox7.Add(wx.StaticText(sb, label='Resolution (M/FWHM): '), wx.ALIGN_CENTER_VERTICAL)
         hbox7.Add(self.resbox, flag=wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
         hbox9.Add(hbox7, 0, wx.ALIGN_RIGHT)
 
@@ -261,25 +261,25 @@ class PeakTools2d(wx.Dialog):
         sb = wx.StaticBox(pnl, label='Peak Shape Tool')
         sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
 
-        self.plot1 = PlottingWindow.Plot1d(pnl)
+        self.plot1 = PlottingWindow.Plot1d(sb)
         sbs.Add(self.plot1, 1, wx.EXPAND)
 
         hbox11 = wx.BoxSizer(wx.HORIZONTAL)
         hbox10 = wx.BoxSizer(wx.VERTICAL)
 
-        centerbutton = wx.Button(pnl, label='Reset Range')
-        self.flipbutton = wx.Button(pnl, label='Flip m/z and '+self.label)
+        centerbutton = wx.Button(sb, label='Reset Range')
+        self.flipbutton = wx.Button(sb, label='Flip m/z and '+self.label)
         centerbutton.Bind(wx.EVT_BUTTON, self.on_reset)
         self.flipbutton.Bind(wx.EVT_BUTTON, self.on_flip)
 
         hboxsigs = wx.BoxSizer(wx.HORIZONTAL)
-        self.outmzsig = wx.TextCtrl(pnl, value="")
-        hboxsigs.Add(wx.StaticText(pnl, label='m/z Width Fit: '), wx.ALIGN_CENTER_VERTICAL)
+        self.outmzsig = wx.TextCtrl(sb, value="")
+        hboxsigs.Add(wx.StaticText(sb, label='m/z Width Fit: '), wx.ALIGN_CENTER_VERTICAL)
         hboxsigs.Add(self.outmzsig, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
 
         hboxsigs2 = wx.BoxSizer(wx.HORIZONTAL)
-        self.outdtsig = wx.TextCtrl(pnl, value="")
-        hboxsigs2.Add(wx.StaticText(pnl, label=self.label+' Width Fit: '), wx.ALIGN_CENTER_VERTICAL)
+        self.outdtsig = wx.TextCtrl(sb, value="")
+        hboxsigs2.Add(wx.StaticText(sb, label=self.label+' Width Fit: '), wx.ALIGN_CENTER_VERTICAL)
         hboxsigs2.Add(self.outdtsig, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
 
         hbox10.Add(centerbutton, 0, wx.ALIGN_LEFT)
@@ -289,27 +289,27 @@ class PeakTools2d(wx.Dialog):
         hbox11.Add(hbox10, 0, wx.ALIGN_LEFT)
 
         hbox9 = wx.BoxSizer(wx.VERTICAL)
-        self.ctlpsfun = wx.RadioBox(pnl, label="m/z Peak Shape Fit Function",
+        self.ctlpsfun = wx.RadioBox(sb, label="m/z Peak Shape Fit Function",
                                     choices=["Gaussian", "Lorentzian", "Split G/L"])
         self.ctlpsfun.SetSelection(self.psfun)
-        fitbutton = wx.Button(pnl, label='Fit Peak Shape')
-        plotbutton = wx.Button(pnl, label='Plot Guess')
+        fitbutton = wx.Button(sb, label='Fit Peak Shape')
+        plotbutton = wx.Button(sb, label='Plot Guess')
         hbox9.Add(self.ctlpsfun, 0, wx.ALIGN_RIGHT)
         hbox8 = wx.BoxSizer(wx.HORIZONTAL)
-        self.ctlsigguess = wx.TextCtrl(pnl, value=str(self.config.mzsig))
-        hbox8.Add(wx.StaticText(pnl, label='Guess for Peak Width: '), wx.ALIGN_CENTER_VERTICAL)
+        self.ctlsigguess = wx.TextCtrl(sb, value=str(self.config.mzsig))
+        hbox8.Add(wx.StaticText(sb, label='Guess for Peak Width: '), wx.ALIGN_CENTER_VERTICAL)
         hbox8.Add(self.ctlsigguess, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
         hbox9.Add(hbox8, 0, wx.ALIGN_RIGHT)
         hbox9.Add(plotbutton, 0, wx.ALIGN_RIGHT)
         hbox9.Add(fitbutton, 0, wx.ALIGN_RIGHT)
         hbox6 = wx.BoxSizer(wx.HORIZONTAL)
-        self.errorbox = wx.TextCtrl(pnl, value="", style=wx.TE_READONLY)
-        hbox6.Add(wx.StaticText(pnl, label='Error in Fit: '), wx.ALIGN_CENTER_VERTICAL)
+        self.errorbox = wx.TextCtrl(sb, value="", style=wx.TE_READONLY)
+        hbox6.Add(wx.StaticText(sb, label='Error in Fit: '), wx.ALIGN_CENTER_VERTICAL)
         hbox6.Add(self.errorbox, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
 
         hbox7 = wx.BoxSizer(wx.HORIZONTAL)
-        self.resbox = wx.TextCtrl(pnl, value=str(""))
-        hbox7.Add(wx.StaticText(pnl, label='Resolution (M/FWHM): '), wx.ALIGN_CENTER_VERTICAL)
+        self.resbox = wx.TextCtrl(sb, value=str(""))
+        hbox7.Add(wx.StaticText(sb, label='Resolution (M/FWHM): '), wx.ALIGN_CENTER_VERTICAL)
         hbox7.Add(self.resbox, flag=wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
 
         hbox9.Add(hbox6, 0, wx.ALIGN_RIGHT)

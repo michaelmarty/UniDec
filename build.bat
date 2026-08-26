@@ -28,7 +28,7 @@ rem install with: pip install unidec and test in venv
 rem Documentation is built and deployed by .github/workflows/deploy-documentation.yml
 
 echo "Building"
-"C:\Python313\Scripts\pyinstaller.exe" GUniDec.spec --clean --noconfirm
+"C:\Python314\Scripts\pyinstaller.exe" GUniDec.spec --clean --noconfirm
 if errorlevel 1 goto end
 call ".\dist\UniDec_Windows\GUI_UniDec.exe"
 

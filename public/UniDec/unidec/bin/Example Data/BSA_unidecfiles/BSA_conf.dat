@@ -1,8 +1,8 @@
-version 8.2.1
+version 9.0.0
 imflag 0
 cdmsflag 0
-input C:\Python\UniDecDev\unidec\bin\Example Data\BSA_unidecfiles\BSA_input.dat
-output C:\Python\UniDecDev\unidec\bin\Example Data\BSA_unidecfiles\BSA
+input C:\Python\UniDecDev\public\UniDec\unidec\bin\Example Data\BSA_unidecfiles\BSA_input.dat
+output C:\Python\UniDecDev\public\UniDec\unidec\bin\Example Data\BSA_unidecfiles\BSA
 numit 50
 numz 40
 endz 40
@@ -15,7 +15,7 @@ suppression_topx 0.1
 suppression_percent 0.0
 suppression_startit 3
 suppression_harmonic 0
-suppression_satellite 2
+suppression_satellite 0
 mzsig 10.0
 psfun 0
 zpsfn 0

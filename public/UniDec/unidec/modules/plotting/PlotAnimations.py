@@ -71,7 +71,9 @@ class AnimationWindow(wx.Frame):
         menu_bar.Append(filemenu, "&File")
         self.SetMenuBar(menu_bar)
 
+        statusbar_log_silencer = wx.LogNull()
         self.CreateStatusBar(2)
+        del statusbar_log_silencer
         panel = wx.Panel(self)
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -88,7 +90,7 @@ class AnimationWindow(wx.Frame):
         frmax = 2000
 
         frmin = 1
-        self.frslider = wx.Slider(panel, wx.ID_ANY, 500, frmin, frmax, (30, 60), (250, -1),
+        self.frslider = wx.Slider(sb, wx.ID_ANY, 500, frmin, frmax, (30, 60), (250, -1),
                                   wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS)
         self.frslider.SetTickFreq(100)
         sbs.Add(self.frslider, 0, wx.EXPAND)

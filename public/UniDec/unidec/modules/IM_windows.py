@@ -184,16 +184,16 @@ class IMTools(wx.Dialog):
         sb = wx.StaticBox(self.pnl, label='Ion Mobility Parameters Tool')
         sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
 
-        self.plot = PlottingWindow.Plot2d(self.pnl)
+        self.plot = PlottingWindow.Plot2d(sb)
         self.plot.contourplot(self.data3, self.config, xlab="m/z (Th)", ylab="Arrival Time (ms)", title="IM-MS Data")
         sbs.Add(self.plot, 1, wx.EXPAND)
 
         ctlsizer = wx.BoxSizer(wx.HORIZONTAL)
-        sb2 = wx.StaticBox(self.pnl, label='Instrumental Parameters')
+        sb2 = wx.StaticBox(sb, label='Instrumental Parameters')
         sbs2 = wx.StaticBoxSizer(sb2, orient=wx.VERTICAL)
         gbox1c = wx.GridBagSizer(wx.VERTICAL)
         size1 = (75, -1)
-        self.ctltwave = wx.RadioBox(self.pnl, label="", choices=["Linear Cell", "Travelling Wave"])
+        self.ctltwave = wx.RadioBox(sb2, label="", choices=["Linear Cell", "Travelling Wave"])
         self.Bind(wx.EVT_RADIOBOX, self.on_flip_twave, self.ctltwave)
         gbox1c.Add(self.ctltwave, (0, 0), span=(1, 5))
 
@@ -201,68 +201,68 @@ class IMTools(wx.Dialog):
         if not self.twave:
             self.ctltwave.SetSelection(0)
             # Linear Mode controls
-            self.ctlvolt = wx.TextCtrl(self.pnl, value="", size=size1)
+            self.ctlvolt = wx.TextCtrl(sb2, value="", size=size1)
             gbox1c.Add(self.ctlvolt, (1, 1), span=(1, 1))
-            gbox1c.Add(wx.StaticText(self.pnl, label="Voltage (V): "), (1, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox1c.Add(wx.StaticText(sb2, label="Voltage (V): "), (1, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
-            self.ctlpressure = wx.TextCtrl(self.pnl, value='', size=size1)
+            self.ctlpressure = wx.TextCtrl(sb2, value='', size=size1)
             gbox1c.Add(self.ctlpressure, (2, 1), span=(1, 1))
-            gbox1c.Add(wx.StaticText(self.pnl, label="Pressure (Torr): "), (2, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox1c.Add(wx.StaticText(sb2, label="Pressure (Torr): "), (2, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
-            self.ctltemp = wx.TextCtrl(self.pnl, value='', size=size1)
+            self.ctltemp = wx.TextCtrl(sb2, value='', size=size1)
             gbox1c.Add(self.ctltemp, (3, 1), span=(1, 1))
-            gbox1c.Add(wx.StaticText(self.pnl, label="Temperature (\u00B0C): "), (3, 0),
+            gbox1c.Add(wx.StaticText(sb2, label="Temperature (\u00B0C): "), (3, 0),
                        flag=wx.ALIGN_CENTER_VERTICAL)
 
-            self.ctlgasmass = wx.TextCtrl(self.pnl, value='', size=size1)
+            self.ctlgasmass = wx.TextCtrl(sb2, value='', size=size1)
             gbox1c.Add(self.ctlgasmass, (4, 1), span=(1, 1))
-            gbox1c.Add(wx.StaticText(self.pnl, label="Gas Mass (Da): "), (4, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox1c.Add(wx.StaticText(sb2, label="Gas Mass (Da): "), (4, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
-            self.ctlto = wx.TextCtrl(self.pnl, value='', size=size1)
+            self.ctlto = wx.TextCtrl(sb2, value='', size=size1)
             gbox1c.Add(self.ctlto, (5, 1), span=(1, 1))
-            gbox1c.Add(wx.StaticText(self.pnl, label="Dead Time (t\u2080 in ms): "), (5, 0),
+            gbox1c.Add(wx.StaticText(sb2, label="Dead Time (t\u2080 in ms): "), (5, 0),
                        flag=wx.ALIGN_CENTER_VERTICAL)
 
-            self.ctldriftlength = wx.TextCtrl(self.pnl, value='', size=size1)
+            self.ctldriftlength = wx.TextCtrl(sb2, value='', size=size1)
             gbox1c.Add(self.ctldriftlength, (6, 1), span=(1, 1))
-            gbox1c.Add(wx.StaticText(self.pnl, label="Drift Cell Length (m)"), (6, 0),
+            gbox1c.Add(wx.StaticText(sb2, label="Drift Cell Length (m)"), (6, 0),
                        flag=wx.ALIGN_CENTER_VERTICAL)
 
         else:
             self.ctltwave.SetSelection(1)
             # T-Wave Controls
-            self.ctltcal1 = wx.TextCtrl(self.pnl, value="", size=size1)
+            self.ctltcal1 = wx.TextCtrl(sb2, value="", size=size1)
             gbox1c.Add(self.ctltcal1, (1, 1), span=(1, 1))
-            gbox1c.Add(wx.StaticText(self.pnl, label="Calibration Parameter 1: "), (1, 0),
+            gbox1c.Add(wx.StaticText(sb2, label="Calibration Parameter 1: "), (1, 0),
                        flag=wx.ALIGN_CENTER_VERTICAL)
 
-            self.ctltcal2 = wx.TextCtrl(self.pnl, value='', size=size1)
+            self.ctltcal2 = wx.TextCtrl(sb2, value='', size=size1)
             gbox1c.Add(self.ctltcal2, (2, 1), span=(1, 1))
-            gbox1c.Add(wx.StaticText(self.pnl, label="Calibration Parameter 2: "), (2, 0),
+            gbox1c.Add(wx.StaticText(sb2, label="Calibration Parameter 2: "), (2, 0),
                        flag=wx.ALIGN_CENTER_VERTICAL)
 
-            self.ctledc = wx.TextCtrl(self.pnl, value='', size=size1)
+            self.ctledc = wx.TextCtrl(sb2, value='', size=size1)
             gbox1c.Add(self.ctledc, (3, 1), span=(1, 1))
-            gbox1c.Add(wx.StaticText(self.pnl, label="EDC Parameter: "), (3, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox1c.Add(wx.StaticText(sb2, label="EDC Parameter: "), (3, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
-            self.ctlgasmass = wx.TextCtrl(self.pnl, value='', size=size1)
+            self.ctlgasmass = wx.TextCtrl(sb2, value='', size=size1)
             gbox1c.Add(self.ctlgasmass, (4, 1), span=(1, 1))
-            gbox1c.Add(wx.StaticText(self.pnl, label="Gas Mass (Da): "), (4, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox1c.Add(wx.StaticText(sb2, label="Gas Mass (Da): "), (4, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
-            self.ctltwavecaltype = wx.Choice(self.pnl, -1, choices=list(self.config.twavedict.values()))
+            self.ctltwavecaltype = wx.Choice(sb2, -1, choices=list(self.config.twavedict.values()))
             gbox1c.Add(self.ctltwavecaltype, (5, 1), span=(1, 1))
-            gbox1c.Add(wx.StaticText(self.pnl, label="Calibration Type: "), (5, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox1c.Add(wx.StaticText(sb2, label="Calibration Type: "), (5, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
         sbs2.Add(gbox1c, 0, wx.EXPAND)
         ctlsizer.Add(sbs2, 0, wx.EXPAND)
 
         vbox2 = wx.BoxSizer(wx.VERTICAL)
-        self.masspanel = IMListCtrlPanel(self.pnl)
-        addbutton = wx.Button(self.pnl, label="Add Species")
+        self.masspanel = IMListCtrlPanel(sb)
+        addbutton = wx.Button(sb, label="Add Species")
         self.Bind(wx.EVT_BUTTON, self.on_add, addbutton)
         vbox2.Add(addbutton, 0, wx.EXPAND)
         vbox2.Add(self.masspanel, 0, wx.EXPAND)
-        plotbutton = wx.Button(self.pnl, label="Plot Species")
+        plotbutton = wx.Button(sb, label="Plot Species")
         self.Bind(wx.EVT_BUTTON, self.on_plot, plotbutton)
         vbox2.Add(plotbutton, 0, wx.EXPAND)
 
@@ -460,27 +460,27 @@ class IMToolExtract(wx.Dialog):
         sb = wx.StaticBox(pnl, label='Ion Mobility Extraction Tool')
         sbs = wx.StaticBoxSizer(sb, orient=wx.HORIZONTAL)
         figsize = (6, 5)
-        self.plot1 = PlottingWindow.Plot2d(pnl, figsize=figsize)
-        self.plot2 = PlottingWindow.Plot1d(pnl, figsize=figsize)
+        self.plot1 = PlottingWindow.Plot2d(sb, figsize=figsize)
+        self.plot2 = PlottingWindow.Plot1d(sb, figsize=figsize)
         plotsizer = wx.BoxSizer(wx.VERTICAL)
         plotsizer.Add(self.plot1, 0, wx.EXPAND)
         plotsizer.Add(self.plot2, 0, wx.EXPAND)
         sbs.Add(plotsizer, 0, wx.EXPAND)
 
-        sb2 = wx.StaticBox(pnl, label='Extraction Parameters')
+        sb2 = wx.StaticBox(sb, label='Extraction Parameters')
         sbs2 = wx.StaticBoxSizer(sb2, orient=wx.VERTICAL)
         gbox1c = wx.GridBagSizer(wx.VERTICAL)
         size1 = (75, -1)
 
-        self.ctlzout = wx.ComboBox(pnl, value="", size=size1, choices=zstrings)
+        self.ctlzout = wx.ComboBox(sb2, value="", size=size1, choices=zstrings)
         gbox1c.Add(self.ctlzout, (0, 1), span=(1, 1))
-        gbox1c.Add(wx.StaticText(pnl, label="Charge State: "), (0, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox1c.Add(wx.StaticText(sb2, label="Charge State: "), (0, 0), flag=wx.ALIGN_CENTER_VERTICAL)
 
         sbs2.Add(gbox1c, 0, wx.EXPAND)
 
-        self.masspanel = IMListCtrlPanel(pnl, size=(200, 700))
-        addbutton = wx.Button(pnl, label="Add Species")
-        plotbutton = wx.Button(pnl, label="Plot Species")
+        self.masspanel = IMListCtrlPanel(sb2, size=(200, 700))
+        addbutton = wx.Button(sb2, label="Add Species")
+        plotbutton = wx.Button(sb2, label="Plot Species")
         sbs2.Add(plotbutton, 0, wx.EXPAND)
         sbs2.Add(self.masspanel, 0, wx.EXPAND)
         sbs2.Add(addbutton, 0, wx.EXPAND)
