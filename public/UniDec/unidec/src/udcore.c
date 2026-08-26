@@ -1198,7 +1198,7 @@ void MakePeakShape2D(const Config config, Decon *decon, const Input *inp, const 
     }
 }
 
-void MakePeakShape1D(const Config config, Decon * decon, const float *dataMZ, const int makereverse, const int inflateflag) {
+void MakePeakShape1D(const Config config, Decon * decon, const float *dataMZ, const int makereverse, const int inflateflag, const int silent) {
     float binsize = dataMZ[1] - dataMZ[0];
     float newrange = config.psmzthresh / binsize;
 
@@ -1211,7 +1211,7 @@ void MakePeakShape1D(const Config config, Decon * decon, const float *dataMZ, co
         decon->mzdist[indexmod(config.lengthmz, 0, n)] = mzpeakshape(0, (float) n * binsize, mzsig, config.psfun);
         if (makereverse == 1) { decon->rmzdist[indexmod(config.lengthmz, 0, n)] = mzpeakshape((float) n * binsize, 0, mzsig, config.psfun); }
     }
-    printf("\nNotice: Assuming linearized data. \n\n");
+    if (silent == 0) { printf("\nNotice: Assuming linearized data. \n\n"); }
 }
 
 
@@ -1308,7 +1308,7 @@ int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, con
         } else {
             if (verbose == 1) { printf("Making Peak Shape 1D\n"); }
             //Calculates peak shape as a 1D list centered at the first element for circular convolutions
-            MakePeakShape1D(config, decon, inp.dataMZ, makereverse, 0);
+            MakePeakShape1D(config, decon, inp.dataMZ, makereverse, 0, silent);
         }
         if (silent == 0) { printf("mzdist set: %f\t maxlength: %d\n", decon->mzdist[0], maxlength); }
     } else {
@@ -1480,6 +1480,7 @@ void IntegrateTransform(const Config config, Decon *decon, const float *mtab, fl
         return; // Do nothing
     }
 
+    float *massgrid = decon->massgrid;
     for (int i = 0; i < config.lengthmz; i++) {
         for (int j = 0; j < config.numz; j++) {
             float testmass = mtab[index2D(config.numz, i, j)];
@@ -1488,25 +1489,25 @@ void IntegrateTransform(const Config config, Decon *decon, const float *mtab, fl
                 float newval = blur[index2D(config.numz, i, j)];
                 if (decon->massaxis[index] == testmass) {
                     decon->massaxisval[index] += newval;
-                    decon->massgrid[index2D(config.numz, index, j)] += newval;
+                    if (massgrid != NULL) { massgrid[index2D(config.numz, index, j)] += newval; }
                 }
 
                 if (decon->massaxis[index] < testmass && index < decon->mlen - 2) {
                     int index2 = index + 1;
                     float interpos = LinearInterpolatePosition(decon->massaxis[index], decon->massaxis[index2], testmass);
                     decon->massaxisval[index] += (1.0f - interpos) * newval;
-                    decon->massgrid[index2D(config.numz, index, j)] += (1.0f - interpos) * newval;
+                    if (massgrid != NULL) { massgrid[index2D(config.numz, index, j)] += (1.0f - interpos) * newval; }
                     decon->massaxisval[index2] += (interpos) * newval;
-                    decon->massgrid[index2D(config.numz, index2, j)] += (interpos) * newval;
+                    if (massgrid != NULL) { massgrid[index2D(config.numz, index2, j)] += (interpos) * newval; }
                 }
 
                 if (decon->massaxis[index] > testmass && index > 0) {
                     int index2 = index - 1;
                     float interpos = LinearInterpolatePosition(decon->massaxis[index], decon->massaxis[index2], testmass);
                     decon->massaxisval[index] += (1 - interpos) * newval;
-                    decon->massgrid[index2D(config.numz, index, j)] += (1 - interpos) * newval;
+                    if (massgrid != NULL) { massgrid[index2D(config.numz, index, j)] += (1 - interpos) * newval; }
                     decon->massaxisval[index2] += (interpos) * newval;
-                    decon->massgrid[index2D(config.numz, index2, j)] += (interpos) * newval;
+                    if (massgrid != NULL) { massgrid[index2D(config.numz, index2, j)] += (interpos) * newval; }
                 }
             }
         }
@@ -1525,6 +1526,7 @@ void InterpolateTransform(const Config config, Decon *decon, const Input *inp) {
         return; // Do nothing
     }
 
+    float *massgrid = decon->massgrid;
     float startmzval = inp->dataMZ[0];
     float endmzval = inp->dataMZ[config.lengthmz - 1];
     //#pragma omp parallel for schedule(auto)
@@ -1542,7 +1544,7 @@ void InterpolateTransform(const Config config, Decon *decon, const Input *inp) {
                 if (inp->dataMZ[index] == mztest) {
                     newval = blur[index2D(config.numz, index, j)];
                     val += newval;
-                    decon->massgrid[index2D(config.numz, i, j)] = newval;
+                    if (massgrid != NULL) { massgrid[index2D(config.numz, i, j)] = newval; }
                 } else {
                     if (inp->dataMZ[index] > mztest && index > 1 && index < config.lengthmz - 1) {
                         index2 = index;
@@ -1560,7 +1562,7 @@ void InterpolateTransform(const Config config, Decon *decon, const Input *inp) {
                         //newval=CRSplineInterpolate(y0,y1,y2,y3,mu);
                         //newval=LinearInterpolate(y1,y2,mu);
                         val += newval;
-                        decon->massgrid[index2D(config.numz, i, j)] = newval;
+                        if (massgrid != NULL) { massgrid[index2D(config.numz, i, j)] = newval; }
                     }
                 }
             }
@@ -1581,6 +1583,7 @@ void SmartTransform(const Config config, Decon *decon, const Input *inp) {
         return; // Do nothing
     }
 
+    float *massgrid = decon->massgrid;
     float startmzval = inp->dataMZ[0];
     float endmzval = inp->dataMZ[config.lengthmz - 1];
     #pragma omp parallel for schedule(auto)
@@ -1622,7 +1625,7 @@ void SmartTransform(const Config config, Decon *decon, const Input *inp) {
                     if (imz == mztest) {
                         newval = clip(blur[index2D(config.numz, index, j)], 0);
                         val += newval;
-                        decon->massgrid[index2D(config.numz, i, j)] = newval;
+                        if (massgrid != NULL) { massgrid[index2D(config.numz, i, j)] = newval; }
                     } else {
                         int edge = 0;
                         index2 = index;
@@ -1650,7 +1653,7 @@ void SmartTransform(const Config config, Decon *decon, const Input *inp) {
                             //newval=clip(CRSplineInterpolate(y0,y1,y2,y3,mu), 0);
                             //newval=clip(LinearInterpolate(y1,y2,mu),0);
                             val += newval;
-                            decon->massgrid[index2D(config.numz, i, j)] = newval;
+                            if (massgrid != NULL) { massgrid[index2D(config.numz, i, j)] = newval; }
                             //printf("0\n");
                         } else if (edge == 1 && (inp->dataMZ[index2] - inp->dataMZ[index]) != 0) {
                             float mu = (mztest - inp->dataMZ[index]) / (inp->dataMZ[index2] - inp->dataMZ[index]);
@@ -1658,7 +1661,7 @@ void SmartTransform(const Config config, Decon *decon, const Input *inp) {
                             float y2 = blur[index2D(config.numz, index2, j)];
                             newval = clip(LinearInterpolate(y1, y2, mu), 0);
                             val += newval;
-                            decon->massgrid[index2D(config.numz, i, j)] = newval;
+                            if (massgrid != NULL) { massgrid[index2D(config.numz, i, j)] = newval; }
                             //printf("1 %d %d %f %f %f\n", index, index2, mztest, imz, newval, massaxis[i]);
                         } else if (edge == 2 && (inp->dataMZ[index2] - inp->dataMZ[index]) != 0) {
                             if (index2 == 0) {
@@ -1674,7 +1677,7 @@ void SmartTransform(const Config config, Decon *decon, const Input *inp) {
                             float y2 = 0;
                             newval = clip(LinearInterpolate(y1, y2, mu), 0);
                             val += newval;
-                            decon->massgrid[index2D(config.numz, i, j)] = newval;
+                            if (massgrid != NULL) { massgrid[index2D(config.numz, i, j)] = newval; }
                             //printf("2\n");
                         }
                     }
@@ -1700,7 +1703,7 @@ void SmartTransform(const Config config, Decon *decon, const Input *inp) {
                     if (num != 0) { newval /= num; }
                     newval = clip(newval, 0);
                     val += newval;
-                    decon->massgrid[index2D(config.numz, i, j)] = newval;
+                    if (massgrid != NULL) { massgrid[index2D(config.numz, i, j)] = newval; }
                 }
             }
         }

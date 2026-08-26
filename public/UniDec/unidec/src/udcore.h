@@ -86,7 +86,7 @@ void MakeSparseBlur(const int numclose, char *barr, const int *closezind,
                     const int *closemind, int *closeind, const float *closeval, float *closearray, const Config config, const Input *inp);
 void MakePeakShape2D(const Config config, Decon *decon, const Input *inp, int makereverse,
                      const int inflateflag);
-void MakePeakShape1D(const Config config, Decon * decon, const float *dataMZ, int makereverse, const int inflateflag);
+void MakePeakShape1D(const Config config, Decon * decon, const float *dataMZ, int makereverse, const int inflateflag, const int silent);
 int SetStartsEnds(const Config config, const Input *inp, int *starttab, int *endtab);
 int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, const int verbose);
 void SetUpBlur(Config config, Input inp, IntraDecon *intra, const int silent);

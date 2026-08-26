@@ -797,7 +797,9 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 			if (status == 1) {
 				//Get the scores for each peak
 				//score(config, &decon, inp, 0);
-				score_from_peaks(plen, peakx, peaky, tempdscores, config, &decon, inp, 0);
+				Config score_config = config;
+				score_config.silent = 1;
+				score_from_peaks(plen, peakx, peaky, tempdscores, score_config, &decon, inp, 0);
 
 				//Average In Dscores
 				for (int j = 0; j < plen; j++)
