@@ -210,7 +210,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 		* dataInt = NULL,
 		* peakshape = NULL,
 		*mkernel = NULL,
-		*blur = NULL, *newblur=NULL, *newblur2=NULL, *oldblur=NULL
+		*blur = NULL, *newblur=NULL, *newblur2=NULL, *oldblur=NULL, *smooth_sums=NULL
 		;
 
 	//Reading In Data
@@ -314,8 +314,9 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	newblur = calloc(lines, sizeof(float));
 	newblur2 = calloc(lines, sizeof(float));
 	oldblur = calloc(lines, sizeof(float));
+	smooth_sums = calloc(size[1], sizeof(float));
 	barr = calloc(lines, sizeof(char));
-	if (blur == NULL || newblur == NULL || newblur2 == NULL || oldblur == NULL || barr == NULL) {
+	if (blur == NULL || newblur == NULL || newblur2 == NULL || oldblur == NULL || smooth_sums == NULL || barr == NULL) {
 		printf("Error allocating memory for iteration arrays\n");
 		exit(1);
 	}
@@ -335,7 +336,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 		}
 		// Apply point smoothing
 		if (config.psig > 0) {
-			point_smoothing(blur, newblur, barr, size[0], size[1], abs((int)config.psig));
+			point_smoothing(blur, newblur, smooth_sums, barr, size[0], size[1], abs((int)config.psig));
 		}
 		// Apply charge smoothing
 		if (config.zsig!=0) {
@@ -459,6 +460,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	free(newblur);
 	free(newblur2);
 	free(oldblur);
+	free(smooth_sums);
 
 	free(peakshape);
 	fftwf_free(peakshape_FFT);
