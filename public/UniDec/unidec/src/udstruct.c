@@ -95,6 +95,11 @@ IntraDecon InitIntraDecon() {
     intradecon.closeval = NULL;
     intradecon.closearray = NULL;
     intradecon.dataInt2 = NULL;
+    intradecon.rl_deltas = NULL;
+    intradecon.rl_denom = NULL;
+    intradecon.smoothing_scratch = NULL;
+    intradecon.smoothing_sums = NULL;
+    intradecon.log_blur = NULL;
     return intradecon;
 }
 
@@ -111,6 +116,11 @@ void FreeIntraDecon(const IntraDecon intradecon) {
     free(intradecon.closeval);
     free(intradecon.closearray);
     free(intradecon.dataInt2);
+    free(intradecon.rl_deltas);
+    free(intradecon.rl_denom);
+    free(intradecon.smoothing_scratch);
+    free(intradecon.smoothing_sums);
+    free(intradecon.log_blur);
 }
 
 

@@ -117,7 +117,7 @@ class AutocorrWindow(wx.Dialog):
         sb = wx.StaticBox(panel, label='Autocorrelation')
         sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
 
-        self.plot1 = PlottingWindow.Plot1d(panel)
+        self.plot1 = PlottingWindow.Plot1d(sb)
         sbs.Add(self.plot1)
         hbox.Add(sbs)
         self.listpanel = CorrListCtrlPanel(panel)

@@ -102,8 +102,10 @@ class Mainwindow(MainwindowBase):
         :return: None
         """
         # Create Status Bar
+        statusbar_log_silencer = wx.LogNull()
         self.CreateStatusBar(7)
-        self.SetStatusWidths([-1, 300, 200, 200, 250, 150, 130])
+        self.SetStatusWidths([-1, -6, -4, -4, -5, -3, -3])
+        del statusbar_log_silencer
         # Sizers to develop layout
         # s1 = (min(self.displaysize[0], 1851), self.displaysize[1])
         # s2 = (550, self.displaysize[1])

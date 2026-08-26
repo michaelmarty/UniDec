@@ -518,7 +518,7 @@ int peaks_no_score(const Config config, Decon* decon, const int silent) {
 		if (silent == 0) { printf("No peaks detected.\n"); }
 		return 0;
 	}
-	printf("Detected %d peaks. Settings: %f %f \n", plen, config.peakwin, config.peakthresh);
+	if (silent == 0) { printf("Detected %d peaks. Settings: %f %f \n", plen, config.peakwin, config.peakthresh); }
 	decon->peakx = realloc(decon->peakx, plen * sizeof(float));
 	decon->peaky = realloc(decon->peaky, plen * sizeof(float));
 	decon->dscores = calloc(plen, sizeof(float));
@@ -594,7 +594,8 @@ void get_scan_scores(int argc, char* argv[], Config config)
 		int status = ReadDecon(&config, inp, &decon);
 
 		if(status ==1){
-			score(config, &decon, inp, 0, config.silent);
+			decon.uniscore = score(config, &decon, inp, 0, config.silent);
+			write_attr_float(config.file_id, config.dataset, "uniscore", decon.uniscore);
 			WritePeaks(config, &decon);
 		}
 		else

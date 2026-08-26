@@ -10,8 +10,10 @@ __author__ = 'Michael.Marty'
 class GlycoDecWindow(wx.Frame):
     def __init__(self, parent, engine=None):
         wx.Frame.__init__(self, parent, title="Glycan Builder")  # ,size=(-1,-1))
+        statusbar_log_silencer = wx.LogNull()
         self.CreateStatusBar(3)
-        self.SetStatusWidths([-1, 300, 300])
+        self.SetStatusWidths([-1, -3, -3])
+        del statusbar_log_silencer
         if engine is None:
             self.eng = GlycoDecEngine()
         else:
@@ -60,7 +62,7 @@ class GlycoDecWindow(wx.Frame):
         sb = wx.StaticBox(panel, label='GlycoCT')
         sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
 
-        self.glytextbox = wx.TextCtrl(panel, style=wx.TE_MULTILINE, size=(210, 520))
+        self.glytextbox = wx.TextCtrl(sb, style=wx.TE_MULTILINE, size=(210, 520))
         sbs.Add(self.glytextbox)
 
         '''
@@ -76,13 +78,13 @@ class GlycoDecWindow(wx.Frame):
         sbs.Add(wx.StaticText(panel, label="Mass Defect List"))
         sbs.Add(self.masslistbox)
         '''
-        updatebutton = wx.Button(panel, label="Update Plot")
+        updatebutton = wx.Button(sb, label="Update Plot")
         sbs.Add(updatebutton, 0, wx.EXPAND)
         self.Bind(wx.EVT_BUTTON, self.on_update_button, updatebutton)
 
         hbox2 = wx.BoxSizer(wx.HORIZONTAL)
-        hbox2.Add(wx.StaticText(panel, label="Mass (Da):"))
-        self.masstextbox = wx.TextCtrl(panel, style=wx.TE_READONLY)
+        hbox2.Add(wx.StaticText(sb, label="Mass (Da):"))
+        self.masstextbox = wx.TextCtrl(sb, style=wx.TE_READONLY)
         hbox2.Add(self.masstextbox)
         sbs.Add(hbox2)
         # hbox.Add(sbs, 0, wx.EXPAND)
@@ -97,24 +99,24 @@ class GlycoDecWindow(wx.Frame):
         sb2 = wx.StaticBox(panel, label='Digested Version')
         sbs2 = wx.StaticBoxSizer(sb2, orient=wx.VERTICAL)
 
-        self.glytextbox2 = wx.TextCtrl(panel, style=wx.TE_MULTILINE | wx.TE_READONLY, size=(210, 520))
+        self.glytextbox2 = wx.TextCtrl(sb2, style=wx.TE_MULTILINE | wx.TE_READONLY, size=(210, 520))
         sbs2.Add(self.glytextbox2)
 
         controlsizer = wx.BoxSizer(wx.HORIZONTAL)
-        controlsizer.Add(wx.StaticText(panel, label="Enzyme Type: "), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.ctletype = wx.ComboBox(panel, value=enzyme_options[0], choices=list(enzyme_options.values()),
+        controlsizer.Add(wx.StaticText(sb2, label="Enzyme Type: "), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.ctletype = wx.ComboBox(sb2, value=enzyme_options[0], choices=list(enzyme_options.values()),
                                     style=wx.CB_READONLY | wx.ALIGN_CENTER_VERTICAL)
         controlsizer.Add(self.ctletype, 0, wx.ALIGN_CENTER_VERTICAL)
 
-        digestbutton = wx.Button(panel, label="Digest")
+        digestbutton = wx.Button(sb2, label="Digest")
         controlsizer.Add(digestbutton, 0, wx.EXPAND)
         self.Bind(wx.EVT_BUTTON, self.on_digest, digestbutton)
 
         sbs2.Add(controlsizer)
 
         hbox2 = wx.BoxSizer(wx.HORIZONTAL)
-        hbox2.Add(wx.StaticText(panel, label="Mass (Da):"))
-        self.masstextbox2 = wx.TextCtrl(panel, style=wx.TE_READONLY)
+        hbox2.Add(wx.StaticText(sb2, label="Mass (Da):"))
+        self.masstextbox2 = wx.TextCtrl(sb2, style=wx.TE_READONLY)
         hbox2.Add(self.masstextbox2)
         sbs2.Add(hbox2)
 

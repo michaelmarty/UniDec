@@ -185,8 +185,10 @@ class Mainwindow(mainwindow_base.MainwindowBase):
         panel.SetSizer(sizer)
         sizer.Fit(self)
 
+        statusbar_log_silencer = wx.LogNull()
         self.CreateStatusBar(7)
-        self.SetStatusWidths([-1, 600, 120, 0, 230, 250, 130])
+        self.SetStatusWidths([-1, -12, -2, 0, -5, -5, -3])
+        del statusbar_log_silencer
 
         self.Layout()
         self.plotpanel.SetMinSize(wx.Size(-1,-1))

@@ -24,7 +24,9 @@ class ImportWizard(wx.Frame):
             self.exedir = os.path.dirname(os.path.abspath(__file__))
 
     def setup_frame(self):
+        statusbar_log_silencer = wx.LogNull()
         self.CreateStatusBar()
+        del statusbar_log_silencer
         self.SetTitle('Data Conversion Wizard - By Tim Allison with mods from MTM')
 
         panel = wx.Panel(self)
@@ -41,6 +43,10 @@ class ImportWizard(wx.Frame):
         hb02 = wx.BoxSizer(wx.HORIZONTAL)
         hb04 = wx.BoxSizer(wx.HORIZONTAL)
         hb05 = wx.BoxSizer(wx.HORIZONTAL)
+        path_box = wx.StaticBox(panel, wx.ID_ANY, 'Path to Data Folder')
+        box = wx.StaticBoxSizer(path_box, wx.VERTICAL)
+        files_box = wx.StaticBox(panel, wx.ID_ANY, 'File(s) to Convert')
+        box2 = wx.StaticBoxSizer(files_box, wx.VERTICAL)
 
         # Mode which to import
         self.rb = wx.RadioBox(panel, wx.ID_ANY, "Type of Drift Cell",
@@ -51,10 +57,9 @@ class ImportWizard(wx.Frame):
         self.rb.SetToolTip(wx.ToolTip("Select type of drift cell in your ion mobility mass spectrometer"))
 
         # folder path stuff
-        self.folder_path = wx.TextCtrl(panel, wx.ID_ANY, FileDialogs.default_dir, size=(450, -1))
+        self.folder_path = wx.TextCtrl(path_box, wx.ID_ANY, FileDialogs.default_dir, size=(450, -1))
         hb02.Add(self.folder_path, 0, wx.ALIGN_CENTRE_VERTICAL | wx.LEFT, border=5)
-        hb02.Add(wx.Button(panel, 10, 'Browse'), 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, border=5)
-        box = wx.StaticBoxSizer(wx.StaticBox(panel, wx.ID_ANY, 'Path to Data Folder'), wx.VERTICAL)
+        hb02.Add(wx.Button(path_box, 10, 'Browse'), 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, border=5)
         box.Add(hb02)
 
         hb01.Add(self.rb, 0, wx.ALL, border=5)
@@ -62,24 +67,23 @@ class ImportWizard(wx.Frame):
 
         # add my grid
         panel2 = wx.Panel(panel)
-        self.my_grid = import_wizard_grid.WizardGrid(panel, self)
+        self.my_grid = import_wizard_grid.WizardGrid(files_box, self)
         self.my_grid.EvtDriftType(n=defaultselection)
-        self.my_tree = import_wizard_treectrl.TreeCtrlPanel(panel, self)
+        self.my_tree = import_wizard_treectrl.TreeCtrlPanel(files_box, self)
         self.tree = self.my_tree.tree
 
         hb04.Add(self.my_tree)
-        hb04.Add(wx.StaticText(panel, wx.ID_ANY, ''))
+        hb04.Add(wx.StaticText(files_box, wx.ID_ANY, ''))
         # now make comobox for various files
-        self.desc = wx.TextCtrl(panel, wx.ID_ANY, '', size=(600, 300), style=wx.TE_MULTILINE)
+        self.desc = wx.TextCtrl(files_box, wx.ID_ANY, '', size=(600, 300), style=wx.TE_MULTILINE)
         hb04.Add(self.desc, wx.ALL, border=10)
 
         # make buttons to add, auto, clear all
-        hb05.Add(wx.Button(panel, 2, 'Add'), 0, wx.ALL, border=5)
+        hb05.Add(wx.Button(files_box, 2, 'Add'), 0, wx.ALL, border=5)
         # hb05.Add(wx.Button(panel, 3, 'Auto'), wx.ALL | wx.ALIGN_LEFT | wx.TOP, 10)
-        hb05.Add(wx.Button(panel, 4, 'Clear All'), 0, wx.TOP | wx.BOTTOM | wx.RIGHT, border=5)
+        hb05.Add(wx.Button(files_box, 4, 'Clear All'), 0, wx.TOP | wx.BOTTOM | wx.RIGHT, border=5)
 
         # make a box around the tree ctrl
-        box2 = wx.StaticBoxSizer(wx.StaticBox(panel, wx.ID_ANY, 'File(s) to Convert'), wx.VERTICAL)
         box2.Add(hb04)
         box2.Add(hb05)
         box2.Add(self.my_grid, 1, wx.EXPAND | wx.ALL, border=5)

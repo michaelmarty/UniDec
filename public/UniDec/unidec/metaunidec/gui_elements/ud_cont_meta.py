@@ -287,10 +287,10 @@ class main_controls(wx.Panel):
 
         sb = wx.StaticBox(panel2b, label='Native Charge Offset Range')
         sbs = wx.StaticBoxSizer(sb, orient=wx.HORIZONTAL)
-        self.ctlminnativez = wx.TextCtrl(panel2b, value='', size=(75, -1))
-        self.ctlmaxnativez = wx.TextCtrl(panel2b, value='', size=(75, -1))
+        self.ctlminnativez = wx.TextCtrl(sb, value='', size=(75, -1))
+        self.ctlmaxnativez = wx.TextCtrl(sb, value='', size=(75, -1))
         sbs.Add(self.ctlminnativez, flag=wx.LEFT | wx.EXPAND, border=5)
-        sbs.Add(wx.StaticText(panel2b, label=' to '), 0, wx.EXPAND)
+        sbs.Add(wx.StaticText(sb, label=' to '), 0, wx.EXPAND)
         sbs.Add(self.ctlmaxnativez, flag=wx.LEFT | wx.EXPAND, border=5)
         gbox2b.Add(sbs, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
@@ -481,11 +481,11 @@ class main_controls(wx.Panel):
 
         sb3 = wx.StaticBox(panel3b, label='Limits on # of Spectra')
         sbs3 = wx.StaticBoxSizer(sb3, orient=wx.HORIZONTAL)
-        self.ctlcrossover = wx.TextCtrl(panel3b, value='', size=(75, -1))
-        self.ctlnumtot = wx.TextCtrl(panel3b, value='', size=(75, -1))
-        sbs3.Add(wx.StaticText(panel3b, label='If over'), 0, flag=wx.EXPAND)
+        self.ctlcrossover = wx.TextCtrl(sb3, value='', size=(75, -1))
+        self.ctlnumtot = wx.TextCtrl(sb3, value='', size=(75, -1))
+        sbs3.Add(wx.StaticText(sb3, label='If over'), 0, flag=wx.EXPAND)
         sbs3.Add(self.ctlcrossover, flag=wx.LEFT | wx.EXPAND, border=5)
-        sbs3.Add(wx.StaticText(panel3b, label=' plot only'), 0, flag=wx.EXPAND)
+        sbs3.Add(wx.StaticText(sb3, label=' plot only'), 0, flag=wx.EXPAND)
         sbs3.Add(self.ctlnumtot, flag=wx.LEFT | wx.EXPAND, border=5)
         gbox3b.Add(sbs3, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1

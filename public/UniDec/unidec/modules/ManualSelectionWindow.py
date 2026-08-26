@@ -334,19 +334,19 @@ class ManualSelection(wx.Dialog):
         sb = wx.StaticBox(panel, label='Manually Set Masses')
         sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
 
-        importbutton = wx.Button(panel, label="Import from File")
+        importbutton = wx.Button(sb, label="Import from File")
         self.Bind(wx.EVT_BUTTON, self.on_import, importbutton)
 
-        clearbutt = wx.Button(panel, label="Clear List")
+        clearbutt = wx.Button(sb, label="Clear List")
         self.Bind(wx.EVT_BUTTON, self.on_clear, clearbutt)
 
-        addbutton = wx.Button(panel, label="Manual Add Species")
+        addbutton = wx.Button(sb, label="Manual Add Species")
         self.Bind(wx.EVT_BUTTON, self.on_add, addbutton)
 
-        addbutton2 = wx.Button(panel, label="Add from Plot Zoom Range")
+        addbutton2 = wx.Button(sb, label="Add from Plot Zoom Range")
         self.Bind(wx.EVT_BUTTON, self.on_add_from_plot, addbutton2)
 
-        plotbutton = wx.Button(panel, label="Plot Manual Assignments")
+        plotbutton = wx.Button(sb, label="Plot Manual Assignments")
         self.Bind(wx.EVT_BUTTON, self.on_plot, plotbutton)
 
         sbs.Add(importbutton, 0, wx.EXPAND)
@@ -358,7 +358,7 @@ class ManualSelection(wx.Dialog):
 
         sb2 = wx.StaticBox(panel, label='Manual List')
         sbs2 = wx.StaticBoxSizer(sb2, orient=wx.VERTICAL)
-        self.masslistbox = ManualListCtrlPanel(panel, imflag=self.tdflag)
+        self.masslistbox = ManualListCtrlPanel(sb2, imflag=self.tdflag)
         # sbs2.Add(wx.StaticText(panel, label="Manual List"))
         sbs2.Add(self.masslistbox)
         hbox.Add(sbs2)
@@ -715,19 +715,19 @@ class SmashSelection(wx.Dialog):
         sb = wx.StaticBox(panel, label='Define Smash Range')
         sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
 
-        importbutton = wx.Button(panel, label="Import from File")
+        importbutton = wx.Button(sb, label="Import from File")
         self.Bind(wx.EVT_BUTTON, self.on_import, importbutton)
 
-        clearbutt = wx.Button(panel, label="Clear List")
+        clearbutt = wx.Button(sb, label="Clear List")
         self.Bind(wx.EVT_BUTTON, self.on_clear, clearbutt)
 
-        addbutton = wx.Button(panel, label="Manual Add Species")
+        addbutton = wx.Button(sb, label="Manual Add Species")
         self.Bind(wx.EVT_BUTTON, self.on_add, addbutton)
 
-        addbutton2 = wx.Button(panel, label="Add from Plot Zoom Range")
+        addbutton2 = wx.Button(sb, label="Add from Plot Zoom Range")
         self.Bind(wx.EVT_BUTTON, self.on_add_from_plot, addbutton2)
 
-        plotbutton = wx.Button(panel, label="Plot Manual Assignments")
+        plotbutton = wx.Button(sb, label="Plot Manual Assignments")
         self.Bind(wx.EVT_BUTTON, self.on_plot, plotbutton)
 
         sbs.Add(importbutton, 0, wx.EXPAND)
@@ -739,7 +739,7 @@ class SmashSelection(wx.Dialog):
 
         sb2 = wx.StaticBox(panel, label='Smash List')
         sbs2 = wx.StaticBoxSizer(sb2, orient=wx.VERTICAL)
-        self.masslistbox = SmashListCtrlPanel(panel, imflag=self.tdflag)
+        self.masslistbox = SmashListCtrlPanel(sb2, imflag=self.tdflag)
         # sbs2.Add(wx.StaticText(panel, label="Manual List"))
         sbs2.Add(self.masslistbox)
         hbox.Add(sbs2)

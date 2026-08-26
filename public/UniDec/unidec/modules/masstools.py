@@ -616,28 +616,28 @@ class MassSelection(wx.Dialog):
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         sb = wx.StaticBox(panel, label='Set the Mass List for Limited UniDec')
         sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
-        peakpop = wx.Button(panel, label="Populate from Peak List")
+        peakpop = wx.Button(sb, label="Populate from Peak List")
         self.Bind(wx.EVT_BUTTON, self.pop_from_peaks, peakpop)
 
-        importbutton = wx.Button(panel, label="Import from File")
+        importbutton = wx.Button(sb, label="Import from File")
         self.Bind(wx.EVT_BUTTON, self.on_import_masses, importbutton)
 
-        oligopop = wx.Button(panel, label="Populate from Isolated Oligomers")
+        oligopop = wx.Button(sb, label="Populate from Isolated Oligomers")
         self.Bind(wx.EVT_BUTTON, self.pop_oligo_iso, oligopop)
 
-        oligopop2 = wx.Button(panel, label="Populate from All Possible Oligomers")
+        oligopop2 = wx.Button(sb, label="Populate from All Possible Oligomers")
         self.Bind(wx.EVT_BUTTON, self.pop_oligo_all, oligopop2)
 
-        oligopop3 = wx.Button(panel, label="Populate from Site Mode")
+        oligopop3 = wx.Button(sb, label="Populate from Site Mode")
         self.Bind(wx.EVT_BUTTON, self.pop_oligo_sites, oligopop3)
 
-        clearbutt = wx.Button(panel, label="Clear List")
+        clearbutt = wx.Button(sb, label="Clear List")
         self.Bind(wx.EVT_BUTTON, self.on_clear_masslist, clearbutt)
 
-        addbutton = wx.Button(panel, label="Manual Add Species")
+        addbutton = wx.Button(sb, label="Manual Add Species")
         self.Bind(wx.EVT_BUTTON, self.on_add_mass, addbutton)
 
-        simbutton = wx.Button(panel, label="Simulate These Masses")
+        simbutton = wx.Button(sb, label="Simulate These Masses")
         self.Bind(wx.EVT_BUTTON, self.on_simulate, simbutton)
 
         sbs.Add(peakpop, 0, wx.EXPAND)
@@ -647,9 +647,9 @@ class MassSelection(wx.Dialog):
         sbs.Add(oligopop3, 0, wx.EXPAND)
         sbs.Add(addbutton, 0, wx.EXPAND)
         sbs.Add(clearbutt, 0, wx.EXPAND)
-        self.masslistbox = MassListCtrl(self, panel, coltitle="Mass (Da)", size=(210, 380), style=wx.LC_REPORT)
+        self.masslistbox = MassListCtrl(self, sb, coltitle="Mass (Da)", size=(210, 380), style=wx.LC_REPORT)
 
-        sbs.Add(wx.StaticText(panel, label="Mass List"))
+        sbs.Add(wx.StaticText(sb, label="Mass List"))
         sbs.Add(self.masslistbox, 1, wx.EXPAND)
         sbs.Add(simbutton, 0, wx.EXPAND)
 
@@ -665,16 +665,16 @@ class MassSelection(wx.Dialog):
         sb2 = wx.StaticBox(p1, label='Oligomer Maker')
         sbs2 = wx.StaticBoxSizer(sb2, orient=wx.VERTICAL)
 
-        clearbutt2 = wx.Button(p1, label="Clear Oligomer List")
+        clearbutt2 = wx.Button(sb2, label="Clear Oligomer List")
         self.Bind(wx.EVT_BUTTON, self.on_clear_oligolist, clearbutt2)
 
-        addbutton2 = wx.Button(p1, label="Add Oligomer Species")
+        addbutton2 = wx.Button(sb2, label="Add Oligomer Species")
         self.Bind(wx.EVT_BUTTON, self.on_add_oligomer, addbutton2)
 
-        importbutton2 = wx.Button(p1, label="Import from File")
+        importbutton2 = wx.Button(sb2, label="Import from File")
         self.Bind(wx.EVT_BUTTON, self.on_import_oligos, importbutton2)
 
-        plotbutton = wx.Button(p1, label="View Autocorrelation Plot")
+        plotbutton = wx.Button(sb2, label="View Autocorrelation Plot")
         self.Bind(wx.EVT_BUTTON, self.on_autocorr_window, plotbutton)
         buttonbox = wx.BoxSizer(wx.VERTICAL)
         hbox3 = wx.BoxSizer(wx.HORIZONTAL)
@@ -684,7 +684,7 @@ class MassSelection(wx.Dialog):
         buttonbox.Add(plotbutton, 0, wx.EXPAND)
         hbox3.Add(buttonbox)
         textbox = wx.BoxSizer(wx.VERTICAL)
-        text = wx.StaticText(p1,
+        text = wx.StaticText(sb2,
                              label=" Oligomer Mode\n    Either isolated or mixed combinations\n    "
                                    "For i from Min # to Max #:\n       Mass(i)=Base Offset + Monomer Mass * i \n")
         font = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False)
@@ -693,12 +693,12 @@ class MassSelection(wx.Dialog):
         hbox3.Add(textbox)
         sbs2.Add(hbox3, 0, wx.EXPAND)
 
-        self.oligomerlistbox = OligomerListCtrl(self, p1, size=(500, 200),
+        self.oligomerlistbox = OligomerListCtrl(self, sb2, size=(500, 200),
                                                 style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
 
-        sbs2.Add(wx.StaticText(p1, label="Oligomer List"))
+        sbs2.Add(wx.StaticText(sb2, label="Oligomer List"))
         sbs2.Add(self.oligomerlistbox, 1, wx.EXPAND)
-        sbs2.Add(wx.StaticText(p1, label=""))
+        sbs2.Add(wx.StaticText(sb2, label=""))
 
         tab1.SetSizerAndFit(sbs2)
         self.notebook.AddPage(tab1, "Oligomer Mode")
@@ -710,31 +710,31 @@ class MassSelection(wx.Dialog):
         buttonbox = wx.BoxSizer(wx.VERTICAL)
         hbox3 = wx.BoxSizer(wx.HORIZONTAL)
 
-        importbuttonsite = wx.Button(tab2, label="Import from File")
+        importbuttonsite = wx.Button(sb2b, label="Import from File")
         self.Bind(wx.EVT_BUTTON, self.on_import_sites, importbuttonsite)
         buttonbox.Add(importbuttonsite, 0, wx.EXPAND)
 
-        addbutton3 = wx.Button(tab2, label="Add Row")
+        addbutton3 = wx.Button(sb2b, label="Add Row")
         self.Bind(wx.EVT_BUTTON, self.on_add_site, addbutton3)
         buttonbox.Add(addbutton3, 0, wx.EXPAND)
 
-        addbutton4 = wx.Button(tab2, label="Add Column")
+        addbutton4 = wx.Button(sb2b, label="Add Column")
         self.Bind(wx.EVT_BUTTON, self.on_add_col, addbutton4)
         buttonbox.Add(addbutton4, 0, wx.EXPAND)
 
-        clearbutt3 = wx.Button(tab2, label="Clear All")
+        clearbutt3 = wx.Button(sb2b, label="Clear All")
         self.Bind(wx.EVT_BUTTON, self.on_clear_sites, clearbutt3)
         buttonbox.Add(clearbutt3, 0, wx.EXPAND)
 
         textbox2 = wx.BoxSizer(wx.HORIZONTAL)
-        self.ctlsitebasemass = wx.TextCtrl(tab2, value="")
-        textbox2.Add(wx.StaticText(tab2, label="Base Mass (Da):"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.ctlsitebasemass = wx.TextCtrl(sb2b, value="")
+        textbox2.Add(wx.StaticText(sb2b, label="Base Mass (Da):"), 0, wx.ALIGN_CENTER_VERTICAL)
         textbox2.Add(self.ctlsitebasemass, 0)
         buttonbox.Add(textbox2, 0, wx.EXPAND)
 
         hbox3.Add(buttonbox)
         textbox = wx.BoxSizer(wx.VERTICAL)
-        text = wx.StaticText(tab2,
+        text = wx.StaticText(sb2b,
                              label=" Site Mode\n    Only one bound per site\n    For any non-zero i at each site:\n "
                                    "      Mass(i, ...)=Base + Site1_i + ... \n")
         font = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False)
@@ -744,7 +744,7 @@ class MassSelection(wx.Dialog):
 
         sbs2b.Add(hbox3, 0, wx.EXPAND)
 
-        self.ss = spreadsheet.SpreadsheetPanel(self, tab2, 4, 3)
+        self.ss = spreadsheet.SpreadsheetPanel(self, sb2b, 4, 3)
         self.ss.set_col_labels(["Name", "Mass", "Site 1"])
         self.add_line_to_ss()
 
@@ -759,23 +759,23 @@ class MassSelection(wx.Dialog):
         sb4 = wx.StaticBox(p3, label="Match Peaks")
         sbs4 = wx.StaticBoxSizer(sb4, orient=wx.VERTICAL)
 
-        match_iso_button = wx.Button(p3, label="Match Isolated Oligomers")
+        match_iso_button = wx.Button(sb4, label="Match Isolated Oligomers")
         match_iso_button.SetToolTip(wx.ToolTip("Match peaks to isolated oligomers from Oligomer Maker."))
         self.Bind(wx.EVT_BUTTON, self.on_match_isolated, match_iso_button)
-        match_all_button = wx.Button(p3, label="Match Mixed Oligomers")
+        match_all_button = wx.Button(sb4, label="Match Mixed Oligomers")
         match_all_button.SetToolTip(
             wx.ToolTip("Match peaks to any possible combination of oligomers from Oligomer Maker."))
         self.Bind(wx.EVT_BUTTON, self.on_match_all, match_all_button)
-        match_sites_button = wx.Button(p3, label="Site Matching")
+        match_sites_button = wx.Button(sb4, label="Site Matching")
         match_sites_button.SetToolTip(
             wx.ToolTip(
                 "Match peaks to any possible combination of rows from the Site Mode. Each site can only have one row."))
         self.Bind(wx.EVT_BUTTON, self.on_match_sites, match_sites_button)
-        check_alt_button = wx.Button(p3, label="Check Alternates")
+        check_alt_button = wx.Button(sb4, label="Check Alternates")
         check_alt_button.SetToolTip(
             wx.ToolTip("Check for alternative matches. Yellow indicates possible alternates within tolerance."))
         self.Bind(wx.EVT_BUTTON, self.on_check_for_alt_match, check_alt_button)
-        self.matchlistbox = MatchListCtrl(self, p3, size=(500, 200), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
+        self.matchlistbox = MatchListCtrl(self, sb4, size=(500, 200), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
         hbox2 = wx.BoxSizer(wx.HORIZONTAL)
         hbox2.Add(match_iso_button, 1, wx.EXPAND)
         hbox2.Add(match_all_button, 1, wx.EXPAND)
@@ -784,8 +784,8 @@ class MassSelection(wx.Dialog):
         sbs4.Add(hbox2, 0, wx.EXPAND)
 
         textbox2 = wx.BoxSizer(wx.HORIZONTAL)
-        self.ctlmatcherror = wx.TextCtrl(p3, value=str(self.config.matchtolerance))
-        textbox2.Add(wx.StaticText(p3, label="Error Tolerance for Matching (Da):"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.ctlmatcherror = wx.TextCtrl(sb4, value=str(self.config.matchtolerance))
+        textbox2.Add(wx.StaticText(sb4, label="Error Tolerance for Matching (Da):"), 0, wx.ALIGN_CENTER_VERTICAL)
         textbox2.Add(self.ctlmatcherror, 0)
         sbs4.Add(textbox2, 0, wx.EXPAND)
 
@@ -798,21 +798,21 @@ class MassSelection(wx.Dialog):
         sb5 = wx.StaticBox(p4, label='Common Masses')
         sbs5 = wx.StaticBoxSizer(sb5, orient=wx.VERTICAL)
 
-        importbutton2 = wx.Button(p4, label="Import from File")
+        importbutton2 = wx.Button(sb5, label="Import from File")
         self.Bind(wx.EVT_BUTTON, self.on_load_common_masses, importbutton2)
 
-        savecommonbutton = wx.Button(p4, label="Save Common Masses")
+        savecommonbutton = wx.Button(sb5, label="Save Common Masses")
         self.Bind(wx.EVT_BUTTON, self.on_save_common_masses, savecommonbutton)
 
-        addbutton4 = wx.Button(p4, label="Manual Add Species")
+        addbutton4 = wx.Button(sb5, label="Manual Add Species")
         self.Bind(wx.EVT_BUTTON, self.on_add_new_common_mass, addbutton4)
 
         sbs5.Add(importbutton2, 0, wx.EXPAND)
         sbs5.Add(savecommonbutton, 0, wx.EXPAND)
         sbs5.Add(addbutton4, 0, wx.EXPAND)
-        self.commonmassespanel = CommonMasses(self, p4, size=(400, 500), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
+        self.commonmassespanel = CommonMasses(self, sb5, size=(400, 500), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
 
-        sbs5.Add(wx.StaticText(p4, label="Common Masses List"))
+        sbs5.Add(wx.StaticText(sb5, label="Common Masses List"))
         sbs5.Add(self.commonmassespanel, 1, wx.EXPAND)
 
         hbox.Add(sbs5, 0, wx.EXPAND)
