@@ -1409,7 +1409,7 @@ float Reconvolve(const Config config, Decon *decon, const char *barr) {
     float newblurmax = 0;
     int maxlength = decon->maxlength;
     if (config.speedyflag == 0) {
-        #pragma omp parallel for schedule(auto)
+        #pragma omp parallel for schedule(auto) reduction(max:newblurmax)
         for (int i = 0; i < config.lengthmz; i++) {
             for (int j = 0; j < config.numz; j++) {
                 float cv = 0;
@@ -1429,7 +1429,7 @@ float Reconvolve(const Config config, Decon *decon, const char *barr) {
             }
         }
     } else {
-        #pragma omp parallel for schedule(auto)
+        #pragma omp parallel for schedule(auto) reduction(max:newblurmax)
         for (int i = 0; i < config.lengthmz; i++) {
             for (int j = 0; j < config.numz; j++) {
                 float cv = 0;
