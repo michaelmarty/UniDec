@@ -1571,6 +1571,18 @@ void InterpolateTransform(const Config config, Decon *decon, const Input *inp) {
     }
 }
 
+// Targets move monotonically within each mass-axis block. Starting from the
+// previous nearest point turns repeated binary searches into a linear walk.
+static inline int advance_nearest_index(const float *axis, const int length, const float target, int index) {
+    while (index + 1 < length && fabsf(target - axis[index]) >= fabsf(target - axis[index + 1])) {
+        index++;
+    }
+    while (index > 0 && fabsf(target - axis[index]) > fabsf(target - axis[index - 1])) {
+        index--;
+    }
+    return index;
+}
+
 void SmartTransform(const Config config, Decon *decon, const Input *inp) {
     const float *blur;
     if (config.rawflag == 1 || config.rawflag == 3) {
@@ -1586,39 +1598,66 @@ void SmartTransform(const Config config, Decon *decon, const Input *inp) {
     float *massgrid = decon->massgrid;
     float startmzval = inp->dataMZ[0];
     float endmzval = inp->dataMZ[config.lengthmz - 1];
-    #pragma omp parallel for schedule(auto)
-    for (int i = 0; i < decon->mlen; i++) {
-        float val = 0;
-        for (int j = 0; j < config.numz; j++) {
-            int z = inp->nztab[j];
-            float mtest = decon->massaxis[i];
-            float mztest = calcmz(mtest, z, config.adductmass);
+    const int block_size = 1024;
+    const int num_blocks = (decon->mlen + block_size - 1) / block_size;
+    int *nearest_indices = malloc((size_t)num_blocks * 3 * config.numz * sizeof(int));
+    if (nearest_indices == NULL) {
+        fprintf(stderr, "Error allocating SmartTransform index cache.\n");
+        exit(11);
+    }
 
-            float mzlower;
-            float mlower;
-            if (i > 0) {
-                mlower = decon->massaxis[i - 1];
-                mzlower = calcmz(mlower, z, config.adductmass);
-            } else {
-                mzlower = mztest;
-                mlower = mtest;
-            }
+    #pragma omp parallel for schedule(static)
+    for (int block = 0; block < num_blocks; block++) {
+        const int block_start = block * block_size;
+        const int possible_end = block_start + block_size;
+        const int block_end = possible_end < decon->mlen ? possible_end : decon->mlen;
+        int *block_indices = nearest_indices + (size_t)block * 3 * config.numz;
+        int *test_indices = block_indices;
+        int *lower_indices = block_indices + config.numz;
+        int *upper_indices = block_indices + 2 * config.numz;
 
-            float mzupper;
-            float mupper;
-            if (i < decon->mlen - 1) {
-                mupper = decon->massaxis[i + 1];
-                mzupper = calcmz(mupper, z, config.adductmass);
-            } else {
-                mzupper = mztest;
-                mupper = mtest;
-            }
+        for (int i = block_start; i < block_end; i++) {
+            float val = 0;
+            for (int j = 0; j < config.numz; j++) {
+                int z = inp->nztab[j];
+                float mtest = decon->massaxis[i];
+                float mztest = calcmz(mtest, z, config.adductmass);
 
+                float mzlower;
+                float mlower;
+                if (i > 0) {
+                    mlower = decon->massaxis[i - 1];
+                    mzlower = calcmz(mlower, z, config.adductmass);
+                } else {
+                    mzlower = mztest;
+                    mlower = mtest;
+                }
 
-            if (mzupper > startmzval && mzlower < endmzval) {
-                int index = nearfast(inp->dataMZ, mztest, config.lengthmz);
-                int index1 = nearfast(inp->dataMZ, mzlower, config.lengthmz);
-                int index2 = nearfast(inp->dataMZ, mzupper, config.lengthmz);
+                float mzupper;
+                float mupper;
+                if (i < decon->mlen - 1) {
+                    mupper = decon->massaxis[i + 1];
+                    mzupper = calcmz(mupper, z, config.adductmass);
+                } else {
+                    mzupper = mztest;
+                    mupper = mtest;
+                }
+
+                int index, index1, index2;
+                if (i == block_start) {
+                    index = nearfast(inp->dataMZ, mztest, config.lengthmz);
+                    index1 = nearfast(inp->dataMZ, mzlower, config.lengthmz);
+                    index2 = nearfast(inp->dataMZ, mzupper, config.lengthmz);
+                } else {
+                    index = advance_nearest_index(inp->dataMZ, config.lengthmz, mztest, test_indices[j]);
+                    index1 = advance_nearest_index(inp->dataMZ, config.lengthmz, mzlower, lower_indices[j]);
+                    index2 = advance_nearest_index(inp->dataMZ, config.lengthmz, mzupper, upper_indices[j]);
+                }
+                test_indices[j] = index;
+                lower_indices[j] = index1;
+                upper_indices[j] = index2;
+
+                if (mzupper > startmzval && mzlower < endmzval) {
                 float imz = inp->dataMZ[index];
                 float newval = 0;
                 if (index2 - index1 < 5) {
@@ -1705,10 +1744,12 @@ void SmartTransform(const Config config, Decon *decon, const Input *inp) {
                     val += newval;
                     if (massgrid != NULL) { massgrid[index2D(config.numz, i, j)] = newval; }
                 }
+                }
             }
+            decon->massaxisval[i] = val;
         }
-        decon->massaxisval[i] = val;
     }
+    free(nearest_indices);
 }
 
 
