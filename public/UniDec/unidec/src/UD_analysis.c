@@ -50,6 +50,31 @@ void interpolate_merge(const float *massaxis, float *outint, const float *tempax
 
 }
 
+static int merge_aligned_mass_axis(const float *massaxis, float *outint, const float *tempaxis,
+	const float *tempint, const int mlen, const int templen, const float binval)
+{
+	if (mlen < 1 || templen < 2 || binval <= 0) { return 0; }
+	const float max_axis_value = fmaxf(fabsf(massaxis[mlen - 1]), fabsf(tempaxis[templen - 1]));
+	const float axis_ulp = nextafterf(max_axis_value, INFINITY) - max_axis_value;
+	const float tolerance = fmaxf(fabsf(binval) * 0.001f, axis_ulp);
+
+	const float offset_value = (tempaxis[0] - massaxis[0]) / binval;
+	const int offset = (int)lroundf(offset_value);
+	if (offset < 0 || offset + templen > mlen || fabsf(offset_value - (float)offset) > 0.001f) {
+		return 0;
+	}
+	if (fabsf(massaxis[offset] - tempaxis[0]) > tolerance ||
+		fabsf(massaxis[offset + templen - 1] - tempaxis[templen - 1]) > tolerance) {
+		return 0;
+	}
+	for (int i = 1; i < templen - 1; i++) {
+		if (fabsf(massaxis[offset + i] - tempaxis[i]) > tolerance) { return 0; }
+	}
+
+	memcpy(outint + offset, tempint, (size_t)templen * sizeof(float));
+	return 1;
+}
+
 Config get_global_min_max(int argc, char* argv[], Config config, const char* dtype)
 {
 	char dataset[1024];
@@ -70,25 +95,30 @@ Config get_global_min_max(int argc, char* argv[], Config config, const char* dty
 		strcat(dataset, strval);
 		strjoin(dataset, dtype, outdat);
 
-		int templen = mh5getfilelength(config.file_id, outdat);
-
-		float* temp = NULL;
-		float* tempaxis = NULL;
-		temp = calloc(templen, sizeof(float));
-		tempaxis = calloc(templen, sizeof(float));
-
-		mh5readfile2d(config.file_id, outdat, templen, tempaxis, temp);
-
-		float newmin = Min(tempaxis, templen);
-		float newmax = Max(tempaxis, templen);
+		int templen = 0;
+		float newmin = 0;
+		float newmax = 0;
+		if (!mh5readfile2d_axis_bounds(config.file_id, outdat, &templen, &newmin, &newmax)) {
+			int fallback_len = mh5getfilelength(config.file_id, outdat);
+			float* temp = calloc(fallback_len, sizeof(float));
+			float* tempaxis = calloc(fallback_len, sizeof(float));
+			if (temp == NULL || tempaxis == NULL) {
+				printf("Error allocating memory for %s bounds\n", outdat);
+				exit(1);
+			}
+			mh5readfile2d(config.file_id, outdat, fallback_len, tempaxis, temp);
+			templen = fallback_len;
+			newmin = Min(tempaxis, templen);
+			newmax = Max(tempaxis, templen);
+			free(temp);
+			free(tempaxis);
+		}
 		float newres = (newmax - newmin) / (float) templen;
 
 		if (newmin < minval) { minval = newmin; }
 		if (newmax > maxval) { maxval = newmax; }
 		if (newres < minres) { minres = newres; }
 
-		free(temp);
-		free(tempaxis);
 	}
 
 	if (strcmp(dtype, "/mass_data") == 0) {
@@ -139,8 +169,8 @@ void make_grid(int argc, char *argv[], Config config, const char *dtype, const c
 	float *massgrid = NULL;
 	float *massaxis = NULL;
 	float *masssum = NULL;
-	int newlen = mlen * num;
-	massgrid = calloc(newlen, sizeof(float));
+	const int newlen = mlen * num;
+	massgrid = calloc((size_t)newlen, sizeof(float));
 	massaxis = calloc(mlen, sizeof(float));
 	masssum = calloc(mlen, sizeof(float));
 	if (massgrid == NULL || massaxis == NULL || masssum == NULL)
@@ -176,27 +206,18 @@ void make_grid(int argc, char *argv[], Config config, const char *dtype, const c
 
 		mh5readfile2d(config.file_id, outdat, templen, tempaxis, temp);
 
-		float *outint = NULL;
-		outint = calloc(mlen, sizeof(float));
-		if (outint == NULL)
-		{
-			printf("Error allocating memory for output interpolation\n");
-			free(temp);
-			free(tempaxis);
-			exit(1);
-		}
-
-		interpolate_merge(massaxis, outint, tempaxis, temp, mlen, templen);
+		float *outint = massgrid + (size_t)i * mlen;
+		const int aligned = strcmp(dtype, "/mass_data") == 0 &&
+			merge_aligned_mass_axis(massaxis, outint, tempaxis, temp, mlen, templen, binval);
+		if (!aligned) { interpolate_merge(massaxis, outint, tempaxis, temp, mlen, templen); }
 
 		for (int j = 0; j < mlen; j++)
 		{
-			massgrid[i*mlen+j] = outint[j];
 			masssum[j] += outint[j];
 		}
 
 		free(temp);
 		free(tempaxis);
-		free(outint);
 	}
 
 	//Write data to processed_data
@@ -552,28 +573,70 @@ void peak_extracts(Config config, const float *peakx, hid_t file_id, const char 
 	float *extracts = NULL;
 	int newlen = plen * num;
 	extracts = calloc(newlen, sizeof(float));
+	if (extracts == NULL) {
+		printf("Error allocating memory for peak extracts\n");
+		exit(11);
+	}
+
+	float *merged_axis = NULL;
+	float *merged_grid = NULL;
+	int merged_len = 0;
+	int use_merged_grid = 0;
+	char merged_axis_path[1024];
+	char merged_grid_path[1024];
+	strcpy(merged_axis_path, "/ms_dataset/mass_axis");
+	strcpy(merged_grid_path, "/ms_dataset/mass_grid");
+	if (strcmp(dtype, "/mass_data") == 0 &&
+		H5LTpath_valid(file_id, merged_axis_path, 1) && H5LTpath_valid(file_id, merged_grid_path, 1)) {
+		merged_len = mh5getfilelength(file_id, merged_axis_path);
+		const int merged_grid_len = mh5getfilelength(file_id, merged_grid_path);
+		if (merged_len > 0 && merged_grid_len == merged_len * num) {
+			merged_axis = calloc(merged_len, sizeof(float));
+			merged_grid = calloc((size_t)merged_grid_len, sizeof(float));
+			if (merged_axis != NULL && merged_grid != NULL) {
+				mh5readfile1d(file_id, merged_axis_path, merged_axis);
+				mh5readfile1d(file_id, merged_grid_path, merged_grid);
+				use_merged_grid = 1;
+			}
+		}
+	}
 
 	for (int i = 0; i < num; i++)
 	{
+		int templen = merged_len;
+		float *temp = use_merged_grid ? merged_grid + (size_t)i * merged_len : NULL;
+		float *tempaxis = use_merged_grid ? merged_axis : NULL;
 		strcpy(dataset, "/ms_dataset");
 		sprintf(strval, "/%d", i);
 		strcat(dataset, strval);
-		//printf("Processing HDF5 Data Set: %s\n", dataset);
 		strjoin(dataset, dtype, outdat);
-
-		int templen = mh5getfilelength(file_id, outdat);
-
-		float *temp = NULL;
-		float *tempaxis = NULL;
-		temp = calloc(templen, sizeof(float));
-		tempaxis = calloc(templen, sizeof(float));
-		if (temp == NULL || tempaxis == NULL)
-		{
-			printf("Error allocating memory for %s\n", outdat);
-			exit(11);
+		if (use_merged_grid) {
+			int source_len = 0;
+			float source_first = 0;
+			float source_last = 0;
+			if (mh5readfile2d_axis_bounds(file_id, outdat, &source_len, &source_first, &source_last)) {
+				const int first_index = nearfast(merged_axis, source_first, merged_len);
+				const int last_index = nearfast(merged_axis, source_last, merged_len);
+				if (first_index >= 0 && last_index >= first_index && last_index < merged_len) {
+					templen = last_index - first_index + 1;
+					tempaxis += first_index;
+					temp += first_index;
+				}
+			}
 		}
+		else {
+			//printf("Processing HDF5 Data Set: %s\n", dataset);
 
-		mh5readfile2d(file_id, outdat, templen, tempaxis, temp);
+			templen = mh5getfilelength(file_id, outdat);
+			temp = calloc(templen, sizeof(float));
+			tempaxis = calloc(templen, sizeof(float));
+			if (temp == NULL || tempaxis == NULL)
+			{
+				printf("Error allocating memory for %s\n", outdat);
+				exit(11);
+			}
+			mh5readfile2d(file_id, outdat, templen, tempaxis, temp);
+		}
 
 		float sum = 0;
 		float max = 0;
@@ -605,9 +668,13 @@ void peak_extracts(Config config, const float *peakx, hid_t file_id, const char 
 			}
 		}
 
-		free(temp);
-		free(tempaxis);
+		if (!use_merged_grid) {
+			free(temp);
+			free(tempaxis);
+		}
 	}
+	free(merged_axis);
+	free(merged_grid);
 
 	if (config.exnorm == 3|| config.exnorm==4)
 	{
@@ -763,9 +830,12 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 		float *px = realloc(peakx, plen*sizeof(float));
 		float *py = realloc(peaky, plen*sizeof(float));
 		dscores = calloc(plen, sizeof(float));
-		numerators = calloc(plen, sizeof(float));
-		denominators = calloc(plen, sizeof(float));
-		if (px == NULL || py == NULL || dscores == NULL || numerators == NULL || denominators == NULL)
+		if (config.rawflag <= 1) {
+			numerators = calloc(plen, sizeof(float));
+			denominators = calloc(plen, sizeof(float));
+		}
+		if (px == NULL || py == NULL || dscores == NULL ||
+			(config.rawflag <= 1 && (numerators == NULL || denominators == NULL)))
 		{
 			printf("Error allocating memory for peak x, y, scores, numerators, or denominators\n");
 			exit(11);
@@ -778,54 +848,58 @@ void get_peaks(int argc, char *argv[], Config config, int ultra)
 		int num = 0;
 		num = int_attr(config.file_id, "/ms_dataset", "num", num);
 
-		// Get the dscores by scoring the peak at each scan
-		for (int i = 0; i < num; i++) {
-			//Create a temp array
-			float* tempdscores = NULL;
-			tempdscores = calloc(plen, sizeof(float));
-
-			//Import everything
-			config.metamode = i;
-			Decon decon = InitDecon();
-			Input inp = InitInputs();
-
-			ReadInputs(&config, &inp);
-
-			int status = ReadDecon(&config, inp, &decon);
-
-			//Check to make sure key deconvolution grids are there
-			if (status == 1) {
-				//Get the scores for each peak
-				//score(config, &decon, inp, 0);
-				Config score_config = config;
-				score_config.silent = 1;
-				score_from_peaks(plen, peakx, peaky, tempdscores, score_config, &decon, inp, 0);
-
-				//Average In Dscores
-				for (int j = 0; j < plen; j++)
-				{
-					//Get the peaky value locally
-					int index = nearfast(decon.massaxis, peakx[j], decon.mlen);
-					float yval = decon.massaxisval[index];
-					numerators[j] += yval * tempdscores[j];
-					denominators[j] += yval;
+		// Fast modes intentionally omit the charge-resolved grids needed for scores.
+		// Do not read every scan only to discover that those grids are absent.
+		if (config.rawflag <= 1) {
+			for (int i = 0; i < num; i++) {
+				//Create a temp array
+				float* tempdscores = calloc(plen, sizeof(float));
+				if (tempdscores == NULL) {
+					printf("Error allocating memory for temporary peak scores\n");
+					exit(11);
 				}
 
-			}
-			else
-			{
-				if (config.silent == 0) { printf("Missing deconvolution outputs. No scores will be provided. To get scores, turn off Fast Profile/Fast Centroid and try deconvolving again."); }
-			}
+				//Import everything
+				config.metamode = i;
+				Decon decon = InitDecon();
+				Input inp = InitInputs();
 
-			//Free things
-			FreeDecon(decon);
-			FreeInputs(inp);
-			free(tempdscores);
-		}
-		//Average In Dscores
-		for (int j = 0; j < plen; j++)
-		{
-			if(denominators[j] != 0){dscores[j] = numerators[j]/denominators[j];}
+				ReadInputs(&config, &inp);
+
+				int status = ReadDecon(&config, inp, &decon);
+
+				//Check to make sure key deconvolution grids are there
+				if (status == 1) {
+					//Get the scores for each peak
+					//score(config, &decon, inp, 0);
+					Config score_config = config;
+					score_config.silent = 1;
+					score_from_peaks(plen, peakx, peaky, tempdscores, score_config, &decon, inp, 0);
+
+					//Average In Dscores
+					for (int j = 0; j < plen; j++)
+					{
+						//Get the peaky value locally
+						int index = nearfast(decon.massaxis, peakx[j], decon.mlen);
+						float yval = decon.massaxisval[index];
+						numerators[j] += yval * tempdscores[j];
+						denominators[j] += yval;
+					}
+				}
+				else if (config.silent == 0) {
+					printf("Missing deconvolution outputs. No scores will be provided. To get scores, turn off Fast Profile/Fast Centroid and try deconvolving again.");
+				}
+
+				//Free things
+				FreeDecon(decon);
+				FreeInputs(inp);
+				free(tempdscores);
+			}
+			//Average In Dscores
+			for (int j = 0; j < plen; j++)
+			{
+				if(denominators[j] != 0){dscores[j] = numerators[j]/denominators[j];}
+			}
 		}
 
 		//Write the outputs
