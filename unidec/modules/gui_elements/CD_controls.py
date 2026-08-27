@@ -636,10 +636,11 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         sizercontrol2.Add(self.rununidec, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 
-        self.rununidecstack = wx.Button(panel2, -1, "Run UniDec Full Stack")
-        self.parent.Bind(wx.EVT_BUTTON, self.pres.on_unidec_stack_button, self.rununidecstack)
-        sizercontrol2.Add(self.rununidecstack, (i, 0), span=(1, 2), flag=wx.EXPAND)
-        i += 1
+        if self.htmode:
+            self.rununidecstack = wx.Button(panel2, -1, "Run UniDec Full Stack")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.on_unidec_stack_button, self.rununidecstack)
+            sizercontrol2.Add(self.rununidecstack, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            i += 1
 
         panel2.SetSizer(sizercontrol2)
         sizercontrol2.Fit(panel2)
@@ -1252,7 +1253,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.plotbutton2.SetToolTip(wx.ToolTip("Plot individual peak species in m/z. (Ctrl+K)"))
 
         self.rununidec.SetToolTip(wx.ToolTip("Write Configuration File, Run UniDec, and Plot Results. (Ctrl+R)"))
-        self.rununidecstack.SetToolTip(wx.ToolTip("Run UniDec on the full scan stack."))
+        if self.htmode:
+            self.rununidecstack.SetToolTip(wx.ToolTip("Run UniDec on the full scan stack."))
         self.ctlmzsig.SetToolTip(wx.ToolTip(
             "Expected peak FWHM in m/z (Th).\nFor nonlinear mode, minimum FWHM"
             "\nSee Tools>Peak Width Tool for more tools."))

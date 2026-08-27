@@ -1,8 +1,8 @@
-version 8.1.3
+version 9.0.0
 imflag 0
 cdmsflag 1
-input C:\Python\UniDecDev\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1_input.dat
-output C:\Python\UniDecDev\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1
+input C:\Python\UniDecDev\public\UniDec\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1_input.dat
+output C:\Python\UniDecDev\public\UniDec\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1
 numit 50
 numz 51
 endz 100
@@ -10,6 +10,12 @@ startz 50
 zzsig 1e-06
 psig 1.0
 beta 1.0
+suppression_topn 0
+suppression_topx 0.0
+suppression_percent 0.0
+suppression_startit 3
+suppression_harmonic 0
+suppression_satellite 0
 mzsig 5.0
 psfun 2
 zpsfn 2
@@ -116,13 +122,13 @@ variablepw 0
 minratio 0.0
 iso_meanpeakspacing_thresh 0.01
 iso_background_subtraction 0.0
-iso_adductmass 1.007276467
+iso_adduct_mass 1.007276467
 iso_mass_diff_c 1.0033
-iso_peakwindow 80.0
+iso_peak_window 80.0
 iso_phaseres 8
 iso_matchtol 5.0
 iso_minpeaks 3
-iso_peakthresh 0.0001
+iso_peak_thresh 0.0001
 iso_css_thresh 0.7
 iso_maxshift 3
 iso_mzwindowlb -1.05

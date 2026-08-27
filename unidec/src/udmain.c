@@ -414,6 +414,8 @@ void SetupOutputs(const Config config, Decon * decon, const IntraDecon intra, co
 
 	//Checks to make sure the mass axis is good and makes a dummy axis if not
 	decon->mlen = (int)((massmax - massmin) / config.massbins);
+	// Fast Profile/Centroid retain the summed mass spectrum but intentionally
+	// omit the large per-charge mass grid.
 	const int keep_mass_grid = config.rawflag == 0 || config.rawflag == 1;
 	if (decon->mlen < 1) {
 		printf("ERROR: No masses detected. Length: %d\n", decon->mlen);

@@ -52,6 +52,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         self.config.filetype = 1
         self.config.metamode = -1
         self.config.linflag = 2
+        # Merged MetaUniDec outputs do not require per-spectrum charge grids.
         self.config.rawflag = 2
 
     def open(self, path, speedy=False):

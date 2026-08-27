@@ -1,0 +1,58 @@
+name: GUI and workflow tests
+
+on:
+  push:
+    paths:
+      - ".github/workflows/test-gui-workflows.yml"
+      - "pyproject.toml"
+      - "tests/**"
+      - "unidec/**"
+  pull_request:
+    paths:
+      - ".github/workflows/test-gui-workflows.yml"
+      - "pyproject.toml"
+      - "tests/**"
+      - "unidec/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-gui-workflows:
+    name: Windows / Python 3.12
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    env:
+      UNIDEC_IMPORTER_TEST_DATA: ${{ github.workspace }}\UniDecImporter\TestData
+
+    steps:
+      - name: Check out UniDec
+        uses: actions/checkout@v7
+        with:
+          lfs: true
+          persist-credentials: false
+
+      - name: Check out UniDecImporter fixtures
+        uses: actions/checkout@v7
+        with:
+          repository: michaelmarty/UniDecImporter
+          path: UniDecImporter
+          lfs: true
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install UniDec and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Run GUI launch and workflow tests
+        run: python -m unittest discover -s tests -p "test_*.py" -v
