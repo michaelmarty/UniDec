@@ -107,9 +107,55 @@ void mh5readfile1d(const hid_t file_id, char *dataname, float *data)
 	H5LTread_dataset_float(file_id, dataname, data);
 }
 
+// Reuse an existing dataset when its rank and dimensions already match. This
+// avoids HDF5 metadata churn and file fragmentation during repeated runs.
+static int overwrite_float_dataset(const hid_t file_id, const char *dataname, const int rank,
+	const hsize_t *dims, const float *data)
+{
+	if (!H5LTpath_valid(file_id, dataname, 1)) { return 0; }
+
+	hid_t dataset_id = H5Dopen2(file_id, dataname, H5P_DEFAULT);
+	if (dataset_id < 0) { return 0; }
+	hid_t dataspace_id = H5Dget_space(dataset_id);
+	if (dataspace_id < 0) {
+		H5Dclose(dataset_id);
+		return 0;
+	}
+
+	hsize_t existing_dims[2] = {0, 0};
+	const int existing_rank = H5Sget_simple_extent_ndims(dataspace_id);
+	int same_shape = existing_rank == rank;
+	if (same_shape) {
+		H5Sget_simple_extent_dims(dataspace_id, existing_dims, NULL);
+		for (int i = 0; i < rank; i++) {
+			if (existing_dims[i] != dims[i]) {
+				same_shape = 0;
+				break;
+			}
+		}
+	}
+
+	int overwritten = 0;
+	if (same_shape) {
+		hid_t file_type_id = H5Dget_type(dataset_id);
+		const int is_float32 = file_type_id >= 0 && H5Tget_class(file_type_id) == H5T_FLOAT &&
+			H5Tget_size(file_type_id) == sizeof(float);
+		hid_t memory_type_id = is_float32 ? H5Tget_native_type(file_type_id, H5T_DIR_DEFAULT) : -1;
+		if (memory_type_id >= 0) {
+			overwritten = H5Dwrite(dataset_id, memory_type_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, data) >= 0;
+			H5Tclose(memory_type_id);
+		}
+		if (file_type_id >= 0) { H5Tclose(file_type_id); }
+	}
+	H5Sclose(dataspace_id);
+	H5Dclose(dataset_id);
+	return overwritten;
+}
+
 void mh5writefile1d(const hid_t file_id, const char *dataname, const int length, const float *data1)
 {
 	const hsize_t length2[1] = { length};
+	if (overwrite_float_dataset(file_id, dataname, 1, length2, data1)) { return; }
 	if (H5LTpath_valid(file_id, dataname, 1)){
 		H5Ldelete(file_id, dataname, H5P_DEFAULT);
 	}
@@ -119,15 +165,19 @@ void mh5writefile1d(const hid_t file_id, const char *dataname, const int length,
 void mh5writefile2d(const hid_t file_id, const char *dataname, const int length, const float *data1, const float *data2)
 {
 	const hsize_t length2[2] = { length ,2};
-	if (H5LTpath_valid(file_id, dataname, 1)){
-		H5Ldelete(file_id, dataname, H5P_DEFAULT);
-	}
 	const int len2 = length * 2;
 	float *data = calloc(len2, sizeof(float));
 	for (int i = 0; i<length; i++)
 	{
 		data[2*i] = data1[i];
 		data[2*i+1] = data2[i];
+	}
+	if (overwrite_float_dataset(file_id, dataname, 2, length2, data)) {
+		free(data);
+		return;
+	}
+	if (H5LTpath_valid(file_id, dataname, 1)){
+		H5Ldelete(file_id, dataname, H5P_DEFAULT);
 	}
 	H5LTmake_dataset_float(file_id, dataname, 2, length2, data);
 	free(data);
@@ -136,6 +186,7 @@ void mh5writefile2d(const hid_t file_id, const char *dataname, const int length,
 void mh5writefile2d_grid(const hid_t file_id, const char *dataname, const int length1, const int length2, const float *data1)
 {
 	const hsize_t length[2] = { length1 ,length2 };
+	if (overwrite_float_dataset(file_id, dataname, 2, length, data1)) { return; }
 	if (H5LTpath_valid(file_id, dataname, 1)) {
 		H5Ldelete(file_id, dataname, H5P_DEFAULT);
 	}
