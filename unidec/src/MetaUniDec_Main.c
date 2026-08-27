@@ -4,12 +4,53 @@
 
 #include "MetaUniDec_Main.h"
 
+static int full_output_rawflag(const int rawflag) {
+	if (rawflag == 2) { return 0; }
+	if (rawflag == 3) { return 1; }
+	return rawflag;
+}
+
+static int has_full_decon_outputs(const hid_t file_id, const int num) {
+	char path[1024];
+	const char* datasets[] = { "mz_grid", "mass_grid", "charge_data" };
+
+	for (int i = 0; i < num; i++) {
+		for (int j = 0; j < 3; j++) {
+			sprintf(path, "/ms_dataset/%d/%s", i, datasets[j]);
+			if (!H5LTpath_valid(file_id, path, 1)) { return 0; }
+		}
+	}
+	return 1;
+}
+
+static int ensure_full_decon_outputs(int argc, char* argv[], Config config, const int num,
+	const char* reason) {
+	if (has_full_decon_outputs(config.file_id, num)) { return 1; }
+
+	config.rawflag = full_output_rawflag(config.rawflag);
+	config.silent = 1;
+	printf("Full per-spectrum outputs are required for %s; generating them now.\n", reason);
+	for (int i = 0; i < num; i++) {
+		printf("Spectrum %d/%d\n", i + 1, num);
+		config.metamode = i;
+		run_unidec(argc, argv, config);
+	}
+
+	if (!has_full_decon_outputs(config.file_id, num)) {
+		fprintf(stderr, "Unable to generate the per-spectrum mz, mass, and charge grids required for %s.\n",
+			reason);
+		return 0;
+	}
+	return 1;
+}
+
 
 int run_metaunidec(int argc, char* argv[], Config config) {
 	clock_t starttime;
 	starttime = clock();
 	//Get Length
 	int num = 0;
+	int result = 0;
 	config.file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
 	num = int_attr(config.file_id, "/ms_dataset", "num", num);
 	if (num > 20) { config.silent = 1; }
@@ -28,6 +69,13 @@ int run_metaunidec(int argc, char* argv[], Config config) {
 		else if (strcmp(argv[2], "-peaks") == 0) { mode = 8; }
 		else if (strcmp(argv[2], "-newgrids") == 0) { mode = 9; }
 		else if (strcmp(argv[2], "-scanpeaks") == 0) { mode = 10; }
+	}
+
+	// Charge extraction during -all needs the grids omitted by Fast Profile and
+	// Fast Centroid. Generate them in the first pass instead of deconvolving twice.
+	if (mode == 4 && (config.exchoice == 6 || config.exchoice == 7) && config.rawflag > 1) {
+		printf("Full per-spectrum outputs are required for charge extraction; generating them now.\n");
+		config.rawflag = full_output_rawflag(config.rawflag);
 	}
 
 	if (mode == 1 || mode == 2 || mode == 4 || mode==0)
@@ -76,6 +124,10 @@ int run_metaunidec(int argc, char* argv[], Config config) {
 
 		if (config.exchoice == 6)
 		{
+			if (!ensure_full_decon_outputs(argc, argv, config, num, "charge extraction")) {
+				result = 12;
+				goto cleanup;
+			}
 			printf("Charge Extraction Avg\n");
 			config.exchoicez = 1;
 			config.exnormz = config.exnorm;
@@ -83,6 +135,10 @@ int run_metaunidec(int argc, char* argv[], Config config) {
 		}
 		else if (config.exchoice == 7)
 		{
+			if (!ensure_full_decon_outputs(argc, argv, config, num, "charge extraction")) {
+				result = 12;
+				goto cleanup;
+			}
 			printf("Charge Extraction Max\n");
 			config.exchoicez = 0;
 			config.exnormz = config.exnorm;
@@ -110,6 +166,10 @@ int run_metaunidec(int argc, char* argv[], Config config) {
 
 	if (mode == 6)
 	{
+		if (!ensure_full_decon_outputs(argc, argv, config, num, "ultra extraction")) {
+			result = 12;
+			goto cleanup;
+		}
 		//clock_t starttime = clock();
 		printf("Extracting Data ULTRA\n");
 		get_peaks(argc, argv, config, 1);
@@ -121,6 +181,10 @@ int run_metaunidec(int argc, char* argv[], Config config) {
 
 	if (mode == 7)
 	{
+		if (!ensure_full_decon_outputs(argc, argv, config, num, "charge extraction")) {
+			result = 12;
+			goto cleanup;
+		}
 		printf("Extracting Charges\n");
 		charge_peak_extracts(argc, argv, config, 0);
 	}
@@ -132,17 +196,22 @@ int run_metaunidec(int argc, char* argv[], Config config) {
 
 	if (mode == 10)
 	{
+		if (!ensure_full_decon_outputs(argc, argv, config, num, "scan peak scoring")) {
+			result = 12;
+			goto cleanup;
+		}
 		printf("Getting Scan Scores\n");
 		get_scan_scores(argc, argv, config);
 	}
 
+	cleanup:
 	// Close the file
 	H5Fclose(config.file_id);
 
 	clock_t end = clock();
 	float totaltime = (float)(end - starttime) / CLOCKS_PER_SEC;
 	printf("Done in %f s\n", totaltime);
-	return 0;
+	return result;
 }
 
 int run_chromatogram(int argc, char* argv[], Config config) {

@@ -624,12 +624,23 @@ class MetaUniDecBase(UniDecPres):
 
         PlotAnimations.AnimationWindow(self.view, newgrid, self.eng.config, yvals=self.eng.data.var1)
 
+    def ensure_full_outputs_for_visualization(self):
+        if self.eng.config.rawflag <= 1:
+            return True
+
+        self.view.SetStatusText("Generating charge-resolved outputs...", number=5)
+        result = self.eng.ensure_full_outputs()
+        if result != 0:
+            self.warn("Unable to animate: generation of charge-resolved outputs failed.")
+            return False
+        self.view.SetStatusText("Charge-resolved outputs ready", number=5)
+        return True
+
     def on_animate_annotated_mz(self, e=None):
         """
         :return:
         """
-        if self.eng.config.rawflag > 1:
-            self.warn("Unable to Animate: Need to turn off Fast Profile or Fast Centroid")
+        if not self.ensure_full_outputs_for_visualization():
             return
 
         newgrid = []
@@ -646,8 +657,7 @@ class MetaUniDecBase(UniDecPres):
         :param type:
         :return:
         """
-        if self.eng.config.rawflag > 1:
-            self.warn("Unable to Animate: Need to turn off Fast Profile or Fast Centroid")
+        if not self.ensure_full_outputs_for_visualization():
             return
 
         self.eng.sum_masses()

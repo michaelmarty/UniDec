@@ -98,6 +98,26 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
             self.data.import_hdf5()
             self.update_history()
 
+    def ensure_full_outputs(self):
+        """Materialize charge-resolved scan outputs without changing the saved fast-mode preference."""
+        if self.data.spectra and all(np.size(s.mzgrid) and np.size(s.massgrid) and np.size(s.zdata)
+                                     for s in self.data.spectra):
+            return 0
+
+        fast_rawflag = self.config.rawflag
+        try:
+            if fast_rawflag > 1:
+                self.config.rawflag = fast_rawflag - 2
+            self.config.write_hdf5()
+            result = metaunidec_call(self.config, "-decon")
+            if result == 0:
+                self.data.import_hdf5()
+                self.update_history()
+            return result
+        finally:
+            self.config.rawflag = fast_rawflag
+            self.config.write_hdf5()
+
     def make_grids(self):
         self.out = metaunidec_call(self.config, "-grids")
 

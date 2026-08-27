@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <limits.h>
 #include "hdf5.h"
 #include "hdf5_hl.h"
 #include "udstruct.h"
@@ -17,6 +18,7 @@ int check_group_noexit(hid_t file_id, char* dataname, const int silent);
 void delete_group(const hid_t file_id, const char* dataname);
 
 int mh5getfilelength(const hid_t file_id, char *dataname);
+int mh5readfile2d_axis_bounds(hid_t file_id, const char *dataname, int *length, float *first, float *last);
 void mh5readfile2dcolumn(const hid_t file_id, char* dataname, float* outdata, const int col);
 void mh5readfile2d(const hid_t file_id, char *dataname, const int lengthmz, float *dataMZ, float *dataInt);
 void mh5readfile3d(const hid_t file_id, char *dataname, const int lengthmz, float *dataMZ, float *dataInt, float *data3);

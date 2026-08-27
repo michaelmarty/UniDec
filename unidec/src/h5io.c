@@ -48,6 +48,67 @@ int mh5getfilelength(const hid_t file_id, char *dataname)
 	return (int) dims[0];
 }
 
+int mh5readfile2d_axis_bounds(const hid_t file_id, const char *dataname, int *length, float *first, float *last)
+{
+	hid_t dataset_id = H5Dopen2(file_id, dataname, H5P_DEFAULT);
+	if (dataset_id < 0) { return 0; }
+	hid_t dataspace_id = H5Dget_space(dataset_id);
+	if (dataspace_id < 0) {
+		H5Dclose(dataset_id);
+		return 0;
+	}
+
+	hsize_t dims[2] = {0, 0};
+	const int rank = H5Sget_simple_extent_ndims(dataspace_id);
+	H5Sget_simple_extent_dims(dataspace_id, dims, NULL);
+	if (rank != 2 || dims[0] == 0 || dims[1] == 0 || dims[0] > INT_MAX) {
+		H5Sclose(dataspace_id);
+		H5Dclose(dataset_id);
+		return 0;
+	}
+
+	const hsize_t count[2] = {1, 1};
+	hid_t memory_space_id = H5Screate_simple(2, count, NULL);
+	hid_t file_type_id = H5Dget_type(dataset_id);
+	hid_t memory_type_id = file_type_id >= 0 ? H5Tget_native_type(file_type_id, H5T_DIR_DEFAULT) : -1;
+	const size_t value_size = memory_type_id >= 0 ? H5Tget_size(memory_type_id) : 0;
+	unsigned char first_value[sizeof(double)] = {0};
+	unsigned char last_value[sizeof(double)] = {0};
+	int success = memory_space_id >= 0 && memory_type_id >= 0 &&
+		H5Tget_class(memory_type_id) == H5T_FLOAT &&
+		(value_size == sizeof(float) || value_size == sizeof(double));
+	if (success) {
+		hsize_t offset[2] = {0, 0};
+		success = H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL) >= 0 &&
+			H5Dread(dataset_id, memory_type_id, memory_space_id, dataspace_id, H5P_DEFAULT, first_value) >= 0;
+		offset[0] = dims[0] - 1;
+		if (success) {
+			success = H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL) >= 0 &&
+				H5Dread(dataset_id, memory_type_id, memory_space_id, dataspace_id, H5P_DEFAULT, last_value) >= 0;
+		}
+	}
+	if (success && value_size == sizeof(float)) {
+		memcpy(first, first_value, sizeof(float));
+		memcpy(last, last_value, sizeof(float));
+	}
+	else if (success) {
+		double first_double = 0;
+		double last_double = 0;
+		memcpy(&first_double, first_value, sizeof(double));
+		memcpy(&last_double, last_value, sizeof(double));
+		*first = (float)first_double;
+		*last = (float)last_double;
+	}
+	if (memory_type_id >= 0) { H5Tclose(memory_type_id); }
+	if (file_type_id >= 0) { H5Tclose(file_type_id); }
+	if (memory_space_id >= 0) { H5Sclose(memory_space_id); }
+
+	H5Sclose(dataspace_id);
+	H5Dclose(dataset_id);
+	if (success) { *length = (int)dims[0]; }
+	return success;
+}
+
 void mh5readfile2dcolumn(const hid_t file_id, char* dataname, float* outdata, const int col)
 {
 	check_group(file_id, dataname);
