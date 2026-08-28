@@ -151,6 +151,29 @@ class UniChromCDApp(UniDecCDApp):
         self.view.SetStatusText("Finished", number=5)
         pass
 
+    def on_unidec_demult_stack_button(self, e=None):
+        """Demultiplex the full stack, then deconvolve that stack with UCCD."""
+        self.view.SetStatusText("Demultiplexing", number=5)
+        self.run_all_ht()
+        if self.eng.fullhstack_ht is None:
+            self.view.SetStatusText("Demultiplexing failed", number=5)
+            return
+
+        self.view.SetStatusText("Deconvolving demultiplexed stack", number=5)
+        self.export_config(self.eng.config.confname)
+        deconvolved_stack = self.eng.decon_full_stack(
+            hstack=self.eng.fullhstack_ht,
+            chromaxis=self.eng.decontime,
+        )
+        if deconvolved_stack is None:
+            self.view.SetStatusText("Deconvolution failed", number=5)
+            return
+
+        self.eng.fullhstack_ht = deconvolved_stack
+        self.showht = True
+        self.refresh_eics()
+        self.view.SetStatusText("Finished", number=5)
+
     def on_pick_peaks(self, e=None):
         """
         Pick peaks. Runs the peak picking algorithm. Adds Mass EIC beyond conventional UCD.

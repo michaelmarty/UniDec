@@ -293,6 +293,8 @@ Added in full stack deconvolution on UniChromCD. This will deconvolve each frame
 
 Added in automated testing with the help of Codex.
 
+CD-MS modes will now use truncated file names. Too many people were hitting path length issues with the full file names. So, it will now be just conf.dat rather than [filename]_conf.dat.
+
 v.8.3.0
 
 Fixed bug where datanorm wasn't being loaded into UniDecCD.

@@ -778,46 +778,59 @@ class UniChromCDEng(HTEng, UniDecCD):
         print("Process Time HT:", time.perf_counter() - starttime)
 
 
-    def decon_full_stack(self, sequential=False):
-        if self.fullhstack is None:
-            self.process_data_scans()
+    def decon_full_stack(self, sequential=False, hstack=None, chromaxis=None):
+        use_raw_stack = hstack is None
+        if use_raw_stack:
+            if self.fullhstack is None:
+                self.process_data_scans()
+            hstack = self.fullhstack
+        if chromaxis is None:
+            chromaxis = self.fulltime
+
+        hstack = np.asarray(hstack)
+        chromaxis = np.asarray(chromaxis)
 
         # Apply the same pre-deconvolution masks used by run_deconvolution to
         # every chromatographic slice before exporting the stack.
-        self.fullhstack = self.hist_mass_filter(self.fullhstack)
-        self.fullhstack = self.hist_nativeZ_filter(harray=self.fullhstack)
-        if not np.any(self.fullhstack):
+        hstack = self.hist_mass_filter(hstack)
+        hstack = self.hist_nativeZ_filter(harray=hstack)
+        if not np.any(hstack):
             print("ERROR: Empty Histogram Stack on Run")
-            return 0
+            return None
 
         # Preserve the summed input spectrum used by scoring routines.
         self.data.data2 = np.transpose([
-            self.mz, np.sum(self.fullhstack, axis=(0, 1))
+            self.mz, np.sum(hstack, axis=(0, 1))
         ])
 
         starttime = time.perf_counter()
         if sequential:
-            progress_interval = max(1, int(len(self.fullscans) / 20))
-            for i, s in enumerate(self.fullscans):
-                if np.amax(self.fullhstack[i]) > 0:
-                    self.fullhstack[i] = self.decon_external_call_sequential(self.fullhstack[i])
+            progress_interval = max(1, int(len(hstack) / 20))
+            for i in range(len(hstack)):
+                if np.amax(hstack[i]) > 0:
+                    hstack[i] = self.decon_external_call_sequential(hstack[i])
                 # Print checkpoints at every 5% of the scans
                 if i % progress_interval == 0:
-                    print("Deconvolution Progress:", int(round(i / len(self.fullscans) * 100)), "%")
+                    print("Deconvolution Progress:", int(round(i / len(hstack) * 100)), "%")
         else:
-            self.fullhstack = self.decon_external_call_all(self.fullhstack)
+            hstack = self.decon_external_call_all(hstack, chromaxis=chromaxis)
 
-        # Any mass/CCS stacks derived from the previous fullhstack are stale.
+        if hstack is None:
+            return None
+        if use_raw_stack:
+            self.fullhstack = hstack
+
+        # Any mass/CCS stacks derived from the previous stack are stale.
         self.clear_arrays(massonly=True)
 
         # Recreate the conventional summed result from the deconvolved stack,
         # then perform the same mass transform normally done at the end of
         # run_deconvolution.
-        self.harray = np.sum(self.fullhstack, axis=0)
+        self.harray = np.sum(hstack, axis=0)
         self.transform()
         np.savetxt(self.config.massdatfile, self.data.massdat)
-        print("Deconvolution Time Full Stack:", time.perf_counter() - starttime, np.sum(self.fullhstack))
-        return 1
+        print("Deconvolution Time Full Stack:", time.perf_counter() - starttime, np.sum(hstack))
+        return hstack
 
 
     def prep_hist(self, mzbins=1, zbins=1, mzrange=None, zrange=None):
@@ -1188,6 +1201,41 @@ class UniChromCDEng(HTEng, UniDecCD):
 
         return output, eic
 
+    def _run_all_mrs_batched(self, batch_size=32):
+        """Demultiplex active MRS/PP traces with batched FFTs along the time axis."""
+        flat_stack = self.fullhstack.reshape(len(self.fullhstack), -1)
+        flat_output = self.fullhstack_ht.reshape(len(self.decontime), -1)
+        active_indexes = np.flatnonzero(
+            np.asarray(self.topharray).reshape(-1) > self.config.intthresh
+        )
+        processed_tic = np.zeros_like(self.fulltime)
+
+        print(
+            "Running Batched MRS Demultiplex:", len(active_indexes),
+            "active traces; batch size", batch_size
+        )
+        kernel = np.asarray(self.fftk)[:, np.newaxis]
+        for start in range(0, len(active_indexes), batch_size):
+            indexes = active_indexes[start:start + batch_size]
+            traces = flat_stack[:, indexes]
+            processed_tic += np.sum(traces, axis=1)
+
+            segment = traces[self.ppstartindex:self.ppmaxindex]
+            # PocketFFT already performs the transforms in compiled code. Keeping
+            # each modest-sized batch on one worker avoids per-batch thread setup,
+            # which costs more than it saves for the short chromatographic traces.
+            spectra = fft.rfft(segment, axis=0)
+            output = fft.irfft(spectra * kernel, axis=0).real
+            output = output[:self.cycleindex]
+            if len(output) != len(self.decontime):
+                raise ValueError(
+                    "Batched MRS output and demultiplexed time domain must have the same length: "
+                    f"{len(output)} != {len(self.decontime)}"
+                )
+            flat_output[:, indexes] = output
+
+        return processed_tic
+
     def run_all_ht(self):
         """
         Run HT on all data in full 3D array. Will call process_data_scans if necessary.
@@ -1196,26 +1244,45 @@ class UniChromCDEng(HTEng, UniDecCD):
         starttime = time.perf_counter()
         if self.fullhstack is None:
             self.process_data_scans()
+        elif (len(self.fullhstack) != len(self.fulltime) or
+              len(self.fullhstack) != len(self.fullscans)):
+            print(
+                "Full stack/time domain mismatch; rebuilding processed scan stack:",
+                len(self.fullhstack), len(self.fulltime), len(self.fullscans)
+            )
+            self.process_data_scans()
+
+        if (len(self.fullhstack) != len(self.fulltime) or
+                len(self.fullhstack) != len(self.fullscans)):
+            raise ValueError(
+                "Full histogram stack, time domain, and scan domain must have the same length before "
+                f"demultiplexing: {len(self.fullhstack)}, {len(self.fulltime)}, {len(self.fullscans)}"
+            )
         self.clear_arrays(massonly=True)
 
         # Setup HT
         self.setup_demultiplex()
 
         # Run the HT on each track in the stack
-        self.fullhstack_ht = np.empty((len(self.decontime), self.topharray.shape[0], self.topharray.shape[1])
-                                      , dtype=self.dtype)
+        self.fullhstack_ht = np.zeros(
+            (len(self.decontime), self.topharray.shape[0], self.topharray.shape[1]),
+            dtype=self.dtype
+        )
 
-        processed_tic = np.zeros_like(self.fulltime)
-        for i in range(len(self.mz)):
-            for j in range(len(self.ztab)):
-                trace = self.fullhstack[:, j, i]
-                tracesum = self.topharray[j, i]
-                if tracesum <= self.config.intthresh:
-                    htoutput = np.zeros_like(self.decontime)
-                else:
-                    htoutput, trace = self.run_demultiplex(trace, chop=False, keepcomplex=True)
-                    processed_tic += trace
-                self.fullhstack_ht[:, j, i] = htoutput
+        if self.config.demultiplexmode in ("PP", "MRS"):
+            processed_tic = self._run_all_mrs_batched()
+        else:
+            processed_tic = np.zeros_like(self.fulltime)
+            for i in range(len(self.mz)):
+                for j in range(len(self.ztab)):
+                    trace = self.fullhstack[:, j, i]
+                    tracesum = self.topharray[j, i]
+                    if tracesum <= self.config.intthresh:
+                        htoutput = np.zeros_like(self.decontime)
+                    else:
+                        htoutput, trace = self.run_demultiplex(trace, chop=False, keepcomplex=True)
+                        processed_tic += trace
+                    self.fullhstack_ht[:, j, i] = htoutput
 
         # Clip all values below 1e-6 to zero
         # self.fullhstack_ht[np.abs(self.fullhstack_ht) < 1e-6] = 0
