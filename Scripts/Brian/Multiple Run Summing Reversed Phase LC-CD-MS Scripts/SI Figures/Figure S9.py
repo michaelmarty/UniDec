@@ -233,7 +233,7 @@ def plot_full_mass_panel(
         )
 
     axis.set_xlim(*FULL_MASS_LIMITS_KDA)
-    axis.set_xticks(np.arange(25.0, 200.1, 25.0))
+    axis.set_xticks(np.arange(50.0, 200.1, 50.0))
     style_axis(axis)
     add_panel_letter(axis, panel_letter)
     y_minimum, y_maximum = axis.get_ylim()

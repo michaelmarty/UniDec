@@ -166,9 +166,9 @@ def make_figure() -> plt.Figure:
             protein_name = label.removesuffix(" EIC")
             multiline_alignment = "center"
             if protein_name == "Cytochrome C":
-                label_x = retention_time + 0.10
+                label_x = retention_time - 0.08
                 label_y = 0.90
-                horizontal_alignment = "left"
+                horizontal_alignment = "right"
             elif protein_name == "Myoglobin":
                 label_x = retention_time - 0.08
                 label_y = 0.68

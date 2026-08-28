@@ -23,6 +23,7 @@ MASS_TOLERANCE_DA = 100000.0
 EXPECTED_INJECTIONS = tuple(range(1, 22))
 HIGHLIGHT_INJECTION = 21
 OUTPUT_DPI = 300
+OUTPUT_PADDING_INCHES = 0.03
 OUTPUT_DIRECTORY = Path(
     r"C:\Users\bht442\The University of Texas at Austin"
     r"\MartyLab - General\Papers\Muliple Run Summing Reversed Phase LC-CD-MS"
@@ -419,11 +420,15 @@ def main() -> None:
         OUTPUT_PNG,
         dpi=OUTPUT_DPI,
         transparent=True,
+        bbox_inches="tight",
+        pad_inches=OUTPUT_PADDING_INCHES,
     )
     figure.savefig(
         OUTPUT_PDF,
         dpi=OUTPUT_DPI,
         transparent=True,
+        bbox_inches="tight",
+        pad_inches=OUTPUT_PADDING_INCHES,
     )
     plt.close(figure)
 

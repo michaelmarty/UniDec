@@ -14,6 +14,10 @@ import numpy as np
 FIGURE_SIZE_INCHES = (7.0, 8.0)
 OUTPUT_DPI = 300
 MINIMUM_FONT_SIZE = 10
+AXIS_TICK_FONT_SIZE = 11
+AXIS_LABEL_FONT_SIZE = 14
+ROW_H_PAD_INCHES = 0.01
+ROW_HSPACE = 0.0
 OUTPUT_DIRECTORY = Path(
     r"C:\Users\bht442\The University of Texas at Austin\MartyLab - General"
     r"\Papers\Muliple Run Summing Reversed Phase LC-CD-MS\Figures for Manuscript"
@@ -26,9 +30,15 @@ TIME_LIMITS = (0.0, 5.5)
 TIC_Y_LIMITS = (0.0, 180.0)
 MASS_Y_LIMITS = (0.0, 150.0)
 STAGGER_STEP = 10.0
-PANEL_LETTER_X = 0.015
-PANEL_LETTER_Y = 0.85
+PANEL_LETTER_X = 0.03
+PANEL_LETTER_Y = 0.77
 PANEL_LETTERS = (("A", "B"), ("C", "D"), ("E", "F"))
+SELECTED_GLYCOFORM_MASSES_DA = {
+    "B": 148868.0,  # G2F/G2F
+    "D": 148632.0,
+}
+GLYCOFORM_MARKER_WINDOW_DA = 50.0
+GLYCOFORM_MARKER_OFFSET = 4.0
 
 ENSEMBLE_COLOR = "#333333"
 ONE_INJECTION_COLOR = "#0072B2"
@@ -304,7 +314,7 @@ def style_tic_axis(
     axis.set_ylim(*TIC_Y_LIMITS)
     axis.set_ylabel(
         sample_label,
-        fontsize=13,
+        fontsize=AXIS_LABEL_FONT_SIZE,
         rotation=90,
         labelpad=22,
         ha="center",
@@ -321,7 +331,7 @@ def style_tic_axis(
         direction="out",
         width=1.5,
         length=6,
-        labelsize=MINIMUM_FONT_SIZE,
+        labelsize=AXIS_TICK_FONT_SIZE,
     )
     add_panel_letter(axis, panel_letter)
 
@@ -338,7 +348,7 @@ def style_mass_axis(axis: plt.Axes, panel_letter: str) -> None:
         direction="out",
         width=1.5,
         length=6,
-        labelsize=MINIMUM_FONT_SIZE,
+        labelsize=AXIS_TICK_FONT_SIZE,
     )
     axis.tick_params(axis="y", left=False, labelleft=False)
     add_panel_letter(axis, panel_letter)
@@ -374,6 +384,8 @@ def plot_zoomed_mass_panel(
 ) -> None:
     """Plot one staggered zoomed mass-distribution panel."""
     offsets = STAGGER_STEP * np.arange(len(datasets) - 1, -1, -1)
+    marker_mass_da = SELECTED_GLYCOFORM_MASSES_DA.get(panel_letter)
+    marker_peak_height = -np.inf
     for (path, label, color), offset in zip(datasets, offsets):
         mass_da, intensity = load_mass_distribution(path)
         mass_kda = mass_da / 1000.0
@@ -385,6 +397,34 @@ def plot_zoomed_mass_panel(
             color=color,
             linewidth=2.0,
             label=label,
+        )
+
+        if marker_mass_da is not None:
+            marker_mask = zoom_mask & (
+                np.abs(mass_da - marker_mass_da) <= GLYCOFORM_MARKER_WINDOW_DA
+            )
+            if np.any(marker_mask):
+                marker_peak_height = max(
+                    marker_peak_height,
+                    float(np.max(normalized[marker_mask])),
+                )
+
+    if marker_mass_da is not None:
+        if not np.isfinite(marker_peak_height):
+            raise ValueError(
+                f"No data found near the selected {marker_mass_da:,.0f} Da "
+                f"glycoform in panel {panel_letter}"
+            )
+        axis.text(
+            marker_mass_da / 1000.0,
+            marker_peak_height + GLYCOFORM_MARKER_OFFSET,
+            "*",
+            color="black",
+            fontsize=16,
+            fontweight="bold",
+            ha="center",
+            va="bottom",
+            zorder=5,
         )
 
     axis.set_xlim(*zoom_limits)
@@ -400,6 +440,10 @@ def make_figure() -> plt.Figure:
         figsize=FIGURE_SIZE_INCHES,
         gridspec_kw={"height_ratios": [1, 1, 1]},
         constrained_layout=True,
+    )
+    figure.set_constrained_layout_pads(
+        h_pad=ROW_H_PAD_INCHES,
+        hspace=ROW_HSPACE,
     )
 
     for row, (tic_panel, mass_sample, letters) in enumerate(
@@ -438,11 +482,11 @@ def make_figure() -> plt.Figure:
         borderaxespad=0.0,
     )
 
-    axes[-1, 0].set_xlabel("Time (min)", fontsize=MINIMUM_FONT_SIZE)
+    axes[-1, 0].set_xlabel("Time (min)", fontsize=AXIS_TICK_FONT_SIZE)
     axes[-1, 0].set_xticks(np.arange(0.0, 5.1, 1.0))
-    axes[-1, 0].tick_params(labelsize=MINIMUM_FONT_SIZE)
-    axes[-1, 1].set_xlabel("Mass (kDa)", fontsize=MINIMUM_FONT_SIZE)
-    axes[-1, 1].tick_params(labelsize=MINIMUM_FONT_SIZE)
+    axes[-1, 0].tick_params(labelsize=AXIS_TICK_FONT_SIZE)
+    axes[-1, 1].set_xlabel("Mass (kDa)", fontsize=AXIS_TICK_FONT_SIZE)
+    axes[-1, 1].tick_params(labelsize=AXIS_TICK_FONT_SIZE)
 
     return figure
 
@@ -453,7 +497,7 @@ def main() -> None:
         {
             "font.family": "Arial",
             "font.size": 12,
-            "axes.labelsize": 13,
+            "axes.labelsize": AXIS_LABEL_FONT_SIZE,
             "legend.fontsize": MINIMUM_FONT_SIZE,
             "pdf.fonttype": 42,
             "ps.fonttype": 42,
