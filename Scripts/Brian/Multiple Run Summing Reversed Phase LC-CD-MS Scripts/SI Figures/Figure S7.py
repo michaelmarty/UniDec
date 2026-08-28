@@ -5,7 +5,6 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator, StrMethodFormatter
-from matplotlib.transforms import Bbox
 import numpy as np
 import pandas as pd
 
@@ -310,15 +309,6 @@ def subplot_label(index: int) -> str:
         index -= 1
 
 
-def get_vertical_output_bbox(figure: plt.Figure) -> Bbox:
-    """Crop vertical whitespace while preserving the full 6.5-inch width."""
-    figure.canvas.draw()
-    tight_bbox = figure.get_tightbbox(figure.canvas.get_renderer())
-    bottom = max(0.0, tight_bbox.y0 - OUTPUT_PADDING_INCHES)
-    top = min(figure.get_figheight(), tight_bbox.y1 + OUTPUT_PADDING_INCHES)
-    return Bbox.from_extents(0.0, bottom, figure.get_figwidth(), top)
-
-
 def make_figure(results: pd.DataFrame) -> plt.Figure:
     """Build the grid using the plotting logic from Ion Statistics Grid.py."""
     figure, axes = plt.subplots(
@@ -487,18 +477,19 @@ def main() -> None:
     results.to_csv(OUTPUT_CSV, index=False, float_format="%.10g")
 
     figure = make_figure(results)
-    output_bbox = get_vertical_output_bbox(figure)
     figure.savefig(
         OUTPUT_PNG,
         dpi=OUTPUT_DPI,
         transparent=True,
-        bbox_inches=output_bbox,
+        bbox_inches="tight",
+        pad_inches=OUTPUT_PADDING_INCHES,
     )
     figure.savefig(
         OUTPUT_PDF,
         dpi=OUTPUT_DPI,
         transparent=True,
-        bbox_inches=output_bbox,
+        bbox_inches="tight",
+        pad_inches=OUTPUT_PADDING_INCHES,
     )
     plt.close(figure)
 

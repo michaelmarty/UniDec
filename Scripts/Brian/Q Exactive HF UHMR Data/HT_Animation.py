@@ -48,7 +48,7 @@ for i in range(0, 588):
     plt.plot(hdat[:hindex,1], color="blue")
 
     plt.xlabel("Scan Number")
-    plt.ylabel("Intensity (# of Ions)")
+    plt.ylabel("Ion Count")
     plt.ylim(0, ymax)
 
     ax = plt.gca()
