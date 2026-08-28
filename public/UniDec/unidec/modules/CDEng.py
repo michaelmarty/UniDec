@@ -692,7 +692,7 @@ class UniDecCD(engine.UniDec):
             boo3 = np.logical_and(boo1, boo2)
             print(boo3.shape)
             # Set values outside range to 0
-            harray[boo3] = 0
+            harray[..., boo3] = 0
 
         if not ud.isempty(self.config.smashlist) and self.config.smashflag == 1:
             #print("Smashing: ", self.config.smashlist)
@@ -710,7 +710,7 @@ class UniDecCD(engine.UniDec):
                 boo3 = np.logical_and(boo3, boo4)
 
                 # Set values outside range to 0
-                harray[boo3] = 0
+                harray[..., boo3] = 0
         return harray
 
     def hist_nativeZ_filter(self, nativeZrange=None, harray=None):

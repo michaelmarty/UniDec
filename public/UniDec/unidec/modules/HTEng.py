@@ -6,6 +6,7 @@ from unidec.modules.fitting import *
 
 from unidec.modules.CDEng import *
 from unidec.modules.ChromEng import *
+from unidec.modules import IM_functions
 from unidec.modules.IM_functions import calc_linear_ccs, calc_linear_ccsconst
 import unidec.tools as ud
 from unidec.modules.unidecstructure import UniDecConfig
@@ -743,21 +744,48 @@ class UniChromCDEng(HTEng, UniDecCD):
         # Prepare histogram
         self.prep_hist(mzbins=self.config.mzbins, zbins=self.config.CDzbins)
 
-        # Create a stack with one histogram for each scan
-        self.hstack = np.zeros((len(self.scans), self.topharray.shape[0], self.topharray.shape[1]))
+        print("Creating Histograms for Each Scan", time.perf_counter() - starttime)
 
-        print("Creating Histograms for Each Scan", time.perf_counter() - starttime, self.hstack.shape)
-        # Loop through scans and create histograms
-        for i, s in enumerate(self.scans):
-            # Pull out subset of data for this scan
-            b1 = self.topfarray[:, 2] == s
+        # Bin scan, m/z, and charge in one compiled NumPy call. The previous
+        # implementation searched the complete ion array once per scan.
+        scan_indexes = np.searchsorted(self.scans, self.topfarray[:, 2])
+        scan_edges = np.arange(len(self.scans) + 1) - 0.5
+        weights = self.topfarray[:, 3] if self.config.CDiitflag else None
+        self.hstack = np.histogramdd(
+            (scan_indexes, self.topfarray[:, 0], self.topzarray),
+            bins=(scan_edges, self.mzaxis, self.zaxis),
+            weights=weights
+        )[0].transpose(0, 2, 1)
 
-            # Create histogram
-            harray = self.histogramLC(x=self.topfarray[b1, 0], y=self.topzarray[b1], w=self.topfarray[b1, 3])
-            harray = self.hist_data_prep(harray)
+        # histogramLC historically ignored scans containing only one ion.
+        scan_counts = np.bincount(scan_indexes, minlength=len(self.scans))
+        self.hstack[scan_counts <= 1] = 0
 
-            # Add histogram to stack
-            self.hstack[i] = harray
+        if self.config.smooth > 0 or self.config.smoothdt > 0:
+            print("Histogram Smoothing:", self.config.smooth, self.config.smoothdt)
+            for i in range(len(self.hstack)):
+                self.hstack[i] = IM_functions.smooth_2d(
+                    self.hstack[i], self.config.smoothdt, self.config.smooth
+                )
+
+        if self.config.intthresh > 0:
+            print("Histogram Intensity Threshold:", self.config.intthresh)
+            self.hstack = self.hist_int_threshold(self.hstack, self.config.intthresh)
+
+        if self.config.reductionpercent > 0:
+            print("Full Stack Histogram Data Reduction:", self.config.reductionpercent)
+            self.hstack = self.hist_datareduction(self.hstack, self.config.reductionpercent)
+
+        if self.config.subbuff > 0 or self.config.subbufdt > 0:
+            print("Histogram Background Subtraction:", self.config.subbuff, self.config.subbufdt)
+            for i in range(len(self.hstack)):
+                self.hstack[i] = IM_functions.subtract_complex_2d(
+                    self.hstack[i].transpose(), self.config
+                ).transpose()
+
+        self.hstack = self.hist_filter_smash(self.hstack)
+
+        print("Histogram Stack Shape:", self.hstack.shape)
 
         self.topharray = np.sum(self.hstack, axis=0)
 
@@ -772,8 +800,7 @@ class UniChromCDEng(HTEng, UniDecCD):
 
         # create full hstack to fill any holes in the data for scans with no ions
         self.fullhstack = np.zeros((len(self.fullscans), self.topharray.shape[0], self.topharray.shape[1]))
-        for i, s in enumerate(self.scans):
-            self.fullhstack[int(s) - 1] = self.hstack[i]
+        self.fullhstack[self.scans.astype(int) - 1] = self.hstack
 
         print("Process Time HT:", time.perf_counter() - starttime)
 
