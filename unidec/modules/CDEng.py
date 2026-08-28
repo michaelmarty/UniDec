@@ -313,9 +313,21 @@ class UniDecCD(engine.UniDec):
                 pass
 
         self.config.cdmsflag = 1
-        # Load the config if you can find it
+        # Load the config if you can find it. Fall back to the legacy files,
+        # but restore the short names after importing their configuration and
+        # companion lists so subsequent writes do not hit Windows MAX_PATH.
         if os.path.isfile(self.config.confname):
             self.load_config(self.config.confname)
+        elif os.path.isfile(self.legacy_confname):
+            short_outfname = self.config.outfname
+            try:
+                self.config.outfname = self.legacy_outfname
+                self.config.default_file_names()
+                self.load_config(self.config.confname)
+            finally:
+                self.config.outfname = short_outfname
+                self.config.default_file_names(s="")
+                self.config.confname = os.path.join(self.config.udir, "conf.dat")
         else:
             self.export_config()
 
@@ -343,16 +355,24 @@ class UniDecCD(engine.UniDec):
         if not os.path.isdir(dirnew):
             os.mkdir(dirnew)
         self.config.udir = dirnew
-        # Default file names
+        # Use bare file names inside the already unique _unidecfiles directory.
+        # Keep the old paths available for loading existing results and caches.
         basename = os.path.split(os.path.splitext(file_name)[0])[1]
-        self.config.outfname = os.path.join(self.config.udir, basename)
+        self.legacy_outfname = os.path.join(self.config.udir, basename)
+        self.legacy_confname = self.legacy_outfname + "_conf.dat"
+        legacy_cdrawextracts = self.legacy_outfname + "_rawdata.npz"
+        self.config.outfname = os.path.join(self.config.udir, "")
         self.config.extension = os.path.splitext(self.config.filename)[1]
-        self.config.default_file_names()
+        self.config.default_file_names(s="")
+        self.config.confname = os.path.join(self.config.udir, "conf.dat")
 
         # Look for already processed data in the form of an npz file and load it if it exists for speed.
-        if os.path.isfile(self.path) and os.path.isfile(self.config.cdrawextracts) and not refresh:
-            print("Raw data found:", self.config.cdrawextracts)
-            self.path = self.config.cdrawextracts
+        raw_extracts = self.config.cdrawextracts
+        if not os.path.isfile(raw_extracts) and os.path.isfile(legacy_cdrawextracts):
+            raw_extracts = legacy_cdrawextracts
+        if os.path.isfile(self.path) and os.path.isfile(raw_extracts) and not refresh:
+            print("Raw data found:", raw_extracts)
+            self.path = raw_extracts
 
 
     def process_data(self, transform=True):
@@ -1093,7 +1113,7 @@ class UniDecCD(engine.UniDec):
         startdims = np.shape(outarray)
         outdat = np.transpose([np.ravel(X), np.ravel(Y), np.ravel(outarray)])
         np.savetxt(self.config.infname, outdat)
-        print("Saved Input File:", self.config.infname)#, outdat.shape, np.amax(outarray), np.sum(outarray))
+        print("Saved Input File:", self.config.infname)#, outdat.shape, startdims)
 
         # Make the call
         ud.unidec_call(self.config)

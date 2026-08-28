@@ -625,11 +625,12 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         sizercontrol2.Add(self.ctlcsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
-        self.ctldtsig = wx.TextCtrl(panel2, value="", size=size1)
-        sizercontrol2.Add(wx.StaticText(panel2, label="Chrom. Spread FWHM (min): "), (i, 0),
-                          flag=wx.ALIGN_CENTER_VERTICAL)
-        sizercontrol2.Add(self.ctldtsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-        i += 1
+        if self.htmode:
+            self.ctldtsig = wx.TextCtrl(panel2, value="", size=size1)
+            sizercontrol2.Add(wx.StaticText(panel2, label="Chrom. Spread FWHM (min): "), (i, 0),
+                              flag=wx.ALIGN_CENTER_VERTICAL)
+            sizercontrol2.Add(self.ctldtsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
 
         self.rununidec = wx.Button(panel2, -1, "Run UniDec")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_unidec_button, self.rununidec)
@@ -1067,7 +1068,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 self.ctlpeakcm.SetSelection(self.config.cmaps.index("rainbow"))
 
             self.ctlcsig.SetValue(str(self.config.csig))
-            self.ctldtsig.SetValue(str(self.config.dtsig))
+            if self.htmode:
+                self.ctldtsig.SetValue(str(self.config.dtsig))
 
             try:
                 x = float(self.config.integratelb)
@@ -1220,7 +1222,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.peakcmap = str(self.ctlpeakcm.GetStringSelection())
 
         self.config.csig = ud.string_to_value(self.ctlcsig.GetValue())
-        self.config.dtsig = ud.string_to_value(self.ctldtsig.GetValue())
+        if self.htmode:
+            self.config.dtsig = ud.string_to_value(self.ctldtsig.GetValue())
 
         if not self.config.minmz and not ud.isempty(self.pres.eng.data.rawdata):
             self.config.minmz = np.amin(self.pres.eng.data.rawdata[:, 0])
@@ -1360,8 +1363,9 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.autobutton.SetToolTip(wx.ToolTip("Process Data, Run UniDec, Pick Peaks (Ctrl+E)"))
         self.ctlslope.SetToolTip(wx.ToolTip("Slope for conversion of intensity to charge.\nz=I/slope"))
         self.ctlcsig.SetToolTip(wx.ToolTip("Width of Charge Distribution.\nFWHM of the charge distribution."))
-        self.ctldtsig.SetToolTip(wx.ToolTip(
-            "Chromatographic peak width used by full-stack UCCD deconvolution."))
+        if self.htmode:
+            self.ctldtsig.SetToolTip(wx.ToolTip(
+                "Chromatographic peak width used by full-stack UCCD deconvolution."))
 
         self.ctlzsmoothcheck.SetToolTip(
             wx.ToolTip("Select whether to assume a smooth charge state distribution"))

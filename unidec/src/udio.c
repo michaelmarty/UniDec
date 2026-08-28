@@ -127,7 +127,7 @@ void writefile1bin(const char *outstring, const int lengthmz, const float *data)
 void write1D(char *outfile, char *suffix, const float *array, const int length)
 {
 	char outstring[500];
-	sprintf(outstring, "%s_%s.bin", outfile, suffix);
+	sprintf(outstring, "%s%s%s.bin", outfile, output_suffix(outfile, "_"), suffix);
 	writefile1bin(outstring, length, array);
 	printf("File written to: %s\n", outstring);
 }
@@ -135,7 +135,7 @@ void write1D(char *outfile, char *suffix, const float *array, const int length)
 void write2D(char *outfile, char *suffix, const float *array1, const float *array2, const int length)
 {
 	char outstring[500];
-	sprintf(outstring, "%s_%s.txt", outfile, suffix);
+	sprintf(outstring, "%s%s%s.txt", outfile, output_suffix(outfile, "_"), suffix);
 	FILE *out_ptr = fopen(outstring, "w");
 	if (out_ptr == 0) { printf("Error Opening %s\n", outstring); exit(1); }
 	for (int i = 0; i<length; i++)
@@ -149,7 +149,7 @@ void write2D(char *outfile, char *suffix, const float *array1, const float *arra
 void write3D(char *outfile, char *suffix, const float *array1, const float *array2, const float *array3, const int length)
 {
 	char outstring[500];
-	sprintf(outstring, "%s_%s.txt", outfile, suffix);
+	sprintf(outstring, "%s%s%s.txt", outfile, output_suffix(outfile, "_"), suffix);
 	FILE *out_ptr = fopen(outstring, "w");
 	if (out_ptr == 0) { printf("Error Opening %s\n", outstring); exit(1); }
 	for (int i = 0; i<length; i++)
@@ -358,7 +358,7 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 	if (config.rawflag >= 0) {
 		if (config.filetype == 0) {
 			char outstring2[511];
-			sprintf(outstring2, "%s_fitdat.bin", config.outfile);
+			sprintf(outstring2, "%s%s", config.outfile, output_suffix(config.outfile, "_fitdat.bin"));
 			out_ptr = fopen(outstring2, "wb");
 			if (out_ptr == 0) { printf("Error Opening %s \n", outstring2); exit(1); }
 			fwrite(decon->fitdat, sizeof(float), config.lengthmz, out_ptr);
@@ -375,7 +375,7 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 	if (config.rawflag >= 0 && config.baselineflag == 1) {
 		if (config.filetype == 0) {
 			char outstring2[513];
-			sprintf(outstring2, "%s_baseline.bin", config.outfile);
+			sprintf(outstring2, "%s%s", config.outfile, output_suffix(config.outfile, "_baseline.bin"));
 			out_ptr = fopen(outstring2, "wb");
 			if (out_ptr == 0) { printf("Error Opening %s \n", outstring2); exit(1); }
 			fwrite(decon->baseline, sizeof(float), config.lengthmz, out_ptr);
@@ -397,7 +397,7 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 		int l = config.lengthmz * config.numz;
 		if (config.filetype == 0) {
 			char outstring9[509];
-			sprintf(outstring9, "%s_grid.bin", config.outfile);
+			sprintf(outstring9, "%s%s", config.outfile, output_suffix(config.outfile, "_grid.bin"));
 			out_ptr = fopen(outstring9, "wb");
 			if (out_ptr == 0) { printf("Error Opening %s\n", outstring9); exit(1); }
 			if (config.rawflag == 0) { fwrite(decon->newblur, sizeof(float), l, out_ptr); }
@@ -448,7 +448,7 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 		int l = decon->mlen * config.numz;
 		if (config.filetype == 0) {
 			char outstring10[513];
-			sprintf(outstring10, "%s_massgrid.bin", config.outfile);
+			sprintf(outstring10, "%s%s", config.outfile, output_suffix(config.outfile, "_massgrid.bin"));
 			out_ptr = fopen(outstring10, "wb");
 			if (out_ptr == 0) { printf("Error Opening %s\n", outstring10); exit(1); }
 			fwrite(decon->massgrid, sizeof(float), l, out_ptr);
@@ -465,7 +465,7 @@ void WriteDecon(const Config config, const Decon* decon, const Input* inp)
 	if (config.rawflag == 0 || config.rawflag == 1 || config.rawflag == 2 || config.rawflag == 3) {
 		if (config.filetype == 0) {
 			char outstring4[509];
-			sprintf(outstring4, "%s_mass.txt", config.outfile);
+			sprintf(outstring4, "%s%s", config.outfile, output_suffix(config.outfile, "_mass.txt"));
 			out_ptr = fopen(outstring4, "w");
 			if (out_ptr == 0) { printf("Error Opening %s\n", outstring4); exit(1); }
 			for (int i = 0; i < decon->mlen; i++)
@@ -494,7 +494,7 @@ void WriteGlobalOutputs(const Config config, const Decon decon, const float tota
 	if (config.filetype == 0) {
 		FILE* out_ptr = NULL;
 		char outstring3[1024];
-		sprintf(outstring3, "%s_error.txt", config.outfile);
+		sprintf(outstring3, "%s%s", config.outfile, output_suffix(config.outfile, "_error.txt"));
 		out_ptr = fopen(outstring3, "w");
 		if (out_ptr == 0) { printf("Error Opening %s\n", outstring3); exit(1); }
 		fprintf(out_ptr, "error = %f\n", decon.error);

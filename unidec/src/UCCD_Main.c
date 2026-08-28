@@ -45,7 +45,7 @@ _Static_assert(sizeof(UCCDRecord) == 8, "Unexpected UCCD sparse record padding")
 static int make_filename_UCCD(char *filename, const size_t length,
                               const char *outfile, const char *suffix)
 {
-    const int written = snprintf(filename, length, "%s%s", outfile, suffix);
+    const int written = snprintf(filename, length, "%s%s", outfile, output_suffix(outfile, suffix));
     if (written < 0 || (size_t)written >= length) {
         fprintf(stderr, "UCCD file name is too long\n");
         return 0;

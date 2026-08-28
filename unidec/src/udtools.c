@@ -4,6 +4,15 @@
 
 #include "udtools.h"
 
+const char *output_suffix(const char *outfile, const char *suffix) {
+    const size_t length = strlen(outfile);
+    if (length > 0 && suffix[0] == '_' &&
+        (outfile[length - 1] == '/' || outfile[length - 1] == '\\')) {
+        return suffix + 1;
+    }
+    return suffix;
+}
+
 // ............
 //
 // Print Functions

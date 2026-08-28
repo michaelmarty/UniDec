@@ -634,11 +634,11 @@ class UniChromCDApp(UniDecCDApp):
             ylimits = self.view.plottic.subplot1.get_ylim()
             ylimits = np.array(ylimits)
             ylimits[0] = 0
-            self.plot_chromatograms()
+            self.select_time_range(range=xlimits, raw=True)
             # Plot Red box on plottic
             self.view.plottic.add_rect(xlimits[0], ylimits[0], xlimits[1] - xlimits[0], ylimits[1] - ylimits[0],
                                        edgecolor="red", facecolor="red", nopaint=False)
-            self.select_ht_range(range=xlimits, raw=True)
+
 
     def on_select_time_range_decon(self, e=None):
         """
@@ -657,11 +657,13 @@ class UniChromCDApp(UniDecCDApp):
             print("New limits:", xlimits)
             self.view.plotdecontic.reset_zoom()
             ylimits = self.view.plotdecontic.subplot1.get_ylim()
-            self.plot_chromatograms()
+            ylimits = np.array(ylimits)
+            ylimits[0] = 0
+            self.select_time_range(range=xlimits)
             # Plot Red box on plottic
             self.view.plotdecontic.add_rect(xlimits[0], ylimits[0], xlimits[1] - xlimits[0], ylimits[1] - ylimits[0],
                                             edgecolor="red", facecolor="red", nopaint=False)
-            self.select_ht_range(range=xlimits)
+
 
     def on_run_all_ht(self, e=None):
         """
@@ -678,7 +680,7 @@ class UniChromCDApp(UniDecCDApp):
         :return: None
         """
         self.export_config(self.eng.config.confname)
-        self.eng.process_data_scans()
+        # self.eng.process_data_scans()
         decondat, procdat = self.eng.run_all_ht()
         procdat = np.transpose(np.vstack((self.eng.fulltime, procdat)))
 
@@ -719,7 +721,7 @@ class UniChromCDApp(UniDecCDApp):
                 c.ccsdat = ccs_tic
         self.plot_chromatograms()
 
-    def select_ht_range(self, range=None, raw=False):
+    def select_time_range(self, range=None, raw=False):
         """
         Select a time range and create a 2D m/z vs z sum from that time range post-HT.
         :param range: Time range to select. Default None, which should be all times
@@ -732,10 +734,12 @@ class UniChromCDApp(UniDecCDApp):
             self.eng.select_ht_range(range=range)
             self.view.SetStatusText(self.eng.config.demultiplexmode + " # Ions: " + str(np.sum(self.eng.harray)),
                                     number=2)
-        self.makeplot1()
-        self.makeplot2()
-        self.makeplot3()
-        self.makeplot4()
+
+        self.plot_chromatograms()
+        # self.makeplot1()
+        # self.makeplot2()
+        # self.makeplot3()
+        # self.makeplot4()
 
     def make_charge_time_2dplot(self, e=None):
         """
