@@ -196,13 +196,22 @@ def dist_fit_to_profile(isodist, profile, window = 10):
 
             local_data = profile[index_start:index_end]
 
-            new_gauss = ndis_std(local_data[:,0], mz, global_sigma, a=intensity * avg_ratio)
+            new_gauss = ndis_std(local_data[:,0], mz, global_sigma * 2, a=intensity * avg_ratio * 2)
 
             y_output[index_start:index_end] += new_gauss
 
     return np.transpose(np.vstack((x_output, y_output)))
 
+def subtract_data(profile, fit_data):
+    # Subtract the fitted data from the profile data
+    x_output = profile[:,0]
+    y_output = profile[:,1] - fit_data[:,1]
 
+    # Crop the output to only include positive values
+    negative_indices = y_output < 0
+    y_output[negative_indices] = 0
+
+    return np.transpose(np.vstack((x_output, y_output)))
 
 if __name__ == "__main__":
     # mz=500
@@ -242,11 +251,15 @@ if __name__ == "__main__":
 
     for peak in pks:
         fit_data = dist_fit_to_profile(peak.isodist, peak.profile_data, window=10)
+
+        subdata = subtract_data(peak.profile_data, fit_data)
+
         plt.figure(figsize=(10, 5))
 
         # cplot(peak.centroids)
         plt.plot(peak.profile_data[:, 0], peak.profile_data[:, 1], label="Profile Data", color="k")
-        plt.plot(fit_data[:, 0], fit_data[:, 1], label="Fitted Data", color="r")
+        plt.plot(subdata[:, 0], subdata[:, 1], label="Subtracted Data", color="b")
+        plt.plot(fit_data[:, 0], -1*fit_data[:, 1], label="Fitted Data", color="r")
         # cplot(peak.isodist, factor=1)
 
         plt.show()

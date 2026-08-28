@@ -17,8 +17,6 @@ from unidec.modules.unidec_enginebase import UniDecEngine
 from unidec.modules.plotting import plot1d, plot2d
 from UniDecImporter.ImporterFactory import ImporterFactory
 
-from isodec.runtime import IsoDecRuntime
-
 # import modules.DoubleDec as dd
 
 __author__ = 'Michael.Marty'
@@ -1587,6 +1585,10 @@ class UniDec(UniDecEngine):
         if data is None:
             data = self.data.data2
         # data = deepcopy(data)
+        # IsoDec is optional for standard UniDec/CDMS workflows. Import it only
+        # when isotope-distribution removal is explicitly requested.
+        from isodec.runtime import IsoDecRuntime
+
         isoeng = IsoDecRuntime()
         isoeng.config.matchtol = 25
         isoeng.config.css_thresh = 0.8
