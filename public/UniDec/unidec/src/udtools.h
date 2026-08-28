@@ -7,11 +7,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
 
 
 
 void floatPrint(const float *array, const int length);
 void IntPrint(const int *array, const int length);
+
+const char *output_suffix(const char *outfile, const char *suffix);
 
 float Average(const int length, const float *xarray);
 float WeightedAverage(int length, const float *xarray, const float *warray);

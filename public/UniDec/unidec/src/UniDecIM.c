@@ -498,7 +498,7 @@ void readfilemanual(char *infile, const int lengthmz, float *array1, float *arra
 void writemfileres(char *outfile, char *suffix, const float *array1, const float *array2, const float *array3, const float *array4, const float *array5, const float *array6, const int length)
 {
 	char outstring[500];
-	sprintf(outstring, "%s_%s.txt", outfile, suffix);
+	sprintf(outstring, "%s%s%s.txt", outfile, output_suffix(outfile, "_"), suffix);
 	FILE *out_ptr = fopen(outstring, "w");
 	if (out_ptr == 0) { printf("Error Opening %s\n", outstring); exit(1); }
 	//fprintf(out_ptr,"Mass\tIntensity\tCCS Avg.\tCCS Std. Dev.\tZ avg.\tZ Std. Dev.\n");
@@ -514,7 +514,7 @@ void writemzgrid(char *outfile, char *suffix, const float *blur, const int *size
 {
 	char outstring[500];
 	FILE *out_ptr = NULL;
-	sprintf(outstring, "%s_%s.bin", outfile, suffix);
+	sprintf(outstring, "%s%s%s.bin", outfile, output_suffix(outfile, "_"), suffix);
 	//printf("%s\n",outstring);
 	out_ptr = fopen(outstring, "wb");
 	if (out_ptr == 0) { printf("Error Opening %s\n", outstring); exit(1); }
@@ -547,7 +547,7 @@ float errfun(const int length, const float *dataInt, const float *fitdat)
 void writezslice(const int *size, char *outfile, char *suffix, const int *ztab, const float *array, const int k)
 {
 	char outstring[500];
-	sprintf(outstring, "%s_%s_%d.bin", outfile, suffix, ztab[k]);
+	sprintf(outstring, "%s%s%s_%d.bin", outfile, output_suffix(outfile, "_"), suffix, ztab[k]);
 	FILE *out_ptr = fopen(outstring, "wb");
 	if (out_ptr == 0) { printf("Error Opening %s\n", outstring); exit(1); }
 	const int newlen = size[0] * size[1];

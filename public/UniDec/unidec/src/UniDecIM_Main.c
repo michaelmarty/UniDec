@@ -508,7 +508,7 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
     char outstring[510];
     char *suffixerr = "error";
     FILE *out_ptrIM = NULL;
-    sprintf(outstring, "%s_%s.txt", config.outfile, suffixerr);
+    sprintf(outstring, "%s%s%s.txt", config.outfile, output_suffix(config.outfile, "_"), suffixerr);
     out_ptrIM = fopen(outstring, "w");
     if (out_ptrIM == 0) {
         printf("Error Opening %s\n", outstring);

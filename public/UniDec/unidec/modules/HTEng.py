@@ -816,7 +816,7 @@ class UniChromCDEng(HTEng, UniDecCD):
         self.harray = np.sum(self.fullhstack, axis=0)
         self.transform()
         np.savetxt(self.config.massdatfile, self.data.massdat)
-        print("Deconvolution Time Full Stack:", time.perf_counter() - starttime)
+        print("Deconvolution Time Full Stack:", time.perf_counter() - starttime, np.sum(self.fullhstack))
         return 1
 
 
@@ -1243,7 +1243,7 @@ class UniChromCDEng(HTEng, UniDecCD):
             ticdat[:, 1] /= np.amax(ticdat[:, 1])
             processed_tic /= np.amax(processed_tic)
 
-        print("Full Demultiplexing Done:", time.perf_counter() - starttime)
+        print("Full Demultiplexing Done:", time.perf_counter() - starttime, np.sum(self.fullhstack), np.sum(self.fullhstack_ht))
         return ticdat, processed_tic
 
     def select_ht_range(self, range=None):
