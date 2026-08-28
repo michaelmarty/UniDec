@@ -81,7 +81,15 @@ def read_uccd_binary(filename, expected_axes=None, sum_mz=False):
             for name, actual, expected in zip(
                     ("chromatography", "m/z", "charge"),
                     (chromaxis, mzaxis, zaxis), expected_axes):
-                expected = np.asarray(expected)
+                try:
+                    # UCCD axes are serialized as little-endian float32. Compare
+                    # against that same representation so object/string-backed
+                    # numeric axes do not reach np.allclose as dtype=object.
+                    expected = np.asarray(expected, dtype=actual.dtype)
+                except (TypeError, ValueError) as exc:
+                    raise ValueError(
+                        f"Expected UCCD {name} axis cannot be converted to {actual.dtype}"
+                    ) from exc
                 if actual.shape != expected.shape or not np.allclose(actual, expected):
                     raise ValueError(f"UCCD {name} axis does not match the input stack")
 
@@ -1151,14 +1159,17 @@ class UniDecCD(engine.UniDec):
         return harray
 
 
-    def decon_external_call_all(self, hstack):
+    def decon_external_call_all(self, hstack, chromaxis=None):
         """Run the external UniDec deconvolution on a chromatography stack."""
         if self.config.CDzbins != 1 and self.config.zzsig != 0:
             print("ERROR: Charge smoothing is only define for when charges are binned to unit charge")
             return
 
+        if chromaxis is None:
+            chromaxis = self.fulltime
+        chromaxis = np.asarray(chromaxis)
         hstack = np.asarray(hstack)
-        expected_shape = (len(self.fulltime), len(self.ztab), len(self.mz))
+        expected_shape = (len(chromaxis), len(self.ztab), len(self.mz))
         if hstack.shape != expected_shape:
             raise ValueError(
                 "Chromatographic CDMS stack must have shape "
@@ -1166,7 +1177,7 @@ class UniDecCD(engine.UniDec):
             )
 
         input_scan_sums = np.sum(hstack, axis=(1, 2), dtype=np.float64)
-        write_uccd_binary(self.config.uccdfile, self.fulltime, self.mz, self.ztab, hstack)
+        write_uccd_binary(self.config.uccdfile, chromaxis, self.mz, self.ztab, hstack)
         print("Saved Sparse Binary UCCD Input:", self.config.uccdfile)
 
         # cdmsflag=2 selects the chromatographic CDMS entry point. Restore the
@@ -1184,7 +1195,7 @@ class UniDecCD(engine.UniDec):
 
         decon, _ = read_uccd_binary(
             self.config.uccddeconfile,
-            expected_axes=(self.fulltime, self.mz, self.ztab),
+            expected_axes=(chromaxis, self.mz, self.ztab),
         )
         if self.config.datanorm == 0:
             output_scan_sums = np.sum(decon, axis=(1, 2), dtype=np.float64)

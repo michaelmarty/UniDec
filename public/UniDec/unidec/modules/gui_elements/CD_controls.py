@@ -643,6 +643,14 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             sizercontrol2.Add(self.rununidecstack, (i, 0), span=(1, 2), flag=wx.EXPAND)
             i += 1
 
+            self.rununidecdemultstack = wx.Button(panel2, -1, "Run UniDec Demult. Stack")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.on_unidec_demult_stack_button,
+                             self.rununidecdemultstack)
+            sizercontrol2.Add(self.rununidecdemultstack, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            self.rununidecdemultstack.SetToolTip(wx.ToolTip(
+                "Run All Demultiplex, then deconvolve the demultiplexed stack with UCCD."))
+            i += 1
+
         panel2.SetSizer(sizercontrol2)
         sizercontrol2.Fit(panel2)
         self.foldpanels.AddFoldPanelWindow(foldpanel2, panel2, fpb.FPB_ALIGN_WIDTH)
