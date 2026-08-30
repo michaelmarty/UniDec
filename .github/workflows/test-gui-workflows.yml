@@ -26,6 +26,7 @@ jobs:
 
     env:
       UNIDEC_IMPORTER_TEST_DATA: ${{ github.workspace }}\UniDecImporter\TestData
+      UNIDEC_REQUIRE_IMPORTER_TEST_DATA: "1"
 
     steps:
       - name: Check out UniDec
@@ -38,9 +39,25 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: michaelmarty/UniDecImporter
+          ref: 7e2294d87a29f25c229742b95f39a8a269e556d9
           path: UniDecImporter
-          lfs: true
+          lfs: false
+          sparse-checkout: |
+            TestData/IMMS/test_watersimms_txt.txt
+          sparse-checkout-cone-mode: false
           persist-credentials: false
+
+      - name: Pull and verify IM-MS fixture
+        shell: pwsh
+        run: |
+          git -C UniDecImporter lfs pull --include="TestData/IMMS/test_watersimms_txt.txt"
+          $fixture = Join-Path $env:UNIDEC_IMPORTER_TEST_DATA "IMMS\test_watersimms_txt.txt"
+          if (-not (Test-Path -LiteralPath $fixture -PathType Leaf)) {
+            throw "Required IM-MS fixture was not checked out: $fixture"
+          }
+          if ((Get-Item -LiteralPath $fixture).Length -lt 1000000) {
+            throw "IM-MS fixture is still a Git LFS pointer: $fixture"
+          }
 
       - name: Set up Python
         uses: actions/setup-python@v7

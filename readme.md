@@ -50,8 +50,23 @@ Then you can run the launcher:
 
     python -m unidec.Launcher
 
-This also allows calling the program from the system command line, so `unidec <args>`
-will run the unidec command line program, and `gunidec` will open the unidec GUI.
+This also installs command-line launchers. `unidec <args>` runs conventional
+one-dimensional UniDec, `gunidec` opens the application launcher, and `unidecim`
+opens the dedicated ion mobility application.
+
+### Choosing the UniDec mode
+
+Conventional MS and ion mobility-MS are separate applications. Choose **UniDec**
+in the launcher for two-column m/z-intensity spectra. Choose **UniDec IM** for
+three-column m/z-arrival time-intensity data. A running UniDec window no longer
+switches between these modes from the Advanced menu; launch the other application
+instead. The standalone ion mobility GUI can also be started with:
+
+    python -m unidec.UniDecIM
+
+or, after installation:
+
+    unidecim
 
 ### Linux install
 
@@ -145,7 +160,8 @@ UniDec is built to open .txt files using [numpy.loadtxt](http://docs.scipy.org/d
 
 For MS data, it opens a two-column either a tab or space delimited list of m/z and intensity values.
 
-For IM-MS, it will open a three-column tab or space delimited list of m/z, arrival time (or bin), and intensity values. Sparse matrices are fine for IM-MS. 
+UniDec IM opens a three-column tab or space delimited list of m/z, arrival time
+(or bin), and intensity values. Sparse matrices are fine for IM-MS.
 
 It is compatible with a text header at the beginning of the file. It will skip lines until it reaches the start of the data.
 
@@ -231,13 +247,17 @@ It can be run independently as a command line program fed by a configuration fil
 
 The Python engine and GUI serve as a very extensive wrapper for the C core. 
 
-The engine (engine.py) can be operated by independently of the GUI. This allows scripting of UniDec analysis for more complex and high-throughput analysis than is possible with the GUI.
-The engine contains three major subclasses, a config, data, and peaks object.
+The conventional engine (`engine.py`) can be operated independently of the GUI.
+The IM-MS engine (`modules/IMEng.py`) subclasses it and overrides the operations
+that require two-dimensional data while reusing the common deconvolution, peak,
+configuration, and reporting workflow.
 
 The GUI is organized with a Model-Presenter-View architecture.
-The main App is the presenter (GUniDec.py).
-The presenter contains a model (the UniDec engine at engine.py) and a view (mainwindow.py). 
-The presenter coordinates transfer between the GUI and the engine.
+The conventional presenter is `GUniDec.py`, backed by `engine.py` and
+`mainwindow.py`. The ion mobility presenter is `UniDecIM.py`, backed by
+`modules/IMEng.py` and the IM plot layout in `modules/IM_mainwindow.py`. Each
+application fixes its mode at construction, so loading a configuration cannot
+silently change the shape of data expected by its engine or view.
 
 MetaUniDec has a similar structure with a presenter (MetaUniDec.py), engine (mudeng.py), and view
  (mudview.py). However, unlike conventional UniDec, MetaUniDec includes a number of additional features to process 
@@ -247,12 +267,12 @@ MetaUniDec has a similar structure with a presenter (MetaUniDec.py), engine (mud
 
 Here is some sample code for how to use the engine. 
 
-    import unidec
+    from unidec.engine import UniDec
     
     file_name="test.txt"
     folder="C:\\data"
     
-    eng=unidec.UniDec()
+    eng=UniDec()
     
     eng.open_file(file_name, folder)
     
@@ -260,7 +280,18 @@ Here is some sample code for how to use the engine.
     eng.run_unidec(silent=True)
     eng.pick_peaks()
 
-In reading the documentation, it is perhaps best to start with the unidec.UniDec class.
+For an IM-MS script, import the dedicated engine and use the same workflow:
+
+    from unidec.modules.IMEng import UniDecIM
+
+    eng = UniDecIM()
+    eng.open_file("imms.txt", "C:\\data")
+    eng.process_data()
+    eng.run_unidec(silent=True)
+    eng.pick_peaks()
+
+Start with `unidec.engine.UniDec` for conventional spectra or
+`unidec.modules.IMEng.UniDecIM` for IM-MS data.
 
 You can also run files for simple deconvolution directly from the command line with:
 

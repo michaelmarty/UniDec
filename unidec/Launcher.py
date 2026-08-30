@@ -16,6 +16,7 @@ from unidec.modules.unidec_enginebase import UniDecEngine
 
 from unidec.UniDecCD import UniDecCDApp
 from unidec.GUniDec import UniDecApp
+from unidec.UniDecIM import UniDecIMApp
 
 import unidec.DataCollector as datacollector
 from unidec import MetaUniDec as mudpres
@@ -57,18 +58,27 @@ class UniDecLauncher(UniDecPres):
         if "--meta" in sys.argv[1:] or "-m" in sys.argv[1:]:
             print("Launching Meta")
             self.view.button4()
+            return
 
         if "--chrom" in sys.argv[1:] or "-c" in sys.argv[1:]:
             print("Launching UniChrom")
             self.view.button8()
+            return
 
         if "--unidec" in sys.argv[1:] or "-u" in sys.argv[1:]:
             print("Launching UniDec")
             self.view.button1()
+            return
+
+        if "--im" in sys.argv[1:] or "-i" in sys.argv[1:]:
+            print("Launching UniDec IM")
+            self.view.button13()
+            return
 
         if "--ucd" in sys.argv[1:] or "-d" in sys.argv[1:]:
             print("Launching UniDecCD")
             self.view.button9()
+            return
 
         if len(sys.argv) > 1:
             self.view.button8()
@@ -97,7 +107,7 @@ class Lview(wx.Frame):
 
         sizer = wx.GridBagSizer(wx.HORIZONTAL)
         panel = wx.Panel(self)
-        button1 = wx.Button(panel, -1, "UniDec\n\nDeconvolve MS and IM-MS")
+        button1 = wx.Button(panel, -1, "UniDec\n\nDeconvolve mass spectra")
         button2 = wx.Button(panel, -1, "Data Collector\n\nVisualize multiple spectra\nExtract Trends and Kd's")
         button3 = wx.Button(panel, -1, "Import Wizard\n\nBatch convert Waters Raw to Txt")
         button4 = wx.Button(panel, -1, "MetaUniDec\n\nBatch process and visualize MS spectra")
@@ -110,6 +120,7 @@ class Lview(wx.Frame):
         button11 = wx.Button(panel, -1,
                              "UniChromCD\n\nDeconvolution of CD-MS Chromatograms")
         button12 = wx.Button(panel, -1, "IsoDec\n\nDeconvolution of Isotope Patterns")
+        button13 = wx.Button(panel, -1, "UniDec IM\n\nDeconvolve ion mobility-mass spectra")
         html = wx.html.HtmlWindow(panel, -1, size=(390, 310))
         pathtofile = os.path.dirname(os.path.abspath(__file__))
         self.imagepath = self.eng.config.toplogofile
@@ -136,7 +147,8 @@ class Lview(wx.Frame):
         sizer.Add(button8, (3, 1), flag=wx.EXPAND)
         sizer.Add(button12, (5, 0), span=(1, 1), flag=wx.EXPAND)
         sizer.Add(button5, (5, 1), span=(1, 1), flag=wx.EXPAND)
-        sizer.Add(html, (0, 2), span=(6, 2))
+        sizer.Add(button13, (6, 0), span=(1, 2), flag=wx.EXPAND)
+        sizer.Add(html, (0, 2), span=(7, 2))
 
         self.Bind(wx.EVT_BUTTON, self.button1, button1)
         self.Bind(wx.EVT_BUTTON, self.button2, button2)
@@ -150,6 +162,7 @@ class Lview(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.button10, button10)
         self.Bind(wx.EVT_BUTTON, self.button11, button11)
         self.Bind(wx.EVT_BUTTON, self.button12, button12)
+        self.Bind(wx.EVT_BUTTON, self.button13, button13)
 
         panel.SetSizer(sizer)
         sizer.Fit(self)
@@ -224,6 +237,11 @@ class Lview(wx.Frame):
     def button12(self, e=None):
         print("Launching IsoDec")
         app = IsoDecPres()
+        app.start()
+
+    def button13(self, e=None):
+        print("Launching UniDec IM")
+        app = UniDecIMApp()
         app.start()
 
 class Shell(object):

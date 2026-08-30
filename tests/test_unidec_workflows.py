@@ -8,6 +8,7 @@ import numpy as np
 import wx
 
 from unidec.GUniDec import UniDecApp
+from unidec.UniDecIM import UniDecIMApp
 from unidec.modules.unidec_presbase import UniDecPres
 
 from _test_support import copy_unidec_example, find_importer_test_data, has_gui_display
@@ -30,9 +31,8 @@ class TestUniDecWorkflows(unittest.TestCase):
 
     def setUp(self):
         self.app.on_reset(0)
-        self.app.eng.config.imflag = 0
-        if self.app.view.imflag:
-            self.app.on_flip_mode(0)
+        self.assertEqual(self.app.eng.config.imflag, 0)
+        self.assertFalse(hasattr(self.app.view, "plot1im"))
 
     def test_engine_paths_exist(self):
         config = self.app.eng.config
@@ -67,20 +67,44 @@ class TestUniDecWorkflows(unittest.TestCase):
         self.app.on_load_state(0, state_path)
         self.assertGreater(len(self.app.eng.data.massdat), 0)
 
+
+@unittest.skipUnless(has_gui_display(), "wxPython requires a graphical display")
+class TestUniDecIMWorkflows(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.tempdir = tempfile.TemporaryDirectory(prefix="unidec-im-workflow-")
+        with patch.object(UniDecPres, "on_load_default", lambda self, *args, **kwargs: None):
+            cls.app = UniDecIMApp(ignore_args=True)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.app.view.Destroy()
+        cls.app.wx_app.Yield()
+        cls.app.wx_app.Destroy()
+        cls.tempdir.cleanup()
+
+    def setUp(self):
+        self.app.on_reset(0)
+        self.assertEqual(self.app.eng.config.imflag, 1)
+        self.assertTrue(hasattr(self.app.view, "plot1im"))
+
     def test_imms_process_deconvolve_and_pick(self):
         importer_data = find_importer_test_data()
         if importer_data is None:
+            if os.environ.get("UNIDEC_REQUIRE_IMPORTER_TEST_DATA") == "1":
+                self.fail("UNIDEC_IMPORTER_TEST_DATA does not contain the required importer fixtures")
             self.skipTest("Set UNIDEC_IMPORTER_TEST_DATA to a UniDecImporter TestData checkout")
 
         source = importer_data / "IMMS" / "test_watersimms_txt.txt"
         if not source.is_file():
+            if os.environ.get("UNIDEC_REQUIRE_IMPORTER_TEST_DATA") == "1":
+                self.fail(f"Required UniDecImporter IM-MS fixture is missing: {source}")
             self.skipTest(f"UniDecImporter IM-MS fixture is missing: {source}")
+        self.assertGreater(source.stat().st_size, 1_000_000, "IM fixture appears to be a Git LFS pointer")
 
         spectrum = os.path.join(self.tempdir.name, source.name)
         shutil.copy2(source, spectrum)
 
-        self.app.eng.config.imflag = 1
-        self.app.on_flip_mode(0)
         self.app.on_open_file(os.path.basename(spectrum), os.path.dirname(spectrum), clean=True)
         config = self.app.eng.config
         config.startz = 10
@@ -94,4 +118,7 @@ class TestUniDecWorkflows(unittest.TestCase):
 
         self.assertGreater(len(self.app.eng.data.data3), 0)
         self.assertGreater(len(self.app.eng.data.massdat), 0)
+        self.assertGreater(len(self.app.eng.data.ccsdata), 0)
+        self.assertGreater(self.app.eng.data.massccs.size, 0)
         self.assertGreater(len(self.app.eng.pks.peaks), 0)
+        self.assertTrue(np.isfinite(self.app.eng.config.error))
