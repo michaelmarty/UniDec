@@ -265,6 +265,36 @@ class main_controls(wx.Panel):
         gbox2b.Add(self.ctlbeta, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
+        self.ctlsuppressiontopn = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Suppression Top N Charges: "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlsuppressiontopn, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        self.ctlsuppressiontopx = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Suppression Top X %: "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlsuppressiontopx, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        self.ctlsuppressionsatellite = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Suppression Satellites: "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlsuppressionsatellite, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        gbox2b.Add(wx.StaticText(panel2b, label="Suppression Harmonics: "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        self.ctlsuppressionharmonic = wx.CheckBox(panel2b, label="")
+        gbox2b.Add(self.ctlsuppressionharmonic, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        self.ctlsuppressionstartit = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Suppression Start Iteration: "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlsuppressionstartit, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
         self.ctlzzsig = wx.TextCtrl(panel2b, value="", size=size1)
         gbox2b.Add(wx.StaticText(panel2b, label="Charge Smooth Width: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         gbox2b.Add(self.ctlzzsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -575,6 +605,11 @@ class main_controls(wx.Panel):
             self.ctlzzsig.SetValue(str(self.config.zzsig))
             self.ctlpsig.SetValue(str(self.config.psig))
             self.ctlbeta.SetValue(str(self.config.beta))
+            self.ctlsuppressiontopn.SetValue(str(self.config.suppression_topn))
+            self.ctlsuppressiontopx.SetValue(str(self.config.suppression_topx))
+            self.ctlsuppressionsatellite.SetValue(str(self.config.suppression_satellite))
+            self.ctlsuppressionharmonic.SetValue(bool(self.config.suppression_harmonic))
+            self.ctlsuppressionstartit.SetValue(str(self.config.suppression_startit))
             self.ctlmzsig.SetValue(str(self.config.mzsig))
             self.ctlpsfun.SetSelection(self.config.psfun)
             self.ctlnorm.SetSelection(int(self.config.peaknorm))
@@ -703,6 +738,11 @@ class main_controls(wx.Panel):
         self.config.zzsig = ud.string_to_value(self.ctlzzsig.GetValue())
         self.config.psig = ud.string_to_value(self.ctlpsig.GetValue())
         self.config.beta = ud.string_to_value(self.ctlbeta.GetValue())
+        self.config.suppression_topn = ud.string_to_int(self.ctlsuppressiontopn.GetValue())
+        self.config.suppression_topx = ud.string_to_value(self.ctlsuppressiontopx.GetValue())
+        self.config.suppression_satellite = ud.string_to_int(self.ctlsuppressionsatellite.GetValue())
+        self.config.suppression_harmonic = int(self.ctlsuppressionharmonic.GetValue())
+        self.config.suppression_startit = ud.string_to_int(self.ctlsuppressionstartit.GetValue())
         self.config.mzsig = ud.string_to_value(self.ctlmzsig.GetValue())
         self.config.massub = ud.string_to_value(self.ctlmassub.GetValue())
         self.config.masslb = ud.string_to_value(self.ctlmasslb.GetValue())
@@ -822,6 +862,12 @@ class main_controls(wx.Panel):
             "Parameter for defining the width of the data point smooth.\nUniDec will weight +/- n data points to have the same charge state."))
         self.ctlbeta.SetToolTip(wx.ToolTip(
             "Parameter for defining the degree of Boltzman/Softmax distribution applied to the charge state vectors.\nEmperically 10 works well. 0 will shut it off."))
+        self.ctlsuppressiontopn.SetToolTip(wx.ToolTip("Keep only the top N charge states during suppression."))
+        self.ctlsuppressiontopx.SetToolTip(wx.ToolTip(
+            "Suppress charge states below this fraction of the local maximum."))
+        self.ctlsuppressionsatellite.SetToolTip(wx.ToolTip("Integer setting for satellite peak suppression."))
+        self.ctlsuppressionharmonic.SetToolTip(wx.ToolTip("Enable harmonic suppression."))
+        self.ctlsuppressionstartit.SetToolTip(wx.ToolTip("Iteration number after which suppression starts."))
         self.ctlmassub.SetToolTip(wx.ToolTip(
             "Maximum allowed mass in deconvolution.\nTip: A negative value will force the axis to the absolute value."))
         self.ctlmassbins.SetToolTip(wx.ToolTip("Sets the resolution of the zero-charge mass spectrum"))

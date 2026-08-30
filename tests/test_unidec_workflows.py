@@ -39,6 +39,13 @@ class TestUniDecWorkflows(unittest.TestCase):
         self.assertTrue(os.path.isfile(config.UniDecPath))
         self.assertTrue(os.path.isfile(config.cdcreaderpath))
 
+    def test_suppression_cut_percent_is_not_exposed_in_gui(self):
+        self.assertFalse(hasattr(self.app.view.controls, "ctlsuppressionpercent"))
+        self.app.eng.config.suppression_percent = 0.25
+        self.app.import_config()
+        self.app.export_config()
+        self.assertEqual(self.app.eng.config.suppression_percent, 0.25)
+
     def test_ms_process_deconvolve_pick_and_restore_state(self):
         spectrum = copy_unidec_example(self.tempdir.name, "ADH.txt")
         self.app.on_open_file(spectrum.name, str(spectrum.parent), clean=True)
