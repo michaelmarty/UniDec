@@ -28,7 +28,6 @@ from unidec.UPP import UPPApp
 from unidec.modules import unidecstructure
 from unidec.UniChromCD import UniChromCDApp
 from unidec.IsoDecGUI import IsoDecPres
-import wx.py as py
 import locale
 
 locale.setlocale(locale.LC_ALL, 'C')
@@ -72,7 +71,7 @@ class UniDecLauncher(UniDecPres):
 
         if "--im" in sys.argv[1:] or "-i" in sys.argv[1:]:
             print("Launching UniDec IM")
-            self.view.button13()
+            self.view.button5()
             return
 
         if "--ucd" in sys.argv[1:] or "-d" in sys.argv[1:]:
@@ -111,7 +110,7 @@ class Lview(wx.Frame):
         button2 = wx.Button(panel, -1, "Data Collector\n\nVisualize multiple spectra\nExtract Trends and Kd's")
         button3 = wx.Button(panel, -1, "Import Wizard\n\nBatch convert Waters Raw to Txt")
         button4 = wx.Button(panel, -1, "MetaUniDec\n\nBatch process and visualize MS spectra")
-        button5 = wx.Button(panel, -1, "UniDec API Shell\n\nScript UniDec with console")
+        button5 = wx.Button(panel, -1, "UniDec IM\n\nDeconvolve ion mobility-mass spectra")
         button6 = wx.Button(panel, -1, "HDF5 Import Wizard\n\nImport Data into HDF5 for MetaUniDec")
         button7 = wx.Button(panel, -1, "UltraMeta Data Collector\n\nVisualize Multiple HDF5 Data Sets\nFit Trends")
         button8 = wx.Button(panel, -1, "UniChrom\n\nDeconvolution of Chromatograms\nUniDec for LC/MS Data")
@@ -120,7 +119,6 @@ class Lview(wx.Frame):
         button11 = wx.Button(panel, -1,
                              "UniChromCD\n\nDeconvolution of CD-MS Chromatograms")
         button12 = wx.Button(panel, -1, "IsoDec\n\nDeconvolution of Isotope Patterns")
-        button13 = wx.Button(panel, -1, "UniDec IM\n\nDeconvolve ion mobility-mass spectra")
         html = wx.html.HtmlWindow(panel, -1, size=(390, 310))
         pathtofile = os.path.dirname(os.path.abspath(__file__))
         self.imagepath = self.eng.config.toplogofile
@@ -147,8 +145,7 @@ class Lview(wx.Frame):
         sizer.Add(button8, (3, 1), flag=wx.EXPAND)
         sizer.Add(button12, (5, 0), span=(1, 1), flag=wx.EXPAND)
         sizer.Add(button5, (5, 1), span=(1, 1), flag=wx.EXPAND)
-        sizer.Add(button13, (6, 0), span=(1, 2), flag=wx.EXPAND)
-        sizer.Add(html, (0, 2), span=(7, 2))
+        sizer.Add(html, (0, 2), span=(6, 2))
 
         self.Bind(wx.EVT_BUTTON, self.button1, button1)
         self.Bind(wx.EVT_BUTTON, self.button2, button2)
@@ -162,7 +159,6 @@ class Lview(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.button10, button10)
         self.Bind(wx.EVT_BUTTON, self.button11, button11)
         self.Bind(wx.EVT_BUTTON, self.button12, button12)
-        self.Bind(wx.EVT_BUTTON, self.button13, button13)
 
         panel.SetSizer(sizer)
         sizer.Fit(self)
@@ -197,9 +193,8 @@ class Lview(wx.Frame):
         app.start()
 
     def button5(self, e=None):
-        print("Launching Scripting Shell")
-        app = Shell()
-        # noinspection PyUnresolvedReferences
+        print("Launching UniDec IM")
+        app = UniDecIMApp()
         app.start()
 
     def button6(self, e=None):
@@ -238,25 +233,6 @@ class Lview(wx.Frame):
         print("Launching IsoDec")
         app = IsoDecPres()
         app.start()
-
-    def button13(self, e=None):
-        print("Launching UniDec IM")
-        app = UniDecIMApp()
-        app.start()
-
-class Shell(object):
-    def __init__(self, *args, **kwargs):
-        self.__wx_app = wx.App(redirect=True)
-
-        self.shell = py.shell.Shell(wx.Frame(None))
-
-        self.shellwindow = py.shell.ShellFrame(self.shell, title="UniDecShell").Show()
-        # self.shell.Execute('app=UniDecApp()')
-        # self.shell.Execute('app.start()')
-        # self.shellwindow.Center()
-        # self.shell.setFocus()
-        self.__wx_app.MainLoop()
-
 
 def run_launcher(*args, **kwargs):
     multiprocessing.freeze_support()

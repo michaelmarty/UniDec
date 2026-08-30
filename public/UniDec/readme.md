@@ -318,6 +318,10 @@ v.9.0.0
 
 Split IsoDec, IsoGen, and UniDecImporter into separate Python packages. This allows more targeted development on each of those and simplifies testing and releases. I am working on automating more of the docs and releases on each to improve consistency and catch any issues. Hopefullly this will help. Let me know what bugs pop up.
 
+Split UniDecIM into a separate window and engine to simplify the code. It had been a weird window switch of the main UniDec. Should be easier now.
+
+Removed the UniDec API button and features. If you want to run UniDec via Python, just install it like a normal person now.
+
 Had Codex help make some speed improvements to UniDec and other core workflows. 
 
 Added in full stack deconvolution on UniChromCD. This will deconvolve each frame in the chromatogram. It also includes the first use of chromatographic deconvolution, meaning that it can take info from adjacent scans and use that to help in deconvolution. That also means you can do chromatographic peak sharpening if you would like. To turn this on, switch to Centroid mode for the deconvolution output. 
