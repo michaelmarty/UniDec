@@ -17,7 +17,7 @@ def _has_gui_display():
 @unittest.skipUnless(_has_gui_display(), "wxPython requires a graphical display")
 class TestMajorWindowLaunches(unittest.TestCase):
     def test_launcher_launches(self):
-        self._assert_window_launches("unidec.Launcher", "UniDecLauncher")
+        self._assert_window_launches("unidec.Launcher", "UniDecLauncher", launcher_layout=True)
 
     def test_unidec_launches(self):
         self._assert_window_launches("unidec.GUniDec", "UniDecApp")
@@ -38,7 +38,7 @@ class TestMajorWindowLaunches(unittest.TestCase):
         self._assert_window_launches("unidec.UniChromCD", "UniChromCDApp", True)
 
     def _assert_window_launches(self, module_name, class_name, has_full_stack_button=None,
-                                has_suppression_controls=False):
+                                has_suppression_controls=False, launcher_layout=False):
         """Construct a window in an isolated process without entering its event loop."""
         script = f"""
 import importlib
@@ -66,6 +66,13 @@ try:
             "ctlsuppressionstartit",
         )
         assert all(hasattr(app.view.controls, name) for name in suppression_controls)
+    if {launcher_layout!r}:
+        buttons = [child for panel in app.view.GetChildren() for child in panel.GetChildren()
+                   if child.__class__.__name__ == "Button"]
+        labels = [button.GetLabel() for button in buttons]
+        assert all("UniDec API Shell" not in label for label in labels)
+        im_button = next(button for button in buttons if button.GetLabel().startswith("UniDec IM"))
+        assert im_button.GetParent().GetSizer().GetItemPosition(im_button) == (5, 1)
 finally:
     app.view.Destroy()
     app.wx_app.Yield()
