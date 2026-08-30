@@ -22,6 +22,9 @@ class TestMajorWindowLaunches(unittest.TestCase):
     def test_unidec_launches(self):
         self._assert_window_launches("unidec.GUniDec", "UniDecApp")
 
+    def test_unidec_im_launches(self):
+        self._assert_window_launches("unidec.UniDecIM", "UniDecIMApp")
+
     def test_metaunidec_launches(self):
         self._assert_window_launches("unidec.MetaUniDec", "UniDecApp")
 
