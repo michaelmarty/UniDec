@@ -313,6 +313,12 @@ Config mh5LoadConfig(Config config, hid_t file_id)
 	config.zsig=float_attr(file_id, "/config", "zzsig", config.zsig);
 	config.psig = float_attr(file_id, "/config", "psig", config.psig);
 	config.beta = float_attr(file_id, "/config", "beta", config.beta);
+	config.suppression_topn = int_attr(file_id, "/config", "suppression_topn", config.suppression_topn);
+	config.suppression_topx = float_attr(file_id, "/config", "suppression_topx", config.suppression_topx);
+	config.suppression_percent = float_attr(file_id, "/config", "suppression_percent", config.suppression_percent);
+	config.suppression_startit = int_attr(file_id, "/config", "suppression_startit", config.suppression_startit);
+	config.suppression_harmonic = int_attr(file_id, "/config", "suppression_harmonic", config.suppression_harmonic);
+	config.suppression_satellite = int_attr(file_id, "/config", "suppression_satellite", config.suppression_satellite);
 	config.mzsig=float_attr(file_id, "/config", "mzsig", config.mzsig);
 	config.msig=float_attr(file_id, "/config", "msig", config.msig);
 	config.molig=float_attr(file_id, "/config", "molig", config.molig);

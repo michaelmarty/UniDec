@@ -522,12 +522,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             gbox2b.Add(self.ctlsuppressionharmonic, (i, 1), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
-            self.ctlsuppressionpercent = wx.TextCtrl(panel2b, value="", size=size1)
-            gbox2b.Add(wx.StaticText(panel2b, label="Suppression Cut Percent: "), (i, 0),
-                       flag=wx.ALIGN_CENTER_VERTICAL)
-            gbox2b.Add(self.ctlsuppressionpercent, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
-
             self.ctlsuppressionstartit = wx.TextCtrl(panel2b, value="", size=size1)
             gbox2b.Add(wx.StaticText(panel2b, label="Suppression Start Iteration: "), (i, 0),
                        flag=wx.ALIGN_CENTER_VERTICAL)
@@ -855,7 +849,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 self.ctlpsig.SetValue(str(self.config.psig))
                 self.ctlbeta.SetValue(str(self.config.beta))
                 self.ctlsuppressiontopn.SetValue(str(self.config.suppression_topn))
-                self.ctlsuppressionpercent.SetValue(str(self.config.suppression_percent))
                 self.ctlsuppressionstartit.SetValue(str(self.config.suppression_startit))
                 self.ctlsuppressiontopx.SetValue(str(self.config.suppression_topx))
                 self.ctlsuppressionsatellite.SetValue(str(self.config.suppression_satellite))
@@ -1004,7 +997,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.config.psig = ud.string_to_value(self.ctlpsig.GetValue())
             self.config.beta = ud.string_to_value(self.ctlbeta.GetValue())
             self.config.suppression_topn = ud.string_to_int(self.ctlsuppressiontopn.GetValue())
-            self.config.suppression_percent = ud.string_to_value(self.ctlsuppressionpercent.GetValue())
             self.config.suppression_startit = ud.string_to_int(self.ctlsuppressionstartit.GetValue())
             self.config.suppression_topx = ud.string_to_value(self.ctlsuppressiontopx.GetValue())
             self.config.suppression_satellite = ud.string_to_int(self.ctlsuppressionsatellite.GetValue())
@@ -1171,7 +1163,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 "\n0 will shut it off."))
             self.ctlsuppressiontopn.SetToolTip(wx.ToolTip("Keep only the top N charge states during suppression."))
             self.ctlsuppressiontopx.SetToolTip(wx.ToolTip("Suppress charge states below this fraction of the local maximum."))
-            self.ctlsuppressionpercent.SetToolTip(wx.ToolTip("Multiplier applied to suppressed charge states."))
             self.ctlsuppressionstartit.SetToolTip(wx.ToolTip("Iteration number after which suppression starts."))
             self.ctlsuppressionsatellite.SetToolTip(wx.ToolTip("Integer setting for satellite peak suppression."))
             self.ctlsuppressionharmonic.SetToolTip(wx.ToolTip("Enable harmonic suppression."))
