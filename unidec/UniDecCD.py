@@ -409,15 +409,15 @@ class UniDecCDApp(UniDecApp):
         self.eng.exe_mode(exemode)
 
     def remake_mainwindow(self, tabbed=None):
-        htmode = self.view.htmode
+        window_class = type(self.view)
+        window_title = self.view.GetTitle()
         iconfile = self.view.icon_path
         # evt=EventManager()
         # print evt.GetStats()
         wx.GetApp().Yield()
         self.view.on_exit()
         self.view = []
-        self.view = CDWindow.CDMainwindow(self, "UCD: UniDec for Charge Detection-Mass Spectrometry", self.eng.config,
-                                          iconfile=iconfile, tabbed=tabbed, htmode=htmode)
+        self.view = window_class(self, window_title, self.eng.config, iconfile=iconfile, tabbed=tabbed)
         self.view.Show()
         self.view.import_config_to_gui()
 

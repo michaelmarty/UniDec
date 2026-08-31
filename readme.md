@@ -318,9 +318,11 @@ v.9.0.0
 
 Split IsoDec, IsoGen, and UniDecImporter into separate Python packages. This allows more targeted development on each of those and simplifies testing and releases. I am working on automating more of the docs and releases on each to improve consistency and catch any issues. Hopefullly this will help. Let me know what bugs pop up.
 
-Split UniDecIM into a separate window and engine to simplify the code. It had been a weird window switch of the main UniDec. Should be easier now.
+Split UniDecIM into a separate window and engine to simplify the code. It had been a weird window switch of the main UniDec. Should be easier now. Split UCD and UCCD windows.
 
 Removed the UniDec API button and features. If you want to run UniDec via Python, just install it like a normal person now.
+
+Added in Artifact Suppression settings introduced in version 8.2 to other windows.
 
 Had Codex help make some speed improvements to UniDec and other core workflows. 
 

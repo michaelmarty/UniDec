@@ -7,13 +7,14 @@ from unidec.modules.HTEng import HTseqDict
 
 
 class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
+    chrom_mode = False
+
     # noinspection PyMissingConstructor
-    def __init__(self, parent, config, pres, panel, iconfile, htmode=False):
+    def __init__(self, parent, config, pres, panel, iconfile):
         super(wx.Panel, self).__init__(panel)
         # super(scrolled.ScrolledPanel, self).__init__(parent=panel, style=wx.ALL | wx.EXPAND)
         # self.SetAutoLayout(1)
         # self.SetupScrolling(scroll_x=False)
-        self.htmode = htmode
         self.parent = parent
         self.config = config
         self.pres = pres
@@ -161,7 +162,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                           flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
-        if htmode:
+        if self.chrom_mode:
             # Control for scan compression
             self.ctlscancompress = wx.TextCtrl(panel1, value="", size=size1)
             sizercontrol1.Add(self.ctlscancompress, (i, 1), span=(1, 2))
@@ -281,7 +282,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox1b.Fit(panel1b)
 
         self.foldpanels.AddFoldPanelWindow(foldpanel1b, panel1b, fpb.FPB_ALIGN_WIDTH)
-        if htmode:
+        if self.chrom_mode:
             self.foldpaneldm = self.foldpanels.AddFoldPanel(caption="Demultiplexing Controls", collapsed=False,
                                                             cbstyle=styleht)
             paneldm = wx.Panel(self.foldpaneldm, -1)
@@ -625,7 +626,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         sizercontrol2.Add(self.ctlcsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
-        if self.htmode:
+        if self.chrom_mode:
             self.ctldtsig = wx.TextCtrl(panel2, value="", size=size1)
             sizercontrol2.Add(wx.StaticText(panel2, label="Chrom. Spread FWHM (min): "), (i, 0),
                               flag=wx.ALIGN_CENTER_VERTICAL)
@@ -637,7 +638,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         sizercontrol2.Add(self.rununidec, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 
-        if self.htmode:
+        if self.chrom_mode:
             self.rununidecstack = wx.Button(panel2, -1, "Run UniDec Full Stack")
             self.parent.Bind(wx.EVT_BUTTON, self.pres.on_unidec_stack_button, self.rununidecstack)
             sizercontrol2.Add(self.rununidecstack, (i, 0), span=(1, 2), flag=wx.EXPAND)
@@ -1060,7 +1061,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
             self.ctlrawflag.SetSelection(self.config.rawflag)
 
-            if self.htmode:
+            if self.chrom_mode:
                 self.ctlscancompress.SetValue(str(self.config.CDScanCompress))
                 self.ctlkernelsmooth.SetValue(str(self.config.HTksmooth))
                 self.ctlhtseq.SetStringSelection(str(self.config.htbit))
@@ -1111,7 +1112,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 self.ctlpeakcm.SetSelection(self.config.cmaps.index("rainbow"))
 
             self.ctlcsig.SetValue(str(self.config.csig))
-            if self.htmode:
+            if self.chrom_mode:
                 self.ctldtsig.SetValue(str(self.config.dtsig))
 
             try:
@@ -1143,7 +1144,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         self.Thaw()
 
-        if self.htmode:
+        if self.chrom_mode:
             self.update_demultiplex_mode()
 
     def export_gui_to_config(self, e=None):
@@ -1205,7 +1206,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.separation = ud.string_to_value(self.ctlsep.GetValue())
         self.config.adductmass = ud.string_to_value(self.ctladductmass.GetValue())
 
-        if self.htmode:
+        if self.chrom_mode:
             self.config.CDScanCompress = ud.string_to_value(self.ctlscancompress.GetValue())
             self.config.HTksmooth = ud.string_to_value(self.ctlkernelsmooth.GetValue())
             #            self.config.htbit = int(self.ctlhtseq.GetStringSelection())
@@ -1270,7 +1271,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.peakcmap = str(self.ctlpeakcm.GetStringSelection())
 
         self.config.csig = ud.string_to_value(self.ctlcsig.GetValue())
-        if self.htmode:
+        if self.chrom_mode:
             self.config.dtsig = ud.string_to_value(self.ctldtsig.GetValue())
 
         if not self.config.minmz and not ud.isempty(self.pres.eng.data.rawdata):
@@ -1304,7 +1305,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.plotbutton2.SetToolTip(wx.ToolTip("Plot individual peak species in m/z. (Ctrl+K)"))
 
         self.rununidec.SetToolTip(wx.ToolTip("Write Configuration File, Run UniDec, and Plot Results. (Ctrl+R)"))
-        if self.htmode:
+        if self.chrom_mode:
             self.rununidecstack.SetToolTip(wx.ToolTip("Run UniDec on the full scan stack."))
         self.ctlmzsig.SetToolTip(wx.ToolTip(
             "Expected peak FWHM in m/z (Th).\nFor nonlinear mode, minimum FWHM"
@@ -1421,14 +1422,14 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.autobutton.SetToolTip(wx.ToolTip("Process Data, Run UniDec, Pick Peaks (Ctrl+E)"))
         self.ctlslope.SetToolTip(wx.ToolTip("Slope for conversion of intensity to charge.\nz=I/slope"))
         self.ctlcsig.SetToolTip(wx.ToolTip("Width of Charge Distribution.\nFWHM of the charge distribution."))
-        if self.htmode:
+        if self.chrom_mode:
             self.ctldtsig.SetToolTip(wx.ToolTip(
                 "Chromatographic peak width used by full-stack UCCD deconvolution."))
 
         self.ctlzsmoothcheck.SetToolTip(
             wx.ToolTip("Select whether to assume a smooth charge state distribution"))
 
-        if self.htmode:
+        if self.chrom_mode:
             self.ctlscancompress.SetToolTip(wx.ToolTip(
                 "Average each n scans together. This reduces the number of scans by a factor of n."))
 
@@ -1571,21 +1572,21 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.expand_list([0, 1])
 
     def on_expand_yellow(self, e=None):
-        if self.htmode:
+        if self.chrom_mode:
             yellow = [9, 7, 8]
         else:
             yellow = [2, 3, 4]
         self.expand_list(yellow)
 
     def on_expand_red(self, e=None):
-        if self.htmode:
+        if self.chrom_mode:
             red = [10, 11]
         else:
             red = [5, 6]
         self.expand_list(red)
 
     def on_expand_main(self, e=None):
-        if self.htmode:
+        if self.chrom_mode:
             self.expand_list([0, 2, 8, 7, 10])
         else:
             self.expand_list([0, 2, 3, 5])
