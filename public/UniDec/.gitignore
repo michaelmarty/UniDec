@@ -86,3 +86,8 @@ unidec/src/CMakeFiles/
 /unidec/bin/Example Data/POPC_Nanodiscs_unidecfiles/POPC_Nanodiscs_mzpeakdata.dat
 /unidec/bin/TestSpectra/test_2.txt.out
 /unidec/bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/GroEL_CDMS_1_rawdata.npz
+/unidec/bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/fitdat.bin
+/unidec/bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/decon.txt
+/unidec/bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/mass.txt
+/unidec/bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/rawdata.npz
+/unidec/bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/input.dat

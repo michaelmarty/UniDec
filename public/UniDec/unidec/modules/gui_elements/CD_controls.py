@@ -736,6 +736,36 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox2b.Add(self.ctlbeta, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
+        self.ctlsuppressiontopn = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Suppression Top N: "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlsuppressiontopn, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        self.ctlsuppressiontopx = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Suppression Top X: "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlsuppressiontopx, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        self.ctlsuppressionsatellite = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Suppression Satellites: "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlsuppressionsatellite, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        self.ctlsuppressionharmonic = wx.CheckBox(panel2b, label="")
+        gbox2b.Add(wx.StaticText(panel2b, label="Suppression Harmonics: "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlsuppressionharmonic, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        self.ctlsuppressionstartit = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Suppression Start Iter.: "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlsuppressionstartit, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
         self.ctlmsig = wx.TextCtrl(panel2b, value="", size=size1)
         gbox2b.Add(wx.StaticText(panel2b, label="Mass Smooth Width: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         gbox2b.Add(self.ctlmsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -983,6 +1013,11 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlmaxnativez.SetValue(str(self.config.nativezub))
             self.ctlbeta.SetValue(str(self.config.beta))
             self.ctlpsig.SetValue(str(self.config.psig))
+            self.ctlsuppressiontopn.SetValue(str(self.config.suppression_topn))
+            self.ctlsuppressiontopx.SetValue(str(self.config.suppression_topx))
+            self.ctlsuppressionstartit.SetValue(str(self.config.suppression_startit))
+            self.ctlsuppressionsatellite.SetValue(str(self.config.suppression_satellite))
+            self.ctlsuppressionharmonic.SetValue(bool(self.config.suppression_harmonic))
             try:
                 self.ctlpoolflag.SetSelection(self.config.poolflag)
             except:
@@ -1143,6 +1178,11 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         '''
         self.config.psig = ud.string_to_value(self.ctlpsig.GetValue())
         self.config.beta = ud.string_to_value(self.ctlbeta.GetValue())
+        self.config.suppression_topn = ud.string_to_int(self.ctlsuppressiontopn.GetValue())
+        self.config.suppression_topx = ud.string_to_value(self.ctlsuppressiontopx.GetValue())
+        self.config.suppression_startit = ud.string_to_int(self.ctlsuppressionstartit.GetValue())
+        self.config.suppression_satellite = ud.string_to_int(self.ctlsuppressionsatellite.GetValue())
+        self.config.suppression_harmonic = int(self.ctlsuppressionharmonic.GetValue())
         self.config.poolflag = self.ctlpoolflag.GetSelection()
         self.config.datanorm = int(self.ctldatanorm.GetValue())
         self.config.intthresh = ud.string_to_value(self.ctlintthresh.GetValue())
@@ -1304,6 +1344,16 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.ctladductmass.SetToolTip(wx.ToolTip("Mass of charge carrying adduct;\ntypically the mass of a proton"))
         self.ctlminnativez.SetToolTip(wx.ToolTip("Minimum offset from a native charge state"))
         self.ctlmaxnativez.SetToolTip(wx.ToolTip("Maximum offset from a native charge state"))
+        self.ctlsuppressiontopn.SetToolTip(
+            wx.ToolTip("Keep only the top N charge states at each m/z. Set to 0 to disable."))
+        self.ctlsuppressiontopx.SetToolTip(
+            wx.ToolTip("Suppress charge states below this fraction of the local maximum (0 to 1)."))
+        self.ctlsuppressionstartit.SetToolTip(
+            wx.ToolTip("Begin applying suppression after this iteration."))
+        self.ctlsuppressionsatellite.SetToolTip(
+            wx.ToolTip("Suppress charge states within +/- this many charges of a stronger local maximum."))
+        self.ctlsuppressionharmonic.SetToolTip(
+            wx.ToolTip("Suppress weaker harmonic charge assignments. Requires consecutive integer charges."))
         self.ctlbselect.SetToolTip(wx.ToolTip(
             "Select whether to suppress deconvolution artifacts"))
         # TODO: Set several of these that are gone. Edit the others.

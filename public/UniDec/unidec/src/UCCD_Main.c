@@ -768,11 +768,17 @@ int run_unidec_UCCD(int argc, char *argv[], Config config)
     int *zloind = calloc((size_t)scan_length, sizeof(int));
     int *mupind = calloc((size_t)scan_length, sizeof(int));
     int *mloind = calloc((size_t)scan_length, sizeof(int));
+    int *nztab = calloc((size_t)size[1], sizeof(int));
     char *barr = calloc((size_t)scan_length, sizeof(char));
     if (zupind == NULL || zloind == NULL || mupind == NULL || mloind == NULL ||
-        barr == NULL) {
+        nztab == NULL || barr == NULL) {
         fprintf(stderr, "Error allocating UCCD scan-processing arrays\n");
         return 1;
+    }
+    int suppression_harmonic = config.suppression_harmonic;
+    if (!setup_suppression_ztab(nztab, zext, size[1]) && suppression_harmonic > 0) {
+        printf("Harmonic suppression requires a consecutive, nonzero integer charge axis; skipping it.\n");
+        suppression_harmonic = 0;
     }
     for (int i = 0; i < scan_length; i++) { barr[i] = 1; }
     if (config.zsig != 0) {
@@ -851,7 +857,7 @@ int run_unidec_UCCD(int argc, char *argv[], Config config)
     int off = 0;
     for (int iteration = 0; iteration < config.numit; iteration++) {
         /* These operations intentionally do not cross chromatography scans. */
-        if (config.beta > 0 || config.psig > 0 || config.zsig != 0 || config.msig != 0) {
+        if (config.beta > 0 || config.psig > 0) {
             #pragma omp parallel for schedule(static) if(size[2] > 1 && lines >= UCCD_OMP_MIN_LENGTH)
             for (int scan = 0; scan < size[2]; scan++) {
                 const int offset = scan * scan_length;
@@ -864,6 +870,23 @@ int run_unidec_UCCD(int argc, char *argv[], Config config)
                     point_smoothing_scan_UCCD(blur + offset, scratch, barr,
                                               size[0], size[1], abs((int)config.psig));
                 }
+            }
+        }
+
+        if (iteration > config.suppression_startit &&
+            (config.suppression_satellite > 0 || suppression_harmonic > 0 ||
+             config.suppression_topn > 0 || config.suppression_topx > 0)) {
+            apply_suppressions(blur, newblur, size[2] * size[0], size[1],
+                               config.suppression_satellite, suppression_harmonic, nztab,
+                               config.suppression_topn, config.suppression_topx,
+                               config.suppression_percent);
+        }
+
+        if (config.zsig != 0 || config.msig != 0) {
+            #pragma omp parallel for schedule(static) if(size[2] > 1 && lines >= UCCD_OMP_MIN_LENGTH)
+            for (int scan = 0; scan < size[2]; scan++) {
+                const int offset = scan * scan_length;
+                float *const scratch = newblur + offset;
                 if (config.zsig != 0) {
                     blur_it_UCCD(scratch, blur + offset, zupind, zloind,
                                  scan_length, config.zsig * dmax);
@@ -992,7 +1015,7 @@ cleanup_processing_UCCD:
 
     free(mzdat); free(zdat); fftwf_free(dataInt);
     free(chromext); free(mzext); free(zext);
-    free(zupind); free(zloind); free(mupind); free(mloind); free(barr);
+    free(zupind); free(zloind); free(mupind); free(mloind); free(nztab); free(barr);
     free(nonzero_indices); free(active_scans);
 
     printf("Done in %ds!\n", (int)difftime(time(NULL), starttime));

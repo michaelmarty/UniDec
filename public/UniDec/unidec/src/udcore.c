@@ -655,6 +655,19 @@ static void fused_top_x_row(float *row, const int numz, const float cutoff, cons
 }
 
 
+int setup_suppression_ztab(int *ztab, const float *zaxis, const int numz) {
+    int valid = 1;
+    for (int i = 0; i < numz; i++) {
+        ztab[i] = (int)roundf(zaxis[i]);
+        if (fabsf(zaxis[i] - (float)ztab[i]) > 0.001f || ztab[i] == 0 ||
+            (i > 0 && ztab[i] != ztab[i - 1] + 1)) {
+            valid = 0;
+        }
+    }
+    return valid;
+}
+
+
 void apply_suppressions(float *blur, float *scratch, const int lengthmz, const int numz,
                         const int satellite_n, const int harmonic, const int *ztab, const int top_n,
                         const float top_x, const float suppression_percent) {

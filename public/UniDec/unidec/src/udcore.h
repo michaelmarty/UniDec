@@ -64,6 +64,7 @@ void highest_n_chargestates(float *blur, float *scratch, int lengthmz, int numz,
 void clip_minor_chargestates(float *blur, int lengthmz, int numz, float zcutoff, float zcutpercent);
 void suppression_satelite(float *blur, float *scratch, int lengthmz, int numz, int n);
 void suppression_harmonic(float *blur, float *scratch, int lengthmz, int numz, const int *ztab);
+int setup_suppression_ztab(int *ztab, const float *zaxis, int numz);
 void apply_suppressions(float *blur, float *scratch, int lengthmz, int numz, int satellite_n,
                         int harmonic, const int *ztab, int top_n, float top_x, float suppression_percent);
 
