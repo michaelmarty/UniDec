@@ -160,8 +160,12 @@ jobs:
         shell: pwsh
         run: |
           $vcpkgRoot = (Resolve-Path -LiteralPath $env:VCPKG_INSTALLATION_ROOT).Path.Replace('\', '/')
-          & "$vcpkgRoot/vcpkg.exe" install "hdf5:${{ matrix.triplet }}" "fftw3:${{ matrix.triplet }}"
+          & "$vcpkgRoot/vcpkg.exe" install "hdf5[hl]:${{ matrix.triplet }}" "fftw3:${{ matrix.triplet }}"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $hdf5Libraries = "$vcpkgRoot/installed/${{ matrix.triplet }}/lib"
+          if (-not (Get-ChildItem -LiteralPath $hdf5Libraries -Filter '*hdf5*hl*.lib')) {
+            throw "vcpkg did not install the HDF5 high-level library in $hdf5Libraries"
+          }
           "VCPKG_ROOT_PATH=$vcpkgRoot" >> $env:GITHUB_ENV
 
       - name: Install Intel oneAPI C compiler
