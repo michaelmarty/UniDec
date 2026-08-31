@@ -1,7 +1,7 @@
 from unidec.UniDecCD import UniDecCDApp
 import multiprocessing
 import unidec.modules.HTEng as HTEng
-from unidec.modules.gui_elements import CDWindow
+from unidec.modules.gui_elements import ChromCDWindow
 from pubsub import pub
 import wx
 import unidec.tools as ud
@@ -28,8 +28,7 @@ class UniChromCDApp(UniDecCDApp):
         self.showht = False
         self.showccs = False
 
-        self.view = CDWindow.CDMainwindow(self, "UniChrom for CD-MS Data",
-                                          self.eng.config, htmode=True)
+        self.view = ChromCDWindow.CDMainwindow(self, "UniChrom for CD-MS Data", self.eng.config)
         self.comparedata = None
 
         # pub.subscribe(self.on_select_mzz_region, 'mzlimits')

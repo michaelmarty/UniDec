@@ -8,14 +8,15 @@ import os
 
 
 class CDMenu(wx.Menu):
+    chrom_mode = False
+
     # noinspection PyMissingConstructor
-    def __init__(self, parent, config, pres, tabbed, htmode=False):
+    def __init__(self, parent, config, pres, tabbed):
         super(wx.Menu, self).__init__()
         self.pres = pres
         self.config = config
         self.parent = parent
         self.tabbed = tabbed
-        self.htmode = htmode
 
         self.filemenu = wx.Menu()
         self.toolsmenu = wx.Menu()
@@ -32,7 +33,7 @@ class CDMenu(wx.Menu):
 
         self.menuLoad = self.filemenu.Append(wx.ID_ANY, "Load External Config File", "Load in a configuration file")
 
-        if self.htmode:
+        if self.chrom_mode:
             # Load chrom file
             self.filemenu.AppendSeparator()
             self.menuLoadChrom = self.filemenu.Append(wx.ID_ANY, "Load Chromatogram File",
@@ -134,7 +135,7 @@ class CDMenu(wx.Menu):
         self.menucal = self.toolsmenu.Append(wx.ID_ANY, "Calibration Tool")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_calibrate, self.menucal)
 
-        if self.htmode:
+        if self.chrom_mode:
             self.toolsmenu.AppendSeparator()
             self.menuexportHT = self.toolsmenu.Append(wx.ID_ANY, "Export Chromatograms")
             self.parent.Bind(wx.EVT_MENU, self.pres.on_export_arrays, self.menuexportHT)
