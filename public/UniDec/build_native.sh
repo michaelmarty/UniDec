@@ -19,8 +19,15 @@ if [[ "$(uname -s)" == "Linux" ]]; then
 elif [[ "$(uname -s)" == "Darwin" ]] && command -v brew >/dev/null 2>&1; then
     hdf5_prefix="$(brew --prefix hdf5)"
     fftw_prefix="$(brew --prefix fftw)"
+    libomp_prefix="$(brew --prefix libomp)"
     export PKG_CONFIG_PATH="${fftw_prefix}/lib/pkgconfig:${hdf5_prefix}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
-    cmake_args+=("-DCMAKE_PREFIX_PATH=${hdf5_prefix};${fftw_prefix}")
+    cmake_args+=(
+        "-DCMAKE_PREFIX_PATH=${hdf5_prefix};${fftw_prefix};${libomp_prefix}"
+        "-DOpenMP_C_FLAGS=-Xpreprocessor -fopenmp"
+        "-DOpenMP_C_LIB_NAMES=omp"
+        "-DOpenMP_omp_LIBRARY=${libomp_prefix}/lib/libomp.dylib"
+        "-DOpenMP_C_INCLUDE_DIR=${libomp_prefix}/include"
+    )
 fi
 
 cmake "${cmake_args[@]}"

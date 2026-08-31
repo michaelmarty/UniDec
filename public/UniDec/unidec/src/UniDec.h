@@ -15,7 +15,9 @@
 
 #define __STDC_WANT_LIB_EXT1__ 1
 #include <stdio.h>
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
 
