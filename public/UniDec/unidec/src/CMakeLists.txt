@@ -3,6 +3,13 @@ project(UniDec C)
 
 set(CMAKE_C_STANDARD 11)
 
+option(UNIDEC_REQUIRE_INTELLLVM "Fail configuration unless IntelLLVM is the C compiler" OFF)
+if(UNIDEC_REQUIRE_INTELLLVM AND NOT CMAKE_C_COMPILER_ID STREQUAL "IntelLLVM")
+    message(FATAL_ERROR
+            "UNIDEC_REQUIRE_INTELLLVM is enabled, but CMake selected ${CMAKE_C_COMPILER_ID} "
+            "(${CMAKE_C_COMPILER}).")
+endif()
+
 # Removes annoying warnings to define this
 if(MSVC)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
@@ -161,8 +168,8 @@ else()
         target_link_libraries(unidec PUBLIC PkgConfig::FFTW3F)
         target_link_libraries(unideclib PUBLIC PkgConfig::FFTW3F)
     else()
-        find_path(FFTW3F_INCLUDE_DIR NAMES fftw3.h HINTS ENV FFTW_ROOT PATH_SUFFIXES include)
-        find_library(FFTW3F_LIBRARY NAMES fftw3f HINTS ENV FFTW_ROOT PATH_SUFFIXES lib lib64)
+        find_path(FFTW3F_INCLUDE_DIR NAMES fftw3.h HINTS "${FFTW_ROOT}" ENV FFTW_ROOT PATH_SUFFIXES include)
+        find_library(FFTW3F_LIBRARY NAMES fftw3f HINTS "${FFTW_ROOT}" ENV FFTW_ROOT PATH_SUFFIXES lib lib64)
         if(NOT FFTW3F_INCLUDE_DIR OR NOT FFTW3F_LIBRARY)
             message(FATAL_ERROR "FFTW single-precision library not found. Install fftw3/fftw or set FFTW_ROOT.")
         endif()
@@ -172,7 +179,7 @@ else()
         target_link_libraries(unideclib PUBLIC "${FFTW3F_LIBRARY}")
     endif()
 
-    find_library(FFTW3F_THREADS_LIBRARY NAMES fftw3f_threads HINTS ENV FFTW_ROOT PATH_SUFFIXES lib lib64)
+    find_library(FFTW3F_THREADS_LIBRARY NAMES fftw3f_threads HINTS "${FFTW_ROOT}" ENV FFTW_ROOT PATH_SUFFIXES lib lib64)
     if (FFTW3F_THREADS_LIBRARY)
         target_compile_definitions(unidec PRIVATE UNIDEC_USE_FFTW_THREADS)
         target_link_libraries(unidec PUBLIC ${FFTW3F_THREADS_LIBRARY})
