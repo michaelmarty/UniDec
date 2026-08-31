@@ -1,15 +1,17 @@
-name: GUI and workflow tests
+name: Native and GUI workflow tests
 
 on:
   push:
     paths:
       - ".github/workflows/test-gui-workflows.yml"
+      - "build_native.sh"
       - "pyproject.toml"
       - "tests/**"
       - "unidec/**"
   pull_request:
     paths:
       - ".github/workflows/test-gui-workflows.yml"
+      - "build_native.sh"
       - "pyproject.toml"
       - "tests/**"
       - "unidec/**"
@@ -19,13 +21,37 @@ permissions:
   contents: read
 
 jobs:
-  windows-gui-workflows:
-    name: Windows / Python 3.12
-    runs-on: windows-latest
-    timeout-minutes: 20
+  platform-workflows:
+    name: ${{ matrix.name }} / Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            python-version: "3.12"
+            build_native: false
+            gui_tests: true
+          - name: Linux
+            os: ubuntu-latest
+            python-version: "3.12"
+            build_native: true
+            gui_tests: false
+          - name: macOS ARM64
+            os: macos-14
+            python-version: "3.12"
+            build_native: true
+            gui_tests: true
+          - name: macOS Intel
+            os: macos-15-intel
+            python-version: "3.12"
+            build_native: true
+            gui_tests: true
 
     env:
-      UNIDEC_IMPORTER_TEST_DATA: ${{ github.workspace }}\UniDecImporter\TestData
+      UNIDEC_IMPORTER_TEST_DATA: ${{ github.workspace }}/UniDecImporter/TestData
       UNIDEC_REQUIRE_IMPORTER_TEST_DATA: "1"
 
     steps:
@@ -36,6 +62,7 @@ jobs:
           persist-credentials: false
 
       - name: Check out UniDecImporter fixtures
+        if: matrix.gui_tests
         uses: actions/checkout@v7
         with:
           repository: michaelmarty/UniDecImporter
@@ -47,29 +74,57 @@ jobs:
           sparse-checkout-cone-mode: false
           persist-credentials: false
 
-      - name: Pull and verify IM-MS fixture
-        shell: pwsh
-        run: |
-          git -C UniDecImporter lfs pull --include="TestData/IMMS/test_watersimms_txt.txt"
-          $fixture = Join-Path $env:UNIDEC_IMPORTER_TEST_DATA "IMMS\test_watersimms_txt.txt"
-          if (-not (Test-Path -LiteralPath $fixture -PathType Leaf)) {
-            throw "Required IM-MS fixture was not checked out: $fixture"
-          }
-          if ((Get-Item -LiteralPath $fixture).Length -lt 1000000) {
-            throw "IM-MS fixture is still a Git LFS pointer: $fixture"
-          }
-
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
           cache: pip
           cache-dependency-path: pyproject.toml
 
-      - name: Install UniDec and test dependencies
+      - name: Pull IM-MS fixture
+        if: matrix.gui_tests
+        run: git -C UniDecImporter lfs pull --include="TestData/IMMS/test_watersimms_txt.txt"
+
+      - name: Verify IM-MS fixture
+        if: matrix.gui_tests
+        run: >-
+          python -c "import os; from pathlib import Path;
+          p = Path(os.environ['UNIDEC_IMPORTER_TEST_DATA']) / 'IMMS' / 'test_watersimms_txt.txt';
+          assert p.is_file(), f'Missing fixture: {p}';
+          assert p.stat().st_size >= 1000000, f'Fixture is still a Git LFS pointer: {p}'"
+
+      - name: Install Linux native dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install --yes libfftw3-dev libhdf5-dev pkg-config
+
+      - name: Install macOS native dependencies
+        if: runner.os == 'macOS'
+        run: |
+          brew untap aws/tap 2>/dev/null || true
+          brew install fftw hdf5 libomp pkg-config
+
+      - name: Build native UniDec
+        if: matrix.build_native
+        run: bash ./build_native.sh
+
+      - name: Install UniDec and GUI test dependencies
+        if: matrix.gui_tests
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e ".[dev]"
 
-      - name: Run GUI launch and workflow tests
+      - name: Install UniDec for headless tests
+        if: ${{ !matrix.gui_tests }}
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+
+      - name: Run GUI and workflow tests
+        if: matrix.gui_tests
         run: python -m unittest discover -s tests -p "test_*.py" -v
+
+      - name: Run headless engine and native tests
+        if: ${{ !matrix.gui_tests }}
+        run: |
+          python -m unittest discover -s tests -p "test_im_engine_split.py" -v
+          python -m unittest discover -s tests -p "test_native_build.py" -v
