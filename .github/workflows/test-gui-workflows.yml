@@ -128,3 +128,96 @@ jobs:
         run: |
           python -m unittest discover -s tests -p "test_im_engine_split.py" -v
           python -m unittest discover -s tests -p "test_native_build.py" -v
+
+  windows-native-builds:
+    name: ${{ matrix.name }} native build
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows IntelLLVM x64
+            os: windows-latest
+            triplet: x64-windows
+            compiler: IntelLLVM
+          - name: Windows ARM64
+            os: windows-11-arm
+            triplet: arm64-windows
+            compiler: MSVC
+
+    env:
+      ONEAPI_WINDOWS_URL: https://registrationcenter-download.intel.com/akdlm/IRC_NAS/bae85ab1-cfcd-4251-8d42-a0c27949ea33/intel-oneapi-toolkit-2026.0.0.193_offline.exe
+      ONEAPI_WINDOWS_COMPONENTS: intel.oneapi.win.cpp-dpcpp-common
+
+    steps:
+      - name: Check out UniDec
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install native dependencies with vcpkg
+        shell: pwsh
+        run: |
+          $vcpkgRoot = (Resolve-Path -LiteralPath $env:VCPKG_INSTALLATION_ROOT).Path.Replace('\', '/')
+          & "$vcpkgRoot/vcpkg.exe" install "hdf5:${{ matrix.triplet }}" "fftw3:${{ matrix.triplet }}"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "VCPKG_ROOT_PATH=$vcpkgRoot" >> $env:GITHUB_ENV
+
+      - name: Install Intel oneAPI C compiler
+        if: matrix.compiler == 'IntelLLVM'
+        shell: cmd
+        run: |
+          curl.exe --fail --location --retry 5 --output "%RUNNER_TEMP%\oneapi.exe" "%ONEAPI_WINDOWS_URL%"
+          start /b /wait "" "%RUNNER_TEMP%\oneapi.exe" -s -x -f "%RUNNER_TEMP%\oneapi-extracted" --log extract.log
+          "%RUNNER_TEMP%\oneapi-extracted\bootstrapper.exe" -s --action install --components=%ONEAPI_WINDOWS_COMPONENTS% --eula=accept -p=NEED_VS2022_INTEGRATION=0 --log-dir=.
+
+      - name: Configure and build with IntelLLVM
+        if: matrix.compiler == 'IntelLLVM'
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Intel\oneAPI\setvars-vcvarsall.bat" vs2022
+          call "C:\Program Files (x86)\Intel\oneAPI\compiler\latest\env\vars.bat"
+          set "CC=icx-cl"
+          set "CXX=icx-cl"
+          cmake -S unidec/src -B build/unidec-windows-intel -G Ninja -DCMAKE_BUILD_TYPE=Release -DUNIDEC_REQUIRE_INTELLLVM=ON -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT_PATH%/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }} -DHDF5_ROOT=%VCPKG_ROOT_PATH%/installed/${{ matrix.triplet }} -DFFTW_ROOT=%VCPKG_ROOT_PATH%/installed/${{ matrix.triplet }}
+          cmake --build build/unidec-windows-intel --parallel
+
+      - name: Configure and build Windows ARM64
+        if: matrix.compiler == 'MSVC'
+        shell: pwsh
+        run: |
+          cmake -S unidec/src -B build/unidec-windows-arm64 -G "Visual Studio 17 2022" -A ARM64 `
+            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT_PATH/scripts/buildsystems/vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }} `
+            -DHDF5_ROOT="$env:VCPKG_ROOT_PATH/installed/${{ matrix.triplet }}" `
+            -DFFTW_ROOT="$env:VCPKG_ROOT_PATH/installed/${{ matrix.triplet }}"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build build/unidec-windows-arm64 --config Release --parallel
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Smoke test IntelLLVM executable
+        if: matrix.compiler == 'IntelLLVM'
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Intel\oneAPI\setvars-vcvarsall.bat" vs2022
+          call "C:\Program Files (x86)\Intel\oneAPI\compiler\latest\env\vars.bat"
+          set "PATH=%VCPKG_ROOT_PATH%\installed\${{ matrix.triplet }}\bin;%PATH%"
+          unidec\bin\unidec.exe > "%RUNNER_TEMP%\unidec-help.txt" 2>&1
+          if not "%ERRORLEVEL%"=="88" exit /b 1
+          findstr /c:"Universal Deconvolution" "%RUNNER_TEMP%\unidec-help.txt"
+          if not exist unidec\bin\unideclib.dll exit /b 1
+
+      - name: Smoke test ARM64 executable
+        if: matrix.compiler == 'MSVC'
+        shell: pwsh
+        run: |
+          $env:PATH = "$env:VCPKG_ROOT_PATH/installed/${{ matrix.triplet }}/bin;$env:PATH"
+          $output = & unidec/bin/unidec.exe 2>&1
+          $exitCode = $LASTEXITCODE
+          $text = $output -join "`n"
+          if ($exitCode -ne 88) { throw "UniDec exited with $exitCode instead of 88.`n$text" }
+          if ($text -notmatch 'Universal Deconvolution') { throw 'UniDec help output was not produced.' }
+          if (-not (Test-Path -LiteralPath unidec/bin/unideclib.dll -PathType Leaf)) {
+            throw 'The ARM64 shared library was not deployed.'
+          }

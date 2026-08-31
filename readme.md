@@ -318,9 +318,9 @@ v.9.0.0
 
 Split IsoDec, IsoGen, and UniDecImporter into separate Python packages. This allows more targeted development on each of those and simplifies testing and releases. I am working on automating more of the docs and releases on each to improve consistency and catch any issues. Hopefullly this will help. Let me know what bugs pop up.
 
-Split UniDecIM into a separate window and engine to simplify the code. It had been a weird window switch of the main UniDec. Should be easier now. Split UCD and UCCD windows.
+Split UniDecIM into a separate window and engine to simplify the code. It had been a weird window switch of the main UniDec. Should be easier now. Split UCD and UCCD windows in the same way.
 
-Removed the UniDec API button and features. If you want to run UniDec via Python, just install it like a normal person now.
+Removed the UniDec API button and features. If you want to run UniDec via Python, just install it like a normal person.
 
 Added in Artifact Suppression settings introduced in version 8.2 to other windows.
 
@@ -328,9 +328,11 @@ Had Codex help make some speed improvements to UniDec and other core workflows.
 
 Added in full stack deconvolution on UniChromCD. This will deconvolve each frame in the chromatogram. It also includes the first use of chromatographic deconvolution, meaning that it can take info from adjacent scans and use that to help in deconvolution. That also means you can do chromatographic peak sharpening if you would like. To turn this on, switch to Centroid mode for the deconvolution output. 
 
-Added in automated testing with the help of Codex.
+Added in automated testing, document building, and publishing with the help of Codex. 
 
-CD-MS modes will now use truncated file names. Too many people were hitting path length issues with the full file names. So, it will now be just conf.dat rather than [filename]_conf.dat.
+As part of the automated builds, there should be an actual up-to-date Mac version! Thanks to Xavier who kept building it for me over the years. 
+
+CD-MS modes will now use truncated file names. Too many people were hitting path length issues with the full file names. So, it will now be just conf.dat rather than [filename]_conf.dat. May decide to migrate the other windows to this. Let me know what you think.
 
 v.8.3.0
 
