@@ -195,7 +195,8 @@ jobs:
             -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT_PATH/scripts/buildsystems/vcpkg.cmake" `
             -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }} `
             -DHDF5_ROOT="$env:VCPKG_ROOT_PATH/installed/${{ matrix.triplet }}" `
-            -DFFTW_ROOT="$env:VCPKG_ROOT_PATH/installed/${{ matrix.triplet }}"
+            -DFFTW_ROOT="$env:VCPKG_ROOT_PATH/installed/${{ matrix.triplet }}" `
+            -DUNIDEC_ENABLE_OPENMP=OFF
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cmake --build build/unidec-windows-arm64 --config Release --parallel
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

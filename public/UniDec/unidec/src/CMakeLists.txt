@@ -187,22 +187,27 @@ else()
 endif()
 
 
-find_package(OpenMP)
-if (OpenMP_C_FOUND)
+option(UNIDEC_ENABLE_OPENMP "Build UniDec with OpenMP parallelism" ON)
+if(UNIDEC_ENABLE_OPENMP)
+    find_package(OpenMP)
+endif()
+if(UNIDEC_ENABLE_OPENMP AND OpenMP_C_FOUND)
     target_link_libraries(unidec PUBLIC OpenMP::OpenMP_C)
     target_link_libraries(unideclib PUBLIC OpenMP::OpenMP_C)
-else()
+elseif(UNIDEC_ENABLE_OPENMP)
     message(STATUS "OpenMP not found, proceeding without it.")
+else()
+    message(STATUS "OpenMP explicitly disabled; building serial UniDec targets.")
 endif()
 
 # Optimization
 target_compile_options(unidec PRIVATE
-        $<$<AND:$<C_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/O3>
+        $<$<AND:$<C_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/O2>
         $<$<AND:$<NOT:$<C_COMPILER_ID:MSVC>>,$<CONFIG:Release>>:-O3>
 )
 # Optimization
 target_compile_options(unideclib PRIVATE
-        $<$<AND:$<C_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/O3>
+        $<$<AND:$<C_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/O2>
         $<$<AND:$<NOT:$<C_COMPILER_ID:MSVC>>,$<CONFIG:Release>>:-O3>
 )
 
