@@ -38,7 +38,7 @@ dependencies = [
     "numba>=0.57; sys_platform != 'darwin' or platform_machine != 'x86_64'",
     "numpy>=1.23",
     "pandas>=2.0",
-    "pyisogen>=1.0.8",
+    "pyisogen>=1.0.9",
     "scipy>=1.9",
 ]
 
