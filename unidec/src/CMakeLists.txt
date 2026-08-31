@@ -17,23 +17,14 @@ message(STATUS "UniDec Dir: ${UNIDEC_DIR}")
 set(INSTALL_DIR "${UNIDEC_DIR}/bin")
 message(STATUS "Install Dir: ${INSTALL_DIR}")
 
-# Add HDF5 directories to the include path and link directories
-if(MSVC)
-    set(HDF5_DIR "C:/Program Files/HDF_Group/HDF5/2.1.1" CACHE PATH "HDF5 installation directory")
-    message(STATUS "HDF5_DIR: ${HDF5_DIR}")
-    include_directories("${HDF5_DIR}/include")
-    link_directories("${HDF5_DIR}/lib")
-else()
-    set(HDF5_INCLUDE_DIR "/usr/include/hdf5/serial")
-    message(STATUS "HDF5_DIR: ${HDF5_INCLUDE_DIR}")
-    include_directories("${HDF5_INCLUDE_DIR}")
-#    set(HDF5_LINK_DIR "/usr/lib/x86_64-linux-gnu/hdf5/serial")
-#    link_directories("${HDF5_LINK_DIR}")
-    link_directories("/usr/lib/x86_64-linux-gnu")
-    link_directories("/usr/lib/x86_64-linux-gnu/hdf5/serial/lib")
-
-
+# Discover HDF5 through CMake so Homebrew, Linux distributions, and custom
+# prefixes all work without hard-coded include or library directories.
+if(MSVC AND NOT DEFINED HDF5_ROOT AND EXISTS "C:/Program Files/HDF_Group/HDF5/2.1.1")
+    set(HDF5_ROOT "C:/Program Files/HDF_Group/HDF5/2.1.1" CACHE PATH "HDF5 installation directory")
 endif()
+find_package(HDF5 REQUIRED COMPONENTS C HL)
+message(STATUS "HDF5 version: ${HDF5_VERSION}")
+message(STATUS "HDF5 include directories: ${HDF5_INCLUDE_DIRS}")
 
 add_library(unideclib SHARED udmain.c udmain.h
         udtools.c
@@ -95,6 +86,9 @@ add_executable(unidec
         MetaUniDec_Main.h
 )
 
+target_include_directories(unidec PRIVATE ${HDF5_INCLUDE_DIRS})
+target_include_directories(unideclib PRIVATE ${HDF5_INCLUDE_DIRS})
+
 # The Python package launches the executable from unidec/bin. Keep that copy
 # synchronized with normal IDE/CMake builds; the install target is not run by
 # CLion's regular Build action.
@@ -106,14 +100,24 @@ add_custom_command(TARGET unidec POST_BUILD
         COMMENT "Deploying unidec executable to ${INSTALL_DIR}"
 )
 
+# The ctypes wrapper loads the shared library from unidec/bin. Deploy it next
+# to the platform executable for normal IDE builds and CI builds alike.
+add_custom_command(TARGET unideclib POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${INSTALL_DIR}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "$<TARGET_FILE:unideclib>"
+                "${INSTALL_DIR}/$<TARGET_FILE_NAME:unideclib>"
+        COMMENT "Deploying UniDec shared library to ${INSTALL_DIR}"
+)
+
 #target_link_libraries(unidec PRIVATE unideclib)
 #target_include_directories(unideclib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_definitions(unideclib PRIVATE UNIDEC_BUILD_DLL)
 set_target_properties(unideclib PROPERTIES LINKER_LANGUAGE C)
 
 # Set linking for HDF5 libraries
-target_link_libraries(unidec PUBLIC hdf5 hdf5_hl)
-target_link_libraries(unideclib PUBLIC hdf5 hdf5_hl)
+target_link_libraries(unidec PUBLIC ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES})
+target_link_libraries(unideclib PUBLIC ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES})
 # IF not msvc add this
 if(NOT MSVC)
     target_link_libraries(unidec PUBLIC m)
@@ -130,7 +134,7 @@ endif()
 
 # Set linking for FFTW libraries
 # Find MKL (Math Kernel Library)
-find_package(MKL)
+find_package(MKL QUIET)
 if (MKL_FOUND)
     target_compile_definitions(unidec PRIVATE UNIDEC_USE_MKL)
     target_include_directories(unidec PRIVATE "${MKL_ROOT}/include")
@@ -148,14 +152,27 @@ if (MKL_FOUND)
     message(STATUS "MKL Include: ${MKL_INCLUDE_DIRS}")
 else()
     message("MKL not found. Looking for FFTW elsewhere.")
-    set(FFTW_DIR "${UNIDEC_DIR}/IsoDec/src_cmake/fftw")
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(FFTW3F QUIET IMPORTED_TARGET fftw3f)
+    endif()
 
-    message(STATUS "FFTW_DIR: ${FFTW_DIR}")
-    include_directories("${FFTW_DIR}")
-    link_directories("${FFTW_DIR}")
-    target_link_libraries(unidec PUBLIC fftw3f)
-    target_link_libraries(unideclib PUBLIC fftw3f)
-    find_library(FFTW3F_THREADS_LIBRARY NAMES fftw3f_threads HINTS "${FFTW_DIR}")
+    if(TARGET PkgConfig::FFTW3F)
+        target_link_libraries(unidec PUBLIC PkgConfig::FFTW3F)
+        target_link_libraries(unideclib PUBLIC PkgConfig::FFTW3F)
+    else()
+        find_path(FFTW3F_INCLUDE_DIR NAMES fftw3.h HINTS ENV FFTW_ROOT PATH_SUFFIXES include)
+        find_library(FFTW3F_LIBRARY NAMES fftw3f HINTS ENV FFTW_ROOT PATH_SUFFIXES lib lib64)
+        if(NOT FFTW3F_INCLUDE_DIR OR NOT FFTW3F_LIBRARY)
+            message(FATAL_ERROR "FFTW single-precision library not found. Install fftw3/fftw or set FFTW_ROOT.")
+        endif()
+        target_include_directories(unidec PRIVATE "${FFTW3F_INCLUDE_DIR}")
+        target_include_directories(unideclib PRIVATE "${FFTW3F_INCLUDE_DIR}")
+        target_link_libraries(unidec PUBLIC "${FFTW3F_LIBRARY}")
+        target_link_libraries(unideclib PUBLIC "${FFTW3F_LIBRARY}")
+    endif()
+
+    find_library(FFTW3F_THREADS_LIBRARY NAMES fftw3f_threads HINTS ENV FFTW_ROOT PATH_SUFFIXES lib lib64)
     if (FFTW3F_THREADS_LIBRARY)
         target_compile_definitions(unidec PRIVATE UNIDEC_USE_FFTW_THREADS)
         target_link_libraries(unidec PUBLIC ${FFTW3F_THREADS_LIBRARY})
