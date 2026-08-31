@@ -201,7 +201,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 
 	int size[3] = { 0,0,0 };
 
-	int* zupind = NULL, * zloind = NULL;
+	int* zupind = NULL, * zloind = NULL, * nztab = NULL;
 	int* mupind = NULL, * mloind = NULL;
 	char* barr = NULL;
 
@@ -253,6 +253,16 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 		exit(1);
 	}
 	PullXY(mzext, zext, mzdat, zdat, size);
+	nztab = calloc(size[1], sizeof(int));
+	if (nztab == NULL) {
+		printf("Error allocating memory for charge states\n");
+		exit(1);
+	}
+	int suppression_harmonic = config.suppression_harmonic;
+	if (!setup_suppression_ztab(nztab, zext, size[1]) && suppression_harmonic > 0) {
+		printf("Harmonic suppression requires a consecutive, nonzero integer charge axis; skipping it.\n");
+		suppression_harmonic = 0;
+	}
 	float mzranges[4] = { 0,0,0,0 };
 	mzranges[0] = mzext[0];
 	mzranges[1] = mzext[size[0] - 1];
@@ -337,6 +347,14 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 		// Apply point smoothing
 		if (config.psig > 0) {
 			point_smoothing(blur, newblur, smooth_sums, barr, size[0], size[1], abs((int)config.psig));
+		}
+		// Apply the same charge-state suppression modes as regular UniDec.
+		if (m > config.suppression_startit &&
+			(config.suppression_satellite > 0 || suppression_harmonic > 0 ||
+			 config.suppression_topn > 0 || config.suppression_topx > 0)) {
+			apply_suppressions(blur, newblur, size[0], size[1],
+				config.suppression_satellite, suppression_harmonic, nztab,
+				config.suppression_topn, config.suppression_topx, config.suppression_percent);
 		}
 		// Apply charge smoothing
 		if (config.zsig!=0) {
@@ -474,6 +492,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	free(mupind);
 	free(mzext);
 	free(zext);
+	free(nztab);
 
 	fftwf_destroy_plan(p1);
 	fftwf_destroy_plan(p3);
