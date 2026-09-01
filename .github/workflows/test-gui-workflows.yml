@@ -218,6 +218,7 @@ jobs:
         shell: pwsh
         run: |
           $env:PATH = "$env:VCPKG_ROOT_PATH/installed/${{ matrix.triplet }}/bin;$env:PATH"
+          $PSNativeCommandUseErrorActionPreference = $false
           $output = & unidec/bin/unidec.exe 2>&1
           $exitCode = $LASTEXITCODE
           $text = $output -join "`n"
@@ -226,3 +227,4 @@ jobs:
           if (-not (Test-Path -LiteralPath unidec/bin/unideclib.dll -PathType Leaf)) {
             throw 'The ARM64 shared library was not deployed.'
           }
+          exit 0
