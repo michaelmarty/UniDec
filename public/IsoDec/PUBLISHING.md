@@ -16,6 +16,22 @@ The workflow builds Windows, Linux, macOS Intel, and macOS Apple Silicon
 wheels plus a source distribution. A manual run creates the matching GitHub
 release and can publish through PyPI trusted publishing.
 
+## Publishing an IsoGen change
+
+Do not commit from the detached submodule state produced by `git submodule
+update`. After editing `extern/IsoGen`, use the top-level helper, which checks
+out IsoGen's default branch, fast-forwards it, commits the changes, and pushes
+that branch:
+
+```powershell
+.\push_isogen.ps1 -Message "Release IsoGen 1.0.10"
+```
+
+Use `-Branch <name>` to target a non-default branch. After the helper succeeds,
+commit IsoDec's updated `extern/IsoGen` gitlink separately. If IsoGen was
+already pushed upstream, the helper reports that there is nothing to push; this
+is expected, and only the IsoDec gitlink needs committing.
+
 ## Local build
 
 ```shell
