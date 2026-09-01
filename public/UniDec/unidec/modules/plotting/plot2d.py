@@ -188,7 +188,7 @@ class Plot2dBase(PlotBase):
                                            aspect='auto', norm=norm, interpolation='nearest')
             datalims = [extent[0], extent[2], extent[1], extent[3]]
         # Set X and Y axis labels
-        self.subplot1.set_xlabel(self.xlabel)
+        self.subplot1.set_xlabel(self.format_axis_label(self.xlabel))
         self.subplot1.set_ylabel(self.ylabel)
         # Set Title
         if publicationmode == 0:
@@ -287,7 +287,7 @@ class Plot2dBase(PlotBase):
         datalims = [np.amin(xvals) / self.kdnorm, np.amin(yvals), np.amax(xvals) / self.kdnorm, np.amax(yvals)]
 
         # Set X and Y axis labels
-        self.subplot1.set_xlabel(self.xlabel)
+        self.subplot1.set_xlabel(self.format_axis_label(self.xlabel))
         self.subplot1.set_ylabel(self.ylabel)
         # Set Title
         self.subplot1.set_title(title)
