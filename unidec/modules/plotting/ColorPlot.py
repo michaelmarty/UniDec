@@ -124,7 +124,7 @@ class ColorPlot2D(PlottingWindowBase):
                                  aspect='auto')
 
         # Labels and legends
-        self.subplot1.set_xlabel("m/z (Th)")
+        self.subplot1.set_xlabel(self.format_axis_label("m/z (Th)"))
         self.subplot1.set_ylabel("Arrival Time (ms)")
         cax = self.figure.add_axes([0.77, 0.1, 0.04, 0.8])
         cmap = colors.ListedColormap(acolors)
@@ -215,7 +215,7 @@ class ColorPlot2D(PlottingWindowBase):
                              norm=normalization, aspect='auto')
 
         # Labels and legends
-        self.subplot1.set_xlabel(self.xlabel)
+        self.subplot1.set_xlabel(self.format_axis_label(self.xlabel))
         self.subplot1.set_ylabel(ylab)
 
         # Set up zoom and repaint it
