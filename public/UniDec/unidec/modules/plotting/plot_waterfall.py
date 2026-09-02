@@ -74,7 +74,7 @@ class Waterfall3DPlot(PlottingWindowBase):
         xgrid = np.hstack(xgrid)
         ygrid = np.hstack(ygrid)
 
-        self.subplot1.set_xlabel(self.xlabel)
+        self.subplot1.set_xlabel(self.format_axis_label(self.xlabel))
         self.subplot1.set_xlim3d(np.amin(xgrid), np.amax(xgrid))
         self.subplot1.set_ylabel(ylabel)
         self.subplot1.set_ylim3d(np.amax(zarray), np.amin(zarray))

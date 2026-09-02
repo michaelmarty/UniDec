@@ -93,7 +93,7 @@ class Plot1dBase(PlotBase):
         if integerticks:
             self.subplot1.xaxis.set_major_locator(MaxNLocator(integer=True))
 
-        self.subplot1.set_xlabel(self.xlabel)
+        self.subplot1.set_xlabel(self.format_axis_label(self.xlabel))
         self.subplot1.set_clip_on(True)
 
         if not nopaint:
@@ -137,7 +137,7 @@ class Plot1dBase(PlotBase):
             subplots.get_yaxis().set_ticklabels(["0", '%', "100"])
             subplots.set_ylim(min(y), max(y))
             subplots.set_xlim(min(x), max(x))
-            subplots.set_xlabel("m/z")
+            subplots.set_xlabel(self.format_axis_label("m/z"))
 
         self.axins1 = inset_axes(self.f1_ax1, width="40%", height="40%",
                                  bbox_to_anchor=(.65, .65, 1.0, 1.0),
@@ -186,7 +186,7 @@ class Plot1dBase(PlotBase):
         self.subplot1.get_yaxis().set_ticklabels(["0", '%', "100"])
         self.subplot1.set_ylim(min(y), max(y))
         self.subplot1.set_xlim(min(x), max(x))
-        self.subplot1.set_xlabel("m/z")
+        self.subplot1.set_xlabel(self.format_axis_label("m/z"))
         self.subplot1.spines['top'].set_visible(False)
         self.subplot1.spines['right'].set_visible(False)
 
@@ -259,7 +259,7 @@ class Plot1dBase(PlotBase):
             if xtempmax > xmax:
                 xmax = xtempmax
 
-        self.subplot1.set_xlabel(xlab)
+        self.subplot1.set_xlabel(self.format_axis_label(xlab))
         self.subplot1.set_ylabel(ylab)
         self.subplot1.set_title(title)
 
@@ -289,7 +289,7 @@ class Plot1dBase(PlotBase):
         self.subplot1 = self.figure.add_axes(self._axes, xticks=xticloc)
         self.subplot1.set_xticklabels(peaklab, rotation=90, fontsize=8)
         self.subplot1.bar(xarr, yarr, color=colortab, label="Intensities", width=1)
-        self.subplot1.set_xlabel(xlabel)
+        self.subplot1.set_xlabel(self.format_axis_label(xlabel))
         self.subplot1.set_ylabel(ylabel)
         self.subplot1.set_title(title)
         self.subplot1.spines['top'].set_visible(False)
@@ -326,7 +326,7 @@ class Plot1dBase(PlotBase):
         self.subplot1 = self.figure.add_axes(self._axes, xticks=xticloc, ymargin=1)
         self.subplot1.set_xticklabels(peaklab, rotation=90, fontsize=8)
         self.subplot1.bar(xarr, yarr, color=colortab, label="Intensities", width=1, xerr=xerr, yerr=yerr)
-        self.subplot1.set_xlabel(xlabel)
+        self.subplot1.set_xlabel(self.format_axis_label(xlabel))
         self.subplot1.set_ylabel(ylabel)
         self.subplot1.set_title(title)
         # Adjust axes for error bars
@@ -426,7 +426,7 @@ class Plot1dBase(PlotBase):
         if integerticks:
             self.subplot1.xaxis.set_major_locator(MaxNLocator(integer=True))
 
-        self.subplot1.set_xlabel(self.xlabel)
+        self.subplot1.set_xlabel(self.format_axis_label(self.xlabel))
         cax = self.figure.add_axes([0.77, 0.1, 0.04, 0.8])
         ticks = np.linspace(0., 1., 11, endpoint=True)
 
@@ -472,7 +472,7 @@ class Plot1dBase(PlotBase):
         self.data = np.transpose([xarr, yarr])
         self.subplot1 = self.figure.add_axes(self._axes)
         self.subplot1.scatter(xarr, yarr, color=color)
-        self.subplot1.set_xlabel(xlabel)
+        self.subplot1.set_xlabel(self.format_axis_label(xlabel))
         self.subplot1.set_ylabel(ylabel)
         self.subplot1.set_title(title)
         self.subplot1.spines['top'].set_visible(False)
@@ -511,7 +511,7 @@ class Plot1dBase(PlotBase):
             ylist.extend(yends)
             ylist.append(None)
         self.subplot1.plot(xlist, ylist, color=color)
-        self.subplot1.set_xlabel(xlabel)
+        self.subplot1.set_xlabel(self.format_axis_label(xlabel))
         self.subplot1.set_ylabel(ylabel)
         self.subplot1.set_title(title)
         self.subplot1.spines['top'].set_visible(False)

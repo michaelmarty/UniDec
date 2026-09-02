@@ -91,6 +91,13 @@ class PlotBase(object):
         self.canvas = None
         self.is2d = False
 
+    @staticmethod
+    def format_axis_label(label):
+        """Italicize the conventional m/z symbol in plot axis labels."""
+        if not isinstance(label, str) or "m/z" not in label or r"$\it{m/z}$" in label:
+            return label
+        return label.replace("m/z", r"$\it{m/z}$")
+
     def repaint(self, setupzoom=False, resetzoom=False):
         if resetzoom:
             self.reset_zoom()
