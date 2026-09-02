@@ -1,58 +1,33 @@
-"""Create the replicate TIC and ion-accumulation plots for Figure S1."""
+"""Create the pre/post-deconvolution charge-versus-m/z plots for Figure S1."""
 
+from __future__ import annotations
+
+from dataclasses import dataclass
 from pathlib import Path
-from string import ascii_uppercase
-from xml.etree import ElementTree
-from zipfile import ZipFile
+import sys
+
+import matplotlib
+
+matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
-from matplotlib.ticker import StrMethodFormatter
+from matplotlib.colors import Colormap, Normalize
+from matplotlib.cm import ScalarMappable
 import numpy as np
 
 
-CHROMATOGRAMS = [
-    (
-        Path(
-            r"Z:\Group Share\BHT\Temp\Paper\DMT"
-            r"\Protein Mix 21 Injections Set 1\merged"
-            r"\20260327_BHT_agilentc8column_protienmix_CDMS_0o1mgmLs_"
-            r"set1_merged_21_unidecfiles\TIC_decon.txt"
-        ),
-        "Rep 1",
-        "#0072B2",
-    ),
-    (
-        Path(
-            r"Z:\Group Share\BHT\Temp\Paper\DMT"
-            r"\Protein Mix 21 Injections Set 2\merged"
-            r"\20260327_BHT_agilentc8column_protienmix_CDMS_0o1mgmLs_"
-            r"set2_merged_21_unidecfiles\TIC_decon.txt"
-        ),
-        "Rep 2",
-        "#D55E00",
-    ),
-    (
-        Path(
-            r"Z:\Group Share\BHT\Temp\Paper\DMT"
-            r"\Protein Mix 21 Injections Set 3\merged"
-            r"\20260327_BHT_agilentc8column_protienmix_CDMS_0o1mgmLs_"
-            r"set3_merged_21_unidecfiles\TIC_decon.txt"
-        ),
-        "Rep 3",
-        "#009E73",
-    ),
-]
-
-SPREADSHEET = Path(
-    r"C:\Users\bht442\The University of Texas at Austin"
-    r"\MartyLab - General\Papers\Muliple Run Summing Reversed Phase LC-CD-MS"
-    r"\Figures for Manuscript\Supporting Information Figures\Figure S1"
-    r"\Protein Mix Total Ion Scatter Plot.xlsx"
+DATA_FILE = Path(
+    r"Z:\Group Share\BHT\Temp\Paper\DMT"
+    r"\Protein Mix 21 Injections Set 1\merged"
+    r"\20260327_BHT_agilentc8column_protienmix_CDMS_0o1mgmLs_"
+    r"set1_merged_21.npz"
 )
-
-TIME_LIMITS = (0.0, 5.5)
-FIGURE_SIZE_INCHES = (6.5, 3.25)
-OUTPUT_DPI = 300
+UNIDEC_DIRECTORY = Path(
+    r"Z:\Group Share\BHT\Temp\Paper\DMT"
+    r"\Protein Mix 21 Injections Set 1\merged"
+    r"\20260327_BHT_agilentc8column_protienmix_CDMS_0o1mgmLs_"
+    r"set1_merged_21_unidecfiles"
+)
 OUTPUT_DIRECTORY = Path(
     r"C:\Users\bht442\The University of Texas at Austin"
     r"\MartyLab - General\Papers\Muliple Run Summing Reversed Phase LC-CD-MS"
@@ -61,244 +36,272 @@ OUTPUT_DIRECTORY = Path(
 OUTPUT_PNG = OUTPUT_DIRECTORY / "Figure S1.png"
 OUTPUT_PDF = OUTPUT_DIRECTORY / "Figure S1.pdf"
 
-DATA_COLOR = "#1F77B4"
-FIT_COLOR = "#1F77B4"
-ERROR_COLOR = "#000000"
-XML_NAMESPACE = {
-    "main": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
-}
+UCCD_INPUT = UNIDEC_DIRECTORY / "uccd_input.bin"
+UCCD_DECONVOLUTION = UNIDEC_DIRECTORY / "uccd_decon.bin"
+CHROMATOGRAM_CONFIG = UNIDEC_DIRECTORY / "chroms.txt"
+
+FIGURE_SIZE_INCHES = (6.5, 3.0)
+OUTPUT_DPI = 300
+CONTOUR_LEVELS = np.linspace(0.0, 100.0, 101)
+
+# Make the repository copy of UniDec importable when this script is launched
+# directly from the supplementary-figure directory.
+REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
+UNIDEC_SOURCE = REPOSITORY_ROOT / "public" / "UniDec"
+if str(UNIDEC_SOURCE) not in sys.path:
+    sys.path.insert(0, str(UNIDEC_SOURCE))
+
+from unidec import tools as ud  # noqa: E402
+from unidec.modules.CDEng import read_uccd_binary  # noqa: E402
+from unidec.modules.HTEng import UniChromCDEng  # noqa: E402
 
 
-def load_chromatogram(path: Path) -> tuple[np.ndarray, np.ndarray]:
-    """Load and validate a two-column time/ion-count chromatogram."""
+@dataclass(frozen=True)
+class Swoop:
+    """One saved UniChromCD swoop selection."""
+
+    parameters: np.ndarray
+    color: tuple[float, float, float, float]
+
+
+def require_file(path: Path) -> None:
+    """Raise a clear error when a required input is unavailable."""
     if not path.is_file():
-        raise FileNotFoundError(f"Chromatogram not found: {path}")
-
-    data = np.loadtxt(path, dtype=float)
-    if data.ndim != 2 or data.shape[1] < 2:
-        raise ValueError(f"Expected at least two columns in: {path}")
-
-    time = data[:, 0]
-    ion_count = data[:, 1]
-    valid = (
-        np.isfinite(time)
-        & np.isfinite(ion_count)
-        & (time >= TIME_LIMITS[0])
-        & (time <= TIME_LIMITS[1])
-    )
-    if not np.any(valid):
-        raise ValueError(f"No finite data in the requested time range: {path}")
-
-    # Remove only physically meaningless negative numerical noise.
-    return time[valid], np.clip(ion_count[valid], 0.0, None)
+        raise FileNotFoundError(f"Required file not found: {path}")
 
 
-def column_index(cell_reference: str) -> int:
-    """Convert the alphabetic portion of an Excel cell reference to an index."""
-    letters = "".join(character for character in cell_reference if character.isalpha())
-    index = 0
-    for character in letters.upper():
-        if character not in ascii_uppercase:
-            raise ValueError(f"Invalid Excel cell reference: {cell_reference}")
-        index = index * 26 + ascii_uppercase.index(character) + 1
-    return index - 1
+def load_unichrom_engine() -> UniChromCDEng:
+    """Open the supplied NPZ with UniChromCD and load its saved configuration."""
+    require_file(DATA_FILE)
+    engine = UniChromCDEng()
+    engine.open_file(str(DATA_FILE))
 
-
-def load_spreadsheet(path: Path) -> tuple[list[str], np.ndarray]:
-    """Read the first six columns of the first XLSX sheet without openpyxl.
-
-    Formula cells in the supplied workbook contain cached values, so the XLSX
-    Open XML can be read directly with Python's standard library.
-    """
-    if not path.is_file():
-        raise FileNotFoundError(f"Spreadsheet not found: {path}")
-
-    with ZipFile(path) as workbook:
-        names = set(workbook.namelist())
-        shared_strings: list[str] = []
-        if "xl/sharedStrings.xml" in names:
-            shared_root = ElementTree.fromstring(
-                workbook.read("xl/sharedStrings.xml")
-            )
-            for item in shared_root.findall("main:si", XML_NAMESPACE):
-                text_parts = item.findall(".//main:t", XML_NAMESPACE)
-                shared_strings.append("".join(part.text or "" for part in text_parts))
-
-        worksheet_name = "xl/worksheets/sheet1.xml"
-        if worksheet_name not in names:
-            raise ValueError(f"First worksheet is missing from: {path}")
-        worksheet_root = ElementTree.fromstring(workbook.read(worksheet_name))
-
-        rows: list[list[str | float | None]] = []
-        for row_element in worksheet_root.findall(
-            ".//main:sheetData/main:row", XML_NAMESPACE
-        ):
-            row: list[str | float | None] = [None] * 6
-            for cell in row_element.findall("main:c", XML_NAMESPACE):
-                index = column_index(cell.get("r", ""))
-                if index < 0 or index >= len(row):
-                    continue
-
-                value_element = cell.find("main:v", XML_NAMESPACE)
-                if value_element is None or value_element.text is None:
-                    continue
-                raw_value = value_element.text
-                if cell.get("t") == "s":
-                    row[index] = shared_strings[int(raw_value)]
-                else:
-                    row[index] = float(raw_value)
-            rows.append(row)
-
-    if len(rows) < 2:
-        raise ValueError(f"Spreadsheet contains no data rows: {path}")
-
-    headers = [str(value) for value in rows[0]]
-    try:
-        data = np.asarray(rows[1:], dtype=float)
-    except (TypeError, ValueError) as error:
-        raise ValueError(f"Expected six numeric data columns in: {path}") from error
-
-    if data.shape != (21, 6) or not np.all(np.isfinite(data)):
+    loaded_directory = Path(engine.config.udir)
+    if loaded_directory != UNIDEC_DIRECTORY:
         raise ValueError(
-            f"Expected 21 rows and 6 finite numeric columns; found {data.shape} in: {path}"
+            "UniChromCD selected an unexpected result directory: "
+            f"{loaded_directory} (expected {UNIDEC_DIRECTORY})"
         )
-    return headers, data
+    return engine
 
 
-def style_axis(axis: plt.Axes, panel_letter: str) -> None:
-    """Apply shared manuscript styling to one panel."""
-    axis.spines["top"].set_visible(False)
-    axis.spines["right"].set_visible(False)
-    axis.spines["left"].set_linewidth(1.5)
-    axis.spines["bottom"].set_linewidth(1.5)
-    axis.tick_params(direction="out", width=1.5, length=6)
-    axis.text(
-        0.015,
-        0.97,
-        panel_letter,
-        transform=axis.transAxes,
-        fontsize=16,
-        fontweight="bold",
-        ha="left",
-        va="top",
-        zorder=10,
+def load_swoops(path: Path) -> list[Swoop]:
+    """Read active swoop parameters and RGBA colors from UniChromCD chroms.txt."""
+    require_file(path)
+    swoops: list[Swoop] = []
+
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        fields = line.split("\t")
+        if len(fields) < 13:
+            raise ValueError(f"Malformed chromatogram row {line_number}: {path}")
+
+        parameters = np.asarray(fields[9:13], dtype=float)
+        if parameters[0] < 0.0:
+            continue
+
+        color_values = np.fromstring(fields[1].strip("[]"), sep=" ", dtype=float)
+        if color_values.size not in (3, 4):
+            raise ValueError(f"Invalid swoop color on row {line_number}: {fields[1]}")
+        if color_values.size == 3:
+            color_values = np.append(color_values, 1.0)
+
+        swoops.append(Swoop(parameters, tuple(color_values)))
+
+    if not swoops:
+        raise ValueError(f"No swoop selections found in: {path}")
+    return swoops
+
+
+def load_summed_histogram(
+    path: Path,
+) -> tuple[np.ndarray, tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    """Load a sparse UniChromCD cube and sum its chromatographic dimension."""
+    require_file(path)
+    cube, axes = read_uccd_binary(path)
+    histogram = np.sum(cube, axis=0, dtype=np.float64)
+    del cube
+    return np.clip(histogram, 0.0, None), axes
+
+
+def validate_axes(
+    first: tuple[np.ndarray, np.ndarray, np.ndarray],
+    second: tuple[np.ndarray, np.ndarray, np.ndarray],
+) -> None:
+    """Ensure the pre- and post-deconvolution cubes use identical axes."""
+    for name, first_axis, second_axis in zip(
+        ("chromatography", "m/z", "charge"), first, second
+    ):
+        if first_axis.shape != second_axis.shape or not np.allclose(
+            first_axis, second_axis
+        ):
+            raise ValueError(f"Pre/post {name} axes do not match")
+
+
+def normalize_histogram(histogram: np.ndarray) -> np.ndarray:
+    """Normalize one histogram to the 0--100% intensity scale used by UniChromCD."""
+    maximum = float(np.max(histogram))
+    if not np.isfinite(maximum) or maximum <= 0.0:
+        raise ValueError("Cannot normalize an empty histogram")
+    return histogram * (100.0 / maximum)
+
+
+def draw_swoops(
+    axis: plt.Axes,
+    swoops: list[Swoop],
+    adduct_mass: float,
+) -> None:
+    """Overlay the saved UniChromCD swoop regions on one histogram."""
+    for swoop in swoops:
+        swoop_mz, _, upper_charge, lower_charge = ud.calc_swoop(
+            swoop.parameters,
+            adduct_mass=adduct_mass,
+        )
+        axis.fill_between(
+            swoop_mz,
+            lower_charge,
+            upper_charge,
+            facecolor=swoop.color,
+            edgecolor=swoop.color,
+            linewidth=0.65,
+            alpha=0.42,
+            zorder=4,
+        )
+
+
+def draw_histogram(
+    axis: plt.Axes,
+    mz_axis: np.ndarray,
+    charge_axis: np.ndarray,
+    histogram: np.ndarray,
+    title: str,
+    cmap: Colormap,
+    norm: Normalize,
+    swoops: list[Swoop],
+    adduct_mass: float,
+) -> None:
+    """Draw one normalized charge-versus-m/z contour plot and its swoops."""
+    axis.contourf(
+        mz_axis,
+        charge_axis,
+        normalize_histogram(histogram),
+        levels=CONTOUR_LEVELS,
+        cmap=cmap,
+        norm=norm,
+        antialiased=False,
     )
+    draw_swoops(axis, swoops, adduct_mass)
+
+    axis.set_xlim(float(mz_axis[0]), float(mz_axis[-1]))
+    axis.set_ylim(float(charge_axis[0]), float(charge_axis[-1]))
+    axis.set_xlabel(r"$m/z$ (Th)")
+    axis.set_title(title, pad=4.0)
+    axis.tick_params(direction="out", length=2.5, width=0.8)
+    for spine in axis.spines.values():
+        spine.set_linewidth(0.8)
 
 
 def make_figure() -> plt.Figure:
-    """Build and return the complete two-panel Figure S1."""
-    figure, axes = plt.subplots(
-        nrows=1,
-        ncols=2,
-        figsize=FIGURE_SIZE_INCHES,
-        constrained_layout=True,
+    """Build the side-by-side pre/post-deconvolution Figure S1."""
+    engine = load_unichrom_engine()
+    swoops = load_swoops(CHROMATOGRAM_CONFIG)
+
+    pre_histogram, pre_axes = load_summed_histogram(UCCD_INPUT)
+    post_histogram, post_axes = load_summed_histogram(UCCD_DECONVOLUTION)
+    validate_axes(pre_axes, post_axes)
+    _, mz_axis, charge_axis = pre_axes
+
+    cmap = plt.get_cmap(engine.config.cmap)
+    norm = Normalize(vmin=0.0, vmax=100.0)
+
+    figure = plt.figure(figsize=FIGURE_SIZE_INCHES)
+    grid = figure.add_gridspec(
+        1,
+        5,
+        width_ratios=(1.0, 0.12, 1.0, 0.04, 0.04),
+        left=0.075,
+        right=0.945,
+        bottom=0.17,
+        top=0.90,
+        wspace=0.0,
     )
+    axes = (figure.add_subplot(grid[0, 0]), figure.add_subplot(grid[0, 2]))
+    colorbar_axis = figure.add_subplot(grid[0, 4])
 
-    # A: raw chromatogram overlays for the three independent injection sets.
-    maximum_ion_count = 0.0
-    for path, label, color in CHROMATOGRAMS:
-        time, ion_count = load_chromatogram(path)
-        maximum_ion_count = max(maximum_ion_count, float(np.max(ion_count)))
-        axes[0].plot(
-            time,
-            ion_count,
-            color=color,
-            linewidth=1.5,
-            label=label,
-        )
-
-    style_axis(axes[0], "A")
-    axes[0].set_xlim(*TIME_LIMITS)
-    axes[0].set_ylim(0.0, maximum_ion_count * 1.18)
-    axes[0].set_xticks(np.arange(0.0, 5.1, 1.0))
-    axes[0].set_xlabel("Time (min)")
-    axes[0].set_ylabel("Ion Count")
-    axes[0].legend(
-        loc="upper left",
-        bbox_to_anchor=(0.12, 1.0),
-        frameon=False,
-        fontsize=10,
-        handlelength=2.0,
-        borderaxespad=0.0,
+    draw_histogram(
+        axes[0],
+        mz_axis,
+        charge_axis,
+        pre_histogram,
+        "Pre-deconvolution",
+        cmap,
+        norm,
+        swoops,
+        float(engine.config.adductmass),
     )
-
-    # B: averages and sample standard deviations from the three replicates.
-    _, table = load_spreadsheet(SPREADSHEET)
-    injection_number = table[:, 0]
-    replicate_values = table[:, 1:4]
-    supplied_average = table[:, 4]
-    supplied_standard_deviation = table[:, 5]
-
-    calculated_average = np.mean(replicate_values, axis=1)
-    calculated_standard_deviation = np.std(replicate_values, axis=1, ddof=1)
-    if not np.allclose(supplied_average, calculated_average):
-        raise ValueError("Spreadsheet averages do not match replicate columns 2--4")
-    if not np.allclose(supplied_standard_deviation, calculated_standard_deviation):
-        raise ValueError("Spreadsheet standard deviations do not match columns 2--4")
-
-    axes[1].errorbar(
-        injection_number,
-        supplied_average,
-        yerr=supplied_standard_deviation,
-        fmt="o",
-        color=DATA_COLOR,
-        markerfacecolor=DATA_COLOR,
-        markeredgecolor=DATA_COLOR,
-        markersize=4.5,
-        ecolor=ERROR_COLOR,
-        elinewidth=1.0,
-        capsize=2.5,
-        capthick=1.0,
-        linestyle="none",
-        label="Mean ± SD",
-        zorder=3,
+    draw_histogram(
+        axes[1],
+        mz_axis,
+        charge_axis,
+        post_histogram,
+        "Post-deconvolution",
+        cmap,
+        norm,
+        swoops,
+        float(engine.config.adductmass),
     )
+    axes[0].set_ylabel("Charge")
+    axes[1].tick_params(labelleft=False)
 
-    slope, intercept = np.polyfit(injection_number, supplied_average, 1)
-    fit_x = np.array([injection_number.min(), injection_number.max()])
-    fit_y = slope * fit_x + intercept
-    axes[1].plot(
-        fit_x,
-        fit_y,
-        color=FIT_COLOR,
-        linewidth=1.5,
-        label="Linear fit",
-        zorder=2,
+    axes[0].text(
+        -0.17,
+        1.08,
+        "A",
+        transform=axes[0].transAxes,
+        fontsize=14.0,
+        fontweight="bold",
+        ha="left",
+        va="top",
     )
-
-    fitted_values = slope * injection_number + intercept
-    residual_sum_squares = np.sum((supplied_average - fitted_values) ** 2)
-    total_sum_squares = np.sum((supplied_average - supplied_average.mean()) ** 2)
-    r_squared = 1.0 - residual_sum_squares / total_sum_squares
     axes[1].text(
-        0.05,
-        0.76,
-        f"y = {slope:,.1f}x + {intercept:,.1f}\nR² = {r_squared:.5f}",
+        -0.08,
+        1.08,
+        "B",
         transform=axes[1].transAxes,
-        fontsize=10,
+        fontsize=14.0,
+        fontweight="bold",
         ha="left",
         va="top",
     )
 
-    style_axis(axes[1], "B")
-    axes[1].set_xlim(0.5, 21.5)
-    axes[1].set_ylim(bottom=0.0)
-    axes[1].set_xticks([1, 5, 10, 15, 20])
-    axes[1].set_xlabel("Number of injections")
-    axes[1].set_ylabel("Total Number of Ions")
-    axes[1].yaxis.set_major_formatter(StrMethodFormatter("{x:,.0f}"))
+    colorbar = figure.colorbar(
+        ScalarMappable(norm=norm, cmap=cmap),
+        cax=colorbar_axis,
+        ticks=(0.0, 50.0, 100.0),
+    )
+    colorbar.ax.set_yticklabels(("0", "%", "100"))
+    colorbar.ax.tick_params(
+        direction="out",
+        length=2.5,
+        width=0.8,
+        labelsize=10.0,
+        pad=2.0,
+    )
+    colorbar.outline.set_linewidth(0.8)
 
     return figure
 
 
 def main() -> None:
-    """Render Figure S1 as a transparent PNG and PDF."""
+    """Render Figure S1 as transparent PNG and PDF files."""
     plt.rcParams.update(
         {
             "font.family": "Arial",
-            "font.size": 12,
-            "axes.labelsize": 13,
-            "legend.fontsize": 10,
+            "font.size": 10.0,
+            "axes.labelsize": 10.0,
+            "axes.titlesize": 10.0,
+            "mathtext.fontset": "custom",
+            "mathtext.rm": "Arial",
+            "mathtext.it": "Arial:italic",
             "pdf.fonttype": 42,
             "ps.fonttype": 42,
             "savefig.transparent": True,
@@ -307,7 +310,6 @@ def main() -> None:
 
     OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
     figure = make_figure()
-    # Avoid bbox_inches="tight" so the saved files remain exactly 7 inches wide.
     figure.savefig(OUTPUT_PNG, dpi=OUTPUT_DPI, transparent=True)
     figure.savefig(OUTPUT_PDF, dpi=OUTPUT_DPI, transparent=True)
     plt.close(figure)

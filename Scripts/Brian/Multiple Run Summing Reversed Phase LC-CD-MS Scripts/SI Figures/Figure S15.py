@@ -1,4 +1,4 @@
-"""Create the high-throughput Human IgG grid used in Figure S15."""
+"""Create the IgM-like fusion ion-statistics grid used in Figure S15."""
 
 import re
 from pathlib import Path
@@ -10,29 +10,16 @@ import pandas as pd
 
 
 REPLICATE_FOLDERS = [
-    Path(
-        r"Z:\Group Share\BHT\Temp\Paper\Stats\High Throughput"
-        r"\Amgen Human IgG Rep 1"
-    ),
-    Path(
-        r"Z:\Group Share\BHT\Temp\Paper\Stats\High Throughput"
-        r"\Amgen Human IgG Rep 2"
-    ),
-    Path(
-        r"Z:\Group Share\BHT\Temp\Paper\Stats\High Throughput"
-        r"\Amgen Human IgG Rep 3"
-    ),
+    Path(r"Z:\Group Share\BHT\Temp\Paper\Stats\Amgen IgM-like Fusion Rep 1"),
+    Path(r"Z:\Group Share\BHT\Temp\Paper\Stats\Amgen IgM-like Fusion Rep 2"),
+    Path(r"Z:\Group Share\BHT\Temp\Paper\Stats\Amgen IgM-like Fusion Rep 3"),
 ]
 
 TARGET_MASSES = {
-    "147,994 Da": 147994.0,
-    "148,160 Da": 148160.0,
-    "148,320 Da": 148320.0,
-    "148,479 Da": 148479.0,
-    "148,632 Da": 148632.0,
+    "IgM-like Fusion Protein": 1183000.0,
 }
 
-MASS_TOLERANCE_DA = 100.0
+MASS_TOLERANCE_DA = 100000.0
 EXPECTED_INJECTIONS = tuple(range(1, 22))
 HIGHLIGHT_INJECTION = 21
 OUTPUT_DPI = 300
@@ -51,18 +38,14 @@ BASE_FONT_SIZE = 10
 GRID_HEADER_FONT_SIZE = 10
 SUBPLOT_LABEL_FONT_SIZE = 11
 LEGEND_FONT_SIZE = 10
-GRID_TITLE_PAD_POINTS = 8
-ROW_LAYOUT_PAD = 1.8
-FIGURE_SIZE_INCHES = (6.5, 7.75)
-TOP_LEGEND_MARGIN_INCHES = 0.15
+LEGEND_LOCATION = "lower left"
+FIGURE_SIZE_INCHES = (6.5, 3.0)
 PEAK_LABEL_OFFSET_POINTS = 10
 AXIS_STROKE_WIDTH = 0.8
-MEASUREMENT_LABEL = "peak"
-SHOW_THEORETICAL_MASS = False
+MEASUREMENT_LABEL = "fusion-protein peak"
 
 REQUIRED_COLUMNS = {
     "Mass",
-    "Area",
     "MassCentroid",
     "MassFWHM",
 }
@@ -84,18 +67,7 @@ METRICS = {
         "mean": "Mean FWHM (Da)",
         "sem": "SEM FWHM (Da)",
         "replicate": "Replicate {replicate} FWHM (Da)",
-        "format": "{x:.0f}",
-    },
-    "area_fraction": {
-        "title": "Sum-Normalized\nPeak Area Fraction",
-        "ylabel": "Area Fraction",
-        "source": "Sum-Normalized Peak Area Fraction",
-        "mean": "Mean Sum-Normalized Peak Area Fraction",
-        "sem": "SEM Sum-Normalized Peak Area Fraction",
-        "replicate": (
-            "Replicate {replicate} Sum-Normalized Peak Area Fraction"
-        ),
-        "format": "{x:.2f}",
+        "format": "{x:,.0f}",
     },
 }
 
@@ -129,8 +101,8 @@ def match_target_peak(
     target_mass: float,
     path: Path,
 ) -> pd.Series | None:
-    """Return the closest in-tolerance peak, or ``None`` when absent."""
-    mass_error = (table["Mass"] - target_mass).abs()
+    """Return the closest peak whose mass centroid is within tolerance."""
+    mass_error = (table["MassCentroid"] - target_mass).abs()
     candidates = table.loc[mass_error <= MASS_TOLERANCE_DA]
     if candidates.empty:
         return None
@@ -139,7 +111,7 @@ def match_target_peak(
 
 
 def collect_measurements() -> pd.DataFrame:
-    """Collect the five matched Human IgG peaks from all replicate DAT files."""
+    """Collect the matched IgM-like fusion peak from all replicate DAT files."""
     records: list[dict[str, float | int | str]] = []
 
     for replicate, folder in enumerate(REPLICATE_FOLDERS, start=1):
@@ -174,20 +146,13 @@ def collect_measurements() -> pd.DataFrame:
                         f"Warning: No {protein} peak within "
                         f"{MASS_TOLERANCE_DA:g} Da in {path.name}"
                     )
-
-            matched_area_sum = sum(
-                float(peak["Area"]) for peak in available_peaks.values()
-            )
-            if matched_area_sum <= 0.0:
-                raise ValueError(f"Matched peak areas do not have a positive sum: {path}")
+            if not available_peaks:
+                continue
 
             for protein, target_mass in TARGET_MASSES.items():
                 peak = matched_peaks[protein]
                 if peak is None:
                     continue
-                peak_area = float(peak["Area"])
-                if peak_area < 0.0:
-                    raise ValueError(f"Negative matched peak area found in: {path}")
                 records.append(
                     {
                         "Protein": protein,
@@ -197,9 +162,6 @@ def collect_measurements() -> pd.DataFrame:
                         "Matched Mass (Da)": float(peak["Mass"]),
                         "Mass Centroid (Da)": float(peak["MassCentroid"]),
                         "FWHM (Da)": float(peak["MassFWHM"]),
-                        "Sum-Normalized Peak Area Fraction": (
-                            peak_area / matched_area_sum
-                        ),
                         "Source File": str(path),
                     }
                 )
@@ -277,21 +239,17 @@ def set_metric_axis_limits(
     means: np.ndarray,
     errors: np.ndarray,
     metric_name: str,
-    theoretical_mass: float | None = None,
 ) -> None:
     """Scale an axis using the nice-tick logic from Ion Statistics Grid.py."""
     values = np.concatenate((means - errors, means + errors))
-    if theoretical_mass is not None:
-        values = np.append(values, theoretical_mass)
 
     lower_value = float(np.min(values))
     upper_value = float(np.max(values))
     span = upper_value - lower_value
-    minimum_padding = 0.01 if metric_name == "area_fraction" else 1.0
     padding = max(
         span * 0.08,
         max(abs(lower_value), abs(upper_value), 1.0) * 0.00005,
-        minimum_padding,
+        1.0,
     )
     lower_limit = lower_value - padding
     upper_limit = upper_value + padding
@@ -329,8 +287,6 @@ def make_figure(results: pd.DataFrame) -> plt.Figure:
     )
     point_color = plt.get_cmap("tab10")(0)
     highlight_color = plt.get_cmap("tab10")(2)
-    legend_handles = []
-    legend_labels = []
 
     for row, (protein, theoretical_mass) in enumerate(TARGET_MASSES.items()):
         protein_results = results.loc[results["Protein"] == protein].sort_values(
@@ -348,7 +304,7 @@ def make_figure(results: pd.DataFrame) -> plt.Figure:
                     metric["title"],
                     fontsize=GRID_HEADER_FONT_SIZE,
                     fontweight="bold",
-                    pad=GRID_TITLE_PAD_POINTS,
+                    pad=14,
                 )
 
             if column == 0:
@@ -367,7 +323,7 @@ def make_figure(results: pd.DataFrame) -> plt.Figure:
 
             axis.text(
                 0.97,
-                0.98,
+                0.95,
                 subplot_label(row * len(METRICS) + column),
                 transform=axis.transAxes,
                 fontsize=SUBPLOT_LABEL_FONT_SIZE,
@@ -377,18 +333,6 @@ def make_figure(results: pd.DataFrame) -> plt.Figure:
                 clip_on=True,
                 zorder=10,
             )
-
-            theoretical_for_limits = None
-            if metric_name == "centroid" and SHOW_THEORETICAL_MASS:
-                theoretical_for_limits = theoretical_mass
-                axis.axhline(
-                    theoretical_mass,
-                    color="black",
-                    linestyle="-",
-                    linewidth=1.4,
-                    label="Theo. mass",
-                    zorder=1.5,
-                )
 
             highlight_row = protein_results.loc[
                 protein_results["Injection Number"] == HIGHLIGHT_INJECTION
@@ -430,7 +374,6 @@ def make_figure(results: pd.DataFrame) -> plt.Figure:
                 means,
                 errors,
                 metric_name,
-                theoretical_for_limits,
             )
             axis.xaxis.set_major_locator(MaxNLocator(nbins=6, integer=True))
             axis.set_ylabel(metric["ylabel"])
@@ -443,26 +386,15 @@ def make_figure(results: pd.DataFrame) -> plt.Figure:
             if row == len(TARGET_MASSES) - 1:
                 axis.set_xlabel("Number of injections")
 
-            handles, labels = axis.get_legend_handles_labels()
+            handles, _ = axis.get_legend_handles_labels()
             if handles and row == 0 and column == 0:
-                legend_handles = handles
-                legend_labels = labels
+                axis.legend(
+                    frameon=False,
+                    fontsize=LEGEND_FONT_SIZE,
+                    loc=LEGEND_LOCATION,
+                )
 
-    if legend_handles:
-        figure.legend(
-            legend_handles,
-            legend_labels,
-            loc="upper center",
-            bbox_to_anchor=(0.5, 0.995),
-            ncols=len(legend_handles),
-            frameon=False,
-            fontsize=LEGEND_FONT_SIZE,
-        )
-
-    layout_top = 1 - TOP_LEGEND_MARGIN_INCHES / FIGURE_SIZE_INCHES[1]
-    figure.tight_layout(
-        rect=(0.03, 0, 1, layout_top), h_pad=ROW_LAYOUT_PAD, w_pad=2.0
-    )
+    figure.tight_layout(rect=(0.03, 0, 1, 1), h_pad=2.2, w_pad=2.0)
     return figure
 
 

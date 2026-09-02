@@ -1,33 +1,26 @@
-"""Create the Human IgG ion-statistics grid used in Figure S7."""
+"""Create the Human IgG pre/post-deconvolution plot for Figure S7."""
 
-import re
+from __future__ import annotations
+
 from pathlib import Path
+import sys
+
+import matplotlib
+
+matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator, StrMethodFormatter
+from matplotlib.cm import ScalarMappable
+from matplotlib.colors import Colormap, Normalize
 import numpy as np
-import pandas as pd
 
 
-REPLICATE_FOLDERS = [
-    Path(r"Z:\Group Share\BHT\Temp\Paper\Stats\Amgen Human IgG Rep 1"),
-    Path(r"Z:\Group Share\BHT\Temp\Paper\Stats\Amgen Human IgG Rep 2"),
-    Path(r"Z:\Group Share\BHT\Temp\Paper\Stats\Amgen Human IgG Rep 3"),
-]
-
-TARGET_MASSES = {
-    "147,994 Da": 147994.0,
-    "148,160 Da": 148160.0,
-    "148,320 Da": 148320.0,
-    "148,479 Da": 148479.0,
-    "148,632 Da": 148632.0,
-}
-
-MASS_TOLERANCE_DA = 100.0
-EXPECTED_INJECTIONS = tuple(range(1, 22))
-HIGHLIGHT_INJECTION = 21
-OUTPUT_DPI = 300
-OUTPUT_PADDING_INCHES = 0.03
+DATA_FILE = Path(
+    r"Z:\Group Share\BHT\Temp\Paper\DMT\Amgen Human IgG 21 Injections Set 1\merged\20260331_BHT_agilentc8column_AmgenhumanmAb_PRO35304_CMDS_20msINJ_set1_0o1mgmLs_merged_21.npz"
+)
+UNIDEC_DIRECTORY = Path(
+    r"Z:\Group Share\BHT\Temp\Paper\DMT\Amgen Human IgG 21 Injections Set 1\merged\20260331_BHT_agilentc8column_AmgenhumanmAb_PRO35304_CMDS_20msINJ_set1_0o1mgmLs_merged_21_unidecfiles"
+)
 OUTPUT_DIRECTORY = Path(
     r"C:\Users\bht442\The University of Texas at Austin"
     r"\MartyLab - General\Papers\Muliple Run Summing Reversed Phase LC-CD-MS"
@@ -35,436 +28,258 @@ OUTPUT_DIRECTORY = Path(
 )
 OUTPUT_PNG = OUTPUT_DIRECTORY / "Figure S7.png"
 OUTPUT_PDF = OUTPUT_DIRECTORY / "Figure S7.pdf"
-OUTPUT_CSV = OUTPUT_DIRECTORY / "Figure S7_results.csv"
 
-Y_TICK_INTERVALS_PER_SIDE = 2
-BASE_FONT_SIZE = 10
-GRID_HEADER_FONT_SIZE = 10
-SUBPLOT_LABEL_FONT_SIZE = 11
-LEGEND_FONT_SIZE = 10
-GRID_TITLE_PAD_POINTS = 8
-ROW_LAYOUT_PAD = 1.8
-FIGURE_SIZE_INCHES = (6.5, 7.75)
-TOP_LEGEND_MARGIN_INCHES = 0.15
-PEAK_LABEL_OFFSET_POINTS = 10
-AXIS_STROKE_WIDTH = 0.8
-MEASUREMENT_LABEL = "peak"
-SHOW_THEORETICAL_MASS = False
+UCCD_INPUT = UNIDEC_DIRECTORY / "uccd_input.bin"
+UCCD_DECONVOLUTION = UNIDEC_DIRECTORY / "uccd_decon.bin"
 
-REQUIRED_COLUMNS = {
-    "Mass",
-    "Area",
-    "MassCentroid",
-    "MassFWHM",
-}
+FIGURE_SIZE_INCHES = (6.5, 3.0)
+OUTPUT_DPI = 300
+CONTOUR_LEVELS = np.linspace(0.0, 100.0, 101)
 
-METRICS = {
-    "centroid": {
-        "title": "Mass Centroid",
-        "ylabel": "Mass Centroid (Da)",
-        "source": "Mass Centroid (Da)",
-        "mean": "Mean Mass Centroid (Da)",
-        "sem": "SEM Mass Centroid (Da)",
-        "replicate": "Replicate {replicate} Mass Centroid (Da)",
-        "format": "{x:,.0f}",
-    },
-    "fwhm": {
-        "title": "FWHM",
-        "ylabel": "FWHM (Da)",
-        "source": "FWHM (Da)",
-        "mean": "Mean FWHM (Da)",
-        "sem": "SEM FWHM (Da)",
-        "replicate": "Replicate {replicate} FWHM (Da)",
-        "format": "{x:.0f}",
-    },
-    "area_fraction": {
-        "title": "Sum-Normalized\nPeak Area Fraction",
-        "ylabel": "Area Fraction",
-        "source": "Sum-Normalized Peak Area Fraction",
-        "mean": "Mean Sum-Normalized Peak Area Fraction",
-        "sem": "SEM Sum-Normalized Peak Area Fraction",
-        "replicate": (
-            "Replicate {replicate} Sum-Normalized Peak Area Fraction"
-        ),
-        "format": "{x:.2f}",
-    },
-}
+# Make the repository copy of UniDec importable when this script is launched
+# directly from the supplementary-figure directory.
+REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
+UNIDEC_SOURCE = REPOSITORY_ROOT / "public" / "UniDec"
+if str(UNIDEC_SOURCE) not in sys.path:
+    sys.path.insert(0, str(UNIDEC_SOURCE))
+
+from unidec.modules.CDEng import (  # noqa: E402
+    UCCD_BINARY_HEADER,
+    UCCD_BINARY_MAGIC,
+    UCCD_BINARY_RECORD,
+)
+from unidec.modules.HTEng import UniChromCDEng  # noqa: E402
 
 
-def extract_injection_number(path: Path) -> int:
-    """Extract an injection count from a ``merged_N_peakparam.dat`` name."""
-    match = re.search(r"merged_(\d+)_", path.name)
-    if match is None:
-        raise ValueError(f"Could not determine injection number from: {path.name}")
-    return int(match.group(1))
+def require_file(path: Path) -> None:
+    """Raise a clear error when a required input is unavailable."""
+    if not path.is_file():
+        raise FileNotFoundError(f"Required file not found: {path}")
 
 
-def load_peak_parameters(path: Path) -> pd.DataFrame:
-    """Load and validate one UniDec peak-parameter file."""
-    table = pd.read_csv(path, sep=r"\s+", encoding="utf-8")
-    missing_columns = REQUIRED_COLUMNS.difference(table.columns)
-    if missing_columns:
-        missing = ", ".join(sorted(missing_columns))
-        raise ValueError(f"Missing columns ({missing}) in: {path}")
+def load_unichrom_engine() -> UniChromCDEng:
+    """Open the supplied NPZ with UniChromCD and load its configuration."""
+    require_file(DATA_FILE)
+    engine = UniChromCDEng()
+    # The plots use the saved configuration and UCCD cubes directly. Avoid the
+    # optional filename-token parser because "rabbit" contains "bit".
+    engine.open_cdms_file(str(DATA_FILE))
 
-    table = table.copy()
-    for column in REQUIRED_COLUMNS:
-        table[column] = pd.to_numeric(table[column], errors="coerce")
-    if table[list(REQUIRED_COLUMNS)].isna().any().any():
-        raise ValueError(f"Non-numeric required values found in: {path}")
-    return table
-
-
-def match_target_peak(
-    table: pd.DataFrame,
-    target_mass: float,
-    path: Path,
-) -> pd.Series | None:
-    """Return the closest in-tolerance peak, or ``None`` when absent."""
-    mass_error = (table["Mass"] - target_mass).abs()
-    candidates = table.loc[mass_error <= MASS_TOLERANCE_DA]
-    if candidates.empty:
-        return None
-    closest_index = mass_error.loc[candidates.index].idxmin()
-    return table.loc[closest_index]
-
-
-def collect_measurements() -> pd.DataFrame:
-    """Collect the five matched Human IgG peaks from all replicate DAT files."""
-    records: list[dict[str, float | int | str]] = []
-
-    for replicate, folder in enumerate(REPLICATE_FOLDERS, start=1):
-        if not folder.is_dir():
-            raise FileNotFoundError(f"Replicate folder not found: {folder}")
-
-        files = list(folder.glob("*_peakparam.dat"))
-        files.sort(key=extract_injection_number)
-        found_injections = tuple(extract_injection_number(path) for path in files)
-        if found_injections != EXPECTED_INJECTIONS:
-            raise ValueError(
-                f"Replicate {replicate} must contain injections 1--21 exactly once; "
-                f"found {found_injections}"
-            )
-
-        for path in files:
-            injection_number = extract_injection_number(path)
-            table = load_peak_parameters(path)
-            matched_peaks = {
-                protein: match_target_peak(table, target_mass, path)
-                for protein, target_mass in TARGET_MASSES.items()
-            }
-            available_peaks = {
-                protein: peak
-                for protein, peak in matched_peaks.items()
-                if peak is not None
-            }
-
-            for protein, peak in matched_peaks.items():
-                if peak is None:
-                    print(
-                        f"Warning: No {protein} peak within "
-                        f"{MASS_TOLERANCE_DA:g} Da in {path.name}"
-                    )
-
-            matched_area_sum = sum(
-                float(peak["Area"]) for peak in available_peaks.values()
-            )
-            if matched_area_sum <= 0.0:
-                raise ValueError(f"Matched peak areas do not have a positive sum: {path}")
-
-            for protein, target_mass in TARGET_MASSES.items():
-                peak = matched_peaks[protein]
-                if peak is None:
-                    continue
-                peak_area = float(peak["Area"])
-                if peak_area < 0.0:
-                    raise ValueError(f"Negative matched peak area found in: {path}")
-                records.append(
-                    {
-                        "Protein": protein,
-                        "Theoretical Mass (Da)": target_mass,
-                        "Injection Number": injection_number,
-                        "Replicate": replicate,
-                        "Matched Mass (Da)": float(peak["Mass"]),
-                        "Mass Centroid (Da)": float(peak["MassCentroid"]),
-                        "FWHM (Da)": float(peak["MassFWHM"]),
-                        "Sum-Normalized Peak Area Fraction": (
-                            peak_area / matched_area_sum
-                        ),
-                        "Source File": str(path),
-                    }
-                )
-
-    measurements = pd.DataFrame.from_records(records)
-    maximum_rows = (
-        len(REPLICATE_FOLDERS) * len(EXPECTED_INJECTIONS) * len(TARGET_MASSES)
-    )
-    if measurements.empty or len(measurements) > maximum_rows:
+    loaded_directory = Path(engine.config.udir).resolve()
+    expected_directory = UNIDEC_DIRECTORY.resolve()
+    if loaded_directory != expected_directory:
         raise ValueError(
-            f"Expected between 1 and {maximum_rows} matched measurements; "
-            f"found {len(measurements)}"
+            "UniChromCD selected an unexpected result directory: "
+            f"{loaded_directory} (expected {expected_directory})"
         )
-    return measurements
+    return engine
 
 
-def standard_error(values: np.ndarray) -> float:
-    """Return the standard error of the mean for replicate values."""
-    if values.size < 2:
-        return 0.0
-    return float(np.std(values, ddof=1) / np.sqrt(values.size))
+def load_summed_histogram(
+    path: Path,
+) -> tuple[np.ndarray, tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    """Stream a sparse UCCD cube and sum its chromatographic dimension."""
+    require_file(path)
+    with path.open("rb") as infile:
+        header = infile.read(UCCD_BINARY_HEADER.size)
+        if len(header) != UCCD_BINARY_HEADER.size:
+            raise ValueError(f"Incomplete UCCD header in {path}")
+
+        magic, nchrom, nmz, nz, nonzero_count = UCCD_BINARY_HEADER.unpack(header)
+        if magic != UCCD_BINARY_MAGIC:
+            raise ValueError(f"Invalid UCCD binary file: {path}")
+
+        axis_count = nchrom + nmz + nz
+        axis_byte_count = axis_count * np.dtype("<f4").itemsize
+        axis_bytes = infile.read(axis_byte_count)
+        if len(axis_bytes) != axis_byte_count:
+            raise ValueError(f"Incomplete UCCD axes in {path}")
+
+        axes = np.frombuffer(axis_bytes, dtype="<f4")
+        chrom_axis = axes[:nchrom].copy()
+        mz_axis = axes[nchrom : nchrom + nmz].copy()
+        charge_axis = axes[nchrom + nmz :].copy()
+
+        histogram = np.zeros((nz, nmz), dtype=np.float64)
+        records_left = nonzero_count
+        total_cube_size = nchrom * nmz * nz
+        chunk_size = 1_000_000
+
+        while records_left:
+            count = min(chunk_size, records_left)
+            record_byte_count = count * UCCD_BINARY_RECORD.itemsize
+            record_bytes = infile.read(record_byte_count)
+            if len(record_bytes) != record_byte_count:
+                raise ValueError(f"Incomplete UCCD sparse data in {path}")
+
+            records = np.frombuffer(record_bytes, dtype=UCCD_BINARY_RECORD)
+            indexes = records["index"].astype(np.int64)
+            if np.any(indexes >= total_cube_size):
+                raise ValueError(f"Out-of-range sparse index in {path}")
+
+            remainder = indexes % (nmz * nz)
+            mz_indexes, charge_indexes = divmod(remainder, nz)
+            flattened_indexes = mz_indexes * nz + charge_indexes
+            chunk_sum = np.bincount(
+                flattened_indexes,
+                weights=records["intensity"],
+                minlength=nmz * nz,
+            )
+            histogram += chunk_sum.reshape(nmz, nz).T
+            records_left -= count
+
+    return np.clip(histogram, 0.0, None), (
+        chrom_axis,
+        mz_axis,
+        charge_axis,
+    )
 
 
-def create_results_table(measurements: pd.DataFrame) -> pd.DataFrame:
-    """Create the wide replicate, mean, and SEM table used for plotting."""
-    rows: list[dict[str, float | int | str]] = []
-
-    for protein, theoretical_mass in TARGET_MASSES.items():
-        protein_data = measurements.loc[measurements["Protein"] == protein]
-        for injection_number in EXPECTED_INJECTIONS:
-            group = protein_data.loc[
-                protein_data["Injection Number"] == injection_number
-            ].sort_values("Replicate")
-            if group.empty:
-                raise ValueError(
-                    f"No replicate data for {protein}, injection {injection_number}"
-                )
-
-            row: dict[str, float | int | str] = {
-                "Protein": protein,
-                "Theoretical Mass (Da)": theoretical_mass,
-                "Injection Number": injection_number,
-            }
-            for metric in METRICS.values():
-                values = group[metric["source"]].to_numpy(dtype=float)
-                for replicate in range(1, len(REPLICATE_FOLDERS) + 1):
-                    replicate_data = group.loc[group["Replicate"] == replicate]
-                    value = (
-                        float(replicate_data.iloc[0][metric["source"]])
-                        if not replicate_data.empty
-                        else np.nan
-                    )
-                    row[metric["replicate"].format(replicate=replicate)] = value
-                row[metric["mean"]] = float(np.mean(values))
-                row[metric["sem"]] = standard_error(values)
-            rows.append(row)
-
-    return pd.DataFrame.from_records(rows)
-
-
-def get_nice_tick_step(raw_step: float) -> float:
-    """Round a tick interval up to a readable 1, 2, 5, or 10 multiple."""
-    if raw_step <= 0:
-        return 1.0
-    magnitude = 10 ** np.floor(np.log10(raw_step))
-    normalized = raw_step / magnitude
-    for candidate in (1, 2, 5, 10):
-        if normalized <= candidate:
-            return float(candidate * magnitude)
-    return float(10 * magnitude)
-
-
-def set_metric_axis_limits(
-    axis: plt.Axes,
-    means: np.ndarray,
-    errors: np.ndarray,
-    metric_name: str,
-    theoretical_mass: float | None = None,
+def validate_axes(
+    first: tuple[np.ndarray, np.ndarray, np.ndarray],
+    second: tuple[np.ndarray, np.ndarray, np.ndarray],
 ) -> None:
-    """Scale an axis using the nice-tick logic from Ion Statistics Grid.py."""
-    values = np.concatenate((means - errors, means + errors))
-    if theoretical_mass is not None:
-        values = np.append(values, theoretical_mass)
+    """Ensure the pre- and post-deconvolution cubes use identical axes."""
+    for name, first_axis, second_axis in zip(
+        ("chromatography", "m/z", "charge"), first, second
+    ):
+        if first_axis.shape != second_axis.shape or not np.allclose(
+            first_axis, second_axis
+        ):
+            raise ValueError(f"Pre/post {name} axes do not match")
 
-    lower_value = float(np.min(values))
-    upper_value = float(np.max(values))
-    span = upper_value - lower_value
-    minimum_padding = 0.01 if metric_name == "area_fraction" else 1.0
-    padding = max(
-        span * 0.08,
-        max(abs(lower_value), abs(upper_value), 1.0) * 0.00005,
-        minimum_padding,
+
+def normalize_histogram(histogram: np.ndarray) -> np.ndarray:
+    """Normalize one histogram to UniChromCD's 0--100% intensity scale."""
+    maximum = float(np.max(histogram))
+    if not np.isfinite(maximum) or maximum <= 0.0:
+        raise ValueError("Cannot normalize an empty histogram")
+    return histogram * (100.0 / maximum)
+
+
+def draw_histogram(
+    axis: plt.Axes,
+    mz_axis: np.ndarray,
+    charge_axis: np.ndarray,
+    histogram: np.ndarray,
+    title: str,
+    cmap: Colormap,
+    norm: Normalize,
+) -> None:
+    """Draw one normalized charge-versus-m/z contour plot."""
+    axis.contourf(
+        mz_axis,
+        charge_axis,
+        normalize_histogram(histogram),
+        levels=CONTOUR_LEVELS,
+        cmap=cmap,
+        norm=norm,
+        antialiased=False,
     )
-    lower_limit = lower_value - padding
-    upper_limit = upper_value + padding
-    tick_step = get_nice_tick_step(
-        (upper_limit - lower_limit) / (Y_TICK_INTERVALS_PER_SIDE * 2)
+    axis.set_xlim(float(mz_axis[0]), float(mz_axis[-1]))
+    axis.set_ylim(float(charge_axis[0]), float(charge_axis[-1]))
+    axis.set_xlabel(r"$m/z$ (Th)")
+    axis.set_title(title, pad=4.0)
+    axis.tick_params(direction="out", length=2.5, width=0.8)
+    for spine in axis.spines.values():
+        spine.set_linewidth(0.8)
+
+
+def make_figure() -> plt.Figure:
+    """Build the side-by-side pre/post-deconvolution Figure S7."""
+    engine = load_unichrom_engine()
+    pre_histogram, pre_axes = load_summed_histogram(UCCD_INPUT)
+    post_histogram, post_axes = load_summed_histogram(UCCD_DECONVOLUTION)
+    validate_axes(pre_axes, post_axes)
+    _, mz_axis, charge_axis = pre_axes
+
+    cmap = plt.get_cmap(engine.config.cmap)
+    norm = Normalize(vmin=0.0, vmax=100.0)
+
+    figure = plt.figure(figsize=FIGURE_SIZE_INCHES)
+    grid = figure.add_gridspec(
+        1,
+        5,
+        width_ratios=(1.0, 0.12, 1.0, 0.04, 0.04),
+        left=0.075,
+        right=0.945,
+        bottom=0.17,
+        top=0.90,
+        wspace=0.0,
     )
-    tick_start = np.floor(lower_limit / tick_step) * tick_step
-    tick_end = np.ceil(upper_limit / tick_step) * tick_step
-    ticks = np.arange(tick_start, tick_end + tick_step * 0.5, tick_step)
-    axis.set_ylim(ticks[0], ticks[-1])
-    axis.set_yticks(ticks)
-    axis.yaxis.set_major_formatter(StrMethodFormatter(METRICS[metric_name]["format"]))
-    axis.yaxis.get_offset_text().set_visible(False)
+    axes = (figure.add_subplot(grid[0, 0]), figure.add_subplot(grid[0, 2]))
+    colorbar_axis = figure.add_subplot(grid[0, 4])
 
-
-def subplot_label(index: int) -> str:
-    """Return spreadsheet-style subplot labels: A ... Z, AA, AB, etc."""
-    label = ""
-    while True:
-        index, remainder = divmod(index, 26)
-        label = chr(ord("A") + remainder) + label
-        if index == 0:
-            return label
-        index -= 1
-
-
-def make_figure(results: pd.DataFrame) -> plt.Figure:
-    """Build the grid using the plotting logic from Ion Statistics Grid.py."""
-    figure, axes = plt.subplots(
-        nrows=len(TARGET_MASSES),
-        ncols=len(METRICS),
-        squeeze=False,
-        sharex="col",
-        figsize=FIGURE_SIZE_INCHES,
+    draw_histogram(
+        axes[0],
+        mz_axis,
+        charge_axis,
+        pre_histogram,
+        "Pre-deconvolution",
+        cmap,
+        norm,
     )
-    point_color = plt.get_cmap("tab10")(0)
-    highlight_color = plt.get_cmap("tab10")(2)
-    legend_handles = []
-    legend_labels = []
-
-    for row, (protein, theoretical_mass) in enumerate(TARGET_MASSES.items()):
-        protein_results = results.loc[results["Protein"] == protein].sort_values(
-            "Injection Number"
-        )
-        injection_numbers = protein_results["Injection Number"].to_numpy(dtype=float)
-
-        for column, (metric_name, metric) in enumerate(METRICS.items()):
-            axis = axes[row, column]
-            means = protein_results[metric["mean"]].to_numpy(dtype=float)
-            errors = protein_results[metric["sem"]].to_numpy(dtype=float)
-
-            if row == 0:
-                axis.set_title(
-                    metric["title"],
-                    fontsize=GRID_HEADER_FONT_SIZE,
-                    fontweight="bold",
-                    pad=GRID_TITLE_PAD_POINTS,
-                )
-
-            if column == 0:
-                axis.annotate(
-                    protein,
-                    xy=(0, 0.5),
-                    xytext=(-axis.yaxis.labelpad - PEAK_LABEL_OFFSET_POINTS, 0),
-                    xycoords=axis.yaxis.label,
-                    textcoords="offset points",
-                    ha="right",
-                    va="center",
-                    fontsize=GRID_HEADER_FONT_SIZE,
-                    fontweight="bold",
-                    rotation=90,
-                )
-
-            axis.text(
-                0.97,
-                0.98,
-                subplot_label(row * len(METRICS) + column),
-                transform=axis.transAxes,
-                fontsize=SUBPLOT_LABEL_FONT_SIZE,
-                fontweight="bold",
-                ha="right",
-                va="top",
-                clip_on=True,
-                zorder=10,
-            )
-
-            theoretical_for_limits = None
-            if metric_name == "centroid" and SHOW_THEORETICAL_MASS:
-                theoretical_for_limits = theoretical_mass
-                axis.axhline(
-                    theoretical_mass,
-                    color="black",
-                    linestyle="-",
-                    linewidth=1.4,
-                    label="Theo. mass",
-                    zorder=1.5,
-                )
-
-            highlight_row = protein_results.loc[
-                protein_results["Injection Number"] == HIGHLIGHT_INJECTION
-            ]
-            if not highlight_row.empty:
-                highlight_mean = float(highlight_row.iloc[0][metric["mean"]])
-                highlight_error = float(highlight_row.iloc[0][metric["sem"]])
-                if highlight_error > 0:
-                    axis.axhspan(
-                        highlight_mean - highlight_error,
-                        highlight_mean + highlight_error,
-                        facecolor=highlight_color,
-                        alpha=0.45,
-                        linewidth=0,
-                        label=(
-                            f"{HIGHLIGHT_INJECTION} INJ ± SEM"
-                        ),
-                        zorder=1,
-                    )
-
-            axis.errorbar(
-                injection_numbers,
-                means,
-                yerr=errors,
-                marker="o",
-                linestyle="-",
-                linewidth=1.5,
-                markersize=2.5,
-                capsize=3,
-                color=point_color,
-                markerfacecolor=point_color,
-                markeredgecolor=point_color,
-                ecolor="black",
-                elinewidth=AXIS_STROKE_WIDTH,
-                capthick=AXIS_STROKE_WIDTH,
-                zorder=2,
-            )
-
-            set_metric_axis_limits(
-                axis,
-                means,
-                errors,
-                metric_name,
-                theoretical_for_limits,
-            )
-            axis.xaxis.set_major_locator(MaxNLocator(nbins=6, integer=True))
-            axis.set_ylabel(metric["ylabel"])
-            axis.spines["top"].set_visible(False)
-            axis.spines["right"].set_visible(False)
-            axis.spines["left"].set_linewidth(AXIS_STROKE_WIDTH)
-            axis.spines["bottom"].set_linewidth(AXIS_STROKE_WIDTH)
-            axis.tick_params(width=AXIS_STROKE_WIDTH)
-
-            if row == len(TARGET_MASSES) - 1:
-                axis.set_xlabel("Number of injections")
-
-            handles, labels = axis.get_legend_handles_labels()
-            if handles and row == 0 and column == 0:
-                legend_handles = handles
-                legend_labels = labels
-
-    if legend_handles:
-        figure.legend(
-            legend_handles,
-            legend_labels,
-            loc="upper center",
-            bbox_to_anchor=(0.5, 0.995),
-            ncols=len(legend_handles),
-            frameon=False,
-            fontsize=LEGEND_FONT_SIZE,
-        )
-
-    layout_top = 1 - TOP_LEGEND_MARGIN_INCHES / FIGURE_SIZE_INCHES[1]
-    figure.tight_layout(
-        rect=(0.03, 0, 1, layout_top), h_pad=ROW_LAYOUT_PAD, w_pad=2.0
+    draw_histogram(
+        axes[1],
+        mz_axis,
+        charge_axis,
+        post_histogram,
+        "Post-deconvolution",
+        cmap,
+        norm,
     )
+    axes[0].set_ylabel("Charge")
+    axes[1].tick_params(labelleft=False)
+
+    axes[0].text(
+        -0.17,
+        1.08,
+        "A",
+        transform=axes[0].transAxes,
+        fontsize=14.0,
+        fontweight="bold",
+        ha="left",
+        va="top",
+    )
+    axes[1].text(
+        -0.08,
+        1.08,
+        "B",
+        transform=axes[1].transAxes,
+        fontsize=14.0,
+        fontweight="bold",
+        ha="left",
+        va="top",
+    )
+
+    colorbar = figure.colorbar(
+        ScalarMappable(norm=norm, cmap=cmap),
+        cax=colorbar_axis,
+        ticks=(0.0, 50.0, 100.0),
+    )
+    colorbar.ax.set_yticklabels(("0", "%", "100"))
+    colorbar.ax.tick_params(
+        direction="out",
+        length=2.5,
+        width=0.8,
+        labelsize=10.0,
+        pad=2.0,
+    )
+    colorbar.outline.set_linewidth(0.8)
     return figure
 
 
 def main() -> None:
-    """Calculate statistics and render Figure S7 plus its results CSV."""
+    """Render Figure S7 as transparent PNG and PDF files."""
     plt.rcParams.update(
         {
             "font.family": "Arial",
-            "font.size": BASE_FONT_SIZE,
+            "font.size": 10.0,
+            "axes.labelsize": 10.0,
+            "axes.titlesize": 10.0,
+            "mathtext.fontset": "custom",
+            "mathtext.rm": "Arial",
+            "mathtext.it": "Arial:italic",
             "pdf.fonttype": 42,
             "ps.fonttype": 42,
             "savefig.transparent": True,
@@ -472,32 +287,14 @@ def main() -> None:
     )
 
     OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
-    measurements = collect_measurements()
-    results = create_results_table(measurements)
-    results.to_csv(OUTPUT_CSV, index=False, float_format="%.10g")
-
-    figure = make_figure(results)
-    figure.savefig(
-        OUTPUT_PNG,
-        dpi=OUTPUT_DPI,
-        transparent=True,
-        bbox_inches="tight",
-        pad_inches=OUTPUT_PADDING_INCHES,
-    )
-    figure.savefig(
-        OUTPUT_PDF,
-        dpi=OUTPUT_DPI,
-        transparent=True,
-        bbox_inches="tight",
-        pad_inches=OUTPUT_PADDING_INCHES,
-    )
+    figure = make_figure()
+    figure.savefig(OUTPUT_PNG, dpi=OUTPUT_DPI, transparent=True)
+    figure.savefig(OUTPUT_PDF, dpi=OUTPUT_DPI, transparent=True)
     plt.close(figure)
-
-    print(f"Matched {len(measurements)} {MEASUREMENT_LABEL} measurements")
     print(f"Saved {OUTPUT_PNG}")
     print(f"Saved {OUTPUT_PDF}")
-    print(f"Saved {OUTPUT_CSV}")
 
 
 if __name__ == "__main__":
     main()
+

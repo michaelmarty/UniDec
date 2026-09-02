@@ -1,55 +1,16 @@
-"""Create the high-throughput antibody ion scatter plots for Figure S13."""
+"""Create the three full-range mass distributions for Figure S13.
 
-from dataclasses import dataclass
+These are the former Figure 5 panels A, C, and E, relabeled A, B, and C for
+their new single-column position.
+"""
+
 from pathlib import Path
-from string import ascii_uppercase
-from xml.etree import ElementTree
-from zipfile import ZipFile
 
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator, StrMethodFormatter
 import numpy as np
 
 
-@dataclass(frozen=True)
-class SampleSource:
-    """Spreadsheet and display title for one antibody sample."""
-
-    title: str
-    path: Path
-
-
-SAMPLE_SOURCES = (
-    SampleSource(
-        title="Waters Intact mAb\nMass Check Standard",
-        path=Path(
-            r"C:\Users\bht442\The University of Texas at Austin"
-            r"\MartyLab - General\Papers\Muliple Run Summing Reversed Phase LC-CD-MS"
-            r"\Figures for Manuscript\Supporting Information Figures\Figure S13"
-            r"\Waters mAb HighTotal Ion Scatter Plot.xlsx"
-        ),
-    ),
-    SampleSource(
-        title="Human IgG",
-        path=Path(
-            r"C:\Users\bht442\The University of Texas at Austin"
-            r"\MartyLab - General\Papers\Muliple Run Summing Reversed Phase LC-CD-MS"
-            r"\Figures for Manuscript\Supporting Information Figures\Figure S13"
-            r"\Human IgG HighTotal Ion Scatter Plot.xlsx"
-        ),
-    ),
-    SampleSource(
-        title="Rabbit IgG",
-        path=Path(
-            r"C:\Users\bht442\The University of Texas at Austin"
-            r"\MartyLab - General\Papers\Muliple Run Summing Reversed Phase LC-CD-MS"
-            r"\Figures for Manuscript\Supporting Information Figures\Figure S13"
-            r"\Rabbit IgG HighTotal Ion Scatter Plot.xlsx"
-        ),
-    ),
-)
-
-FIGURE_SIZE_INCHES = (6.5, 8.0)
+FIGURE_SIZE_INCHES = (3.25, 7.5)
 OUTPUT_DPI = 300
 OUTPUT_DIRECTORY = Path(
     r"C:\Users\bht442\The University of Texas at Austin"
@@ -59,113 +20,169 @@ OUTPUT_DIRECTORY = Path(
 OUTPUT_PNG = OUTPUT_DIRECTORY / "Figure S13.png"
 OUTPUT_PDF = OUTPUT_DIRECTORY / "Figure S13.pdf"
 
-DATA_COLOR = "#1F77B4"
-FIT_COLOR = "#1F77B4"
-ERROR_COLOR = "#000000"
-AXIS_STROKE_WIDTH = 1.5
-XML_NAMESPACE = {
-    "main": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
-}
+FULL_MASS_LIMITS_KDA = (10.0, 200.0)
+STAGGER_STEP = 10.0
+Y_LIMITS = (0.0, 150.0)
+MAX_FULL_RANGE_POINTS = 12_000
+
+ONE_INJECTION_COLOR = "#0072B2"
+TEN_INJECTION_COLOR = "#785EF0"
+TWENTY_ONE_INJECTION_COLOR = "#D55E00"
+
+WATERS_ROOT = Path(
+    r"Z:\Group Share\BHT\Temp\Paper\DMT\Waters mAb 21 Injections Set 1\merged"
+)
+WATERS_PREFIX = (
+    "20260330_BHT_agilentc8column_watersmAb_CMDS_20msINJ_set1_"
+    "0o1mgmLs_merged"
+)
+
+HUMAN_ROOT = Path(
+    r"Z:\Group Share\BHT\Temp\Paper\DMT"
+    r"\Amgen Human IgG 21 Injections Set 1\merged"
+)
+HUMAN_PREFIX = (
+    "20260331_BHT_agilentc8column_AmgenhumanmAb_PRO35304_CMDS_20msINJ_"
+    "set1_0o1mgmLs_merged"
+)
+
+RABBIT_ROOT = Path(
+    r"Z:\Group Share\BHT\Temp\Paper\DMT"
+    r"\Amgen Rabbit IgG 21 Injections Set 1\merged"
+)
+RABBIT_PREFIX = (
+    "20260401_BHT_agilentc8column_AmgenrabbitmAb_EPA13724_CMDS_20msINJ_"
+    "set1_0o1mgmLs_merged"
+)
+
+PANEL_LETTERS = ("A", "B", "C")
 
 
-def column_index(cell_reference: str) -> int:
-    """Convert the alphabetic portion of an Excel cell reference to an index."""
-    letters = "".join(character for character in cell_reference if character.isalpha())
-    index = 0
-    for character in letters.upper():
-        if character not in ascii_uppercase:
-            raise ValueError(f"Invalid Excel cell reference: {cell_reference}")
-        index = index * 26 + ascii_uppercase.index(character) + 1
-    return index - 1
-
-
-def load_spreadsheet(path: Path) -> tuple[list[str], np.ndarray]:
-    """Read the first six columns of the first XLSX sheet without openpyxl."""
-    if not path.is_file():
-        raise FileNotFoundError(f"Spreadsheet not found: {path}")
-
-    with ZipFile(path) as workbook:
-        names = set(workbook.namelist())
-        shared_strings: list[str] = []
-        if "xl/sharedStrings.xml" in names:
-            shared_root = ElementTree.fromstring(
-                workbook.read("xl/sharedStrings.xml")
-            )
-            for item in shared_root.findall("main:si", XML_NAMESPACE):
-                text_parts = item.findall(".//main:t", XML_NAMESPACE)
-                shared_strings.append("".join(part.text or "" for part in text_parts))
-
-        worksheet_name = "xl/worksheets/sheet1.xml"
-        if worksheet_name not in names:
-            raise ValueError(f"First worksheet is missing from: {path}")
-        worksheet_root = ElementTree.fromstring(workbook.read(worksheet_name))
-
-        rows: list[list[str | float | None]] = []
-        for row_element in worksheet_root.findall(
-            ".//main:sheetData/main:row", XML_NAMESPACE
-        ):
-            row: list[str | float | None] = [None] * 6
-            for cell in row_element.findall("main:c", XML_NAMESPACE):
-                index = column_index(cell.get("r", ""))
-                if index < 0 or index >= len(row):
-                    continue
-
-                value_element = cell.find("main:v", XML_NAMESPACE)
-                if value_element is None or value_element.text is None:
-                    continue
-                raw_value = value_element.text
-                if cell.get("t") == "s":
-                    row[index] = shared_strings[int(raw_value)]
-                else:
-                    row[index] = float(raw_value)
-            rows.append(row)
-
-    if len(rows) < 2:
-        raise ValueError(f"Spreadsheet contains no data rows: {path}")
-
-    headers = [str(value) for value in rows[0]]
-    try:
-        data = np.asarray(rows[1:], dtype=float)
-    except (TypeError, ValueError) as error:
-        raise ValueError(f"Expected six numeric data columns in: {path}") from error
-
-    if data.shape != (21, 6) or not np.all(np.isfinite(data)):
-        raise ValueError(
-            f"Expected 21 rows and 6 finite numeric columns; found {data.shape} in: {path}"
-        )
-    return headers, data
-
-
-def validate_statistics(table: np.ndarray, path: Path) -> None:
-    """Verify the supplied means and sample standard deviations."""
-    replicate_values = table[:, 1:4]
-    supplied_average = table[:, 4]
-    supplied_standard_deviation = table[:, 5]
-    calculated_average = np.mean(replicate_values, axis=1)
-    calculated_standard_deviation = np.std(replicate_values, axis=1, ddof=1)
-
-    if not np.allclose(supplied_average, calculated_average):
-        raise ValueError(f"Spreadsheet averages do not match replicates in: {path}")
-    if not np.allclose(supplied_standard_deviation, calculated_standard_deviation):
-        raise ValueError(
-            f"Spreadsheet standard deviations do not match replicates in: {path}"
-        )
-
-
-def style_axis(axis: plt.Axes, panel_letter: str) -> None:
-    """Apply the Figure S1 manuscript styling to one panel."""
-    axis.spines["top"].set_visible(False)
-    axis.spines["right"].set_visible(False)
-    axis.spines["left"].set_linewidth(AXIS_STROKE_WIDTH)
-    axis.spines["bottom"].set_linewidth(AXIS_STROKE_WIDTH)
-    axis.tick_params(
-        direction="out",
-        width=AXIS_STROKE_WIDTH,
-        length=6,
+def mass_path(root: Path, prefix: str, injections: int) -> Path:
+    """Construct a UniDec mass-distribution path for an injection count."""
+    return (
+        root
+        / f"{prefix}_{injections}_unidecfiles"
+        / f"{prefix}_{injections}_mass.txt"
     )
+
+
+SAMPLES = [
+    (
+        "Waters Intact mAb\nMass Check Standard",
+        [
+            (
+                mass_path(WATERS_ROOT, WATERS_PREFIX, 1),
+                "1 Injection",
+                ONE_INJECTION_COLOR,
+            ),
+            (
+                mass_path(WATERS_ROOT, WATERS_PREFIX, 10),
+                "10 Injections",
+                TEN_INJECTION_COLOR,
+            ),
+            (
+                mass_path(WATERS_ROOT, WATERS_PREFIX, 21),
+                "21 Injections",
+                TWENTY_ONE_INJECTION_COLOR,
+            ),
+        ],
+    ),
+    (
+        "Human IgG",
+        [
+            (
+                mass_path(HUMAN_ROOT, HUMAN_PREFIX, 1),
+                "1 Injection",
+                ONE_INJECTION_COLOR,
+            ),
+            (
+                mass_path(HUMAN_ROOT, HUMAN_PREFIX, 10),
+                "10 Injections",
+                TEN_INJECTION_COLOR,
+            ),
+            (
+                mass_path(HUMAN_ROOT, HUMAN_PREFIX, 21),
+                "21 Injections",
+                TWENTY_ONE_INJECTION_COLOR,
+            ),
+        ],
+    ),
+    (
+        "Rabbit IgG",
+        [
+            (
+                mass_path(RABBIT_ROOT, RABBIT_PREFIX, 1),
+                "1 Injection",
+                ONE_INJECTION_COLOR,
+            ),
+            (
+                mass_path(RABBIT_ROOT, RABBIT_PREFIX, 10),
+                "10 Injections",
+                TEN_INJECTION_COLOR,
+            ),
+            (
+                mass_path(RABBIT_ROOT, RABBIT_PREFIX, 21),
+                "21 Injections",
+                TWENTY_ONE_INJECTION_COLOR,
+            ),
+        ],
+    ),
+]
+
+
+def load_mass_distribution(path: Path) -> tuple[np.ndarray, np.ndarray]:
+    """Load and validate a two-column mass/intensity distribution."""
+    if not path.is_file():
+        raise FileNotFoundError(f"Mass distribution not found: {path}")
+
+    data = np.loadtxt(path, dtype=float)
+    if data.ndim != 2 or data.shape[1] < 2:
+        raise ValueError(f"Expected at least two columns in: {path}")
+
+    mass = data[:, 0]
+    intensity = data[:, 1]
+    finite = np.isfinite(mass) & np.isfinite(intensity)
+    if not np.any(finite):
+        raise ValueError(f"No finite mass/intensity pairs in: {path}")
+
+    return mass[finite], np.clip(intensity[finite], 0.0, None)
+
+
+def normalize_to_percent(intensity: np.ndarray) -> np.ndarray:
+    """Normalize a distribution so its maximum intensity is exactly 100%."""
+    maximum = float(np.max(intensity))
+    if maximum <= 0.0:
+        return np.zeros_like(intensity)
+    return 100.0 * intensity / maximum
+
+
+def minmax_downsample(
+    x_values: np.ndarray,
+    y_values: np.ndarray,
+    max_points: int = MAX_FULL_RANGE_POINTS,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Reduce dense lines while retaining each display bin's extrema."""
+    if len(x_values) <= max_points:
+        return x_values, y_values
+
+    block_size = int(np.ceil(len(x_values) / (max_points // 2)))
+    indices: list[int] = [0]
+    for start in range(0, len(x_values), block_size):
+        stop = min(start + block_size, len(x_values))
+        block = y_values[start:stop]
+        indices.extend((start + int(np.argmin(block)), start + int(np.argmax(block))))
+    indices.append(len(x_values) - 1)
+
+    ordered_indices = np.unique(np.asarray(indices, dtype=int))
+    return x_values[ordered_indices], y_values[ordered_indices]
+
+
+def add_panel_letter(axis: plt.Axes, panel_letter: str) -> None:
+    """Add a bold panel identifier at the upper-left of an axis."""
     axis.text(
-        0.025,
-        0.96,
+        0.015,
+        0.64,
         panel_letter,
         transform=axis.transAxes,
         fontsize=16,
@@ -176,120 +193,107 @@ def style_axis(axis: plt.Axes, panel_letter: str) -> None:
     )
 
 
-def plot_scatter_panel(
+def style_axis(axis: plt.Axes) -> None:
+    """Apply the shared Figure S13 axis styling."""
+    axis.set_ylim(*Y_LIMITS)
+    axis.spines["top"].set_visible(False)
+    axis.spines["right"].set_visible(False)
+    axis.spines["bottom"].set_linewidth(1.5)
+    axis.spines["left"].set_linewidth(1.5)
+    axis.spines["left"].set_bounds(0.0, 100.0)
+    axis.set_yticks([0.0, 50.0, 100.0], labels=["0", "%", "100"])
+    axis.tick_params(direction="out", width=1.5, length=6)
+
+
+def plot_full_mass_panel(
     axis: plt.Axes,
-    table: np.ndarray,
-    source: SampleSource,
     panel_letter: str,
+    sample_label: str,
+    datasets: list[tuple[Path, str, str]],
 ) -> None:
-    """Plot replicate mean, sample SD, linear fit, and fit statistics."""
-    injection_number = table[:, 0]
-    average = table[:, 4]
-    standard_deviation = table[:, 5]
+    """Plot one full-range staggered mass-distribution panel."""
+    offsets = STAGGER_STEP * np.arange(len(datasets) - 1, -1, -1)
+    for (path, label, color), offset in zip(datasets, offsets):
+        mass_da, intensity = load_mass_distribution(path)
+        mass_kda = mass_da / 1000.0
+        normalized = normalize_to_percent(intensity) + offset
+        full_mask = (
+            (mass_kda >= FULL_MASS_LIMITS_KDA[0])
+            & (mass_kda <= FULL_MASS_LIMITS_KDA[1])
+        )
+        full_x, full_y = minmax_downsample(
+            mass_kda[full_mask], normalized[full_mask]
+        )
+        axis.plot(
+            full_x,
+            full_y,
+            color=color,
+            linewidth=1.5,
+            label=label,
+        )
 
-    axis.errorbar(
-        injection_number,
-        average,
-        yerr=standard_deviation,
-        fmt="o",
-        color=DATA_COLOR,
-        markerfacecolor=DATA_COLOR,
-        markeredgecolor=DATA_COLOR,
-        markersize=4.5,
-        ecolor=ERROR_COLOR,
-        elinewidth=1.0,
-        capsize=2.5,
-        capthick=1.0,
-        linestyle="none",
-        zorder=3,
-    )
-
-    slope, intercept = np.polyfit(injection_number, average, 1)
-    fit_x = np.array([injection_number.min(), injection_number.max()])
-    fit_y = slope * fit_x + intercept
-    axis.plot(
-        fit_x,
-        fit_y,
-        color=FIT_COLOR,
-        linewidth=1.5,
-        zorder=2,
-    )
-
-    fitted_values = slope * injection_number + intercept
-    residual_sum_squares = np.sum((average - fitted_values) ** 2)
-    total_sum_squares = np.sum((average - average.mean()) ** 2)
-    r_squared = 1.0 - residual_sum_squares / total_sum_squares
-    intercept_operator = "+" if intercept >= 0 else "-"
-    axis.text(
-        0.05,
-        0.76,
-        f"y = {slope:,.1f}x {intercept_operator} {abs(intercept):,.1f}\n"
-        f"R² = {r_squared:.5f}",
-        transform=axis.transAxes,
-        fontsize=10,
-        ha="left",
-        va="top",
-    )
-
-    style_axis(axis, panel_letter)
-    axis.set_xlim(0.5, 21.5)
-    axis.set_ylim(bottom=0.0)
-    axis.set_xticks([1, 5, 10, 15, 20])
-    axis.set_xlabel("Number of injections")
-    axis.set_ylabel("Total Number of Ions")
-    axis.annotate(
-        source.title,
-        xy=(0, 0.5),
-        xytext=(-axis.yaxis.labelpad - 10, 0),
-        xycoords=axis.yaxis.label,
-        textcoords="offset points",
-        ha="right",
-        va="center",
-        multialignment="center",
-        fontsize=12,
-        fontweight="bold",
+    axis.set_xlim(*FULL_MASS_LIMITS_KDA)
+    axis.set_xticks(np.arange(50.0, 200.1, 50.0))
+    style_axis(axis)
+    add_panel_letter(axis, panel_letter)
+    y_minimum, y_maximum = axis.get_ylim()
+    spine_minimum, spine_maximum = axis.spines["left"].get_bounds()
+    spine_center = (spine_minimum + spine_maximum) / 2.0
+    label_y = (spine_center - y_minimum) / (y_maximum - y_minimum)
+    axis.set_ylabel(
+        sample_label,
         rotation=90,
+        labelpad=20,
+        ha="center",
+        va="center",
     )
-    axis.yaxis.set_major_locator(MaxNLocator(nbins=5, integer=True))
-    axis.yaxis.set_major_formatter(StrMethodFormatter("{x:,.0f}"))
+    axis.yaxis.label.set_y(label_y)
 
 
-def make_figure(tables: tuple[np.ndarray, ...]) -> plt.Figure:
-    """Build and return the complete three-panel Figure S13."""
+def make_figure() -> plt.Figure:
+    """Build and return the three-panel SI figure."""
     figure, axes = plt.subplots(
         nrows=3,
         ncols=1,
         figsize=FIGURE_SIZE_INCHES,
         constrained_layout=True,
+        sharex=True,
     )
-    for index, (axis, table, source) in enumerate(
-        zip(axes, tables, SAMPLE_SOURCES)
-    ):
-        plot_scatter_panel(axis, table, source, chr(ord("A") + index))
+    figure.get_layout_engine().set(h_pad=0.01, hspace=0.0)
+
+    for axis, panel_letter, sample in zip(axes, PANEL_LETTERS, SAMPLES):
+        sample_label, datasets = sample
+        plot_full_mass_panel(axis, panel_letter, sample_label, datasets)
+
+    axes[0].legend(
+        loc="upper left",
+        bbox_to_anchor=(0.12, 0.66),
+        frameon=False,
+        fontsize=9.5,
+        handlelength=2.0,
+        borderaxespad=0.0,
+    )
+    axes[-1].set_xlabel("Mass (kDa)")
+
     return figure
 
 
 def main() -> None:
-    """Load the spreadsheets and render Figure S13 as PNG and PDF."""
+    """Render Figure S13 as a transparent PNG and PDF."""
+    OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
     plt.rcParams.update(
         {
             "font.family": "Arial",
             "font.size": 12,
             "axes.labelsize": 13,
+            "legend.fontsize": 9.5,
             "pdf.fonttype": 42,
             "ps.fonttype": 42,
             "savefig.transparent": True,
         }
     )
 
-    OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
-    tables = []
-    for source in SAMPLE_SOURCES:
-        _, table = load_spreadsheet(source.path)
-        validate_statistics(table, source.path)
-        tables.append(table)
-
-    figure = make_figure(tuple(tables))
+    figure = make_figure()
     figure.savefig(OUTPUT_PNG, dpi=OUTPUT_DPI, transparent=True)
     figure.savefig(OUTPUT_PDF, dpi=OUTPUT_DPI, transparent=True)
     plt.close(figure)

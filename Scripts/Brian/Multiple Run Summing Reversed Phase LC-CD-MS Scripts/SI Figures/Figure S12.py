@@ -1,14 +1,47 @@
-"""Create the high-throughput three-panel staggered TIC comparison for Figure S12."""
+"""Create the Rabbit IgG delta plots used in Figure S12.
 
+Each plotted value is the replicate mean at an injection count minus the
+replicate mean at injection 21. Error bars are SEM in the original metric
+units. Peak-area fractions are normalized over the retained target peaks in
+each UniDec peak-parameter file.
+"""
+
+import re
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 import numpy as np
+import pandas as pd
 
 
-TIME_LIMITS = (0.0, 3.0)
-STAGGER_STEP = 10.0
-FIGURE_SIZE_INCHES = (3.25, 6.5)
+REPLICATE_FOLDERS = [
+    Path(r"Z:\Group Share\BHT\Temp\Paper\Stats\Amgen Rabbit IgG Rep 1"),
+    Path(r"Z:\Group Share\BHT\Temp\Paper\Stats\Amgen Rabbit IgG Rep 2"),
+    Path(r"Z:\Group Share\BHT\Temp\Paper\Stats\Amgen Rabbit IgG Rep 3"),
+]
+
+TARGET_MASSES = {
+    "142,631 Da": 142631.0,
+    "142,803 Da": 142803.0,
+    "142,968 Da": 142968.0,
+    "143,130 Da": 143130.0,
+    "143,286 Da": 143286.0,
+    "143,584 Da": 143584.0,
+    "143,750 Da": 143750.0,
+    "143,910 Da": 143910.0,
+    "144,066 Da": 144066.0,
+    "144,240 Da": 144240.0,
+    "144,536 Da": 144536.0,
+    "144,704 Da": 144704.0,
+    "144,864 Da": 144864.0,
+    "145,012 Da": 145012.0,
+    "145,180 Da": 145180.0,
+}
+
+MASS_TOLERANCE_DA = 100.0
+EXPECTED_INJECTIONS = tuple(range(1, 22))
+REFERENCE_INJECTION = 21
 OUTPUT_DPI = 300
 OUTPUT_DIRECTORY = Path(
     r"C:\Users\bht442\The University of Texas at Austin"
@@ -17,242 +50,363 @@ OUTPUT_DIRECTORY = Path(
 )
 OUTPUT_PNG = OUTPUT_DIRECTORY / "Figure S12.png"
 OUTPUT_PDF = OUTPUT_DIRECTORY / "Figure S12.pdf"
+OUTPUT_CSV = OUTPUT_DIRECTORY / "Figure S12_results.csv"
 
-ENSEMBLE_COLOR = "#333333"
-ONE_INJECTION_COLOR = "#0072B2"
-TWENTY_ONE_INJECTION_COLOR = "#D55E00"
+BASE_FONT_SIZE = 10
+PANEL_TITLE_FONT_SIZE = 10
+SUBPLOT_LABEL_FONT_SIZE = 11
+LEGEND_FONT_SIZE = 10
+FIGURE_SIZE_INCHES = (6.5, 4.0)
+AXIS_STROKE_WIDTH = 0.8
 
-PANELS = [
-    (
-        "A",
-        "Waters Intact mAb\nMass Check Standard",
-        [
-            (
-                Path(
-                    r"Z:\Group Share\BHT\Temp\Paper\High Throughput"
-                    r"\Ensemble Waters mAb Triplicate\Waters mAb 1 TIC.txt"
-                ),
-                "Ensemble MS",
-                ENSEMBLE_COLOR,
-            ),
-            (
-                Path(
-                    r"Z:\Group Share\BHT\Temp\Paper\DMT\High Throughput"
-                    r"\Waters mAb 21 Injections Set 1\merged"
-                    r"\20260501_BHT_haloc4column_watersmAb_set1_CDMS_0o1mgmL_"
-                    r"merged_1_unidecfiles\TIC_chrom.txt"
-                ),
-                "1-injection CD-MS",
-                ONE_INJECTION_COLOR,
-            ),
-            (
-                Path(
-                    r"Z:\Group Share\BHT\Temp\Paper\DMT\High Throughput"
-                    r"\Waters mAb 21 Injections Set 1\merged"
-                    r"\20260501_BHT_haloc4column_watersmAb_set1_CDMS_0o1mgmL_"
-                    r"merged_21_unidecfiles\TIC_decon.txt"
-                ),
-                "21-injection CD-MS",
-                TWENTY_ONE_INJECTION_COLOR,
-            ),
-        ],
-    ),
-    (
-        "B",
-        "Human IgG",
-        [
-            (
-                Path(
-                    r"Z:\Group Share\BHT\Temp\Paper\High Throughput"
-                    r"\Ensemble Amgen Human IgG Triplicate\Human IgG 1 TIC.txt"
-                ),
-                "Ensemble MS",
-                ENSEMBLE_COLOR,
-            ),
-            (
-                Path(
-                    r"Z:\Group Share\BHT\Temp\Paper\DMT\High Throughput"
-                    r"\Amgen Human IgG 21 Injections Set 1\merged"
-                    r"\20260501_BHT_haloc4column_amgenHuman_PRO35304_set1_CDMS_"
-                    r"0o1mgmL_merged_1_unidecfiles\TIC_chrom.txt"
-                ),
-                "1-injection CD-MS",
-                ONE_INJECTION_COLOR,
-            ),
-            (
-                Path(
-                    r"Z:\Group Share\BHT\Temp\Paper\DMT\High Throughput"
-                    r"\Amgen Human IgG 21 Injections Set 1\merged"
-                    r"\20260501_BHT_haloc4column_amgenHuman_PRO35304_set1_CDMS_"
-                    r"0o1mgmL_merged_21_unidecfiles\TIC_decon.txt"
-                ),
-                "21-injection CD-MS",
-                TWENTY_ONE_INJECTION_COLOR,
-            ),
-        ],
-    ),
-    (
-        "C",
-        "Rabbit IgG",
-        [
-            (
-                Path(
-                    r"Z:\Group Share\BHT\Temp\Paper\High Throughput"
-                    r"\Ensemble Amgen Rabbit IgG Triplicate\Rabbit IgG 1 TIC.txt"
-                ),
-                "Ensemble MS",
-                ENSEMBLE_COLOR,
-            ),
-            (
-                Path(
-                    r"Z:\Group Share\BHT\Temp\Paper\DMT\High Throughput"
-                    r"\Amgen Rabbit IgG 21 Injections Set 1\merged"
-                    r"\20260605_BHT_haloc4column_amgenRabbitmAb_EPA13724_set1_"
-                    r"CDMS_0o01mgmL_merged_1_unidecfiles\TIC_chrom.txt"
-                ),
-                "1-injection CD-MS",
-                ONE_INJECTION_COLOR,
-            ),
-            (
-                Path(
-                    r"Z:\Group Share\BHT\Temp\Paper\DMT\High Throughput"
-                    r"\Amgen Rabbit IgG 21 Injections Set 1\merged"
-                    r"\20260605_BHT_haloc4column_amgenRabbitmAb_EPA13724_set1_"
-                    r"CDMS_0o01mgmL_merged_21_unidecfiles\TIC_decon.txt"
-                ),
-                "21-injection CD-MS",
-                TWENTY_ONE_INJECTION_COLOR,
-            ),
-        ],
-    ),
-]
+REQUIRED_COLUMNS = {
+    "Mass",
+    "Area",
+    "MassCentroid",
+    "MassFWHM",
+}
+
+METRICS = {
+    "centroid": {
+        "title": "Mass Centroid",
+        "source": "Mass Centroid (Da)",
+        "ylabel": "Difference from 21st Injection (Da)",
+        "minimum_limit": 1.0,
+    },
+    "fwhm": {
+        "title": "FWHM",
+        "source": "FWHM (Da)",
+        "ylabel": "Difference from 21st Injection (Da)",
+        "minimum_limit": 1.0,
+    },
+    "area_fraction": {
+        "title": "Sum-Normalized\nPeak Area Fraction",
+        "source": "Sum-Normalized Peak Area Fraction",
+        "ylabel": "Difference from 21st Injection",
+        "minimum_limit": 0.01,
+    },
+}
 
 
-def load_chromatogram(path: Path) -> tuple[np.ndarray, np.ndarray]:
-    """Load a two-column chromatogram and retain the common time window."""
-    if not path.is_file():
-        raise FileNotFoundError(f"Chromatogram not found: {path}")
+def extract_injection_number(path: Path) -> int:
+    """Extract an injection count from a ``merged_N_peakparam.dat`` name."""
+    match = re.search(r"merged_(\d+)_", path.name)
+    if match is None:
+        raise ValueError(f"Could not determine injection number from: {path.name}")
+    return int(match.group(1))
 
-    data = np.loadtxt(path, dtype=float)
-    if data.ndim != 2 or data.shape[1] < 2:
-        raise ValueError(f"Expected at least two columns in: {path}")
 
-    time = data[:, 0]
-    intensity = data[:, 1]
-    valid = (
-        np.isfinite(time)
-        & np.isfinite(intensity)
-        & (time >= TIME_LIMITS[0])
-        & (time <= TIME_LIMITS[1])
+def load_peak_parameters(path: Path) -> pd.DataFrame:
+    """Load and validate one UniDec peak-parameter file."""
+    table = pd.read_csv(path, sep=r"\s+", encoding="utf-8")
+    missing_columns = REQUIRED_COLUMNS.difference(table.columns)
+    if missing_columns:
+        missing = ", ".join(sorted(missing_columns))
+        raise ValueError(f"Missing columns ({missing}) in: {path}")
+
+    table = table.copy()
+    for column in REQUIRED_COLUMNS:
+        table[column] = pd.to_numeric(table[column], errors="coerce")
+    if table[list(REQUIRED_COLUMNS)].isna().any().any():
+        raise ValueError(f"Non-numeric required values found in: {path}")
+    return table
+
+
+def match_target_peaks(
+    table: pd.DataFrame,
+    path: Path,
+) -> dict[str, pd.Series]:
+    """Return the closest in-tolerance row for each available target peak."""
+    matched: dict[str, pd.Series] = {}
+    for peak_name, target_mass in TARGET_MASSES.items():
+        mass_error = (table["Mass"] - target_mass).abs()
+        candidates = table.loc[mass_error <= MASS_TOLERANCE_DA]
+        if candidates.empty:
+            print(
+                f"Warning: No {peak_name} peak within {MASS_TOLERANCE_DA:g} Da "
+                f"in {path.name}"
+            )
+            continue
+        closest_index = mass_error.loc[candidates.index].idxmin()
+        matched[peak_name] = table.loc[closest_index]
+    return matched
+
+
+def collect_measurements() -> pd.DataFrame:
+    """Collect matched Rabbit IgG peak measurements from every replicate."""
+    records: list[dict[str, float | int | str]] = []
+
+    for replicate, folder in enumerate(REPLICATE_FOLDERS, start=1):
+        if not folder.is_dir():
+            raise FileNotFoundError(f"Replicate folder not found: {folder}")
+
+        files = list(folder.glob("*_peakparam.dat"))
+        files.sort(key=extract_injection_number)
+        found_injections = tuple(extract_injection_number(path) for path in files)
+        if found_injections != EXPECTED_INJECTIONS:
+            raise ValueError(
+                f"Replicate {replicate} must contain injections 1--21 exactly once; "
+                f"found {found_injections}"
+            )
+
+        for path in files:
+            injection_number = extract_injection_number(path)
+            table = load_peak_parameters(path)
+            matched_peaks = match_target_peaks(table, path)
+            if not matched_peaks:
+                raise ValueError(f"No target peaks were matched in: {path}")
+
+            matched_area_sum = sum(
+                float(peak["Area"]) for peak in matched_peaks.values()
+            )
+            if matched_area_sum <= 0.0:
+                raise ValueError(f"Matched peak areas do not have a positive sum: {path}")
+
+            for peak_name, peak in matched_peaks.items():
+                peak_area = float(peak["Area"])
+                if peak_area < 0.0:
+                    raise ValueError(f"Negative matched peak area found in: {path}")
+                records.append(
+                    {
+                        "Peak": peak_name,
+                        "Target Mass (Da)": TARGET_MASSES[peak_name],
+                        "Injection Number": injection_number,
+                        "Replicate": replicate,
+                        "Matched Mass (Da)": float(peak["Mass"]),
+                        "Mass Centroid (Da)": float(peak["MassCentroid"]),
+                        "FWHM (Da)": float(peak["MassFWHM"]),
+                        "Sum-Normalized Peak Area Fraction": (
+                            peak_area / matched_area_sum
+                        ),
+                        "Source File": str(path),
+                    }
+                )
+
+    measurements = pd.DataFrame.from_records(records)
+    if measurements.empty:
+        raise ValueError("No Rabbit IgG target measurements were matched")
+    return measurements
+
+
+def standard_error(values: np.ndarray) -> float:
+    """Return SEM; a single available replicate has an SEM of zero."""
+    if values.size < 2:
+        return 0.0
+    return float(np.std(values, ddof=1) / np.sqrt(values.size))
+
+
+def create_delta_results(measurements: pd.DataFrame) -> pd.DataFrame:
+    """Calculate replicate means, SEM, and deltas from injection 21."""
+    rows: list[dict[str, float | int | str]] = []
+
+    for peak_name, target_mass in TARGET_MASSES.items():
+        peak_data = measurements.loc[measurements["Peak"] == peak_name]
+        for metric_name, metric in METRICS.items():
+            reference_values = peak_data.loc[
+                peak_data["Injection Number"] == REFERENCE_INJECTION,
+                metric["source"],
+            ].to_numpy(dtype=float)
+            if reference_values.size == 0:
+                print(
+                    f"Warning: No injection {REFERENCE_INJECTION} reference for "
+                    f"{peak_name} ({metric['title']}); series omitted"
+                )
+                continue
+            reference_mean = float(np.mean(reference_values))
+
+            for injection_number in EXPECTED_INJECTIONS:
+                values = peak_data.loc[
+                    peak_data["Injection Number"] == injection_number,
+                    metric["source"],
+                ].to_numpy(dtype=float)
+                if values.size == 0:
+                    continue
+                mean = float(np.mean(values))
+                rows.append(
+                    {
+                        "Peak": peak_name,
+                        "Target Mass (Da)": target_mass,
+                        "Metric": metric["title"].replace("\n", " "),
+                        "Reference Injection": REFERENCE_INJECTION,
+                        "Reference Mean": reference_mean,
+                        "Injection Number": injection_number,
+                        "Replicate Count": int(values.size),
+                        "Mean": mean,
+                        "Delta": mean - reference_mean,
+                        "SEM": standard_error(values),
+                    }
+                )
+
+    results = pd.DataFrame.from_records(rows)
+    if results.empty:
+        raise ValueError("No delta results could be calculated")
+    return results
+
+
+def get_peak_colors() -> dict[str, tuple[float, ...]]:
+    """Assign each target peak a stable color from the tab20 palette."""
+    colors = plt.get_cmap("tab20").colors
+    return {
+        peak_name: colors[index]
+        for index, peak_name in enumerate(TARGET_MASSES)
+    }
+
+
+def set_delta_axis_limits(
+    axis: plt.Axes,
+    metric_results: pd.DataFrame,
+    minimum_limit: float,
+) -> None:
+    """Set symmetric limits that contain every mean +/- SEM and zero."""
+    lower = metric_results["Delta"].to_numpy(dtype=float) - metric_results[
+        "SEM"
+    ].to_numpy(dtype=float)
+    upper = metric_results["Delta"].to_numpy(dtype=float) + metric_results[
+        "SEM"
+    ].to_numpy(dtype=float)
+    maximum = max(
+        float(np.max(np.abs(lower))),
+        float(np.max(np.abs(upper))),
+        minimum_limit,
     )
-    if not np.any(valid):
-        raise ValueError(f"No finite values in the common time window: {path}")
-
-    return time[valid], np.clip(intensity[valid], 0.0, None)
+    axis.set_ylim(-maximum * 1.10, maximum * 1.10)
+    axis.yaxis.set_major_locator(MaxNLocator(nbins=7, symmetric=True))
 
 
-def normalize_to_percent(intensity: np.ndarray) -> np.ndarray:
-    """Min-max normalize a chromatogram to exactly 0--100%."""
-    minimum = float(np.min(intensity))
-    maximum = float(np.max(intensity))
-    span = maximum - minimum
-    if span <= 0.0:
-        return np.zeros_like(intensity)
-    return 100.0 * (intensity - minimum) / span
-
-
-def style_axis(axis: plt.Axes, panel_letter: str, sample_label: str) -> None:
-    """Apply the same publication styling used in Figure 4."""
-    axis.set_xlim(*TIME_LIMITS)
-    axis.set_ylim(0.0, 180.0)
-    axis.set_ylabel(
-        sample_label,
-        fontsize=13,
-        rotation=90,
-        labelpad=22,
-        ha="center",
-        va="center",
-    )
-    axis.spines["top"].set_visible(False)
-    axis.spines["right"].set_visible(False)
-    axis.spines["left"].set_visible(False)
-    axis.spines["bottom"].set_linewidth(1.5)
-    axis.set_yticks([])
-    axis.tick_params(axis="x", direction="out", width=1.5, length=6)
-    axis.tick_params(axis="y", left=False, labelleft=False)
-    axis.text(
-        0.015,
-        0.97,
-        panel_letter,
-        transform=axis.transAxes,
-        fontsize=16,
-        fontweight="bold",
-        ha="left",
-        va="top",
-        zorder=10,
-    )
-
-
-def make_figure() -> plt.Figure:
-    """Build and return the complete three-panel Figure S12."""
+def make_figure(results: pd.DataFrame) -> plt.Figure:
+    """Create the three-panel Rabbit IgG delta plot."""
     figure, axes = plt.subplots(
-        nrows=3,
-        ncols=1,
+        1,
+        len(METRICS),
+        squeeze=False,
         sharex=True,
         figsize=FIGURE_SIZE_INCHES,
-        constrained_layout=True,
     )
+    axes = axes[0]
+    peak_colors = get_peak_colors()
+    legend_handles = []
+    legend_labels = []
 
-    offsets = STAGGER_STEP * np.arange(2, -1, -1)
-    for axis, (panel_letter, sample_label, datasets) in zip(axes, PANELS):
-        for (path, label, color), offset in zip(datasets, offsets):
-            time, intensity = load_chromatogram(path)
-            axis.plot(
-                time,
-                normalize_to_percent(intensity) + offset,
+    for panel_index, (axis, (metric_name, metric)) in enumerate(
+        zip(axes, METRICS.items())
+    ):
+        metric_title = metric["title"].replace("\n", " ")
+        metric_results = results.loc[results["Metric"] == metric_title]
+
+        axis.set_title(
+            metric["title"],
+            fontsize=PANEL_TITLE_FONT_SIZE,
+            fontweight="bold",
+            pad=14,
+        )
+        axis.text(
+            0.97,
+            0.95,
+            chr(ord("A") + panel_index),
+            transform=axis.transAxes,
+            fontsize=SUBPLOT_LABEL_FONT_SIZE,
+            fontweight="bold",
+            ha="right",
+            va="top",
+            clip_on=True,
+            zorder=10,
+        )
+        axis.axhline(
+            0,
+            color="black",
+            linestyle="--",
+            linewidth=1.0,
+            zorder=1,
+        )
+
+        for peak_name in TARGET_MASSES:
+            peak_results = metric_results.loc[
+                metric_results["Peak"] == peak_name
+            ].sort_values("Injection Number")
+            if peak_results.empty:
+                continue
+            color = peak_colors[peak_name]
+            plotted = axis.errorbar(
+                peak_results["Injection Number"],
+                peak_results["Delta"],
+                yerr=peak_results["SEM"],
+                marker="o",
+                linestyle="-",
+                linewidth=0.7,
+                markersize=1.8,
+                capsize=1.5,
                 color=color,
-                linewidth=2.0,
-                label=label,
+                markerfacecolor=color,
+                markeredgecolor=color,
+                ecolor=color,
+                elinewidth=0.6,
+                capthick=0.6,
+                label=peak_name,
                 zorder=2,
             )
+            if panel_index == 0:
+                legend_handles.append(plotted)
+                legend_labels.append(peak_name)
 
-        style_axis(axis, panel_letter, sample_label)
-        if panel_letter == "A":
-            axis.legend(
-                loc="upper right",
-                frameon=False,
-                fontsize=9.5,
-                handlelength=2.0,
-                borderaxespad=0.2,
-            )
+        set_delta_axis_limits(axis, metric_results, metric["minimum_limit"])
+        axis.xaxis.set_major_locator(MaxNLocator(nbins=6, integer=True))
+        axis.set_xlabel("Number of injections")
+        axis.set_ylabel(metric["ylabel"])
+        axis.spines["top"].set_visible(False)
+        axis.spines["right"].set_visible(False)
+        axis.spines["left"].set_linewidth(AXIS_STROKE_WIDTH)
+        axis.spines["bottom"].set_linewidth(AXIS_STROKE_WIDTH)
+        axis.tick_params(width=AXIS_STROKE_WIDTH)
 
-    axes[-1].set_xlabel("Time (min)")
-    axes[-1].set_xticks(np.arange(0.0, 3.1, 0.5))
+    if legend_handles:
+        figure.legend(
+            legend_handles,
+            legend_labels,
+            loc="upper center",
+            bbox_to_anchor=(0.5, 0.985),
+            ncol=5,
+            frameon=False,
+            fontsize=LEGEND_FONT_SIZE,
+            columnspacing=1.2,
+            handlelength=1.8,
+        )
 
+    figure.tight_layout(rect=(0, 0, 1, 0.80), w_pad=1.5)
     return figure
 
 
 def main() -> None:
-    """Render Figure S12 as a transparent PNG and PDF."""
-    OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
+    """Calculate Rabbit IgG deltas and render Figure S12."""
     plt.rcParams.update(
         {
             "font.family": "Arial",
-            "font.size": 12,
-            "axes.labelsize": 13,
-            "legend.fontsize": 9.5,
+            "font.size": BASE_FONT_SIZE,
             "pdf.fonttype": 42,
             "ps.fonttype": 42,
             "savefig.transparent": True,
         }
     )
 
-    figure = make_figure()
+    OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
+    measurements = collect_measurements()
+    results = create_delta_results(measurements)
+    results.to_csv(OUTPUT_CSV, index=False, float_format="%.10g")
+
+    figure = make_figure(results)
     figure.savefig(OUTPUT_PNG, dpi=OUTPUT_DPI, transparent=True)
     figure.savefig(OUTPUT_PDF, dpi=OUTPUT_DPI, transparent=True)
     plt.close(figure)
+
+    maximum_measurements = (
+        len(REPLICATE_FOLDERS) * len(EXPECTED_INJECTIONS) * len(TARGET_MASSES)
+    )
+    print(
+        f"Matched {len(measurements)} of {maximum_measurements} possible "
+        "Rabbit IgG peak measurements"
+    )
     print(f"Saved {OUTPUT_PNG}")
     print(f"Saved {OUTPUT_PDF}")
+    print(f"Saved {OUTPUT_CSV}")
 
 
 if __name__ == "__main__":
