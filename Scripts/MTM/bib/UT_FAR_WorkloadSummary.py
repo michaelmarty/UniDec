@@ -13,10 +13,10 @@ SCOPUS_API_KEY = "07070f5eff2d979e7792ebcc2096daf6"
 # SCOPUS_API_KEY = "2e5e53fcc1fd031f5399bc9c57860d0a"
 JOURNAL_EXPORT_PATH = Path(__file__).with_name("UT_FAR_Journals_for_JCR.xlsx")
 JIF_DATABASE_PATH = Path(__file__).with_name("JIF.xlsx")
-WORKLOAD_EXPORT_PATH = Path(__file__).with_name("UT_FAR_WorkloadSummary.xlsx")
+WORKLOAD_EXPORT_PATH = Path(__file__).with_name("UT_FAR_WorkloadSummary2.xlsx")
 
 
-def get_publications(author_id: str, refresh: bool | int = False) -> pd.DataFrame:
+def get_publications(author_id: str, refresh: bool | int = True) -> pd.DataFrame:
     """Return every publication in an author's Scopus profile."""
     scopus.init(keys=[SCOPUS_API_KEY])
     scopus_author_id = author_id.rsplit("-", maxsplit=1)[-1]

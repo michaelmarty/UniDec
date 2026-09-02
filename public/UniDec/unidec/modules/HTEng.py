@@ -689,6 +689,77 @@ class UniChromCDEng(HTEng, UniDecCD):
         self.mass_tic_ht = None
         self.ccsstack_ht = None
 
+    def _histogram_grid_shape(self):
+        """Return the expected (charge, m/z) shape for histogram arrays."""
+        if self.ztab is None or self.mz is None:
+            return None
+        return len(self.ztab), len(self.mz)
+
+    def _rebuild_histogram_coordinate_grids(self):
+        """Keep coordinate and mass grids aligned with the histogram axes."""
+        expected_shape = self._histogram_grid_shape()
+        if expected_shape is None:
+            raise ValueError("Cannot build histogram coordinate grids before m/z and charge axes are defined")
+
+        grid_shapes = (np.shape(self.X), np.shape(self.Y), np.shape(self.mass))
+        if any(shape != expected_shape for shape in grid_shapes):
+            print(
+                "Histogram coordinate grid mismatch; rebuilding derived grids:",
+                grid_shapes, "expected", expected_shape
+            )
+        # These grids are inexpensive to derive and may be stale even when their
+        # dimensions still match (for example, after an axis or adduct change).
+        self.X, self.Y = np.meshgrid(self.mz, self.ztab, indexing='xy')
+        self.mass = (self.X - self.config.adductmass) * self.Y
+
+    def _validate_histogram_stack(self, hstack, name="Histogram stack"):
+        """Validate a stack against the current charge and m/z axes."""
+        hstack = np.asarray(hstack)
+        if hstack.ndim != 3:
+            raise ValueError(f"{name} must be three-dimensional (time, charge, m/z); got {hstack.shape}")
+
+        expected_grid_shape = self._histogram_grid_shape()
+        if expected_grid_shape is None:
+            raise ValueError(f"Cannot validate {name.lower()} before m/z and charge axes are defined")
+        if hstack.shape[1:] != expected_grid_shape:
+            raise ValueError(
+                f"{name} charge/m/z shape must be {expected_grid_shape}; got {hstack.shape[1:]}"
+            )
+
+        self._rebuild_histogram_coordinate_grids()
+        return hstack
+
+    def _full_stack_mismatch(self):
+        """Describe why the cached raw stack no longer matches its axes."""
+        if self.fullhstack is None:
+            return "the full histogram stack has not been built"
+        if self.fulltime is None or self.fullscans is None:
+            return "the full time or scan axis has not been built"
+
+        expected_grid_shape = self._histogram_grid_shape()
+        if expected_grid_shape is None:
+            return "the m/z or charge axis has not been built"
+        expected_stack_shape = (len(self.fulltime),) + expected_grid_shape
+        if np.shape(self.fullhstack) != expected_stack_shape:
+            return f"stack shape {np.shape(self.fullhstack)} does not match {expected_stack_shape}"
+        if len(self.fullscans) != len(self.fulltime):
+            return f"scan/time lengths differ ({len(self.fullscans)} != {len(self.fulltime)})"
+        if np.shape(self.topharray) != expected_grid_shape:
+            return f"summed histogram shape {np.shape(self.topharray)} does not match {expected_grid_shape}"
+        return None
+
+    def _ensure_full_histogram_stack(self):
+        """Rebuild a stale raw stack and verify all histogram-grid invariants."""
+        mismatch = self._full_stack_mismatch()
+        if mismatch is not None:
+            print("Full histogram stack/grid mismatch; rebuilding processed scan stack:", mismatch)
+            self.process_data_scans()
+            mismatch = self._full_stack_mismatch()
+            if mismatch is not None:
+                raise ValueError(f"Unable to build a consistent full histogram stack: {mismatch}")
+
+        return self._validate_histogram_stack(self.fullhstack, name="Full histogram stack")
+
     def prep_time_domain(self):
         """
         Prepare the time domain for CDMS data. Creates scans, fullscans, fulltime arrays.
@@ -808,14 +879,19 @@ class UniChromCDEng(HTEng, UniDecCD):
     def decon_full_stack(self, sequential=False, hstack=None, chromaxis=None):
         use_raw_stack = hstack is None
         if use_raw_stack:
-            if self.fullhstack is None:
-                self.process_data_scans()
-            hstack = self.fullhstack
+            hstack = self._ensure_full_histogram_stack()
+        else:
+            hstack = self._validate_histogram_stack(hstack, name="Demultiplexed histogram stack")
         if chromaxis is None:
             chromaxis = self.fulltime
 
         hstack = np.asarray(hstack)
         chromaxis = np.asarray(chromaxis)
+        if len(hstack) != len(chromaxis):
+            raise ValueError(
+                "Histogram stack and chromatography axis must have the same length: "
+                f"{len(hstack)} != {len(chromaxis)}"
+            )
 
         # Apply the same pre-deconvolution masks used by run_deconvolution to
         # every chromatographic slice before exporting the stack.
@@ -1269,22 +1345,7 @@ class UniChromCDEng(HTEng, UniDecCD):
         :return: TIC based on demultiplexed data. 2D array (time, intensity)
         """
         starttime = time.perf_counter()
-        if self.fullhstack is None:
-            self.process_data_scans()
-        elif (len(self.fullhstack) != len(self.fulltime) or
-              len(self.fullhstack) != len(self.fullscans)):
-            print(
-                "Full stack/time domain mismatch; rebuilding processed scan stack:",
-                len(self.fullhstack), len(self.fulltime), len(self.fullscans)
-            )
-            self.process_data_scans()
-
-        if (len(self.fullhstack) != len(self.fulltime) or
-                len(self.fullhstack) != len(self.fullscans)):
-            raise ValueError(
-                "Full histogram stack, time domain, and scan domain must have the same length before "
-                f"demultiplexing: {len(self.fullhstack)}, {len(self.fulltime)}, {len(self.fullscans)}"
-            )
+        self._ensure_full_histogram_stack()
         self.clear_arrays(massonly=True)
 
         # Setup HT

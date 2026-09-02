@@ -119,6 +119,7 @@ static int read_sparse_UCCD(const char *filename, int size[3],
         return 0;
     }
     uint64_t records_left = nonzero_count;
+    uint64_t negative_count = 0;
     while (records_left > 0) {
         const size_t count = records_left < buffer_length ? (size_t)records_left : buffer_length;
         if (fread(records, sizeof(UCCDRecord), count, file_ptr) != count) {
@@ -134,9 +135,18 @@ static int read_sparse_UCCD(const char *filename, int size[3],
                 fclose(file_ptr);
                 return 0;
             }
-            (*intensity)[records[i].index] = records[i].intensity;
+            const float value = records[i].intensity;
+            if (value > 0) {
+                (*intensity)[records[i].index] = value;
+            } else if (value < 0) {
+                negative_count++;
+            }
         }
         records_left -= count;
+    }
+    if (negative_count > 0) {
+        printf("Clipped %llu negative UCCD input values to zero\n",
+               (unsigned long long)negative_count);
     }
     free(records);
     fclose(file_ptr);
