@@ -24,7 +24,13 @@ UCCD_BINARY_RECORD = np.dtype([("index", "<u4"), ("intensity", "<f4")])
 
 
 def write_uccd_binary(filename, chromaxis, mzaxis, zaxis, hstack):
-    """Write a sparse UCCD cube in [chromatography, m/z, charge] order."""
+    """Write a nonnegative sparse UCCD cube in [chromatography, m/z, charge] order.
+
+    Richardson-Lucy deconvolution requires nonnegative observations. HT/MRS
+    demultiplexing can leave small negative sidelobes in a histogram stack, so
+    omit those values rather than allowing negative correction ratios to grow
+    into large positive spikes during iteration.
+    """
     chromaxis = np.asarray(chromaxis, dtype="<f4")
     mzaxis = np.asarray(mzaxis, dtype="<f4")
     zaxis = np.asarray(zaxis, dtype="<f4")
@@ -37,7 +43,10 @@ def write_uccd_binary(filename, chromaxis, mzaxis, zaxis, hstack):
     if total_size > np.iinfo(np.uint32).max:
         raise ValueError("UCCD cube is too large for 32-bit sparse indexes")
 
-    nonzero_count = int(np.count_nonzero(hstack))
+    nonzero_count = int(np.count_nonzero(hstack > 0))
+    negative_count = int(np.count_nonzero(hstack < 0))
+    if negative_count:
+        print(f"Clipping {negative_count} negative UCCD input values to zero")
     with open(filename, "wb") as outfile:
         outfile.write(UCCD_BINARY_HEADER.pack(
             UCCD_BINARY_MAGIC, len(chromaxis), len(mzaxis), len(zaxis), nonzero_count
@@ -49,7 +58,7 @@ def write_uccd_binary(filename, chromaxis, mzaxis, zaxis, hstack):
         # Process one chromatographic slice at a time so the sparse index
         # arrays do not become another cube-sized allocation.
         for chromindex, scan in enumerate(hstack):
-            zindex, mzindex = np.nonzero(scan)
+            zindex, mzindex = np.nonzero(scan > 0)
             records = np.empty(len(zindex), dtype=UCCD_BINARY_RECORD)
             records["index"] = (
                 (chromindex * len(mzaxis) + mzindex) * len(zaxis) + zindex

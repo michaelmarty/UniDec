@@ -640,6 +640,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         if self.chrom_mode:
             self.rununidecstack = wx.Button(panel2, -1, "Run UniDec Full Stack")
+            self.rununidecstack.SetToolTip(wx.ToolTip(
+                "Deconvolve every time slice in the full raw CD-MS stack with UCCD."))
             self.parent.Bind(wx.EVT_BUTTON, self.pres.on_unidec_stack_button, self.rununidecstack)
             sizercontrol2.Add(self.rununidecstack, (i, 0), span=(1, 2), flag=wx.EXPAND)
             i += 1
@@ -649,7 +651,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                              self.rununidecdemultstack)
             sizercontrol2.Add(self.rununidecdemultstack, (i, 0), span=(1, 2), flag=wx.EXPAND)
             self.rununidecdemultstack.SetToolTip(wx.ToolTip(
-                "Run All Demultiplex, then deconvolve the demultiplexed stack with UCCD."))
+                "Demultiplex the full CD-MS stack, then deconvolve every time slice with UCCD."))
             i += 1
 
         panel2.SetSizer(sizercontrol2)
@@ -777,6 +779,11 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox2b.Add(self.ctlpoolflag, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
+        self.ctlrawflag = wx.RadioBox(panel2b, label="Output Type",
+                                      choices=["Reconvolved/Profile", "Raw/Centroid"])
+        gbox2b.Add(self.ctlrawflag, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
+
         sb = wx.StaticBox(panel2b, label='Native Charge Offset Range')
         sbs = wx.StaticBoxSizer(sb, orient=wx.HORIZONTAL)
         self.ctlminnativez = wx.TextCtrl(sb, value='', size=(75, -1))
@@ -871,10 +878,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         self.ctlpublicationmode = wx.CheckBox(panel3b, label="Publication Mode")
         gbox3b.Add(self.ctlpublicationmode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-        i += 1
-
-        self.ctlrawflag = wx.RadioBox(panel3b, label="", choices=["Reconvolved/Profile", "Raw/Centroid"])
-        gbox3b.Add(self.ctlrawflag, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 
         self.ctlnormpeakthresh = wx.CheckBox(panel3b, label="Normalize Peak Threshold")
