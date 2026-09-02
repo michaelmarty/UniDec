@@ -20,7 +20,11 @@ class CDMainwindow(MainwindowBase):
     Main UniDec GUI Window.
     """
 
-    def __init__(self, parent, title, config, iconfile=None, tabbed=None, htmode=False):
+    chrom_mode = False
+    controls_class = CD_controls.main_controls
+    menu_class = CDMenu.CDMenu
+
+    def __init__(self, parent, title, config, iconfile=None, tabbed=None):
         """
         initialize window and feed in links to presenter and config.
 
@@ -31,7 +35,6 @@ class CDMainwindow(MainwindowBase):
         """
         MainwindowBase.__init__(self, parent, title, config, iconfile, tabbed)
 
-        self.htmode = htmode
         if tabbed is None:
             # If tabbed isn't specified, use the display size to decide what is best
             print("Display Size ", self.displaysize)
@@ -55,7 +58,7 @@ class CDMainwindow(MainwindowBase):
 
         self.twave = self.config.twaveflag > 0
 
-        self.menu = CDMenu.CDMenu(self, self.config, self.pres, self.tabbed, htmode=self.htmode)
+        self.menu = self.menu_class(self, self.config, self.pres, self.tabbed)
         self.SetMenuBar(self.menu.menuBar)
 
         self.setup_main_panel()
@@ -92,9 +95,6 @@ class CDMainwindow(MainwindowBase):
         Lays Out Main Panel. Binds some functions to presenter.
         :return: None
         """
-        # Create Status Bar
-        self.CreateStatusBar(7)
-        self.SetStatusWidths([-1, 600, 200, 100, 250, 150, 130])
         # Sizers to develop layout
         # s1 = (min(self.displaysize[0], 1851), self.displaysize[1])
         # s2 = (550, self.displaysize[1])
@@ -117,7 +117,7 @@ class CDMainwindow(MainwindowBase):
         #
         # ...................................
 
-        if self.htmode:
+        if self.chrom_mode:
             swoop = True
         else:
             swoop = False
@@ -135,7 +135,7 @@ class CDMainwindow(MainwindowBase):
             tab6 = wx.Panel(plotwindow)
 
             self.plot1 = PlottingWindow.Plot2d(tab1, smash=1, figsize=figsize, swoop=swoop)
-            self.plot2 = PlottingWindow.Plot1d(tab2, integrate=1, figsize=figsize)
+            self.plot2 = PlottingWindow.Plot1d(tab2, integrate=0, smash=2, figsize=figsize)
             self.plot3 = PlottingWindow.Plot1d(tab3, figsize=figsize)
             self.plot4 = PlottingWindow.Plot1d(tab4, figsize=figsize)
             self.plot5 = PlottingWindow.Plot2d(tab5, smash=2, figsize=figsize)
@@ -148,7 +148,7 @@ class CDMainwindow(MainwindowBase):
             miscwindows.setup_tab_box(tab5, self.plot5)
             miscwindows.setup_tab_box(tab6, self.plot6)
 
-            if self.htmode:
+            if self.chrom_mode:
                 tabtic = wx.Panel(plotwindow)
                 self.plottic = PlottingWindow.Plot1d(tabtic, figsize=figsize)
                 miscwindows.setup_tab_box(tabtic, self.plottic)
@@ -166,7 +166,7 @@ class CDMainwindow(MainwindowBase):
             plotwindow.AddPage(tab5, "Mass vs. Charge")
             plotwindow.AddPage(tab6, "Bar Chart")
 
-            if self.htmode:
+            if self.chrom_mode:
                 tab7 = wx.Panel(plotwindow)
                 tab8 = wx.Panel(plotwindow)
                 tab9 = wx.Panel(plotwindow)
@@ -192,14 +192,14 @@ class CDMainwindow(MainwindowBase):
             sizerplot = wx.GridBagSizer()
             figsize = self.config.figsize
             self.plot1 = PlottingWindow.Plot2d(plotwindow, smash=1, figsize=figsize, swoop=swoop)
-            self.plot2 = PlottingWindow.Plot1d(plotwindow, integrate=1, figsize=figsize)
+            self.plot2 = PlottingWindow.Plot1d(plotwindow, integrate=0, smash=2, figsize=figsize)
             self.plot3 = PlottingWindow.Plot1d(plotwindow, figsize=figsize)
             self.plot4 = PlottingWindow.Plot1d(plotwindow, figsize=figsize)
             self.plot5 = PlottingWindow.Plot2d(plotwindow, smash=2, figsize=figsize)
             self.plot6 = PlottingWindow.Plot1d(plotwindow, figsize=figsize)
 
             i = 0
-            if self.htmode:
+            if self.chrom_mode:
                 self.plottic = PlottingWindow.Plot1d(plotwindow, figsize=figsize)
                 sizerplot.Add(self.plottic, (0, 0), span=(1, 1), flag=wx.EXPAND)
 
@@ -214,7 +214,7 @@ class CDMainwindow(MainwindowBase):
             sizerplot.Add(self.plot5, (i + 2, 0), span=(1, 1), flag=wx.EXPAND)
             sizerplot.Add(self.plot6, (i + 2, 1), span=(1, 1), flag=wx.EXPAND)
 
-            if self.htmode:
+            if self.chrom_mode:
                 self.plot7 = PlottingWindow.Plot2d(plotwindow, figsize=figsize)
                 self.plot8 = PlottingWindow.Plot2d(plotwindow, figsize=figsize)
                 self.plot9 = plot3d.CubePlot(plotwindow, figsize=figsize)
@@ -236,15 +236,16 @@ class CDMainwindow(MainwindowBase):
 
         self.plotpanel = plotwindow
 
-        if self.htmode:
+        if self.chrom_mode:
             self.Bind(self.plot5.EVT_MZLIMITS, self.pres.on_select_massz_range, self.plot5)
             self.Bind(self.plot1.EVT_MZLIMITS, self.pres.on_select_mzz_region, self.plot1)
+            self.Bind(self.plot2.EVT_MZLIMITS, self.pres.on_select_mass_range, self.plot2)
             self.Bind(self.plot1.EVT_SWOOP_DRAG, self.pres.on_select_swoop, self.plot1)
 
         self.plots = [self.plot1, self.plot2, self.plot5, self.plot4, self.plot3, self.plot6]
         self.plotnames = ["Figure1", "Figure2", "Figure5", "Figure4", "Figure3", "Figure6"]
 
-        if self.htmode:
+        if self.chrom_mode:
             self.plots = [self.plottic, self.plotdecontic] + self.plots + [self.plot7, self.plot8, self.plot9,
                                                                            self.plot10]
             self.plotnames = ["Chromatogram", "Decon Chromatogram"] + self.plotnames + ["Figure7", "Figure8", "Figure9",
@@ -260,14 +261,14 @@ class CDMainwindow(MainwindowBase):
         # ...........................
 
         sizerpeaks = wx.BoxSizer(wx.VERTICAL)
-        if self.htmode:
+        if self.chrom_mode:
             self.peakpanel = peaklistsort.PeakListCtrlPanel(panelp, size=(300, 500))
         else:
             self.peakpanel = peaklistsort.PeakListCtrlPanel(panelp)
         self.bind_peakpanel()
         sizerpeaks.Add(self.peakpanel, 0, wx.EXPAND)
 
-        if self.htmode:
+        if self.chrom_mode:
             self.chrompanel = ListCtrlPanel(panelp, self.pres, size=(300, 300))
             sizerpeaks.Add(self.chrompanel, 0, wx.EXPAND)
 
@@ -280,8 +281,7 @@ class CDMainwindow(MainwindowBase):
         #
         # .............................
         sizercontrols = wx.BoxSizer(wx.VERTICAL)
-        self.controls = CD_controls.main_controls(self, self.config, self.pres, panel, self.icon_path,
-                                                  htmode=self.htmode)
+        self.controls = self.controls_class(self, self.config, self.pres, panel, self.icon_path)
         sizercontrols.Add(self.controls, 1, wx.EXPAND)
         panel.SetSizer(sizercontrols)
         sizercontrols.Fit(self)
@@ -296,6 +296,14 @@ class CDMainwindow(MainwindowBase):
         self.SetSizer(sizer)
         sizer.Fit(self)
         self.Layout()
+
+        # wxWidgets 3.3 can log a false SB_GETRECT failure while changing the
+        # native control's field count. Suppress only those construction logs;
+        # relative widths also keep every pane valid on narrow displays.
+        statusbar_log_silencer = wx.LogNull()
+        self.CreateStatusBar(7)
+        self.SetStatusWidths([-1, -12, -4, -2, -5, -3, -3])
+        del statusbar_log_silencer
 
         self.plotpanel.SetMinSize(wx.Size(-1, -1))
         self.plotpanel.Bind(wx.EVT_SIZE, self.resize_plots)

@@ -15,7 +15,9 @@
 
 #define __STDC_WANT_LIB_EXT1__ 1
 #include <stdio.h>
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
 
@@ -23,6 +25,7 @@
 #include "UniDecIM_Main.h"
 #include "MetaUniDec_Main.h"
 #include "UniDecCD_Main.h"
+#include "UCCD_Main.h"
 #include "UD_conv.h"
 
 Config ImportConfig(int argc, char * argv[], Config config);

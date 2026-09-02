@@ -1,7 +1,7 @@
 from unidec.UniDecCD import UniDecCDApp
 import multiprocessing
 import unidec.modules.HTEng as HTEng
-from unidec.modules.gui_elements import CDWindow
+from unidec.modules.gui_elements import ChromCDWindow
 from pubsub import pub
 import wx
 import unidec.tools as ud
@@ -28,8 +28,7 @@ class UniChromCDApp(UniDecCDApp):
         self.showht = False
         self.showccs = False
 
-        self.view = CDWindow.CDMainwindow(self, "UniChrom for CD-MS Data",
-                                          self.eng.config, htmode=True)
+        self.view = ChromCDWindow.CDMainwindow(self, "UniChrom for CD-MS Data", self.eng.config)
         self.comparedata = None
 
         # pub.subscribe(self.on_select_mzz_region, 'mzlimits')
@@ -69,6 +68,7 @@ class UniChromCDApp(UniDecCDApp):
             path2 = r"Z:\Group Share\BHT\Q Exactive HF Data\RPLC-MS\Agilent LC\20251021\20251022_BHT_0.1mgmL_proteinmix_6inj_0.1gas_50inj_zoom_CDMS_C4_2_2025-10-22-08-56-16.dmt"
             path2 = r"Z:\Group Share\BHT\20251030_BHT_POSB_10XDiluted_HEKcelllysate_12INJ_CDMS_C4_3.dmt"
             path2 = r"Z:\Group Share\BHT\Q Exactive HF Data\RPLC-MS\Acquity UPLC\CDMS Injections to Stitch\20251216\Number of Injections Comparison\Carbonic Anhydrase\1 Injection\20251216_BHT_0o1mgmL_carbonicanhydrase_CDMS_2uLinj_1.dmt"
+            path2 = r"C:\Data\CDMS\20260501_BHT_haloc4column_watersmAb_set1_CDMS_0o1mgmL_merged_21.npz"
             try:
                 self.on_open_file(None, None, path=path2)
             except:
@@ -98,10 +98,10 @@ class UniChromCDApp(UniDecCDApp):
 
     def on_replot(self, e=None):
         self.export_config()
-        self.makeplot1()
-        self.makeplot2()
-        self.makeplot3()
-        self.makeplot4()
+        # self.makeplot1()
+        # self.makeplot2()
+        # self.makeplot3()
+        # self.makeplot4()
         self.makeplot6()
         self.on_replot_chrom()
         pass
@@ -119,6 +119,59 @@ class UniChromCDApp(UniDecCDApp):
         self.eng.cc.clear()
         self.dataprep()
         self.make_tic_plot()
+
+    def on_unidec_button(self, e=None):
+        self.view.SetStatusText("Deconvolving", number=5)
+        # self.view.clear_all_plots()
+        self.export_config(self.eng.config.confname)
+        if self.showht:
+            self.eng.run_deconvolution(process_data=True) # This used to be false, but I can't remember why. Was creating issues.
+        else:
+            self.eng.run_deconvolution()
+        # self.makeplot1()
+        # self.makeplot2()
+        # self.makeplot3()
+        # self.makeplot4()
+        self.plot_chromatograms()
+        self.view.SetStatusText("Finished", number=5)
+
+        pass
+
+    def on_unidec_stack_button(self, e=None):
+        self.view.SetStatusText("Deconvolving", number=5)
+        # self.view.clear_all_plots()
+        self.export_config(self.eng.config.confname)
+        self.eng.decon_full_stack()
+        # self.makeplot1()
+        # self.makeplot2()
+        # self.makeplot3()
+        # self.makeplot4()
+        self.refresh_eics()
+        self.view.SetStatusText("Finished", number=5)
+        pass
+
+    def on_unidec_demult_stack_button(self, e=None):
+        """Demultiplex the full stack, then deconvolve that stack with UCCD."""
+        self.view.SetStatusText("Demultiplexing", number=5)
+        self.run_all_ht()
+        if self.eng.fullhstack_ht is None:
+            self.view.SetStatusText("Demultiplexing failed", number=5)
+            return
+
+        self.view.SetStatusText("Deconvolving demultiplexed stack", number=5)
+        self.export_config(self.eng.config.confname)
+        deconvolved_stack = self.eng.decon_full_stack(
+            hstack=self.eng.fullhstack_ht,
+            chromaxis=self.eng.decontime,
+        )
+        if deconvolved_stack is None:
+            self.view.SetStatusText("Deconvolution failed", number=5)
+            return
+
+        self.eng.fullhstack_ht = deconvolved_stack
+        self.showht = True
+        self.refresh_eics()
+        self.view.SetStatusText("Finished", number=5)
 
     def on_pick_peaks(self, e=None):
         """
@@ -216,6 +269,20 @@ class UniChromCDApp(UniDecCDApp):
                 self.add_mass_eic(xlimits, ylimits, color=color, plot=True, ccs=True)
             else:
                 self.add_mass_eic(xlimits, ylimits, color=color, plot=True)
+
+    def on_select_mass_range(self, e=None):
+        self.export_config(self.eng.config.confname)
+        if not wx.GetKeyState(wx.WXK_CONTROL):
+            xlimits, ylimits = self.view.plot2.get_limits()
+            xlimits = np.array(xlimits) * self.view.plot2.kdnorm
+            print("New Mass Limits", xlimits)
+            self.view.plot2.reset_zoom()
+            color = ud.get_color_from_index(len(self.eng.cc.chromatograms))
+
+            if self.eng.ccsstack_ht is not None:
+                self.add_mass_eic(xlimits, color=color, plot=True, ccs=True)
+            else:
+                self.add_mass_eic(xlimits, color=color, plot=True)
 
     def make_tic_plot(self):
         """
@@ -472,9 +539,40 @@ class UniChromCDApp(UniDecCDApp):
             except Exception:
                 sarray = [-1, -1, -1, -1]
 
-            if "TIC" in label or self.eng.config.demultiplexmode in label or "Mass EIC" in label:
+            massrange = [-1, -1]
+            massmode = False
+            if len(a) >= 16:
+                try:
+                    massrange = [float(a[13]), float(a[14])]
+                    massmode = str(a[15]).lower() in ("true", "1", "t", "y", "yes")
+                except (TypeError, ValueError):
+                    massrange = [-1, -1]
+                    massmode = False
+
+            # Backward compatibility for the original 13-column format. Old
+            # mass EIC rows did not store massrange/massmode, but the default
+            # label contains the range (for example, "Mass: 142000-151000 z:").
+            if not massmode and label.startswith("Mass:"):
+                try:
+                    mass_text = label.split("Mass:", 1)[1].split(" z:", 1)[0].strip()
+                    massrange = [float(value) for value in mass_text.split("-", 1)]
+                    massmode = len(massrange) == 2
+                except (TypeError, ValueError, IndexError):
+                    massrange = [-1, -1]
+                    massmode = False
+
+            if "TIC" in label or self.eng.config.demultiplexmode in label:
                 continue
-            self.add_eic(mzrange, zrange, color=color, label=label, sarray=sarray, plot=False)
+            if massmode and massrange[0] != -1:
+                # Restore the mass stack without adding a duplicate Mass_TIC
+                # while the saved chromatogram list is being reconstructed.
+                if self.eng.mstack is None:
+                    self.eng.transform_stacks()
+                self.add_mass_eic(massrange, zrange, color=color, label=label, plot=False)
+            elif mzrange[0] != -1 or (sarray[0] != -1 and sarray[1] != -1):
+                self.add_eic(mzrange, zrange, color=color, label=label, sarray=sarray, plot=False)
+            else:
+                print("Skipping chromatogram with no saved extraction range:", label)
             # ht = ht.lower() in ['true', '1', 't', 'y', 'yes', 'yeah']
         self.plot_chromatograms()
 
@@ -503,6 +601,8 @@ class UniChromCDApp(UniDecCDApp):
             if "TIC" not in c.label:
                 if c.sarray is not None and c.sarray[0] != -1:
                     newd = self.eng.extract_swoop_subdata(c.sarray)
+                elif c.massmode and c.massrange is not None and c.massrange[0] != -1:
+                    newd = self.eng.extract_mass_subdata(c.massrange, c.zrange)
                 else:
                     newd = self.eng.extract_subdata(c.mzrange, c.zrange)
                 c.dataobj = newd
@@ -556,11 +656,11 @@ class UniChromCDApp(UniDecCDApp):
             ylimits = self.view.plottic.subplot1.get_ylim()
             ylimits = np.array(ylimits)
             ylimits[0] = 0
-            self.plot_chromatograms()
+            self.select_time_range(range=xlimits, raw=True)
             # Plot Red box on plottic
             self.view.plottic.add_rect(xlimits[0], ylimits[0], xlimits[1] - xlimits[0], ylimits[1] - ylimits[0],
                                        edgecolor="red", facecolor="red", nopaint=False)
-            self.select_ht_range(range=xlimits, raw=True)
+
 
     def on_select_time_range_decon(self, e=None):
         """
@@ -579,11 +679,13 @@ class UniChromCDApp(UniDecCDApp):
             print("New limits:", xlimits)
             self.view.plotdecontic.reset_zoom()
             ylimits = self.view.plotdecontic.subplot1.get_ylim()
-            self.plot_chromatograms()
+            ylimits = np.array(ylimits)
+            ylimits[0] = 0
+            self.select_time_range(range=xlimits)
             # Plot Red box on plottic
             self.view.plotdecontic.add_rect(xlimits[0], ylimits[0], xlimits[1] - xlimits[0], ylimits[1] - ylimits[0],
                                             edgecolor="red", facecolor="red", nopaint=False)
-            self.select_ht_range(range=xlimits)
+
 
     def on_run_all_ht(self, e=None):
         """
@@ -600,7 +702,7 @@ class UniChromCDApp(UniDecCDApp):
         :return: None
         """
         self.export_config(self.eng.config.confname)
-        self.eng.process_data_scans()
+        # self.eng.process_data_scans()
         decondat, procdat = self.eng.run_all_ht()
         procdat = np.transpose(np.vstack((self.eng.fulltime, procdat)))
 
@@ -641,7 +743,7 @@ class UniChromCDApp(UniDecCDApp):
                 c.ccsdat = ccs_tic
         self.plot_chromatograms()
 
-    def select_ht_range(self, range=None, raw=False):
+    def select_time_range(self, range=None, raw=False):
         """
         Select a time range and create a 2D m/z vs z sum from that time range post-HT.
         :param range: Time range to select. Default None, which should be all times
@@ -654,10 +756,12 @@ class UniChromCDApp(UniDecCDApp):
             self.eng.select_ht_range(range=range)
             self.view.SetStatusText(self.eng.config.demultiplexmode + " # Ions: " + str(np.sum(self.eng.harray)),
                                     number=2)
-        self.makeplot1()
-        self.makeplot2()
-        self.makeplot3()
-        self.makeplot4()
+
+        self.plot_chromatograms()
+        # self.makeplot1()
+        # self.makeplot2()
+        # self.makeplot3()
+        # self.makeplot4()
 
     def make_charge_time_2dplot(self, e=None):
         """
@@ -936,6 +1040,45 @@ class UniChromCDApp(UniDecCDApp):
                 self.run_eic_ht(None, None, color=color, sarray=self.eng.sarray)
             else:
                 self.add_eic(None, None, color=color, sarray=self.eng.sarray)
+
+    def refresh_eics(self, e=None):
+        """
+        Refresh the EICs by re-running the EIC extraction and HT if applicable.
+        :param e: Unused event
+        :return: None
+        """
+        self.export_config(self.eng.config.confname)
+        old_chroms = self.eng.cc.chromatograms.copy()
+        self.eng.cc.chromatograms = []
+
+        # Mass EICs depend on the transformed full stack. Rebuild it once if
+        # any saved chromatograms require it; decon_full_stack invalidates the
+        # old transformed stacks when its UCCD result replaces fullhstack.
+        if any(c.massmode and "TIC" not in c.label for c in old_chroms):
+            self.eng.transform_stacks()
+
+        for c in old_chroms:
+            if "TIC" in c.label:
+                self.eng.cc.add_chromatogram(c.chromdat, decondat=c.decondat, ccsdat=c.ccsdat, color=c.color,
+                                             zrange=c.zrange, mzrange=c.mzrange, sarray=c.sarray, label=c.label,
+                                             massrange=c.massrange, massmode=c.massmode)
+            elif c.massmode:
+                self.add_mass_eic(c.massrange, c.zrange, color=c.color, label=c.label, plot=False)
+            else:
+                if self.showht or self.showccs:
+                    self.run_eic_ht(c.mzrange, c.zrange, color=c.color, sarray=c.sarray)
+                else:
+                    self.add_eic(c.mzrange, c.zrange, color=c.color, sarray=c.sarray)
+            # if "Mass EIC" in c.label:
+            #     self.add_mass_eic(c.mzrange, c.zrange, color=c.color, sarray=c.sarray, plot=False)
+            # if "TIC" in c.label:
+            #     self.make_tic_plot()
+            # if "DM_TIC" in c.label:
+            #     self.run_all_ht()
+            # if "Mass_TIC" in c.label:
+            #     self.run_all_mass_transform()
+        self.plot_chromatograms()
+
 
 
 if __name__ == "__main__":

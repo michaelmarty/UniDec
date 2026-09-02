@@ -1,4 +1,5 @@
 import platform
+import struct
 import numpy as np
 import os
 import scipy
@@ -16,6 +17,115 @@ from scipy.optimize import curve_fit
 from UniDecImporter import ImportTools as IT
 
 cdeng_types = [".mzml", ".raw", ".mzxml", ".gz"]
+
+UCCD_BINARY_MAGIC = b"UCCDBIN1"
+UCCD_BINARY_HEADER = struct.Struct("<8sIIIQ")
+UCCD_BINARY_RECORD = np.dtype([("index", "<u4"), ("intensity", "<f4")])
+
+
+def write_uccd_binary(filename, chromaxis, mzaxis, zaxis, hstack):
+    """Write a nonnegative sparse UCCD cube in [chromatography, m/z, charge] order.
+
+    Richardson-Lucy deconvolution requires nonnegative observations. HT/MRS
+    demultiplexing can leave small negative sidelobes in a histogram stack, so
+    omit those values rather than allowing negative correction ratios to grow
+    into large positive spikes during iteration.
+    """
+    chromaxis = np.asarray(chromaxis, dtype="<f4")
+    mzaxis = np.asarray(mzaxis, dtype="<f4")
+    zaxis = np.asarray(zaxis, dtype="<f4")
+    hstack = np.asarray(hstack)
+    expected_shape = (len(chromaxis), len(zaxis), len(mzaxis))
+    if hstack.shape != expected_shape:
+        raise ValueError(f"UCCD stack must have shape {expected_shape}; got {hstack.shape}")
+
+    total_size = int(np.prod(expected_shape, dtype=np.int64))
+    if total_size > np.iinfo(np.uint32).max:
+        raise ValueError("UCCD cube is too large for 32-bit sparse indexes")
+
+    nonzero_count = int(np.count_nonzero(hstack > 0))
+    negative_count = int(np.count_nonzero(hstack < 0))
+    if negative_count:
+        print(f"Clipping {negative_count} negative UCCD input values to zero")
+    with open(filename, "wb") as outfile:
+        outfile.write(UCCD_BINARY_HEADER.pack(
+            UCCD_BINARY_MAGIC, len(chromaxis), len(mzaxis), len(zaxis), nonzero_count
+        ))
+        outfile.write(chromaxis.tobytes())
+        outfile.write(mzaxis.tobytes())
+        outfile.write(zaxis.tobytes())
+
+        # Process one chromatographic slice at a time so the sparse index
+        # arrays do not become another cube-sized allocation.
+        for chromindex, scan in enumerate(hstack):
+            zindex, mzindex = np.nonzero(scan > 0)
+            records = np.empty(len(zindex), dtype=UCCD_BINARY_RECORD)
+            records["index"] = (
+                (chromindex * len(mzaxis) + mzindex) * len(zaxis) + zindex
+            )
+            records["intensity"] = scan[zindex, mzindex]
+            outfile.write(records.tobytes())
+
+
+def read_uccd_binary(filename, expected_axes=None, sum_mz=False):
+    """Read a sparse UCCD cube into Python's [time, charge, m/z] order."""
+    with open(filename, "rb") as infile:
+        header = infile.read(UCCD_BINARY_HEADER.size)
+        if len(header) != UCCD_BINARY_HEADER.size:
+            raise ValueError(f"Incomplete UCCD header in {filename}")
+        magic, nchrom, nmz, nz, nonzero_count = UCCD_BINARY_HEADER.unpack(header)
+        if magic != UCCD_BINARY_MAGIC:
+            raise ValueError(f"Invalid UCCD binary file: {filename}")
+
+        axis_count = nchrom + nmz + nz
+        axis_bytes = infile.read(axis_count * np.dtype("<f4").itemsize)
+        if len(axis_bytes) != axis_count * np.dtype("<f4").itemsize:
+            raise ValueError(f"Incomplete UCCD axes in {filename}")
+        axes = np.frombuffer(axis_bytes, dtype="<f4")
+        chromaxis = axes[:nchrom]
+        mzaxis = axes[nchrom:nchrom + nmz]
+        zaxis = axes[nchrom + nmz:]
+
+        if expected_axes is not None:
+            for name, actual, expected in zip(
+                    ("chromatography", "m/z", "charge"),
+                    (chromaxis, mzaxis, zaxis), expected_axes):
+                try:
+                    # UCCD axes are serialized as little-endian float32. Compare
+                    # against that same representation so object/string-backed
+                    # numeric axes do not reach np.allclose as dtype=object.
+                    expected = np.asarray(expected, dtype=actual.dtype)
+                except (TypeError, ValueError) as exc:
+                    raise ValueError(
+                        f"Expected UCCD {name} axis cannot be converted to {actual.dtype}"
+                    ) from exc
+                if actual.shape != expected.shape or not np.allclose(actual, expected):
+                    raise ValueError(f"UCCD {name} axis does not match the input stack")
+
+        if sum_mz:
+            output = np.zeros(nmz, dtype=np.float32)
+        else:
+            output = np.zeros((nchrom, nz, nmz), dtype=np.float32)
+        chunk_size = 1000000
+        records_left = nonzero_count
+        while records_left:
+            count = min(chunk_size, records_left)
+            record_bytes = infile.read(count * UCCD_BINARY_RECORD.itemsize)
+            if len(record_bytes) != count * UCCD_BINARY_RECORD.itemsize:
+                raise ValueError(f"Incomplete UCCD sparse data in {filename}")
+            records = np.frombuffer(record_bytes, dtype=UCCD_BINARY_RECORD)
+            indexes = records["index"].astype(np.int64)
+            if np.any(indexes >= nchrom * nmz * nz):
+                raise ValueError(f"Out-of-range sparse index in {filename}")
+            chromindex, remainder = divmod(indexes, nmz * nz)
+            mzindex, zindex = divmod(remainder, nz)
+            if sum_mz:
+                np.add.at(output, mzindex, records["intensity"])
+            else:
+                output[chromindex, zindex, mzindex] = records["intensity"]
+            records_left -= count
+
+    return output, (chromaxis, mzaxis, zaxis)
 
 
 
@@ -220,9 +330,21 @@ class UniDecCD(engine.UniDec):
                 pass
 
         self.config.cdmsflag = 1
-        # Load the config if you can find it
+        # Load the config if you can find it. Fall back to the legacy files,
+        # but restore the short names after importing their configuration and
+        # companion lists so subsequent writes do not hit Windows MAX_PATH.
         if os.path.isfile(self.config.confname):
             self.load_config(self.config.confname)
+        elif os.path.isfile(self.legacy_confname):
+            short_outfname = self.config.outfname
+            try:
+                self.config.outfname = self.legacy_outfname
+                self.config.default_file_names()
+                self.load_config(self.config.confname)
+            finally:
+                self.config.outfname = short_outfname
+                self.config.default_file_names(s="")
+                self.config.confname = os.path.join(self.config.udir, "conf.dat")
         else:
             self.export_config()
 
@@ -250,16 +372,24 @@ class UniDecCD(engine.UniDec):
         if not os.path.isdir(dirnew):
             os.mkdir(dirnew)
         self.config.udir = dirnew
-        # Default file names
+        # Use bare file names inside the already unique _unidecfiles directory.
+        # Keep the old paths available for loading existing results and caches.
         basename = os.path.split(os.path.splitext(file_name)[0])[1]
-        self.config.outfname = os.path.join(self.config.udir, basename)
+        self.legacy_outfname = os.path.join(self.config.udir, basename)
+        self.legacy_confname = self.legacy_outfname + "_conf.dat"
+        legacy_cdrawextracts = self.legacy_outfname + "_rawdata.npz"
+        self.config.outfname = os.path.join(self.config.udir, "")
         self.config.extension = os.path.splitext(self.config.filename)[1]
-        self.config.default_file_names()
+        self.config.default_file_names(s="")
+        self.config.confname = os.path.join(self.config.udir, "conf.dat")
 
         # Look for already processed data in the form of an npz file and load it if it exists for speed.
-        if os.path.isfile(self.path) and os.path.isfile(self.config.cdrawextracts) and not refresh:
-            print("Raw data found:", self.config.cdrawextracts)
-            self.path = self.config.cdrawextracts
+        raw_extracts = self.config.cdrawextracts
+        if not os.path.isfile(raw_extracts) and os.path.isfile(legacy_cdrawextracts):
+            raw_extracts = legacy_cdrawextracts
+        if os.path.isfile(self.path) and os.path.isfile(raw_extracts) and not refresh:
+            print("Raw data found:", raw_extracts)
+            self.path = raw_extracts
 
 
     def process_data(self, transform=True):
@@ -319,6 +449,7 @@ class UniDecCD(engine.UniDec):
         if len(self.harray) > 0:
             self.harray = self.hist_data_prep()
             self.harray_process(transform=transform)
+            print("Histogram Shape:", self.harray.shape)
             return 1
         else:
             print("ERROR: Empty histogram array on process")
@@ -424,23 +555,17 @@ class UniDecCD(engine.UniDec):
         elif slope < 0 or self.config.subtype == 0:
             self.zarray = self.farray[:, 1] / (np.abs(slope) * self.noise)
 
-    def histogram(self, mzbins=1, zbins=1, x=None, y=None, mzrange=None, zrange=None):
+    def set_up_hist_axes(self, x=None, y=None, mzbins=1, zbins=1, mzrange=None, zrange=None):
         if x is None:
             x = self.farray[:, 0]
 
         if y is None:
             y = self.zarray
 
-        if mzbins < 0.001:
-            print("Error, mzbins too small. Changing to 1", mzbins)
-            mzbins = 1
-            self.config.mzbins = 1
-        self.config.mzbins = mzbins
-        self.config.CDzbins = zbins
         if len(x) == 0:
             print("ERROR: Empty Filtered Array, check settings")
             self.harray = []
-            return 0
+            return [], []
 
         if mzrange is None:
             mzrange = np.array([self.config.minmz, self.config.maxmz])
@@ -457,6 +582,28 @@ class UniDecCD(engine.UniDec):
 
         mzaxis = np.arange(mzrange[0] - mzbins / 2., mzrange[1] + mzbins / 2, mzbins)
         zaxis = np.arange(zrange[0] - zbins / 2., zrange[1] + zbins / 2, zbins)
+        return mzaxis, zaxis
+
+    def histogram(self, mzbins=1, zbins=1, x=None, y=None, mzrange=None, zrange=None):
+        if mzbins < 0.001:
+            print("Error, mzbins too small. Changing to 1", mzbins)
+            mzbins = 1
+            self.config.mzbins = 1
+        self.config.mzbins = mzbins
+        self.config.CDzbins = zbins
+
+        if x is None:
+            x = self.farray[:, 0]
+
+        if y is None:
+            y = self.zarray
+
+        if len(x) == 0:
+            print("ERROR: Empty Filtered Array, check settings")
+            self.harray = []
+            return 0
+
+        mzaxis, zaxis = self.set_up_hist_axes(x=x, y=y, mzbins=mzbins, zbins=zbins, mzrange=mzrange, zrange=zrange)
 
         if self.config.CDiitflag and self.invinjtime is not None:
             weights = self.farray[:, 3]
@@ -533,7 +680,7 @@ class UniDecCD(engine.UniDec):
         boo2 = self.mass > massrange[1]
         boo3 = np.logical_or(boo1, boo2)
         # Set values outside range to 0
-        harray[boo3] = 0
+        harray[..., boo3] = 0
         return harray
 
     def hist_filter_smash(self, harray, smashrange=None):
@@ -554,7 +701,7 @@ class UniDecCD(engine.UniDec):
             boo3 = np.logical_and(boo1, boo2)
             print(boo3.shape)
             # Set values outside range to 0
-            harray[boo3] = 0
+            harray[..., boo3] = 0
 
         if not ud.isempty(self.config.smashlist) and self.config.smashflag == 1:
             #print("Smashing: ", self.config.smashlist)
@@ -572,10 +719,12 @@ class UniDecCD(engine.UniDec):
                 boo3 = np.logical_and(boo3, boo4)
 
                 # Set values outside range to 0
-                harray[boo3] = 0
+                harray[..., boo3] = 0
         return harray
 
-    def hist_nativeZ_filter(self, nativeZrange=None):
+    def hist_nativeZ_filter(self, nativeZrange=None, harray=None):
+        if harray is None:
+            harray = self.harray
         # Get values from config if not supplied
         if nativeZrange is None:
             nativeZrange = [self.config.nativezlb, self.config.nativezub]
@@ -591,7 +740,8 @@ class UniDecCD(engine.UniDec):
             boo2 = offset > nativeZrange[1]
             boo3 = np.logical_or(boo1, boo2)
             # Set values outside range to 0
-            self.harray[boo3] = 0
+            harray[..., boo3] = 0
+        return harray
 
     def create_mass_axis(self, harray=None, mass=None):
         if harray is None:
@@ -980,7 +1130,7 @@ class UniDecCD(engine.UniDec):
         startdims = np.shape(outarray)
         outdat = np.transpose([np.ravel(X), np.ravel(Y), np.ravel(outarray)])
         np.savetxt(self.config.infname, outdat)
-        print("Saved Input File:", self.config.infname)#, outdat.shape, np.amax(outarray), np.sum(outarray))
+        print("Saved Input File:", self.config.infname)#, outdat.shape, startdims)
 
         # Make the call
         ud.unidec_call(self.config)
@@ -995,6 +1145,92 @@ class UniDecCD(engine.UniDec):
         self.data.fitdat = self.data.fitdat.reshape(startdims).transpose()
         self.data.fitdat = np.sum(self.data.fitdat, axis=0)
         print("Loaded Output File:", self.config.deconfile)
+
+    def decon_external_call_sequential(self, harray):
+        # Check for this
+        if self.config.CDzbins != 1 and self.config.zzsig != 0:
+            print("ERROR: Charge smoothing is only define for when charges are binned to unit charge")
+            return
+        # Output input data
+        X, Y = np.meshgrid(self.mz, self.ztab, indexing='ij')
+        outarray = harray.transpose()
+        startdims = np.shape(outarray)
+        outdat = np.transpose([np.ravel(X), np.ravel(Y), np.ravel(outarray)])
+        np.savetxt(self.config.infname, outdat)
+
+        # Make the call
+        ud.unidec_call(self.config, silent=True)
+
+        # Load in deconvolved data
+        harray = np.loadtxt(self.config.deconfile)
+        harray = harray.reshape(startdims).transpose()
+
+        return harray
+
+
+    def decon_external_call_all(self, hstack, chromaxis=None):
+        """Run the external UniDec deconvolution on a chromatography stack."""
+        if self.config.CDzbins != 1 and self.config.zzsig != 0:
+            print("ERROR: Charge smoothing is only define for when charges are binned to unit charge")
+            return
+
+        if chromaxis is None:
+            chromaxis = self.fulltime
+        chromaxis = np.asarray(chromaxis)
+        hstack = np.asarray(hstack)
+        expected_shape = (len(chromaxis), len(self.ztab), len(self.mz))
+        if hstack.shape != expected_shape:
+            raise ValueError(
+                "Chromatographic CDMS stack must have shape "
+                f"(time, charge, m/z)={expected_shape}; got {hstack.shape}"
+            )
+
+        input_scan_sums = np.sum(hstack, axis=(1, 2), dtype=np.float64)
+        write_uccd_binary(self.config.uccdfile, chromaxis, self.mz, self.ztab, hstack)
+        print("Saved Sparse Binary UCCD Input:", self.config.uccdfile)
+
+        # cdmsflag=2 selects the chromatographic CDMS entry point. Restore the
+        # normal CDMS mode afterward so later single-scan calls remain valid.
+        old_cdmsflag = self.config.cdmsflag
+        try:
+            self.config.cdmsflag = 2
+            self.export_config()
+            result = ud.unidec_call(self.config)
+        finally:
+            self.config.cdmsflag = old_cdmsflag
+            self.export_config()
+        if result != 0:
+            raise RuntimeError(f"Chromatographic UniDec failed with exit code {result}")
+
+        decon, _ = read_uccd_binary(
+            self.config.uccddeconfile,
+            expected_axes=(chromaxis, self.mz, self.ztab),
+        )
+        if self.config.datanorm == 0:
+            output_scan_sums = np.sum(decon, axis=(1, 2), dtype=np.float64)
+            input_sum = np.sum(input_scan_sums)
+            output_sum = np.sum(output_scan_sums)
+            relative_change = (output_sum - input_sum) / input_sum if input_sum != 0 else np.nan
+            nonzero_scans = input_scan_sums != 0
+            if np.any(nonzero_scans):
+                scan_ratios = output_scan_sums[nonzero_scans] / input_scan_sums[nonzero_scans]
+                max_scan_change = np.max(np.abs(scan_ratios - 1))
+            else:
+                max_scan_change = np.nan
+            print(
+                "UCCD signal conservation: input=%.9g output=%.9g "
+                "relative_change=%.3g max_scan_change=%.3g"
+                % (input_sum, output_sum, relative_change, max_scan_change)
+            )
+        # UCCD fit output is temporarily disabled in UCCD_Main.c.
+        # self.data.fitdat, _ = read_uccd_binary(
+        #     self.config.uccdfitfile,
+        #     expected_axes=(self.fulltime, self.mz, self.ztab),
+        #     sum_mz=True,
+        # )
+        self.data.fitdat = None
+        print("Loaded Sparse Binary UCCD Output:", self.config.uccddeconfile)
+        return decon
 
     def extract_intensities(self, mass, minz, maxz, window=25, sdmult=2, noise_mult=0):
         ztab = np.arange(minz, maxz + 1)

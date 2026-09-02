@@ -6,6 +6,7 @@ from unidec.modules.fitting import *
 
 from unidec.modules.CDEng import *
 from unidec.modules.ChromEng import *
+from unidec.modules import IM_functions
 from unidec.modules.IM_functions import calc_linear_ccs, calc_linear_ccsconst
 import unidec.tools as ud
 from unidec.modules.unidecstructure import UniDecConfig
@@ -606,6 +607,11 @@ class HTEng:
         # Get peak after largest peak
         maxindex = np.argmax(ac)
         ac = ac[maxindex:]
+
+        if self.config.CDScanCompress > 1:
+            widthguess /= self.config.CDScanCompress
+        widthguess = int(widthguess)
+
         if cycleindexguess is not None:
             maxindex = cycleindexguess
         else:
@@ -616,121 +622,6 @@ class HTEng:
         self.config.HTcycletime = self.cycleindex * timespacing
         print("Cycle Index:", self.cycleindex, "Cycle Time:", self.config.HTcycletime)
         return ac
-
-    '''
-
-        def htdecon_speedy(self, data):
-            """
-            Deconvolve the data using the HT kernel. Need to call setup_ht first. Currently unused.
-            :param data: 1D data array. Should be same dimension as self.htkernel.
-            :return: Demultiplexed data. Same length as input.
-            """
-            # Do the convolution, and only the convolution... :)
-            return fft.irfft(fft.rfft(data) * self.fftk).real, data
-
-        def decon_3d_fft(self, array, **kwargs):
-            """
-            Developed this to see if it would speed things up. It turns out not to. About half as slow. Leaving in for
-            legacy reasons and because it's super cool code.
-            :param array: 3D array of data to be deconvolved.
-                Should be same length as self.htkernel with the other dimensions set by the harray size.
-            :param kwargs: Keyword arguments. Currently supports "normalize" which normalizes the output to the maximum
-                value.
-            :return: Demultiplexed data array. Same length as input array.
-            """
-            starttime = time.perf_counter()
-            # Slice data to appropriate range
-            dims = np.shape(array)
-            self.indexrange = [self.padindex - self.shiftindex, dims[0] - self.shiftindex]
-            data = array[self.indexrange[0]:self.indexrange[1]]
-            dims2 = np.shape(data)
-            print(dims2)
-
-            # HT Kernel 3D FFT
-            # Create 3D array of copies of 1D kernel
-            kernel3d = np.broadcast_to(self.htkernel[:, np.newaxis, np.newaxis], dims2)
-
-            print("3D Kernel", np.shape(kernel3d), time.perf_counter() - starttime)
-
-            # FFT of kernel3d
-            fftk3d = fft.rfftn(kernel3d).conj()
-            print("3D FFT of Kernel", np.shape(fftk3d), time.perf_counter() - starttime)
-
-            data_fft = fft.rfftn(data)
-            print("3D FFT of Data", np.shape(data_fft), time.perf_counter() - starttime)
-
-            # Deconvolve
-            output = fft.irfftn(data_fft * fftk3d)
-            print("Decon", np.shape(output), time.perf_counter() - starttime)
-            output = np.real(output)
-            if "normalize" in kwargs:
-                if kwargs["normalize"]:
-                    output /= np.amax(output)
-            # Return demultiplexed data
-            return output'''
-
-
-'''
-class UniChromHT(HTEng, ChromEngine):
-    def __init__(self, *args, **kwargs):
-        """
-        Initialize the UniChromHT class. This class is used for handling Hadamard Transform (HT) related operations
-        on chromatograms.
-        :param args: Arguments
-        :param kwargs: Keyword Arguments
-        """
-        super().__init__(*args, **kwargs)
-        print("HT Chromatogram Engine")
-
-    def open_file(self, path):
-        """
-        Open file and set up the time domain.
-        :param path: File path
-        :return: None
-        """
-        self.open_chrom(path)
-        times = self.get_minmax_times()
-        self.config.HTanalysistime = np.amax(times[1])
-        self.fullscans -= np.amin(self.fullscans)
-        self.scans = np.array(self.fullscans)
-        self.parse_file_name(path)
-        print("Loaded File:", path)
-
-    def get_eic(self, massrange):
-        """
-        Get the EIC from the chromatogram.
-        :param massrange: Mass range for EIC selection [low, high]
-        :return:
-        """
-        return self.chromdat.get_eic(mass_range=np.array(massrange))
-
-    def eic_ht(self, massrange):
-        """
-        Get the EIC and run HT on it.
-        :param massrange: Mass range for EIC selection [low, high]
-        :return: Demultiplexed data output
-        """
-        eic = self.get_eic(massrange)
-        print(eic.shape)
-        self.fulltic = eic[:, 1]
-        self.fulltime = eic[:, 0]
-        self.setup_demultiplex()
-        self.htoutput = self.run_demultiplex(self.fulltic)[0]
-        return self.htoutput
-
-    def tic_ht(self, correct=False, **kwargs):
-        """
-        Get the TIC and run HT on it.
-        :param correct: Whether to correct the data for the first peak
-        :param kwargs: Deconvolution keyword arguments
-        :return: Demultiplexed data output
-        """
-        self.fulltic = self.ticdat[:, 1]
-        self.fulltime = self.ticdat[:, 0]
-        self.setup_demultiplex()
-        self.htoutput = self.run_demultiplex(self.fulltic, correct=correct, **kwargs)[0]
-        return self.htoutput
-'''
 
 
 class UniChromCDEng(HTEng, UniDecCD):
@@ -798,6 +689,77 @@ class UniChromCDEng(HTEng, UniDecCD):
         self.mass_tic_ht = None
         self.ccsstack_ht = None
 
+    def _histogram_grid_shape(self):
+        """Return the expected (charge, m/z) shape for histogram arrays."""
+        if self.ztab is None or self.mz is None:
+            return None
+        return len(self.ztab), len(self.mz)
+
+    def _rebuild_histogram_coordinate_grids(self):
+        """Keep coordinate and mass grids aligned with the histogram axes."""
+        expected_shape = self._histogram_grid_shape()
+        if expected_shape is None:
+            raise ValueError("Cannot build histogram coordinate grids before m/z and charge axes are defined")
+
+        grid_shapes = (np.shape(self.X), np.shape(self.Y), np.shape(self.mass))
+        if any(shape != expected_shape for shape in grid_shapes):
+            print(
+                "Histogram coordinate grid mismatch; rebuilding derived grids:",
+                grid_shapes, "expected", expected_shape
+            )
+        # These grids are inexpensive to derive and may be stale even when their
+        # dimensions still match (for example, after an axis or adduct change).
+        self.X, self.Y = np.meshgrid(self.mz, self.ztab, indexing='xy')
+        self.mass = (self.X - self.config.adductmass) * self.Y
+
+    def _validate_histogram_stack(self, hstack, name="Histogram stack"):
+        """Validate a stack against the current charge and m/z axes."""
+        hstack = np.asarray(hstack)
+        if hstack.ndim != 3:
+            raise ValueError(f"{name} must be three-dimensional (time, charge, m/z); got {hstack.shape}")
+
+        expected_grid_shape = self._histogram_grid_shape()
+        if expected_grid_shape is None:
+            raise ValueError(f"Cannot validate {name.lower()} before m/z and charge axes are defined")
+        if hstack.shape[1:] != expected_grid_shape:
+            raise ValueError(
+                f"{name} charge/m/z shape must be {expected_grid_shape}; got {hstack.shape[1:]}"
+            )
+
+        self._rebuild_histogram_coordinate_grids()
+        return hstack
+
+    def _full_stack_mismatch(self):
+        """Describe why the cached raw stack no longer matches its axes."""
+        if self.fullhstack is None:
+            return "the full histogram stack has not been built"
+        if self.fulltime is None or self.fullscans is None:
+            return "the full time or scan axis has not been built"
+
+        expected_grid_shape = self._histogram_grid_shape()
+        if expected_grid_shape is None:
+            return "the m/z or charge axis has not been built"
+        expected_stack_shape = (len(self.fulltime),) + expected_grid_shape
+        if np.shape(self.fullhstack) != expected_stack_shape:
+            return f"stack shape {np.shape(self.fullhstack)} does not match {expected_stack_shape}"
+        if len(self.fullscans) != len(self.fulltime):
+            return f"scan/time lengths differ ({len(self.fullscans)} != {len(self.fulltime)})"
+        if np.shape(self.topharray) != expected_grid_shape:
+            return f"summed histogram shape {np.shape(self.topharray)} does not match {expected_grid_shape}"
+        return None
+
+    def _ensure_full_histogram_stack(self):
+        """Rebuild a stale raw stack and verify all histogram-grid invariants."""
+        mismatch = self._full_stack_mismatch()
+        if mismatch is not None:
+            print("Full histogram stack/grid mismatch; rebuilding processed scan stack:", mismatch)
+            self.process_data_scans()
+            mismatch = self._full_stack_mismatch()
+            if mismatch is not None:
+                raise ValueError(f"Unable to build a consistent full histogram stack: {mismatch}")
+
+        return self._validate_histogram_stack(self.fullhstack, name="Full histogram stack")
+
     def prep_time_domain(self):
         """
         Prepare the time domain for CDMS data. Creates scans, fullscans, fulltime arrays.
@@ -853,21 +815,48 @@ class UniChromCDEng(HTEng, UniDecCD):
         # Prepare histogram
         self.prep_hist(mzbins=self.config.mzbins, zbins=self.config.CDzbins)
 
-        # Create a stack with one histogram for each scan
-        self.hstack = np.zeros((len(self.scans), self.topharray.shape[0], self.topharray.shape[1]))
-
         print("Creating Histograms for Each Scan", time.perf_counter() - starttime)
-        # Loop through scans and create histograms
-        for i, s in enumerate(self.scans):
-            # Pull out subset of data for this scan
-            b1 = self.topfarray[:, 2] == s
 
-            # Create histogram
-            harray = self.histogramLC(x=self.topfarray[b1, 0], y=self.topzarray[b1], w=self.topfarray[b1, 3])
-            harray = self.hist_data_prep(harray)
+        # Bin scan, m/z, and charge in one compiled NumPy call. The previous
+        # implementation searched the complete ion array once per scan.
+        scan_indexes = np.searchsorted(self.scans, self.topfarray[:, 2])
+        scan_edges = np.arange(len(self.scans) + 1) - 0.5
+        weights = self.topfarray[:, 3] if self.config.CDiitflag else None
+        self.hstack = np.histogramdd(
+            (scan_indexes, self.topfarray[:, 0], self.topzarray),
+            bins=(scan_edges, self.mzaxis, self.zaxis),
+            weights=weights
+        )[0].transpose(0, 2, 1)
 
-            # Add histogram to stack
-            self.hstack[i] = harray
+        # histogramLC historically ignored scans containing only one ion.
+        scan_counts = np.bincount(scan_indexes, minlength=len(self.scans))
+        self.hstack[scan_counts <= 1] = 0
+
+        if self.config.smooth > 0 or self.config.smoothdt > 0:
+            print("Histogram Smoothing:", self.config.smooth, self.config.smoothdt)
+            for i in range(len(self.hstack)):
+                self.hstack[i] = IM_functions.smooth_2d(
+                    self.hstack[i], self.config.smoothdt, self.config.smooth
+                )
+
+        if self.config.intthresh > 0:
+            print("Histogram Intensity Threshold:", self.config.intthresh)
+            self.hstack = self.hist_int_threshold(self.hstack, self.config.intthresh)
+
+        if self.config.reductionpercent > 0:
+            print("Full Stack Histogram Data Reduction:", self.config.reductionpercent)
+            self.hstack = self.hist_datareduction(self.hstack, self.config.reductionpercent)
+
+        if self.config.subbuff > 0 or self.config.subbufdt > 0:
+            print("Histogram Background Subtraction:", self.config.subbuff, self.config.subbufdt)
+            for i in range(len(self.hstack)):
+                self.hstack[i] = IM_functions.subtract_complex_2d(
+                    self.hstack[i].transpose(), self.config
+                ).transpose()
+
+        self.hstack = self.hist_filter_smash(self.hstack)
+
+        print("Histogram Stack Shape:", self.hstack.shape)
 
         self.topharray = np.sum(self.hstack, axis=0)
 
@@ -882,10 +871,70 @@ class UniChromCDEng(HTEng, UniDecCD):
 
         # create full hstack to fill any holes in the data for scans with no ions
         self.fullhstack = np.zeros((len(self.fullscans), self.topharray.shape[0], self.topharray.shape[1]))
-        for i, s in enumerate(self.scans):
-            self.fullhstack[int(s) - 1] = self.hstack[i]
+        self.fullhstack[self.scans.astype(int) - 1] = self.hstack
 
         print("Process Time HT:", time.perf_counter() - starttime)
+
+
+    def decon_full_stack(self, sequential=False, hstack=None, chromaxis=None):
+        use_raw_stack = hstack is None
+        if use_raw_stack:
+            hstack = self._ensure_full_histogram_stack()
+        else:
+            hstack = self._validate_histogram_stack(hstack, name="Demultiplexed histogram stack")
+        if chromaxis is None:
+            chromaxis = self.fulltime
+
+        hstack = np.asarray(hstack)
+        chromaxis = np.asarray(chromaxis)
+        if len(hstack) != len(chromaxis):
+            raise ValueError(
+                "Histogram stack and chromatography axis must have the same length: "
+                f"{len(hstack)} != {len(chromaxis)}"
+            )
+
+        # Apply the same pre-deconvolution masks used by run_deconvolution to
+        # every chromatographic slice before exporting the stack.
+        hstack = self.hist_mass_filter(hstack)
+        hstack = self.hist_nativeZ_filter(harray=hstack)
+        if not np.any(hstack):
+            print("ERROR: Empty Histogram Stack on Run")
+            return None
+
+        # Preserve the summed input spectrum used by scoring routines.
+        self.data.data2 = np.transpose([
+            self.mz, np.sum(hstack, axis=(0, 1))
+        ])
+
+        starttime = time.perf_counter()
+        if sequential:
+            progress_interval = max(1, int(len(hstack) / 20))
+            for i in range(len(hstack)):
+                if np.amax(hstack[i]) > 0:
+                    hstack[i] = self.decon_external_call_sequential(hstack[i])
+                # Print checkpoints at every 5% of the scans
+                if i % progress_interval == 0:
+                    print("Deconvolution Progress:", int(round(i / len(hstack) * 100)), "%")
+        else:
+            hstack = self.decon_external_call_all(hstack, chromaxis=chromaxis)
+
+        if hstack is None:
+            return None
+        if use_raw_stack:
+            self.fullhstack = hstack
+
+        # Any mass/CCS stacks derived from the previous stack are stale.
+        self.clear_arrays(massonly=True)
+
+        # Recreate the conventional summed result from the deconvolved stack,
+        # then perform the same mass transform normally done at the end of
+        # run_deconvolution.
+        self.harray = np.sum(hstack, axis=0)
+        self.transform()
+        np.savetxt(self.config.massdatfile, self.data.massdat)
+        print("Deconvolution Time Full Stack:", time.perf_counter() - starttime, np.sum(hstack))
+        return hstack
+
 
     def prep_hist(self, mzbins=1, zbins=1, mzrange=None, zrange=None):
         """
@@ -906,18 +955,9 @@ class UniChromCDEng(HTEng, UniDecCD):
 
         x = self.farray[:, 0]
         y = self.zarray
-        # Set Up Ranges
-        if mzrange is None:
-            mzrange = [np.floor(np.amin(x)), np.amax(x)]
-        if zrange is None:
-            zrange = [np.floor(np.amin(y)), np.amax(y)]
 
-        # Create Axes
-        mzaxis = np.arange(mzrange[0] - mzbins / 2., mzrange[1] + mzbins / 2, mzbins)
-        # Weird fix to make this axis even is necessary for CuPy fft for some reason...
-        if len(mzaxis) % 2 == 1:
-            mzaxis = np.arange(mzrange[0] - mzbins / 2., mzrange[1] + 3 * mzbins / 2, mzbins)
-        zaxis = np.arange(zrange[0] - zbins / 2., zrange[1] + zbins / 2, zbins)
+        mzaxis, zaxis = self.set_up_hist_axes(x=x, y=y, mzbins=mzbins, zbins=zbins, mzrange=mzrange, zrange=zrange)
+
         self.mzaxis = mzaxis
         self.zaxis = zaxis
 
@@ -971,6 +1011,7 @@ class UniChromCDEng(HTEng, UniDecCD):
         harray = np.transpose(harray)
         return harray
 
+
     def create_chrom(self, farray, **kwargs):
         """
         Create a chromatogram from the farray.
@@ -978,10 +1019,17 @@ class UniChromCDEng(HTEng, UniDecCD):
         :param kwargs: Keyword arguments. Currently supports "normalize" which normalizes the output to the maximum.
         :return: TIC/EIC in 2D array (time, intensity)
         """
-        # Count of number of time each scans appears in farray
-        scans, counts = np.unique(farray[:, 2], return_counts=True)
+        # Use the same signal definition as histogramLC. Without injection-time
+        # weighting, each ion contributes one count. With weighting enabled,
+        # both the chromatogram and histogram use column 3 as the ion weight.
+        if self.config.CDiitflag:
+            scans, inverse = np.unique(farray[:, 2], return_inverse=True)
+            weights = np.asarray(farray[:, 3], dtype=float)
+            counts = np.bincount(inverse, weights=weights)
+        else:
+            scans, counts = np.unique(farray[:, 2], return_counts=True)
 
-        fulleic = np.zeros_like(self.fullscans)
+        fulleic = np.zeros(len(self.fullscans), dtype=float)
         for i, s in enumerate(scans):
             fulleic[int(s) - 1] = counts[i]
         # Normalize
@@ -994,6 +1042,26 @@ class UniChromCDEng(HTEng, UniDecCD):
         except:
             pass
         return np.transpose([self.fulltime, fulleic])
+
+    def create_chrom_from_hstack(self, hstack, **kwargs):
+        """
+        Create a chromatogram from the hstack.
+        :param hstack: 3D array of histograms (scans, m/z, z)
+        :param kwargs: Keyword arguments. Currently supports "normalize" which normalizes the output to the maximum.
+        :return: TIC/EIC in 2D array (time, intensity)
+        """
+        fulleic = np.sum(hstack, axis=(1, 2))
+        # Normalize
+        try:
+            if "normalize" in kwargs:
+                if kwargs["normalize"]:
+                    fulleic = fulleic / np.amax(fulleic)
+            else:
+                fulleic /= np.amax(fulleic)
+        except:
+            pass
+        return np.transpose([self.fulltime, fulleic])
+
 
     def get_tic(self, farray=None, **kwargs):
         """
@@ -1032,32 +1100,60 @@ class UniChromCDEng(HTEng, UniDecCD):
             output = np.transpose([self.decontime, self.htoutput])
         return output
 
+    def create_swoop_mask_harray(self, sarray):
+        """
+        Create a boolean mask for the harray based on the Swoop selection.
+        :param sarray: Swoop array, m/z mid, z mid, z spread (vertical), z width (horizontal)
+        :return: Boolean mask array with the same shape as harray
+        """
+        mz, z, zup, zdown = ud.calc_swoop(sarray, adduct_mass=self.config.adductmass)
+        bsum = np.zeros(self.harray.shape, dtype=bool)
+        for i, zval in enumerate(z):
+            b1 = self.ztab >= zdown[i]
+            b2 = self.ztab <= zup[i]
+            bz = b1 & b2
+
+            mzmin, mzmax = ud.get_swoop_mz_minmax(mz, i)
+            b1 = self.mz >= mzmin
+            b2 = self.mz <= mzmax
+            bmz = b1 & b2
+
+            bsum |= np.outer(bz, bmz)
+
+        return bsum
+
+    def create_swoop_mask_farray(self, sarray):
+        """
+        Create a boolean mask for the farray based on the Swoop selection.
+        :param sarray: Swoop array, m/z mid, z mid, z spread (vertical), z width (horizontal)
+        :return: Boolean mask array with the same shape as farray
+        """
+        mz, z, zup, zdown = ud.calc_swoop(sarray, adduct_mass=self.config.adductmass)
+        bsum = np.zeros(len(self.farray), dtype=bool)
+        for i, zval in enumerate(z):
+            if zdown[i] == zup[i]:
+                bz = np.round(self.zarray.astype(float)) == int(zdown[i])
+            else:
+                b1 = self.zarray >= zdown[i]
+                b2 = self.zarray <= zup[i]
+                bz = b1 & b2
+
+            mzmin, mzmax = ud.get_swoop_mz_minmax(mz, i)
+            b1 = self.farray[:, 0] >= mzmin
+            b2 = self.farray[:, 0] <= mzmax
+            bmz = b1 & b2
+
+            bsum |= (bmz & bz)
+
+        return bsum
+
     def extract_swoop_subdata(self, sarray):
         """
         Extract a subdata object based on the Swoop selection.
         :param sarray: Swoop array, m/z mid, z mid, z spread (vertical), z width (horizontal)
         :return: Data Object
         """
-        # Calculate the Swoop m/z range, zrange, upper charge, and lower charge bounds
-        mz, z, zup, zdown = ud.calc_swoop(sarray, adduct_mass=self.config.adductmass)
-        # Create Boolean array
-        bsum = np.zeros(self.harray.shape)
-        # Loop over all charge states
-        for i, zval in enumerate(z):
-            # For each charge state, filter z values within the bounds
-            b1 = self.ztab >= zdown[i]
-            b2 = self.ztab <= zup[i]
-            bz = b1 & b2
-
-            # Filter m/z values within the bounds of that charge state
-            mzmin, mzmax = ud.get_swoop_mz_minmax(mz, i)
-            b1 = self.mz >= mzmin
-            b2 = self.mz <= mzmax
-            bmz = b1 & b2
-
-            # Take everything that is within the charge and m/z range for that charge state
-            # Add rather than multiple because it's OR for each charge state
-            bsum += np.outer(bz, bmz)
+        bsum = self.create_swoop_mask_harray(sarray)
 
         # Create new data object
         newd = deepcopy(self.data)
@@ -1069,68 +1165,63 @@ class UniChromCDEng(HTEng, UniDecCD):
         # Return data object
         return newd
 
-    def get_swoop_eic(self, sarray, **kwargs):
+    def get_swoop_eic(self, sarray, mode="h", **kwargs):
         """
         Extract an EIC based on the Swoop selection.
         :param sarray: Swoop array, m/z mid, z mid, z spread (vertical), z width (horizontal)
         :param kwargs: Keywords to be passed down to create_chrom
         :return: Data Object
         """
-        # Calculate the Swoop m/z range, zrange, upper charge, and lower charge bounds
-        mz, z, zup, zdown = ud.calc_swoop(sarray, adduct_mass=self.config.adductmass)
-        # Create Boolean array
-        bsum = np.zeros(len(self.farray))
-        # Loop over all charge states
-        for i, zval in enumerate(z):
-            # For each charge state, filter z values within the bounds
-            if zdown[i] == zup[i]:
-                try:
-                    bz = np.round(self.zarray.astype(float)) == int(zdown[i])
-                except:
-                    print("ERROR:", len(self.zarray), zdown[i])
-                    raise ValueError("Error with zarray and zdown.")
-            else:
-                b1 = self.zarray >= zdown[i]
-                b2 = self.zarray <= zup[i]
-                bz = b1 & b2
+        if self.fullhstack is None:
+            mode = "f"
 
-            # Filter m/z values within the bounds of that charge state
-            mzmin, mzmax = ud.get_swoop_mz_minmax(mz, i)
-            b1 = self.farray[:, 0] >= mzmin
-            b2 = self.farray[:, 0] <= mzmax
-            bmz = b1 & b2
+        if mode == "f":
+            bsum = self.create_swoop_mask_farray(sarray)
+            # Filter farray
+            farray2 = self.farray[bsum.astype(bool)]
+            # Create EIC
+            eic = self.create_chrom(farray2, **kwargs)
+            return eic
+        elif mode == "h":
+            bsum = self.create_swoop_mask_harray(sarray)
+            # Filter harray
+            hstack = self.fullhstack * bsum
+            # Create EIC
+            eic = self.create_chrom_from_hstack(hstack, **kwargs)
+            return eic
+        else:
+            print("Error: Invalid mode for get_swoop_eic. Must be 'f' or 'h'.")
+            return None
 
-            # Take everything that is within the charge and m/z range for that charge state
-            # Add rather than multiple because it's OR for each charge state
-            bsum += bmz * bz
-        # Filter farray
-        farray2 = self.farray[bsum.astype(bool)]
-        print(np.sum(farray2))
-        # Create EIC
-        eic = self.create_chrom(farray2, **kwargs)
-        return eic
-
-    def get_eic(self, mzrange, zrange, **kwargs):
+    def get_eic(self, mzrange, zrange, mode="h", **kwargs):
         """
-        Get the EIC from the farray.
+        Get the EIC from the feature array or full histogram stack.
         :param mzrange: m/z range
         :param zrange: charge range
+        :param mode: Extraction mode: "f" for the feature array or "h" for the full histogram stack.
         :param kwargs: Keywords to be passed down to create_chrom
         :return: 2D array of EIC (time, intensity)
         """
-        # Filter farray
-        b1 = self.farray[:, 0] >= mzrange[0]
-        b2 = self.farray[:, 0] <= mzrange[1]
-        b3 = self.zarray >= zrange[0]
-        b4 = self.zarray <= zrange[1]
-        b = np.logical_and(b1, b2)
-        b = np.logical_and(b, b3)
-        b = np.logical_and(b, b4)
-        farray2 = self.farray[b]
+        if self.fullhstack is None:
+            mode = "f"
 
-        # Create EIC
-        eic = self.create_chrom(farray2, **kwargs)
-        return eic
+        if mode == "f":
+            b1 = self.farray[:, 0] >= mzrange[0]
+            b2 = self.farray[:, 0] <= mzrange[1]
+            b3 = self.zarray >= zrange[0]
+            b4 = self.zarray <= zrange[1]
+            b = np.logical_and(b1, b2)
+            b = np.logical_and(b, b3)
+            b = np.logical_and(b, b4)
+            return self.create_chrom(self.farray[b], **kwargs)
+
+        if mode == "h":
+            mzmask = (self.mz >= mzrange[0]) & (self.mz <= mzrange[1])
+            zmask = (self.ztab >= zrange[0]) & (self.ztab <= zrange[1])
+            hstack = self.fullhstack[:, zmask, :][:, :, mzmask]
+            return self.create_chrom_from_hstack(hstack, **kwargs)
+
+        raise ValueError("Invalid mode for get_eic. Must be 'f' or 'h'.")
 
     def extract_subdata(self, mzrange, zrange):
         """
@@ -1150,6 +1241,36 @@ class UniChromCDEng(HTEng, UniDecCD):
         newd = deepcopy(self.data)
 
         newh2 = self.harray * b3
+
+        if np.sum(newh2) != 0:
+            newd = self.transform(newh2, newd)
+        # newd = self.transform(newh, newd, ztab=ztab, mz=mz, mass=mass)
+
+        return newd
+
+    def extract_mass_subdata(self, massrange, zrange=None):
+        """
+        Extract a subdata object based on mass and charge range.
+        :param massrange: mass range, [low, high]
+        :param zrange: z range, [low, high]
+        :return: Data Object
+        """
+        b1 = self.mass >= massrange[0]
+        b2 = self.mass <= massrange[1]
+        b = np.logical_and(b1, b2)
+
+        if zrange is not None:
+            b3 = self.ztab >= zrange[0]
+            b4 = self.ztab <= zrange[1]
+            b2 = np.logical_and(b3, b4)
+        else:
+            b2 = np.ones_like(self.ztab, dtype=bool)
+
+        b2 = np.transpose([b2 for _ in range(len(self.mz))])
+
+        newd = deepcopy(self.data)
+
+        newh2 = self.harray * np.logical_and(b, b2)
 
         if np.sum(newh2) != 0:
             newd = self.transform(newh2, newd)
@@ -1183,34 +1304,73 @@ class UniChromCDEng(HTEng, UniDecCD):
 
         return output, eic
 
+    def _run_all_mrs_batched(self, batch_size=32):
+        """Demultiplex active MRS/PP traces with batched FFTs along the time axis."""
+        flat_stack = self.fullhstack.reshape(len(self.fullhstack), -1)
+        flat_output = self.fullhstack_ht.reshape(len(self.decontime), -1)
+        active_indexes = np.flatnonzero(
+            np.asarray(self.topharray).reshape(-1) > self.config.intthresh
+        )
+        processed_tic = np.zeros_like(self.fulltime)
+
+        print(
+            "Running Batched MRS Demultiplex:", len(active_indexes),
+            "active traces; batch size", batch_size
+        )
+        kernel = np.asarray(self.fftk)[:, np.newaxis]
+        for start in range(0, len(active_indexes), batch_size):
+            indexes = active_indexes[start:start + batch_size]
+            traces = flat_stack[:, indexes]
+            processed_tic += np.sum(traces, axis=1)
+
+            segment = traces[self.ppstartindex:self.ppmaxindex]
+            # PocketFFT already performs the transforms in compiled code. Keeping
+            # each modest-sized batch on one worker avoids per-batch thread setup,
+            # which costs more than it saves for the short chromatographic traces.
+            spectra = fft.rfft(segment, axis=0)
+            output = fft.irfft(spectra * kernel, axis=0).real
+            output = output[:self.cycleindex]
+            if len(output) != len(self.decontime):
+                raise ValueError(
+                    "Batched MRS output and demultiplexed time domain must have the same length: "
+                    f"{len(output)} != {len(self.decontime)}"
+                )
+            flat_output[:, indexes] = output
+
+        return processed_tic
+
     def run_all_ht(self):
         """
         Run HT on all data in full 3D array. Will call process_data_scans if necessary.
         :return: TIC based on demultiplexed data. 2D array (time, intensity)
         """
         starttime = time.perf_counter()
-        if self.fullhstack is None:
-            self.process_data_scans()
+        self._ensure_full_histogram_stack()
         self.clear_arrays(massonly=True)
 
         # Setup HT
         self.setup_demultiplex()
 
         # Run the HT on each track in the stack
-        self.fullhstack_ht = np.empty((len(self.decontime), self.topharray.shape[0], self.topharray.shape[1])
-                                      , dtype=self.dtype)
+        self.fullhstack_ht = np.zeros(
+            (len(self.decontime), self.topharray.shape[0], self.topharray.shape[1]),
+            dtype=self.dtype
+        )
 
-        processed_tic = np.zeros_like(self.fulltime)
-        for i in range(len(self.mz)):
-            for j in range(len(self.ztab)):
-                trace = self.fullhstack[:, j, i]
-                tracesum = self.topharray[j, i]
-                if tracesum <= self.config.intthresh:
-                    htoutput = np.zeros_like(self.decontime)
-                else:
-                    htoutput, trace = self.run_demultiplex(trace, chop=False, keepcomplex=True)
-                    processed_tic += trace
-                self.fullhstack_ht[:, j, i] = htoutput
+        if self.config.demultiplexmode in ("PP", "MRS"):
+            processed_tic = self._run_all_mrs_batched()
+        else:
+            processed_tic = np.zeros_like(self.fulltime)
+            for i in range(len(self.mz)):
+                for j in range(len(self.ztab)):
+                    trace = self.fullhstack[:, j, i]
+                    tracesum = self.topharray[j, i]
+                    if tracesum <= self.config.intthresh:
+                        htoutput = np.zeros_like(self.decontime)
+                    else:
+                        htoutput, trace = self.run_demultiplex(trace, chop=False, keepcomplex=True)
+                        processed_tic += trace
+                    self.fullhstack_ht[:, j, i] = htoutput
 
         # Clip all values below 1e-6 to zero
         # self.fullhstack_ht[np.abs(self.fullhstack_ht) < 1e-6] = 0
@@ -1238,7 +1398,7 @@ class UniChromCDEng(HTEng, UniDecCD):
             ticdat[:, 1] /= np.amax(ticdat[:, 1])
             processed_tic /= np.amax(processed_tic)
 
-        print("Full Demultiplexing Done:", time.perf_counter() - starttime)
+        print("Full Demultiplexing Done:", time.perf_counter() - starttime, np.sum(self.fullhstack), np.sum(self.fullhstack_ht))
         return ticdat, processed_tic
 
     def select_ht_range(self, range=None):

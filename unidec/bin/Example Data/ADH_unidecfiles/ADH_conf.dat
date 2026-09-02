@@ -1,8 +1,8 @@
-version 8.2.1
+version 9.0.0
 imflag 0
 cdmsflag 0
-input C:\Python\UniDecDev\unidec\bin\Example Data\ADH_unidecfiles\ADH_input.dat
-output C:\Python\UniDecDev\unidec\bin\Example Data\ADH_unidecfiles\ADH
+input C:\Python\UniDecDev\public\UniDec\unidec\bin\Example Data\ADH_unidecfiles\ADH_input.dat
+output C:\Python\UniDecDev\public\UniDec\unidec\bin\Example Data\ADH_unidecfiles\ADH
 numit 100
 numz 70
 endz 70

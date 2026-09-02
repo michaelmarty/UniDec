@@ -117,6 +117,8 @@ class PlottingWindowBase(PlotBase, wx.Panel):
 
         self.active_size = self.GetSize()
         self.min_size = self.GetMinSize()
+        self._resize_pending = False
+        self._pending_size = None
 
         self.resize = 1
         # self.sizer = wx.BoxSizer(wx.VERTICAL)
@@ -290,9 +292,31 @@ class PlottingWindowBase(PlotBase, wx.Panel):
             if newsize[0] < 100 or newsize[1] < 100:
                 # print("Size too small, not resizing")
                 return None
-            self.set_resize(self.GetSize())
+            self._pending_size = wx.Size(newsize)
+            if not self._resize_pending:
+                self._resize_pending = True
+                wx.CallAfter(self._apply_pending_resize)
             # print("Resizing Canvas to:", self.GetSize())
             # self.repaint()
+
+    def _apply_pending_resize(self):
+        """Apply only the latest size from a burst of wx layout events."""
+        self._resize_pending = False
+        try:
+            if self.IsBeingDeleted():
+                return
+        except RuntimeError:
+            # The frame can be destroyed before a queued startup resize runs.
+            return
+
+        newsize = self._pending_size
+        self._pending_size = None
+        if newsize is None or newsize == self.active_size:
+            return
+
+        # Mark the size active before SetSize emits another EVT_SIZE.
+        self.active_size = wx.Size(newsize)
+        self.set_resize(newsize)
 
 
     def on_size(self, event):
@@ -352,6 +376,7 @@ class PlottingWindowBase(PlotBase, wx.Panel):
         self.figure.set_size_inches(float(newsize[0]) / self.figure.get_dpi(),
                                     float(newsize[1]) / self.figure.get_dpi())
         self.canvas.draw()
+        self.active_size = wx.Size(newsize)
         self.Layout()
         self.Refresh()
 
@@ -460,7 +485,7 @@ class PlottingWindowBase(PlotBase, wx.Panel):
                 event = ScanSelectedEvent(MZLimitsEventType, self.GetId())
                 self.GetEventHandler().ProcessEvent(event)
         elif self.smash == 2:
-            event = ScanSelectedEvent(MZLimitsEventType, self.GetId())
+            event = MZLimitsEvent(MZLimitsEventType, self.GetId())
             self.GetEventHandler().ProcessEvent(event)
         else:
             event = ScanSelectedEvent(ScanSelectedEventType, self.GetId())

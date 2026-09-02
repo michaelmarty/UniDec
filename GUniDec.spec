@@ -111,8 +111,6 @@ if system == "Windows":
     #a.datas += [('numpy/DLLs', 'unidec\\bin\\mkl_avx2.2.dll', 'BINARY')]
     #a.datas += [('numpy/DLLs', 'unidec\\bin\\mkl_intel_thread.2.dll', 'BINARY')]
     a.datas += [('pymzml\\version.txt', compat.base_prefix + '\\Lib\\site-packages\\pymzml\\version.txt', 'DATA')]
-    a.datas += [('massql\\msql.ebnf', compat.base_prefix + '\\Lib\\site-packages\\massql\\msql.ebnf', 'DATA')]
-
      # Copy over all the DLLs from the bin folder
     for file in os.listdir('unidec\\bin'):
         if fnmatch.fnmatch(file, '*.dll'):

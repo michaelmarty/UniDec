@@ -522,12 +522,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             gbox2b.Add(self.ctlsuppressionharmonic, (i, 1), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
-            self.ctlsuppressionpercent = wx.TextCtrl(panel2b, value="", size=size1)
-            gbox2b.Add(wx.StaticText(panel2b, label="Suppression Cut Percent: "), (i, 0),
-                       flag=wx.ALIGN_CENTER_VERTICAL)
-            gbox2b.Add(self.ctlsuppressionpercent, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
-
             self.ctlsuppressionstartit = wx.TextCtrl(panel2b, value="", size=size1)
             gbox2b.Add(wx.StaticText(panel2b, label="Suppression Start Iteration: "), (i, 0),
                        flag=wx.ALIGN_CENTER_VERTICAL)
@@ -583,10 +577,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         sb = wx.StaticBox(panel2b, label='Native Charge Offset Range')
         sbs = wx.StaticBoxSizer(sb, orient=wx.HORIZONTAL)
-        self.ctlminnativez = wx.TextCtrl(panel2b, value='', size=wx.Size(75, -1))
-        self.ctlmaxnativez = wx.TextCtrl(panel2b, value='', size=wx.Size(75, -1))
+        self.ctlminnativez = wx.TextCtrl(sb, value='', size=wx.Size(75, -1))
+        self.ctlmaxnativez = wx.TextCtrl(sb, value='', size=wx.Size(75, -1))
         sbs.Add(self.ctlminnativez, flag=wx.LEFT | wx.EXPAND, border=5)
-        sbs.Add(wx.StaticText(panel2b, label=' to '), 0, wx.EXPAND)
+        sbs.Add(wx.StaticText(sb, label=' to '), 0, wx.EXPAND)
         sbs.Add(self.ctlmaxnativez, flag=wx.LEFT | wx.EXPAND, border=5)
         gbox2b.Add(sbs, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
@@ -594,12 +588,12 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         if self.config.imflag == 1:
             sb2 = wx.StaticBox(panel2b, label='Native CCS Offset Range')
             sbs2 = wx.StaticBoxSizer(sb2, orient=wx.HORIZONTAL)
-            self.ctlnativeccslb = wx.TextCtrl(panel2b, value='', size=wx.Size(75, -1))
-            self.ctlnativeccsub = wx.TextCtrl(panel2b, value='', size=wx.Size(75, -1))
+            self.ctlnativeccslb = wx.TextCtrl(sb2, value='', size=wx.Size(75, -1))
+            self.ctlnativeccsub = wx.TextCtrl(sb2, value='', size=wx.Size(75, -1))
             sbs2.Add(self.ctlnativeccslb, flag=wx.LEFT | wx.EXPAND, border=5)
-            sbs2.Add(wx.StaticText(panel2b, label=' to '), 0, wx.EXPAND)
+            sbs2.Add(wx.StaticText(sb2, label=' to '), 0, wx.EXPAND)
             sbs2.Add(self.ctlnativeccsub, flag=wx.LEFT | wx.EXPAND, border=5)
-            sbs2.Add(wx.StaticText(panel2b, label=" \u212B\u00B2 "), 0, wx.EXPAND)
+            sbs2.Add(wx.StaticText(sb2, label=" \u212B\u00B2 "), 0, wx.EXPAND)
             gbox2b.Add(sbs2, (i, 0), span=(1, 2), flag=wx.EXPAND)
             i += 1  # Check
 
@@ -708,12 +702,12 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         sb2 = wx.StaticBox(panel3b, label='Integration Range')
         sbs2 = wx.StaticBoxSizer(sb2, orient=wx.HORIZONTAL)
-        self.ctlintlb = wx.TextCtrl(panel3b, value='', size=wx.Size(75, -1))
-        self.ctlintub = wx.TextCtrl(panel3b, value='', size=wx.Size(75, -1))
+        self.ctlintlb = wx.TextCtrl(sb2, value='', size=wx.Size(75, -1))
+        self.ctlintub = wx.TextCtrl(sb2, value='', size=wx.Size(75, -1))
         sbs2.Add(self.ctlintlb, flag=wx.LEFT | wx.EXPAND, border=5)
-        sbs2.Add(wx.StaticText(panel3b, label=' to '), 0, flag=wx.EXPAND)
+        sbs2.Add(wx.StaticText(sb2, label=' to '), 0, flag=wx.EXPAND)
         sbs2.Add(self.ctlintub, flag=wx.LEFT | wx.EXPAND, border=5)
-        sbs2.Add(wx.StaticText(panel3b, label=' Da '), 0, flag=wx.EXPAND)
+        sbs2.Add(wx.StaticText(sb2, label=' Da '), 0, flag=wx.EXPAND)
         gbox3b.Add(sbs2, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 
@@ -855,7 +849,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 self.ctlpsig.SetValue(str(self.config.psig))
                 self.ctlbeta.SetValue(str(self.config.beta))
                 self.ctlsuppressiontopn.SetValue(str(self.config.suppression_topn))
-                self.ctlsuppressionpercent.SetValue(str(self.config.suppression_percent))
                 self.ctlsuppressionstartit.SetValue(str(self.config.suppression_startit))
                 self.ctlsuppressiontopx.SetValue(str(self.config.suppression_topx))
                 self.ctlsuppressionsatellite.SetValue(str(self.config.suppression_satellite))
@@ -1004,7 +997,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.config.psig = ud.string_to_value(self.ctlpsig.GetValue())
             self.config.beta = ud.string_to_value(self.ctlbeta.GetValue())
             self.config.suppression_topn = ud.string_to_int(self.ctlsuppressiontopn.GetValue())
-            self.config.suppression_percent = ud.string_to_value(self.ctlsuppressionpercent.GetValue())
             self.config.suppression_startit = ud.string_to_int(self.ctlsuppressionstartit.GetValue())
             self.config.suppression_topx = ud.string_to_value(self.ctlsuppressiontopx.GetValue())
             self.config.suppression_satellite = ud.string_to_int(self.ctlsuppressionsatellite.GetValue())
@@ -1171,7 +1163,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 "\n0 will shut it off."))
             self.ctlsuppressiontopn.SetToolTip(wx.ToolTip("Keep only the top N charge states during suppression."))
             self.ctlsuppressiontopx.SetToolTip(wx.ToolTip("Suppress charge states below this fraction of the local maximum."))
-            self.ctlsuppressionpercent.SetToolTip(wx.ToolTip("Multiplier applied to suppressed charge states."))
             self.ctlsuppressionstartit.SetToolTip(wx.ToolTip("Iteration number after which suppression starts."))
             self.ctlsuppressionsatellite.SetToolTip(wx.ToolTip("Integer setting for satellite peak suppression."))
             self.ctlsuppressionharmonic.SetToolTip(wx.ToolTip("Enable harmonic suppression."))

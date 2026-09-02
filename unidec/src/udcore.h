@@ -23,14 +23,14 @@ void check_ratios(Config config, Input inp, char * barr, int numclose,
 void adjust_ratios(Config config, char * barr, int numclose,
               const int * closeind, float * blur);
 
-void blur_it(IntraDecon intra, float * newblur, const float * blur);
+void blur_it(const IntraDecon *intra, float * newblur, const float * blur);
 
-void blur_it_mean(IntraDecon intra, float * newblur, const float * blur, float zerolog);
+void blur_it_mean(const IntraDecon *intra, float * newblur, const float * blur, float zerolog);
 
-void blur_it_hybrid1(IntraDecon intra, int lengthmz, int numz, float * newblur, const float * blur,
+void blur_it_hybrid1(const IntraDecon *intra, int lengthmz, int numz, float * newblur, const float * blur,
                      float zerolog);
 
-void blur_it_hybrid2(IntraDecon intra, int lengthmz, int numz, float * newblur, const float * blur,
+void blur_it_hybrid2(const IntraDecon *intra, int lengthmz, int numz, float * newblur, const float * blur,
                      float zerolog);
 
 void blur_baseline(float *baseline, int lengthmz, const float *dataMZ, float mzsig, int mult,
@@ -38,8 +38,9 @@ void blur_baseline(float *baseline, int lengthmz, const float *dataMZ, float mzs
 
 void midblur_baseline(float *baseline, int lengthmz, const float *dataMZ, float mzsig, int mult);
 
-void convolve_simp(int lengthmz, int maxlength, const int *starttab, const int *endtab, const float *mzdist,
-                   const float *deltas, float *denom, int speedyflag);
+void convolve_simp(int lengthmz, int maxlength, const int *__restrict starttab,
+                   const int *__restrict endtab, const float *__restrict mzdist,
+                   const float *__restrict deltas, float *__restrict denom, int speedyflag);
 
 void sum_deltas(int lengthmz, int numz, const float *__restrict blur, const char *__restrict barr,
                 float *deltas);
@@ -50,18 +51,22 @@ void apply_ratios(const int lengthmz, const int numz, const float *__restrict bl
 void deconvolve_baseline(const int lengthmz, const float *dataMZ, const float *dataInt, float *baseline,
                          const float mzsig);
 
-float deconvolve_iteration_speedy(Config config, Decon *decon, IntraDecon intra,
-                                  const float *dataMZ);
+float deconvolve_iteration_speedy(const Config *config, Decon *decon, IntraDecon *intra,
+                                   const float *dataMZ);
 
 void softargmax(float *blur, const int lengthmz, const int numz, const float beta);
 void softmax_peakwidth(const Config config, const Decon decon, float *blur, const char * barr, const float beta);
 
-void point_smoothing(float *blur, const char *barr, const int lengthmz, const int numz, const int width);
+void point_smoothing(float *blur, float *scratch, float *sums, const char *barr, const int lengthmz,
+                     const int numz, const int width);
 
-void highest_n_chargestates(float *blur, int lengthmz, int numz, int n, float zcutpercent);
+void highest_n_chargestates(float *blur, float *scratch, int lengthmz, int numz, int n, float zcutpercent);
 void clip_minor_chargestates(float *blur, int lengthmz, int numz, float zcutoff, float zcutpercent);
-void suppression_satelite(float *blur, int lengthmz, int numz, int n);
-void suppression_harmonic(float *blur, int lengthmz, int numz, const int *ztab);
+void suppression_satelite(float *blur, float *scratch, int lengthmz, int numz, int n);
+void suppression_harmonic(float *blur, float *scratch, int lengthmz, int numz, const int *ztab);
+int setup_suppression_ztab(int *ztab, const float *zaxis, int numz);
+void apply_suppressions(float *blur, float *scratch, int lengthmz, int numz, int satellite_n,
+                        int harmonic, const int *ztab, int top_n, float top_x, float suppression_percent);
 
 float getfitdatspeedy(float *fitdat, const float *blur, const int lengthmz, const int numz,
                       const int maxlength, const float maxint,
@@ -82,7 +87,7 @@ void MakeSparseBlur(const int numclose, char *barr, const int *closezind,
                     const int *closemind, int *closeind, const float *closeval, float *closearray, const Config config, const Input *inp);
 void MakePeakShape2D(const Config config, Decon *decon, const Input *inp, int makereverse,
                      const int inflateflag);
-void MakePeakShape1D(const Config config, Decon * decon, const float *dataMZ, int makereverse, const int inflateflag);
+void MakePeakShape1D(const Config config, Decon * decon, const float *dataMZ, int makereverse, const int inflateflag, const int silent);
 int SetStartsEnds(const Config config, const Input *inp, int *starttab, int *endtab);
 int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, const int verbose);
 void SetUpBlur(Config config, Input inp, IntraDecon *intra, const int silent);

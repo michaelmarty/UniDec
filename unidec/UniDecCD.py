@@ -32,7 +32,6 @@ class UniDecCDApp(UniDecApp):
         """
         UniDecPres.__init__(self, *args, **kwargs)
         self.init(*args, **kwargs)
-        self.showht = False
         self.comparedata = None
 
     def init(self, *args, **kwargs):
@@ -70,7 +69,7 @@ class UniDecCDApp(UniDecApp):
             # self.on_auto(0)
 
         if True and platform.node() == 'CHEM-A90237':
-            path = "C:\\Python\\UniDecDev\\unidec\\bin\\Example Data\\CDMS\\GroEL_CDMS_1.RAW"
+            path = "C:\\Python\\UniDecDev\\public\\UniDec\\unidec\\bin\\Example Data\\CDMS\\GroEL_CDMS_1.RAW"
             # path = "C:\\Data\\CDMS\\Replicates\\AAV8_IMID_CDMS_1.RAW"
             self.on_open_file(None, None, path=path)
             # self.plot_native_mz()
@@ -230,10 +229,9 @@ class UniDecCDApp(UniDecApp):
         self.view.SetStatusText("Deconvolving", number=5)
         # self.view.clear_all_plots()
         self.export_config(self.eng.config.confname)
-        if self.showht:
-            self.eng.run_deconvolution(process_data=True) # This used to be false, but I can't remember why. Was creating issues.
-        else:
-            self.eng.run_deconvolution()
+
+        self.eng.run_deconvolution()
+
         self.makeplot1()
         self.makeplot2()
         self.makeplot3()
@@ -411,15 +409,15 @@ class UniDecCDApp(UniDecApp):
         self.eng.exe_mode(exemode)
 
     def remake_mainwindow(self, tabbed=None):
-        htmode = self.view.htmode
+        window_class = type(self.view)
+        window_title = self.view.GetTitle()
         iconfile = self.view.icon_path
         # evt=EventManager()
         # print evt.GetStats()
         wx.GetApp().Yield()
         self.view.on_exit()
         self.view = []
-        self.view = CDWindow.CDMainwindow(self, "UCD: UniDec for Charge Detection-Mass Spectrometry", self.eng.config,
-                                          iconfile=iconfile, tabbed=tabbed, htmode=htmode)
+        self.view = window_class(self, window_title, self.eng.config, iconfile=iconfile, tabbed=tabbed)
         self.view.Show()
         self.view.import_config_to_gui()
 

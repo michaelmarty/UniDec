@@ -1,0 +1,230 @@
+name: Native and GUI workflow tests
+
+on:
+  push:
+    paths:
+      - ".github/workflows/test-gui-workflows.yml"
+      - "build_native.sh"
+      - "pyproject.toml"
+      - "tests/**"
+      - "unidec/**"
+  pull_request:
+    paths:
+      - ".github/workflows/test-gui-workflows.yml"
+      - "build_native.sh"
+      - "pyproject.toml"
+      - "tests/**"
+      - "unidec/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  platform-workflows:
+    name: ${{ matrix.name }} / Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            python-version: "3.12"
+            build_native: false
+            gui_tests: true
+          - name: Linux
+            os: ubuntu-latest
+            python-version: "3.12"
+            build_native: true
+            gui_tests: false
+          - name: macOS ARM64
+            os: macos-14
+            python-version: "3.12"
+            build_native: true
+            gui_tests: true
+          - name: macOS Intel
+            os: macos-15-intel
+            python-version: "3.12"
+            build_native: true
+            gui_tests: true
+
+    env:
+      UNIDEC_IMPORTER_TEST_DATA: ${{ github.workspace }}/UniDecImporter/TestData
+      UNIDEC_REQUIRE_IMPORTER_TEST_DATA: "1"
+
+    steps:
+      - name: Check out UniDec
+        uses: actions/checkout@v7
+        with:
+          lfs: true
+          persist-credentials: false
+
+      - name: Check out UniDecImporter fixtures
+        if: matrix.gui_tests
+        uses: actions/checkout@v7
+        with:
+          repository: michaelmarty/UniDecImporter
+          ref: 7e2294d87a29f25c229742b95f39a8a269e556d9
+          path: UniDecImporter
+          lfs: false
+          sparse-checkout: |
+            TestData/IMMS/test_watersimms_txt.txt
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Pull IM-MS fixture
+        if: matrix.gui_tests
+        run: git -C UniDecImporter lfs pull --include="TestData/IMMS/test_watersimms_txt.txt"
+
+      - name: Verify IM-MS fixture
+        if: matrix.gui_tests
+        run: >-
+          python -c "import os; from pathlib import Path;
+          p = Path(os.environ['UNIDEC_IMPORTER_TEST_DATA']) / 'IMMS' / 'test_watersimms_txt.txt';
+          assert p.is_file(), f'Missing fixture: {p}';
+          assert p.stat().st_size >= 1000000, f'Fixture is still a Git LFS pointer: {p}'"
+
+      - name: Install Linux native dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install --yes libfftw3-dev libhdf5-dev pkg-config
+
+      - name: Install macOS native dependencies
+        if: runner.os == 'macOS'
+        run: |
+          brew untap aws/tap 2>/dev/null || true
+          brew install fftw hdf5 libomp pkg-config
+
+      - name: Build native UniDec
+        if: matrix.build_native
+        run: bash ./build_native.sh
+
+      - name: Install UniDec and GUI test dependencies
+        if: matrix.gui_tests
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Install UniDec for headless tests
+        if: ${{ !matrix.gui_tests }}
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+
+      - name: Run GUI and workflow tests
+        if: matrix.gui_tests
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+
+      - name: Run headless engine and native tests
+        if: ${{ !matrix.gui_tests }}
+        run: |
+          python -m unittest discover -s tests -p "test_im_engine_split.py" -v
+          python -m unittest discover -s tests -p "test_native_build.py" -v
+
+  windows-native-builds:
+    name: ${{ matrix.name }} native build
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows IntelLLVM x64
+            os: windows-latest
+            triplet: x64-windows
+            compiler: IntelLLVM
+          - name: Windows ARM64
+            os: windows-11-arm
+            triplet: arm64-windows
+            compiler: MSVC
+
+    env:
+      ONEAPI_WINDOWS_URL: https://registrationcenter-download.intel.com/akdlm/IRC_NAS/bae85ab1-cfcd-4251-8d42-a0c27949ea33/intel-oneapi-toolkit-2026.0.0.193_offline.exe
+      ONEAPI_WINDOWS_COMPONENTS: intel.oneapi.win.cpp-dpcpp-common
+
+    steps:
+      - name: Check out UniDec
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install native dependencies with vcpkg
+        shell: pwsh
+        run: |
+          $vcpkgRoot = (Resolve-Path -LiteralPath $env:VCPKG_INSTALLATION_ROOT).Path.Replace('\', '/')
+          & "$vcpkgRoot/vcpkg.exe" install "hdf5[hl]:${{ matrix.triplet }}" "fftw3:${{ matrix.triplet }}"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $hdf5Libraries = "$vcpkgRoot/installed/${{ matrix.triplet }}/lib"
+          if (-not (Get-ChildItem -LiteralPath $hdf5Libraries -Filter '*hdf5*hl*.lib')) {
+            throw "vcpkg did not install the HDF5 high-level library in $hdf5Libraries"
+          }
+          "VCPKG_ROOT_PATH=$vcpkgRoot" >> $env:GITHUB_ENV
+
+      - name: Install Intel oneAPI C compiler
+        if: matrix.compiler == 'IntelLLVM'
+        shell: cmd
+        run: |
+          curl.exe --fail --location --retry 5 --output "%RUNNER_TEMP%\oneapi.exe" "%ONEAPI_WINDOWS_URL%"
+          start /b /wait "" "%RUNNER_TEMP%\oneapi.exe" -s -x -f "%RUNNER_TEMP%\oneapi-extracted" --log extract.log
+          "%RUNNER_TEMP%\oneapi-extracted\bootstrapper.exe" -s --action install --components=%ONEAPI_WINDOWS_COMPONENTS% --eula=accept -p=NEED_VS2022_INTEGRATION=0 --log-dir=.
+
+      - name: Configure and build with IntelLLVM
+        if: matrix.compiler == 'IntelLLVM'
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Intel\oneAPI\setvars-vcvarsall.bat" vs2022
+          call "C:\Program Files (x86)\Intel\oneAPI\compiler\latest\env\vars.bat"
+          set "CC=icx-cl"
+          set "CXX=icx-cl"
+          cmake -S unidec/src -B build/unidec-windows-intel -G Ninja -DCMAKE_BUILD_TYPE=Release -DUNIDEC_REQUIRE_INTELLLVM=ON -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT_PATH%/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }} -DHDF5_ROOT=%VCPKG_ROOT_PATH%/installed/${{ matrix.triplet }} -DFFTW_ROOT=%VCPKG_ROOT_PATH%/installed/${{ matrix.triplet }}
+          cmake --build build/unidec-windows-intel --parallel
+
+      - name: Configure and build Windows ARM64
+        if: matrix.compiler == 'MSVC'
+        shell: pwsh
+        run: |
+          cmake -S unidec/src -B build/unidec-windows-arm64 -G "Visual Studio 17 2022" -A ARM64 `
+            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT_PATH/scripts/buildsystems/vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }} `
+            -DHDF5_ROOT="$env:VCPKG_ROOT_PATH/installed/${{ matrix.triplet }}" `
+            -DFFTW_ROOT="$env:VCPKG_ROOT_PATH/installed/${{ matrix.triplet }}" `
+            -DUNIDEC_ENABLE_OPENMP=OFF
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build build/unidec-windows-arm64 --config Release --parallel
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Smoke test IntelLLVM executable
+        if: matrix.compiler == 'IntelLLVM'
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Intel\oneAPI\setvars-vcvarsall.bat" vs2022
+          call "C:\Program Files (x86)\Intel\oneAPI\compiler\latest\env\vars.bat"
+          set "PATH=%VCPKG_ROOT_PATH%\installed\${{ matrix.triplet }}\bin;%PATH%"
+          unidec\bin\unidec.exe > "%RUNNER_TEMP%\unidec-help.txt" 2>&1
+          if not "%ERRORLEVEL%"=="88" exit /b 1
+          findstr /c:"Universal Deconvolution" "%RUNNER_TEMP%\unidec-help.txt"
+          if not exist unidec\bin\unideclib.dll exit /b 1
+
+      - name: Smoke test ARM64 executable
+        if: matrix.compiler == 'MSVC'
+        shell: pwsh
+        run: |
+          $env:PATH = "$env:VCPKG_ROOT_PATH/installed/${{ matrix.triplet }}/bin;$env:PATH"
+          $PSNativeCommandUseErrorActionPreference = $false
+          $output = & unidec/bin/unidec.exe 2>&1
+          $exitCode = $LASTEXITCODE
+          $text = $output -join "`n"
+          if ($exitCode -ne 88) { throw "UniDec exited with $exitCode instead of 88.`n$text" }
+          if ($text -notmatch 'Universal Deconvolution') { throw 'UniDec help output was not produced.' }
+          if (-not (Test-Path -LiteralPath unidec/bin/unideclib.dll -PathType Leaf)) {
+            throw 'The ARM64 shared library was not deployed.'
+          }
+          exit 0

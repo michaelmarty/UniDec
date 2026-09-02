@@ -11,13 +11,10 @@ import numpy as np
 
 from unidec.modules import unidecstructure, peakstructure, MassFitter
 import unidec.tools as ud
-import unidec.modules.IM_functions as IM_func
 import unidec.modules.MassSpecBuilder as MSBuild
 from unidec.modules.unidec_enginebase import UniDecEngine
-from unidec.modules.plotting import plot1d, plot2d
+from unidec.modules.plotting import plot1d
 from UniDecImporter.ImporterFactory import ImporterFactory
-
-from isodec.runtime import IsoDecRuntime
 
 # import modules.DoubleDec as dd
 
@@ -35,6 +32,18 @@ def score_minimum(height, minimum):
 
 
 class UniDec(UniDecEngine):
+    """Engine for conventional one-dimensional mass spectra."""
+
+    mode_imflag = 0
+
+    def reset_config(self):
+        super().reset_config()
+        self.config.imflag = self.mode_imflag
+
+    def load_config(self, f_name):
+        super().load_config(f_name)
+        self.config.imflag = self.mode_imflag
+
     def __init__(self, *args, **kwargs):
         """
         UniDec Engine
@@ -44,6 +53,7 @@ class UniDec(UniDecEngine):
         :return: None
         """
         UniDecEngine.__init__(self)
+        self.config.imflag = self.mode_imflag
         self.autopeaks = None
         self.peakparams = None
         self.massfit = None
@@ -89,6 +99,25 @@ class UniDec(UniDecEngine):
                 self.open_file(self.infile)
                 self.autorun()
             pass
+
+    def _load_raw_data(self, importer, time_range=None):
+        """Load conventional MS data and return its cache path and contents."""
+        self.data.rawdata = importer.get_avg_scan(time_range=time_range)
+        return self.config.outfname + "_rawdata.txt", self.data.rawdata
+
+    def _restore_processed_data(self, refresh=False):
+        """Restore cached one-dimensional processed data when available."""
+        if os.path.isfile(self.config.infname) and not refresh:
+            try:
+                self.data.data2 = np.loadtxt(self.config.infname)
+                if len(self.data.data2) == 0:
+                    raise ValueError("Data array is empty")
+                self.config.procflag = 1
+                return
+            except Exception:
+                pass
+        self.data.data2 = self.data.rawdata
+        self.config.procflag = 0
 
     def open_file(self, file_name, file_directory=None, time_range=None, refresh=False, load_results=False,
                  isodeceng=None, *args, **kwargs):
@@ -158,22 +187,7 @@ class UniDec(UniDecEngine):
         if isodeceng is not None:
             isodeceng.reader = curr_importer
 
-        if self.config.imflag ==0:
-            self.data.rawdata = curr_importer.get_avg_scan(time_range=time_range)
-
-            newname = self.config.outfname + "_rawdata.txt"
-            outputdata = self.data.rawdata
-
-        else:
-            self.data.rawdata = curr_importer.get_imms_avg_scan(mzbins=self.config.mzbins, time_range=time_range)
-            self.config.discreteplot = 1
-            self.config.poolflag = 1
-            self.data.rawdata3, self.data.rawdata = ud.unsparse(self.data.rawdata)
-            print("Data Shape:", self.data.rawdata3.shape, self.data.rawdata.shape)
-            self.data.data3 = self.data.rawdata3
-
-            newname = self.config.outfname + "_imraw.txt"
-            outputdata = ud.sparse(self.data.rawdata3)
+        newname, outputdata = self._load_raw_data(curr_importer, time_range=time_range)
 
         if ud.isempty(self.data.rawdata):
             print("Error: Data Array is Empty")
@@ -187,18 +201,7 @@ class UniDec(UniDecEngine):
             except Exception as e:
                 pass
 
-        if os.path.isfile(self.config.infname) and not refresh and self.config.imflag == 0:
-            try:
-                self.data.data2 = np.loadtxt(self.config.infname)
-                if len(self.data.data2) == 0:
-                    raise ValueError("Data array is empty")
-                self.config.procflag = 1
-            except:
-                self.data.data2 = self.data.rawdata
-                self.config.procflag = 0
-        else:
-            self.data.data2 = self.data.rawdata
-            self.config.procflag = 0
+        self._restore_processed_data(refresh=refresh)
 
         # Initialize Config
         if self.configfile is not None:
@@ -224,19 +227,11 @@ class UniDec(UniDecEngine):
 
     def raw_process(self, dirname, inflag=False, binsize=1):
         """
-        Processes Water's Raw files into .txt using external calls to:
-        self.config.cdcreaderpath for IM-MS
-
-        MS is processed by modules.waters_importer.Importer
-
-        Default files are created with the header of the .raw file plus:
-        _rawdata.txt for MS
-        _imraw.txt for IM-MS
+        Resolve a vendor directory for conventional MS import.
         :param dirname: .raw directory name
         :param inflag: If True, it will put the output .txt file inside the existing .raw directory. If False, it will
         put the file in the same directory that contains the .raw directory
-        :param binsize: Parameter for IM-MS to specify the m/z bin size for conversion. If binsize=0, the conversion
-        will be at full resolution (which is huge), so the default is every 1 m/z.
+        :param binsize: Retained for API compatibility; unused for conventional MS.
         :return: self.config.filename, self.config.dirname (name and location of created file)
         """
         self.config.dirname = dirname
@@ -253,10 +248,7 @@ class UniDec(UniDecEngine):
         elif os.path.splitext(self.config.filename)[1] == ".raw" and self.config.system == "Windows":
             basename = os.path.splitext(self.config.filename)[0]
 
-            if self.config.imflag == 1:
-                newfilename = basename + "_imraw.txt"
-            else:
-                newfilename = basename + "_rawdata.txt"
+            newfilename = basename + "_rawdata.txt"
 
             if inflag:
                 newfilepath = os.path.join(self.config.dirname, newfilename)
@@ -267,25 +259,9 @@ class UniDec(UniDecEngine):
                 self.config.filename = newfilename
                 print("Data already converted:", newfilename)
             else:
-                if self.config.system == "Windows":
-                    if self.config.imflag == 1:
-                        stime = time.perf_counter()
-                        call = [self.config.cdcreaderpath, '-r', self.config.dirname, '-m',
-                                newfilepath[:-10] + "_msraw.txt", '-i', newfilepath, '--ms_bin', binsize,
-                                "--ms_smooth_window", "0", "--ms_number_smooth", "0", "--im_bin", binsize, "--sparse",
-                                "1"]
-                        result = ud.exe_call(call)
-                        print("Time: %.2gs" % (stime - time.perf_counter()))
-
-                        self.config.filename = newfilename
-                        if result == 0 and os.path.isfile(newfilepath):
-                            print("Converted IM data from raw to txt")
-                        else:
-                            print("Failed conversion to txt file. ", result, newfilepath)
-                            return None, None
-                else:
-                    print("Sorry. Waters Raw converter only works on windows. Convert to txt file first.")
-                    return None, None
+                # Conventional MS vendor directories are opened directly by
+                # UniDecImporter, so no IM conversion executable is needed.
+                return os.path.basename(dirname), os.path.dirname(dirname)
 
             return self.config.filename, self.config.dirname
 
@@ -314,60 +290,30 @@ class UniDec(UniDecEngine):
             float(self.config.maxmz)
         except ValueError:
             self.config.maxmz = np.amax(self.data.rawdata[:, 0])
-        if self.config.imflag == 1:
-            try:
-                float(self.config.mindt)
-            except ValueError:
-                self.config.mindt = np.amin(self.data.rawdata3[:, 1])
-
-            try:
-                float(self.config.maxdt)
-            except ValueError:
-                self.config.maxdt = np.amax(self.data.rawdata3[:, 1])
-
         if self.check_badness() == 1:
             print("Badness found, aborting data prep")
             return 1
 
-        if self.config.imflag == 0:
-            if "centroid" in kwargs and kwargs["centroid"]:
-                datatop = self.data.data2
-            else:
-                datatop = self.data.rawdata
-
-
-            if self.config.isomode == 1 or self.config.isomode == 3:
-                datatop, _ = self.remove_isodists(deepcopy(datatop))
-
-            self.data.data2 = ud.dataprep(datatop, self.config)
-
-            if self.config.isomode == 2 or self.config.isomode == 3:
-                self.data.data2, _ = self.remove_isodists(deepcopy(self.data.data2), dropzeros=True)
-
-
-            if "scramble" in kwargs:
-                    if kwargs["scramble"]:
-                        # np.random.shuffle(self.data.data2[:, 1])
-                        self.data.data2[:, 1] = np.abs(
-                            np.random.normal(0, 100 * np.amax(self.data.data2[:, 1]), len(self.data.data2)))
-                        self.data.data2[:, 1] /= np.amax(self.data.data2[:, 1])
-                        print("Added noise to data")
-
-            ud.dataexport(self.data.data2, self.config.infname)
-
-
+        if "centroid" in kwargs and kwargs["centroid"]:
+            datatop = self.data.data2
         else:
-            tstart2 = time.perf_counter()
-            mz, dt, i3 = IM_func.process_data_2d(self.data.rawdata3[:, 0], self.data.rawdata3[:, 1],
-                                                 self.data.rawdata3[:, 2],
-                                                 self.config)
-            tend = time.perf_counter()
-            if "silent" not in kwargs or not kwargs["silent"]:
-                print("Time: %.2gs" % (tend - tstart2))
-            self.data.data3 = np.transpose([np.ravel(mz), np.ravel(dt), np.ravel(i3)])
-            #self.data.data2 = np.transpose([np.unique(mz), np.sum(i3, axis=1)])
-            ud.dataexportbin(self.data.data3, self.config.infname)
-            pass
+            datatop = self.data.rawdata
+
+        if self.config.isomode == 1 or self.config.isomode == 3:
+            datatop, _ = self.remove_isodists(deepcopy(datatop))
+
+        self.data.data2 = ud.dataprep(datatop, self.config)
+
+        if self.config.isomode == 2 or self.config.isomode == 3:
+            self.data.data2, _ = self.remove_isodists(deepcopy(self.data.data2), dropzeros=True)
+
+        if kwargs.get("scramble"):
+            self.data.data2[:, 1] = np.abs(
+                np.random.normal(0, 100 * np.amax(self.data.data2[:, 1]), len(self.data.data2)))
+            self.data.data2[:, 1] /= np.amax(self.data.data2[:, 1])
+            print("Added noise to data")
+
+        ud.dataexport(self.data.data2, self.config.infname)
 
         self.config.procflag = 1
         tend = time.perf_counter()
@@ -385,9 +331,7 @@ class UniDec(UniDecEngine):
         """
         Runs unidec.
 
-        Checks that everything is set to go and then places external call to:
-            self.config.UniDecPath for MS
-            self.config.UniDecIMPath for IM-MS
+        Checks that everything is set to go and then calls the UniDec executable.
 
         If successful, calls self.unidec_imports()
         If not, prints the error code.
@@ -467,67 +411,35 @@ class UniDec(UniDecEngine):
                 self.data.baseline = np.array([])
                 pass
 
-            if self.config.imflag == 1:
-                self.data.fitdat2d = deepcopy(self.data.data3)
-                self.data.fitdat2d[:, 2] = self.data.fitdat
-                self.data.fitdat = np.sum(self.data.fitdat.reshape(
-                    (len(np.unique(self.data.data3[:, 0])), len(np.unique(self.data.data3[:, 1])))), axis=1)
-
         try:
             runstats = np.genfromtxt(self.config.errorfile, dtype='str')
         except Exception:
             runstats = []
             pass
-        if self.config.imflag == 0:
-            # Calculate Error
+        # Calculate Error
+        try:
+            sse = float(runstats[0, 2])
+        except Exception as e:
+            print("Error in error import", e)
+            print(runstats)
+            sse = 1
+
+        mean = np.mean(self.data.data2[:, 1])
+        self.config.error = 1 - sse / np.sum((self.data.data2[:, 1] - mean) ** 2)
+        if not efficiency:
+            # Import Grid
             try:
-                sse = float(runstats[0, 2])
-            except Exception as e:
-                print("Error in error import", e)
-                print(runstats)
-                sse = 1
-
-            mean = np.mean(self.data.data2[:, 1])
-            self.config.error = 1 - sse / np.sum((self.data.data2[:, 1] - mean) ** 2)
-            if not efficiency:
-                # Import Grid
-                try:
-                    self.data.mzgrid = np.fromfile(self.config.mzgridfile, dtype=self.config.dtype)
-                    xv, yv = np.meshgrid(self.data.ztab, self.data.data2[:, 0])
-                    xv = np.c_[np.ravel(yv), np.ravel(xv)]
-                    self.data.mzgrid = np.c_[xv, self.data.mzgrid]
-                except Exception as e:
-                    print("Error: Mismatched dimensions between processed and deconvolved data. ", e)
-                    self.data.mzgrid = []
-
-            for r in runstats:
-                if r[0] == "avgscore":
-                    self.config.avgscore = float(r[2])
-
-        else:
-            # Calculate Error
-            self.config.error = float(runstats[1])
-
-            self.data.ccsdata = np.loadtxt(self.config.outfname + "_ccs.txt")
-            if not efficiency:
-                # Import Grids and Reshape
-                masslen = len(self.data.massdat)
-                ccslen = len(self.data.ccsdata)
-                zlen = len(self.data.ztab)
-
-                self.data.massccs = np.fromfile(self.config.outfname + "_massccs.bin", dtype=self.config.dtype)
-                self.data.ccsz = np.fromfile(self.config.outfname + "_ccsz.bin", dtype=self.config.dtype)
-                self.data.mztgrid = np.fromfile(self.config.outfname + "_mzgrid.bin", dtype=self.config.dtype)
-
-                self.data.massccs = self.data.massccs.reshape((masslen, ccslen))
-                self.data.ccsz = self.data.ccsz.reshape((zlen, ccslen))
-                self.data.mztgrid = np.clip(self.data.mztgrid, 0.0, np.amax(self.data.mztgrid))
-                self.data.mztgrid = self.data.mztgrid.reshape(
-                    (len(np.unique(self.data.data3[:, 0])), len(np.unique(self.data.data3[:, 1])), zlen))
-                self.data.mzgrid = np.sum(self.data.mztgrid, axis=1)
-                xv, yv = np.meshgrid(self.data.ztab, np.unique(self.data.data3[:, 0]))
+                self.data.mzgrid = np.fromfile(self.config.mzgridfile, dtype=self.config.dtype)
+                xv, yv = np.meshgrid(self.data.ztab, self.data.data2[:, 0])
                 xv = np.c_[np.ravel(yv), np.ravel(xv)]
-                self.data.mzgrid = np.c_[xv, np.ravel(self.data.mzgrid)]
+                self.data.mzgrid = np.c_[xv, self.data.mzgrid]
+            except Exception as e:
+                print("Error: Mismatched dimensions between processed and deconvolved data. ", e)
+                self.data.mzgrid = []
+
+        for r in runstats:
+            if r[0] == "avgscore":
+                self.config.avgscore = float(r[2])
 
     def pick_peaks(self, calc_dscore=True):
         """
@@ -607,7 +519,7 @@ class UniDec(UniDecEngine):
         Convolve Peaks with Peak Shape
         :return: None
         """
-        if self.config.imflag == 1 or self.config.cdmsflag == 1:
+        if self.config.cdmsflag == 1:
             convdata = ud.makeconvspecies(self.data.data2, self.pks, self.config)
         else:
             # TODO: There's no reason this shouldn't work for CD-MS data, but we'd need to include a write to _grid.bin
@@ -965,30 +877,19 @@ class UniDec(UniDecEngine):
         print("Loading Zip File:", load_path)
         # Set up extensions
         extension = "_rawdata."
-        extension2 = "_imraw."
         # In zip file, search for correct files
         zipf = zipfile.ZipFile(load_path)
-        imfile = None
         msfile = None
         for file_path in zipf.namelist():
-            if fnmatch.fnmatch(file_path, '*' + extension + "*") or fnmatch.fnmatch(file_path, '*' + extension2 + "*"):
-                if fnmatch.fnmatch(file_path, '*' + extension + "*"):
-                    msfile = file_path
-                elif fnmatch.fnmatch(file_path, '*' + extension2 + "*"):
-                    imfile = file_path
+            if fnmatch.fnmatch(file_path, '*' + extension + "*"):
+                msfile = file_path
 
         # Set file and extension
         header = None
-        if imfile is not None:
-            if msfile is None or self.config.imflag == 1:
-                header = imfile[:-8]
-                extension = "_imraw."
-        elif msfile is not None:
-            if imfile is None or self.config.imflag == 0:
-                header = msfile[:-10]
-                extension = "_rawdata."
+        if msfile is not None:
+            header = msfile[:-10]
         else:
-            print("Broken Save File. Unable to find _rawdata or _imraw")
+            print("Broken Save File. Unable to find _rawdata")
             return False
 
         # Get directory, filename, and header
@@ -1017,13 +918,7 @@ class UniDec(UniDecEngine):
 
         # Import Processed Data
         if os.path.isfile(self.config.infname):
-            if self.config.imflag == 0:
-                self.data.data2 = np.loadtxt(self.config.infname)
-            else:
-                self.data.data3 = np.loadtxt(self.config.infname)
-                i3 = self.data.data3[:, 2].reshape(
-                    (len(np.unique(self.data.data3[:, 0])), len(np.unique(self.data.data3[:, 1]))))
-                self.data.data2 = np.transpose([np.unique(self.data.data3[:, 0]), np.sum(i3, axis=1)])
+            self.data.data2 = np.loadtxt(self.config.infname)
             self.config.procflag = 1
         else:
             self.config.procflag = 0
@@ -1485,25 +1380,6 @@ class UniDec(UniDecEngine):
 
             ax.plot(m, h, color=color, marker="o")
 
-    def makeplot1im(self, plot1im=None, plot1fit=None, imfit=False):
-        if plot1im is None:
-            plot1im = plot2d.Plot2dBase()
-        if plot1fit is None:
-            plot1fit = plot2d.Plot2dBase()
-
-        if self.config.imflag == 1:
-            try:
-                plot1im.contourplot(self.data.data3, self.config, xlab="m/z (Th)", ylab="Arrival Time (ms)",
-                                    title="IM-MS Data")
-            except Exception:
-                pass
-            if imfit:
-                try:
-                    plot1fit.contourplot(self.data.fitdat2d, self.config, xlab="m/z (Th)", ylab="Arrival Time (ms)",
-                                         title="IM-MS Fit")
-                except Exception:
-                    pass
-
     def makeplot1(self, plot=None, intthresh=False, imfit=True, config=None):
         """
         Plot data and fit in self.view.plot1 and optionally in plot1fit
@@ -1551,7 +1427,7 @@ class UniDec(UniDecEngine):
                                     nopaint=True)
 
                 # Add red line if there is a threshold
-                if self.config.intthresh != 0 and self.config.imflag == 0 and intthresh:
+                if self.config.intthresh != 0 and intthresh:
                     plot.plotadd(self.data.data2[:, 0], np.zeros_like(self.data.data2[:, 1]) + self.config.intthresh,
                                  "red", "Noise Threshold")
                     leg = True
@@ -1587,6 +1463,10 @@ class UniDec(UniDecEngine):
         if data is None:
             data = self.data.data2
         # data = deepcopy(data)
+        # IsoDec is optional for standard UniDec/CDMS workflows. Import it only
+        # when isotope-distribution removal is explicitly requested.
+        from isodec.runtime import IsoDecRuntime
+
         isoeng = IsoDecRuntime()
         isoeng.config.matchtol = 25
         isoeng.config.css_thresh = 0.8
@@ -1614,11 +1494,15 @@ if __name__ == "__main__":
     # eng.config.peakwindow=2000.
     # eng.process_data()
     # eng.run_unidec(silent=False)
-
-    test = "C:\\Python\\UniDec3\\TestSpectra\\test_imms.raw"
-    test1 = "C:\\Users\\MartyLabsOfficePC\\OneDrive - University of Arizona\\Desktop\\20230816_Myoglobin 0666 ugmL 01.wiff"
-    test1 = "C:\\Data\\Volker noisy protein spectra\\Protein+cov-binder_#212#141.txt"
+    test1 = os.path.join(path, filename)
+    # test = "C:\\Python\\UniDec3\\TestSpectra\\test_imms.raw"
+    # test1 = "C:\\Users\\MartyLabsOfficePC\\OneDrive - University of Arizona\\Desktop\\20230816_Myoglobin 0666 ugmL 01.wiff"
+    # test1 = "C:\\Data\\Volker noisy protein spectra\\Protein+cov-binder_#212#141.txt"
     dat = eng.open_file(test1, refresh=True)
+    eng.run_unidec()
+    exit()
+
+
     newdat, isodists = eng.remove_isodists(dat)
     import matplotlib.pyplot as plt
     import isodec.plots as plots
@@ -1629,16 +1513,3 @@ if __name__ == "__main__":
     plt.show()
 
     exit()
-    eng.config.imflag = 1
-    eng.config.mzbins = 1
-    eng.open_file(test1)
-    # eng.match()
-    eng.run_unidec()
-    # plot = eng.makeplot2()
-    # os.chdir(path)
-    # plot.save_figure("test.png")
-    # eng.gen_html_report()
-    # eng.pick_peaks()
-
-    # eng.pick_peaks()
-    # eng.write_hdf5()

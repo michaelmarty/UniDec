@@ -68,8 +68,10 @@ class DataCollector(wx.Frame):
             else:
                 self.config.cmap = u"jet"
 
+        statusbar_log_silencer = wx.LogNull()
         self.CreateStatusBar(3)
-        self.SetStatusWidths([-1, 150, 400])
+        self.SetStatusWidths([-2, -3, -8])
+        del statusbar_log_silencer
 
         pub.subscribe(self.on_motion2, 'newxy')
 

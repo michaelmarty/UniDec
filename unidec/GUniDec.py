@@ -8,12 +8,10 @@ import unidec.engine as unidec
 from pubsub import pub
 
 import unidec.tools as ud
-import unidec.modules.IM_functions as IM_func
-import unidec.modules.IM_windows as IM_wind
 from unidec.modules import Extract2D, masstools, mainwindow, nativez, fft_window, GridDecon, isotopetools
 from unidec.modules import MassDefects, miscwindows
 from unidec.modules.isolated_packages import FileDialogs
-from unidec.modules.isolated_packages import score_window, texmaker, mql_tool
+from unidec.modules.isolated_packages import score_window, texmaker
 import unidec.DataCollector as datacollector
 import unidec.ImportWizard as import_wizard
 import platform
@@ -26,7 +24,7 @@ __author__ = 'Michael.Marty'
 # noinspection,PyBroadException,PyUnusedLocal,PyBroadException,PyBroadException,PyBroadException,PyBroadException,PyBroadException,PyBroadException,PyUnusedLocal,PyBroadException
 class UniDecApp(UniDecPres):
     """
-    Main UniDec GUI Application.
+    Main UniDec GUI application for conventional mass spectra.
     Presenter contains UniDec engine at self.eng and main GUI window at self.view
     """
 
@@ -99,6 +97,32 @@ class UniDecApp(UniDecPres):
             # self.on_label_max_charge_states(0)
             # self.view.plot1.copy_to_clipboard()
 
+    def import_config(self, file_name=None):
+        """Load configuration while keeping this application in MS mode."""
+        if file_name is not None:
+            extension = os.path.splitext(file_name)[1]
+            if extension == ".hdf5":
+                self.eng.config.read_hdf5(file_name)
+            else:
+                self.eng.config.config_import(file_name)
+        self.eng.config.imflag = 0
+        self.view.import_config_to_gui()
+        if self.eng.config.filetype == 1:
+            self.eng.config.write_hdf5()
+        self.eng.update_history()
+
+    def export_config(self, file_name=None):
+        """Export configuration while keeping this application in MS mode."""
+        self.view.export_gui_to_config()
+        self.eng.config.imflag = 0
+        if file_name is not None:
+            extension = os.path.splitext(file_name)[1]
+            if extension == ".hdf5":
+                self.eng.config.write_hdf5(file_name)
+            else:
+                self.eng.config.config_export(file_name)
+        self.eng.update_history()
+
     # ..............................
     #
     #  Main Utility Functions
@@ -148,10 +172,6 @@ class UniDecApp(UniDecPres):
 
         # Set Status Bar Text Values
         self.view.SetStatusText("File: " + filename, number=1)
-        # print self.view.imflag, self.eng.config.imflag
-        if self.view.imflag != self.eng.config.imflag:
-            print("Changing Modes")
-            self.on_flip_mode(0)
         self.view.SetStatusText("Data Length: " + str(len(self.eng.data.data2)), number=2)
         self.view.SetStatusText("R\u00B2 ", number=3)
         # Update view with data limits
@@ -162,13 +182,6 @@ class UniDecApp(UniDecPres):
         # Plot 1D
         if self.eng.config.batchflag == 0:
             self.makeplot1(imfit=False)
-        # IM Loading and Plotting
-        if self.eng.config.imflag == 1 and self.eng.config.batchflag != 1:
-            self.view.controls.ctlmindt.SetValue(str(np.amin(self.eng.data.data3[:, 1])))
-            self.view.controls.ctlmaxdt.SetValue(str(np.amax(self.eng.data.data3[:, 1])))
-            # if self.eng.config.batchflag == 0:
-            #    self.view.plot1im.contourplot(self.eng.data.rawdata3, self.eng.config, xlab="m/z (Th)",
-            #                                  ylab="Arrival Time (ms)", title="IM-MS Data")
         # tstart = time.perf_counter()
         # Load Config to GUI
         self.import_config()
@@ -253,9 +266,6 @@ class UniDecApp(UniDecPres):
             if self.eng.config.procflag == 1:
                 self.view.plot1.plotrefreshtop(self.eng.data.data2[:, 0], self.eng.data.data2[:, 1], "Data", "m/z",
                                                "Intensity", "Data", self.eng.config)
-                if self.eng.config.imflag == 1:
-                    self.view.plot1im.contourplot(self.eng.data.data3, self.eng.config, xlab="m/z (Th)",
-                                                  ylab="Arrival Time (ms)", title="IM-MS Data")
                 self.view.SetStatusText("Data Length: " + str(len(self.eng.data.data2)), number=2)
             # Load unidec Plots
             if os.path.isfile(self.eng.config.errorfile):
@@ -286,15 +296,7 @@ class UniDecApp(UniDecPres):
         else:
             self.eng.config.dirname = dirname
 
-        if self.eng.config.imflag == 1:
-            if self.eng.config.compressflag == 1:
-                binsize = str(self.eng.config.mzbins)
-                print("Converting at resolution of: " + binsize)
-            else:
-                binsize = "0"
-                print("Converting using full resolution")
-        else:
-            binsize = None
+        binsize = None
 
         if self.eng.config.dirname is not None:
             self.view.SetStatusText("Converting", number=5)
@@ -414,21 +416,17 @@ class UniDecApp(UniDecPres):
         Plots to make after running UniDec.
         :return: None
         """
-        if self.eng.config.imflag == 0:
-            self.view.SetStatusText("UniDec Plot", number=5)
-            if self.view.system == "Linux":
-                self.makeplot1(1)
-                self.makeplot2(1)
-                self.makeplot3(1)
-                self.makeplot5(1)
-            else:
-                _thread.start_new_thread(self.makeplot3, (1,))
-                _thread.start_new_thread(self.makeplot5, (1,))
-                self.makeplot1(1)
-                self.makeplot2(1)
+        self.view.SetStatusText("UniDec Plot", number=5)
+        if self.view.system == "Linux":
+            self.makeplot1(1)
+            self.makeplot2(1)
+            self.makeplot3(1)
+            self.makeplot5(1)
         else:
-            self.view.SetStatusText("UniDec Plot", number=5)
-            self.make_im_plots()
+            _thread.start_new_thread(self.makeplot3, (1,))
+            _thread.start_new_thread(self.makeplot5, (1,))
+            self.makeplot1(1)
+            self.makeplot2(1)
 
         self.view.SetStatusText("R\u00B2: " + str(self.eng.config.error), number=3)
 
@@ -502,9 +500,6 @@ class UniDecApp(UniDecPres):
         :return: None
         """
         self.eng.makeplot1(plot=self.view.plot1, intthresh=intthresh, imfit=imfit)
-        if self.eng.config.batchflag == 0:
-            if self.eng.config.imflag == 1:
-                self.eng.makeplot1im(plot1im=self.view.plot1im, plot1fit=self.view.plot1fit, imfit=imfit)
 
     def makeplot6(self, e=None, show="height"):
         """
@@ -536,47 +531,6 @@ class UniDecApp(UniDecPres):
         except ValueError:
             print("Need to hit Plot Peaks button first")
 
-    def make_im_plots(self):
-        """
-        Make Ion Mobility plots (but not cube plots)
-        :return: None
-        """
-        if self.eng.config.batchflag == 0:
-            self.makeplot1(1)
-            self.makeplot2(1)
-            self.makeplot5(1)
-            self.makeplot3(1)
-            self.view.plot2ccs.plotrefreshtop(self.eng.data.ccsdata[:, 0], self.eng.data.ccsdata[:, 1],
-                                              title="CCS Distribution", xlabel="CCS (${\\AA}$$^2$)", ylabel="Intensity",
-                                              label="CCS Summation", config=self.eng.config, nopaint=False)
-            self.view.plot5mccs.contourplot(xvals=self.eng.data.massdat[:, 0], yvals=self.eng.data.ccsdata[:, 0],
-                                            zgrid=np.ravel(self.eng.data.massccs), config=self.eng.config,
-                                            ylab="CCS (${\\AA}$$^2$)", title="Mass vs. CCS", test_kda=True)
-
-            ccsgrid2, zgrid2 = np.meshgrid(self.eng.data.ztab, self.eng.data.ccsdata[:, 0], sparse=False, indexing='ij')
-            self.view.plot5ccsz.contourplot(
-                np.transpose([np.ravel(ccsgrid2), np.ravel(zgrid2), np.ravel(self.eng.data.ccsz)]), self.eng.config,
-                xlab="Charge", ylab="CCS (${\\AA}$$^2$)", title="CCS vs. Charge")
-            print("Made IM Plots")
-            try:
-                self.view.plot3color.make_color_plot(self.eng.data.mztgrid, np.unique(self.eng.data.data3[:, 0]),
-                                                     np.unique(self.eng.data.data3[:, 1]), self.eng.data.ztab)
-            except Exception as e:
-                print("Color Plot Error", e)
-
-    def on_plot_nativeccs(self, e=None):
-        """
-        Plot native CCS as a red line on self.view.plot5mccs (mass vs ccs) plot.
-        :param e: unused event
-        :return: None
-        """
-        if not ud.isempty(self.eng.data.massdat) and self.eng.config.imflag == 1:
-            ccses = [IM_func.calc_native_ccs(mass, self.eng.config.gasmass) for mass in self.eng.data.massdat[:, 0]]
-            self.view.plot5mccs.subplot1.plot(self.eng.data.massdat[:, 0] / self.view.plot5mccs.kdnorm, ccses,
-                                              color="r")
-            self.view.plot5mccs.repaint()
-            print("Plotted predicted native CCS values")
-
     def on_replot(self, e=None):
         """
         Refresh the parameters from the GUI and plot everything again with the new parameters.
@@ -584,51 +538,12 @@ class UniDecApp(UniDecPres):
         :return: None
         """
         self.export_config(self.eng.config.confname)
-        if self.eng.config.imflag == 1:
-            self.make_im_plots()
-            self.makeplot4()
-            self.makeplot6()
-            if self.view.plot9.flag and self.view.plot10.flag:
-                self.make_cube_plot(0)
-        else:
-            self.makeplot1()
-            self.makeplot2()
-            self.makeplot3()
-            self.makeplot4()
-            self.makeplot5()
-            self.makeplot6()
-
-    def make_cube_plot(self, event=None):
-        """
-        Make cube plots for IMMS.
-        :param event: unused event
-        :return: None
-        """
-        self.export_config(self.eng.config.confname)
-        try:
-            starttime = time.perf_counter()
-            self.view.plot9.cubeplot(np.unique(self.eng.data.data3[:, 0]), np.unique(self.eng.data.data3[:, 1]),
-                                     self.eng.data.ztab, np.sum(self.eng.data.mztgrid, axis=2),
-                                     np.sum(self.eng.data.mztgrid, axis=1), np.sum(self.eng.data.mztgrid, axis=0),
-                                     xlab="m/z (Th)", ylab="Arrival Time (ms)", zlab="Charge",
-                                     cmap=self.eng.config.cmap)
-            endtime = time.perf_counter()
-            print("Finished m/z Cube in: ", (endtime - starttime), " s")
-        except Exception as ex:
-            print("Failed m/z cube", ex)
-            pass
-        try:
-            starttime = time.perf_counter()
-            self.view.plot10.cubeplot(self.eng.data.massdat[:, 0], self.eng.data.ccsdata[:, 0], self.eng.data.ztab,
-                                      self.eng.data.massccs, self.eng.data.massgrid.reshape(
-                    (len(self.eng.data.massdat), len(self.eng.data.ztab))), self.eng.data.ccsz.transpose(),
-                                      xlab="Mass (Da)",
-                                      ylab="CCS (${\\AA}$$^2$)", zlab="Charge", cmap=self.eng.config.cmap)
-            endtime = time.perf_counter()
-            print("Finished Final Cube in: ", (endtime - starttime), " s")
-        except Exception as ex:
-            print("Failed final cube", ex)
-            pass
+        self.makeplot1()
+        self.makeplot2()
+        self.makeplot3()
+        self.makeplot4()
+        self.makeplot5()
+        self.makeplot6()
 
     def on_autoformat(self, e=None):
         self.eng.pks.auto_format()
@@ -923,48 +838,6 @@ class UniDecApp(UniDecPres):
         dlg = import_wizard.ImportWizard(self.view, dir=self.eng.config.UniDecDir)
         dlg.Show()
 
-    def on_im_tools(self, e=None):
-        """
-        Open IM Parameters tool window for guessing at IM parameters.
-        :param e: unused event
-        :return: None
-        """
-        self.export_config()
-        if not ud.isempty(self.eng.data.data3):
-            self.export_config(None)
-            if self.eng.config.imflag == 1:
-                dlg = IM_wind.IMTools(self.view)
-                dlg.initialize_interface(self.eng.data.data3, self.eng.config)
-                out = dlg.ShowModal()
-                if out == 0:
-                    self.import_config(None)
-                else:
-                    self.export_config()
-        else:
-            print("Load Data First")
-        pass
-
-    def on_im_extract(self, e=None):
-        """
-        Open IM extraction window for extracting data from IM plots.
-        Has to run unidec again with self.eng.config.zout=-1,
-        which causes the export of all charge state slices of mass vs ccs plots.
-        Normally only the faces of the mass vs ccs vs charge cube are output.
-        :param e: unused event
-        :return: None
-        """
-        if not ud.isempty(self.eng.data.ccsdata):
-            print("Running UniDec to Generate Outputs")
-            self.eng.config.zout = -1
-            self.export_config(self.eng.config.confname)
-            ud.unidec_call(self.eng.config)
-            dlg = IM_wind.IMToolExtract(self.view)
-            dlg.initialize_interface(self.eng.data.massdat, self.eng.data.ccsdata, self.eng.data.massccs,
-                                     self.eng.config, self.eng.pks)
-            dlg.ShowModal()
-            self.eng.config.zout = 0
-        pass
-
     def on_kendrick(self, e=None):
         """
         Opens Kendrick Mass Defect Analysis window.
@@ -974,29 +847,6 @@ class UniDecApp(UniDecPres):
         MassDefects.MassDefectWindow(self.view, [self.eng.data.massdat], config=self.eng.config,
                                      pks=self.eng.pks, value=self.eng.config.molig, directory=self.eng.config.udir)
 
-
-    def on_mql(self, e=None):
-        defaultquery = "QUERY scaninfo(MS1DATA) WHERE MS1MZ=X AND MS1MZ=X+760:TOLERANCEMZ=5 FILTER MS1MZ=X"
-        # Launch window to input calibration parameters
-        dialog = miscwindows.SingleInputDialog(self.view, width=800)
-        dialog.initialize_interface(title="MassQL Query",
-                                    message="Query",
-                                    defaultvalue=defaultquery)
-        dialog.ShowModal()
-
-        try:
-            query = dialog.value
-            print("Query:", query)
-        except Exception as e:
-            print("Query failed:", e)
-            query = None
-
-        file = self.eng.config.peaksfile
-        print("MassQL", file)
-        mql = mql_tool.MQL_TOOL(file)
-        mql.query(query, self.eng.pks)
-        self.on_delete()
-        self.view.peakpanel.add_data(self.eng.pks, show="dscore")
 
     def on_2d_grid(self, e=None):
         """
@@ -1240,18 +1090,15 @@ class UniDecApp(UniDecPres):
         peaklabels = [p.label for p in self.eng.pks.peaks]
         peakcolors = [p.color for p in self.eng.pks.peaks]
         peaks = np.array([[p.mass, p.height] for p in self.eng.pks.peaks])
-        if self.eng.config.imflag == 0:
-            texmaker.MakeTexReport(self.eng.config.outfname + '_report.tex', self.eng.config, self.eng.config.udir,
-                                   peaks, textmarkertab, peaklabels, peakcolors, figureflags)
-            self.view.SetStatusText("TeX file Written", number=5)
-            try:
-                texmaker.PDFTexReport(self.eng.config.outfname + '_report.tex')
-                self.view.SetStatusText("PDF Report Finished", number=5)
-            except Exception as ex:
-                self.view.SetStatusText("PDF Report Failed", number=5)
-                print("PDF Report Failed to Generate. Check LaTeX installation.Need pdflatex in path.", ex)
-        else:
-            print("PDF Figures written.")
+        texmaker.MakeTexReport(self.eng.config.outfname + '_report.tex', self.eng.config, self.eng.config.udir,
+                               peaks, textmarkertab, peaklabels, peakcolors, figureflags)
+        self.view.SetStatusText("TeX file Written", number=5)
+        try:
+            texmaker.PDFTexReport(self.eng.config.outfname + '_report.tex')
+            self.view.SetStatusText("PDF Report Finished", number=5)
+        except Exception as ex:
+            self.view.SetStatusText("PDF Report Failed", number=5)
+            print("PDF Report Failed to Generate. Check LaTeX installation.Need pdflatex in path.", ex)
         pass
 
     def on_fft_window(self, e):
@@ -1396,15 +1243,11 @@ class UniDecApp(UniDecPres):
         self.makeplot1()
 
     def on_score(self, e=0):
-        if self.eng.config.imflag == 1:
-            return # No scoring in IM mode
         self.eng.dscore()
         self.view.peakpanel.add_data(self.eng.pks, show="dscore")
         self.view.SetStatusText("UniScore: " + str(round(self.eng.pks.uniscore * 100, 2)), number=3)
 
     def on_score2(self, e=0):
-        if self.eng.config.imflag == 1:
-            return # No scoring in IM mode
         self.on_filter_peaks(e)
         self.view.SetStatusText("UniScore: " + str(round(self.eng.pks.uniscore * 100, 2)), number=3)
         self.makeplot2()
@@ -1413,16 +1256,12 @@ class UniDecApp(UniDecPres):
         self.on_score_window()
 
     def on_score_window(self, e=0):
-        if self.eng.config.imflag == 1:
-            return # No scoring in IM mode
         self.on_score()
         sw = score_window.ScoreFrame(self.view)
         sw.populate(self.eng.pks)
         pass
 
     def on_score_label(self, e=0):
-        if self.eng.config.imflag == 1:
-            return # No scoring in IM mode
         self.on_score()
         offset = 0.08 * np.amax(self.eng.data.massdat[:, 1])
         for p in self.eng.pks.peaks:
@@ -1433,26 +1272,7 @@ class UniDecApp(UniDecPres):
     #    self.on_dataprep_button(removenoise=True)
 
     def on_score_FDR(self, e=0):
-        if self.eng.config.imflag == 1:
-            return # No scoring in IM mode
         self.eng.estimate_FDR()
-
-    def on_flip_mode(self, e=None):
-        """
-        Flips between MS and IM-MS mode
-        :param e: wx event or anything (will flip if not 0)
-        :return: None
-        """
-        if e != 0:
-            self.eng.config.imflag = (self.eng.config.imflag + 1) % 2
-        self.remake_mainwindow(self.view.tabbed)
-        if self.eng.config.imflag == 1:
-            print("Ion Mobility Mode")
-            if self.eng.config.mzbins == 0:
-                self.eng.config.mzbins = 1
-        elif self.eng.config.imflag == 0:
-            print("Mass Spec Mode")
-        self.view.import_config_to_gui()
 
     def on_flip_tabbed(self, e):
         """
@@ -1474,27 +1294,6 @@ class UniDecApp(UniDecPres):
             print("Tabbed Mode")
         elif self.view.tabbed == 0:
             print("Single Plot Window Mode")
-
-    def on_flip_twave(self, e):
-        """
-        Flips between T-Wave and Linear IM-MS
-        :param e: wx Event or anything (will get value from Selection if not 0)
-        :return: None
-        """
-        if e != 0:
-            self.eng.config.twaveflag = self.view.controls.ctltwave.GetSelection()
-
-        if self.eng.config.twaveflag == 0:
-            self.eng.config.gasmass = 4.002602
-            print("Using Linear Cell")
-        elif self.eng.config.twaveflag > 0:
-            self.eng.config.gasmass = 28.0134
-            print("Using Travelling Wave")
-        else:
-            print("Error: Unsupported twaveflag.", self.eng.config.twaveflag)
-        self.remake_mainwindow(self.view.tabbed)
-        # self.view.ctltwave.SetSelection(self.eng.config.twaveflag)
-        # self.view.import_config_to_gui()
 
     def remake_mainwindow(self, tabbed=None):
         iconfile = self.view.icon_path
@@ -1529,14 +1328,8 @@ class UniDecApp(UniDecPres):
         :param e: unused event
         :return: None
         """
-        if self.eng.config.imflag == 0:
-            plots = [[self.view.plot4, self.view.plot2], [self.view.plot3, self.view.plot6],
-                     [self.view.plot5, self.view.plot1]]
-        else:
-            plots = [[self.view.plot4, self.view.plot2], [self.view.plot3, self.view.plot6],
-                     [self.view.plot5, self.view.plot1], [self.view.plot1im, self.view.plot1fit],
-                     [self.view.plot2ccs, self.view.plot5mccs], [self.view.plot5ccsz, self.view.plot3color],
-                     [self.view.plot9, self.view.plot10]]
+        plots = [[self.view.plot4, self.view.plot2], [self.view.plot3, self.view.plot6],
+                 [self.view.plot5, self.view.plot1]]
         self.eng.gen_html_report(plots=plots)
         pass
 
@@ -1549,5 +1342,4 @@ if __name__ == '__main__':
     # import wx.lib.inspection
     # wx.lib.inspection.InspectionTool().Show()
     app.start()
-
 

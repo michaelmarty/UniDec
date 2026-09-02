@@ -48,6 +48,67 @@ int mh5getfilelength(const hid_t file_id, char *dataname)
 	return (int) dims[0];
 }
 
+int mh5readfile2d_axis_bounds(const hid_t file_id, const char *dataname, int *length, float *first, float *last)
+{
+	hid_t dataset_id = H5Dopen2(file_id, dataname, H5P_DEFAULT);
+	if (dataset_id < 0) { return 0; }
+	hid_t dataspace_id = H5Dget_space(dataset_id);
+	if (dataspace_id < 0) {
+		H5Dclose(dataset_id);
+		return 0;
+	}
+
+	hsize_t dims[2] = {0, 0};
+	const int rank = H5Sget_simple_extent_ndims(dataspace_id);
+	H5Sget_simple_extent_dims(dataspace_id, dims, NULL);
+	if (rank != 2 || dims[0] == 0 || dims[1] == 0 || dims[0] > INT_MAX) {
+		H5Sclose(dataspace_id);
+		H5Dclose(dataset_id);
+		return 0;
+	}
+
+	const hsize_t count[2] = {1, 1};
+	hid_t memory_space_id = H5Screate_simple(2, count, NULL);
+	hid_t file_type_id = H5Dget_type(dataset_id);
+	hid_t memory_type_id = file_type_id >= 0 ? H5Tget_native_type(file_type_id, H5T_DIR_DEFAULT) : -1;
+	const size_t value_size = memory_type_id >= 0 ? H5Tget_size(memory_type_id) : 0;
+	unsigned char first_value[sizeof(double)] = {0};
+	unsigned char last_value[sizeof(double)] = {0};
+	int success = memory_space_id >= 0 && memory_type_id >= 0 &&
+		H5Tget_class(memory_type_id) == H5T_FLOAT &&
+		(value_size == sizeof(float) || value_size == sizeof(double));
+	if (success) {
+		hsize_t offset[2] = {0, 0};
+		success = H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL) >= 0 &&
+			H5Dread(dataset_id, memory_type_id, memory_space_id, dataspace_id, H5P_DEFAULT, first_value) >= 0;
+		offset[0] = dims[0] - 1;
+		if (success) {
+			success = H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL) >= 0 &&
+				H5Dread(dataset_id, memory_type_id, memory_space_id, dataspace_id, H5P_DEFAULT, last_value) >= 0;
+		}
+	}
+	if (success && value_size == sizeof(float)) {
+		memcpy(first, first_value, sizeof(float));
+		memcpy(last, last_value, sizeof(float));
+	}
+	else if (success) {
+		double first_double = 0;
+		double last_double = 0;
+		memcpy(&first_double, first_value, sizeof(double));
+		memcpy(&last_double, last_value, sizeof(double));
+		*first = (float)first_double;
+		*last = (float)last_double;
+	}
+	if (memory_type_id >= 0) { H5Tclose(memory_type_id); }
+	if (file_type_id >= 0) { H5Tclose(file_type_id); }
+	if (memory_space_id >= 0) { H5Sclose(memory_space_id); }
+
+	H5Sclose(dataspace_id);
+	H5Dclose(dataset_id);
+	if (success) { *length = (int)dims[0]; }
+	return success;
+}
+
 void mh5readfile2dcolumn(const hid_t file_id, char* dataname, float* outdata, const int col)
 {
 	check_group(file_id, dataname);
@@ -107,9 +168,55 @@ void mh5readfile1d(const hid_t file_id, char *dataname, float *data)
 	H5LTread_dataset_float(file_id, dataname, data);
 }
 
+// Reuse an existing dataset when its rank and dimensions already match. This
+// avoids HDF5 metadata churn and file fragmentation during repeated runs.
+static int overwrite_float_dataset(const hid_t file_id, const char *dataname, const int rank,
+	const hsize_t *dims, const float *data)
+{
+	if (!H5LTpath_valid(file_id, dataname, 1)) { return 0; }
+
+	hid_t dataset_id = H5Dopen2(file_id, dataname, H5P_DEFAULT);
+	if (dataset_id < 0) { return 0; }
+	hid_t dataspace_id = H5Dget_space(dataset_id);
+	if (dataspace_id < 0) {
+		H5Dclose(dataset_id);
+		return 0;
+	}
+
+	hsize_t existing_dims[2] = {0, 0};
+	const int existing_rank = H5Sget_simple_extent_ndims(dataspace_id);
+	int same_shape = existing_rank == rank;
+	if (same_shape) {
+		H5Sget_simple_extent_dims(dataspace_id, existing_dims, NULL);
+		for (int i = 0; i < rank; i++) {
+			if (existing_dims[i] != dims[i]) {
+				same_shape = 0;
+				break;
+			}
+		}
+	}
+
+	int overwritten = 0;
+	if (same_shape) {
+		hid_t file_type_id = H5Dget_type(dataset_id);
+		const int is_float32 = file_type_id >= 0 && H5Tget_class(file_type_id) == H5T_FLOAT &&
+			H5Tget_size(file_type_id) == sizeof(float);
+		hid_t memory_type_id = is_float32 ? H5Tget_native_type(file_type_id, H5T_DIR_DEFAULT) : -1;
+		if (memory_type_id >= 0) {
+			overwritten = H5Dwrite(dataset_id, memory_type_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, data) >= 0;
+			H5Tclose(memory_type_id);
+		}
+		if (file_type_id >= 0) { H5Tclose(file_type_id); }
+	}
+	H5Sclose(dataspace_id);
+	H5Dclose(dataset_id);
+	return overwritten;
+}
+
 void mh5writefile1d(const hid_t file_id, const char *dataname, const int length, const float *data1)
 {
 	const hsize_t length2[1] = { length};
+	if (overwrite_float_dataset(file_id, dataname, 1, length2, data1)) { return; }
 	if (H5LTpath_valid(file_id, dataname, 1)){
 		H5Ldelete(file_id, dataname, H5P_DEFAULT);
 	}
@@ -119,15 +226,19 @@ void mh5writefile1d(const hid_t file_id, const char *dataname, const int length,
 void mh5writefile2d(const hid_t file_id, const char *dataname, const int length, const float *data1, const float *data2)
 {
 	const hsize_t length2[2] = { length ,2};
-	if (H5LTpath_valid(file_id, dataname, 1)){
-		H5Ldelete(file_id, dataname, H5P_DEFAULT);
-	}
 	const int len2 = length * 2;
 	float *data = calloc(len2, sizeof(float));
 	for (int i = 0; i<length; i++)
 	{
 		data[2*i] = data1[i];
 		data[2*i+1] = data2[i];
+	}
+	if (overwrite_float_dataset(file_id, dataname, 2, length2, data)) {
+		free(data);
+		return;
+	}
+	if (H5LTpath_valid(file_id, dataname, 1)){
+		H5Ldelete(file_id, dataname, H5P_DEFAULT);
 	}
 	H5LTmake_dataset_float(file_id, dataname, 2, length2, data);
 	free(data);
@@ -136,6 +247,7 @@ void mh5writefile2d(const hid_t file_id, const char *dataname, const int length,
 void mh5writefile2d_grid(const hid_t file_id, const char *dataname, const int length1, const int length2, const float *data1)
 {
 	const hsize_t length[2] = { length1 ,length2 };
+	if (overwrite_float_dataset(file_id, dataname, 2, length, data1)) { return; }
 	if (H5LTpath_valid(file_id, dataname, 1)) {
 		H5Ldelete(file_id, dataname, H5P_DEFAULT);
 	}
@@ -201,6 +313,12 @@ Config mh5LoadConfig(Config config, hid_t file_id)
 	config.zsig=float_attr(file_id, "/config", "zzsig", config.zsig);
 	config.psig = float_attr(file_id, "/config", "psig", config.psig);
 	config.beta = float_attr(file_id, "/config", "beta", config.beta);
+	config.suppression_topn = int_attr(file_id, "/config", "suppression_topn", config.suppression_topn);
+	config.suppression_topx = float_attr(file_id, "/config", "suppression_topx", config.suppression_topx);
+	config.suppression_percent = float_attr(file_id, "/config", "suppression_percent", config.suppression_percent);
+	config.suppression_startit = int_attr(file_id, "/config", "suppression_startit", config.suppression_startit);
+	config.suppression_harmonic = int_attr(file_id, "/config", "suppression_harmonic", config.suppression_harmonic);
+	config.suppression_satellite = int_attr(file_id, "/config", "suppression_satellite", config.suppression_satellite);
 	config.mzsig=float_attr(file_id, "/config", "mzsig", config.mzsig);
 	config.msig=float_attr(file_id, "/config", "msig", config.msig);
 	config.molig=float_attr(file_id, "/config", "molig", config.molig);

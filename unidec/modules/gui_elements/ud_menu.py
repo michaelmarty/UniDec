@@ -245,12 +245,6 @@ class main_menu(wx.Menu):
         self.advancedmenu.AppendSubMenu(self.scalemenu, 'Intensity Scale')
         self.advancedmenu.AppendSeparator()
 
-        if self.config.imflag == 0:
-            self.menuflipmode = self.advancedmenu.Append(wx.ID_ANY, "Switch to Ion Mobility Mode",
-                                                         "Switch interface to IM-MS Mode.")
-        else:
-            self.menuflipmode = self.advancedmenu.Append(wx.ID_ANY, "Switch to 1D Mass Spec Mode",
-                                                         "Switch interface to MS Mode.")
         if self.tabbed == 0:
             self.menufliptabbed = self.advancedmenu.Append(wx.ID_ANY, "Switch to Tabbed Plots Mode",
                                                            "Put plots in individual tabs.")
@@ -341,11 +335,6 @@ class main_menu(wx.Menu):
         self.autoformat = self.experimentalmenu.Append(wx.ID_ANY, "Auto Format Monomer/Dimer",
                                                        "Mark matched monomers and dimers automatically")
         self.parent.Bind(wx.EVT_MENU, self.pres.on_autoformat, self.autoformat)
-
-        self.experimentalmenu.AppendSeparator()
-
-        self.menumql = self.experimentalmenu.Append(wx.ID_ANY, "MassQL", "MassQL")
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_mql, self.menumql)
 
         self.experimentalmenu.AppendSeparator()
         self.menuisotopes = self.experimentalmenu.Append(wx.ID_ANY, "Plot Averagine Isotope Distributions")
@@ -462,7 +451,6 @@ class main_menu(wx.Menu):
         self.parent.Bind(wx.EVT_MENU, self.pres.on_file_name, self.menuFileName)
         self.parent.Bind(wx.EVT_MENU, self.parent.on_open_dir, self.menuOpenDir)
         self.parent.Bind(wx.EVT_MENU, self.pres.on_flip_tabbed, self.menufliptabbed)
-        self.parent.Bind(wx.EVT_MENU, self.pres.on_flip_mode, self.menuflipmode)
 
         # Experimental
         # self.parent.Bind(wx.EVT_MENU, self.pres.on_peak_errors, self.menuerrors)

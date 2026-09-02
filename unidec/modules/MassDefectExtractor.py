@@ -94,19 +94,19 @@ class MassDefectExtractorWindow(wx.Frame):
         sb = wx.StaticBox(panel, label='Set the Mass Defect Values to Extract')
         sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
 
-        importbutton = wx.Button(panel, label="Import from File")
+        importbutton = wx.Button(sb, label="Import from File")
         self.Bind(wx.EVT_BUTTON, self.on_import_masses, importbutton)
 
-        clearbutt = wx.Button(panel, label="Clear List")
+        clearbutt = wx.Button(sb, label="Clear List")
         self.Bind(wx.EVT_BUTTON, self.on_clear_masslist, clearbutt)
 
-        addbutton = wx.Button(panel, label="Add Species")
+        addbutton = wx.Button(sb, label="Add Species")
         self.Bind(wx.EVT_BUTTON, self.on_add_mass, addbutton)
 
         sbs.Add(importbutton, 0, wx.EXPAND)
         sbs.Add(addbutton, 0, wx.EXPAND)
-        self.masslistbox = masstools.MassListCtrl(self, panel, coltitle="Mass Defect Value", size=(210, 320))
-        sbs.Add(wx.StaticText(panel, label="Mass Defect List"))
+        self.masslistbox = masstools.MassListCtrl(self, sb, coltitle="Mass Defect Value", size=(210, 320))
+        sbs.Add(wx.StaticText(sb, label="Mass Defect List"))
         sbs.Add(self.masslistbox)
         sbs.Add(clearbutt, 0, wx.EXPAND)
         # hbox.Add(sbs, 0, wx.EXPAND)

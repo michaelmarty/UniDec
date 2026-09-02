@@ -7,13 +7,14 @@ from unidec.modules.HTEng import HTseqDict
 
 
 class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
+    chrom_mode = False
+
     # noinspection PyMissingConstructor
-    def __init__(self, parent, config, pres, panel, iconfile, htmode=False):
+    def __init__(self, parent, config, pres, panel, iconfile):
         super(wx.Panel, self).__init__(panel)
         # super(scrolled.ScrolledPanel, self).__init__(parent=panel, style=wx.ALL | wx.EXPAND)
         # self.SetAutoLayout(1)
         # self.SetupScrolling(scroll_x=False)
-        self.htmode = htmode
         self.parent = parent
         self.config = config
         self.pres = pres
@@ -161,7 +162,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                           flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
-        if htmode:
+        if self.chrom_mode:
             # Control for scan compression
             self.ctlscancompress = wx.TextCtrl(panel1, value="", size=size1)
             sizercontrol1.Add(self.ctlscancompress, (i, 1), span=(1, 2))
@@ -281,7 +282,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox1b.Fit(panel1b)
 
         self.foldpanels.AddFoldPanelWindow(foldpanel1b, panel1b, fpb.FPB_ALIGN_WIDTH)
-        if htmode:
+        if self.chrom_mode:
             self.foldpaneldm = self.foldpanels.AddFoldPanel(caption="Demultiplexing Controls", collapsed=False,
                                                             cbstyle=styleht)
             paneldm = wx.Panel(self.foldpaneldm, -1)
@@ -625,10 +626,33 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         sizercontrol2.Add(self.ctlcsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
+        if self.chrom_mode:
+            self.ctldtsig = wx.TextCtrl(panel2, value="", size=size1)
+            sizercontrol2.Add(wx.StaticText(panel2, label="Chrom. Spread FWHM (min): "), (i, 0),
+                              flag=wx.ALIGN_CENTER_VERTICAL)
+            sizercontrol2.Add(self.ctldtsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
         self.rununidec = wx.Button(panel2, -1, "Run UniDec")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_unidec_button, self.rununidec)
         sizercontrol2.Add(self.rununidec, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
+
+        if self.chrom_mode:
+            self.rununidecstack = wx.Button(panel2, -1, "Run UniDec Full Stack")
+            self.rununidecstack.SetToolTip(wx.ToolTip(
+                "Deconvolve every time slice in the full raw CD-MS stack with UCCD."))
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.on_unidec_stack_button, self.rununidecstack)
+            sizercontrol2.Add(self.rununidecstack, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            i += 1
+
+            self.rununidecdemultstack = wx.Button(panel2, -1, "Run UniDec Demult. Stack")
+            self.parent.Bind(wx.EVT_BUTTON, self.pres.on_unidec_demult_stack_button,
+                             self.rununidecdemultstack)
+            sizercontrol2.Add(self.rununidecdemultstack, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            self.rununidecdemultstack.SetToolTip(wx.ToolTip(
+                "Demultiplex the full CD-MS stack, then deconvolve every time slice with UCCD."))
+            i += 1
 
         panel2.SetSizer(sizercontrol2)
         sizercontrol2.Fit(panel2)
@@ -715,6 +739,36 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox2b.Add(self.ctlbeta, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
+        self.ctlsuppressiontopn = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Suppression Top N: "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlsuppressiontopn, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        self.ctlsuppressiontopx = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Suppression Top X: "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlsuppressiontopx, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        self.ctlsuppressionsatellite = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Suppression Satellites: "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlsuppressionsatellite, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        self.ctlsuppressionharmonic = wx.CheckBox(panel2b, label="")
+        gbox2b.Add(wx.StaticText(panel2b, label="Suppression Harmonics: "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlsuppressionharmonic, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        self.ctlsuppressionstartit = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Suppression Start Iter.: "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlsuppressionstartit, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
         self.ctlmsig = wx.TextCtrl(panel2b, value="", size=size1)
         gbox2b.Add(wx.StaticText(panel2b, label="Mass Smooth Width: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         gbox2b.Add(self.ctlmsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -725,12 +779,17 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox2b.Add(self.ctlpoolflag, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
+        self.ctlrawflag = wx.RadioBox(panel2b, label="Output Type",
+                                      choices=["Reconvolved/Profile", "Raw/Centroid"])
+        gbox2b.Add(self.ctlrawflag, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
+
         sb = wx.StaticBox(panel2b, label='Native Charge Offset Range')
         sbs = wx.StaticBoxSizer(sb, orient=wx.HORIZONTAL)
-        self.ctlminnativez = wx.TextCtrl(panel2b, value='', size=(75, -1))
-        self.ctlmaxnativez = wx.TextCtrl(panel2b, value='', size=(75, -1))
+        self.ctlminnativez = wx.TextCtrl(sb, value='', size=(75, -1))
+        self.ctlmaxnativez = wx.TextCtrl(sb, value='', size=(75, -1))
         sbs.Add(self.ctlminnativez, flag=wx.LEFT | wx.EXPAND, border=5)
-        sbs.Add(wx.StaticText(panel2b, label=' to '), 0, wx.EXPAND)
+        sbs.Add(wx.StaticText(sb, label=' to '), 0, wx.EXPAND)
         sbs.Add(self.ctlmaxnativez, flag=wx.LEFT | wx.EXPAND, border=5)
         gbox2b.Add(sbs, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
@@ -821,10 +880,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox3b.Add(self.ctlpublicationmode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
-        self.ctlrawflag = wx.RadioBox(panel3b, label="", choices=["Reconvolved/Profile", "Raw/Centroid"])
-        gbox3b.Add(self.ctlrawflag, (i, 0), span=(1, 2), flag=wx.EXPAND)
-        i += 1
-
         self.ctlnormpeakthresh = wx.CheckBox(panel3b, label="Normalize Peak Threshold")
         gbox3b.Add(self.ctlnormpeakthresh, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
@@ -845,12 +900,12 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         sb2 = wx.StaticBox(panel3b, label='Integration Range')
         sbs2 = wx.StaticBoxSizer(sb2, orient=wx.HORIZONTAL)
-        self.ctlintlb = wx.TextCtrl(panel3b, value='', size=(75, -1))
-        self.ctlintub = wx.TextCtrl(panel3b, value='', size=(75, -1))
+        self.ctlintlb = wx.TextCtrl(sb2, value='', size=(75, -1))
+        self.ctlintub = wx.TextCtrl(sb2, value='', size=(75, -1))
         sbs2.Add(self.ctlintlb, flag=wx.LEFT | wx.EXPAND, border=5)
-        sbs2.Add(wx.StaticText(panel3b, label=' to '), 0, flag=wx.EXPAND)
+        sbs2.Add(wx.StaticText(sb2, label=' to '), 0, flag=wx.EXPAND)
         sbs2.Add(self.ctlintub, flag=wx.LEFT | wx.EXPAND, border=5)
-        sbs2.Add(wx.StaticText(panel3b, label=' Da '), 0, flag=wx.EXPAND)
+        sbs2.Add(wx.StaticText(sb2, label=' Da '), 0, flag=wx.EXPAND)
         gbox3b.Add(sbs2, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 
@@ -962,6 +1017,11 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlmaxnativez.SetValue(str(self.config.nativezub))
             self.ctlbeta.SetValue(str(self.config.beta))
             self.ctlpsig.SetValue(str(self.config.psig))
+            self.ctlsuppressiontopn.SetValue(str(self.config.suppression_topn))
+            self.ctlsuppressiontopx.SetValue(str(self.config.suppression_topx))
+            self.ctlsuppressionstartit.SetValue(str(self.config.suppression_startit))
+            self.ctlsuppressionsatellite.SetValue(str(self.config.suppression_satellite))
+            self.ctlsuppressionharmonic.SetValue(bool(self.config.suppression_harmonic))
             try:
                 self.ctlpoolflag.SetSelection(self.config.poolflag)
             except:
@@ -1004,7 +1064,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlpublicationmode.SetValue(self.config.publicationmode)
             self.ctlrawflag.SetSelection(self.config.rawflag)
 
-            if self.htmode:
+            if self.chrom_mode:
                 self.ctlscancompress.SetValue(str(self.config.CDScanCompress))
                 self.ctlkernelsmooth.SetValue(str(self.config.HTksmooth))
                 self.ctlhtseq.SetStringSelection(str(self.config.htbit))
@@ -1055,6 +1115,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 self.ctlpeakcm.SetSelection(self.config.cmaps.index("rainbow"))
 
             self.ctlcsig.SetValue(str(self.config.csig))
+            if self.chrom_mode:
+                self.ctldtsig.SetValue(str(self.config.dtsig))
 
             try:
                 x = float(self.config.integratelb)
@@ -1085,7 +1147,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         self.Thaw()
 
-        if self.htmode:
+        if self.chrom_mode:
             self.update_demultiplex_mode()
 
     def export_gui_to_config(self, e=None):
@@ -1120,6 +1182,11 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         '''
         self.config.psig = ud.string_to_value(self.ctlpsig.GetValue())
         self.config.beta = ud.string_to_value(self.ctlbeta.GetValue())
+        self.config.suppression_topn = ud.string_to_int(self.ctlsuppressiontopn.GetValue())
+        self.config.suppression_topx = ud.string_to_value(self.ctlsuppressiontopx.GetValue())
+        self.config.suppression_startit = ud.string_to_int(self.ctlsuppressionstartit.GetValue())
+        self.config.suppression_satellite = ud.string_to_int(self.ctlsuppressionsatellite.GetValue())
+        self.config.suppression_harmonic = int(self.ctlsuppressionharmonic.GetValue())
         self.config.poolflag = self.ctlpoolflag.GetSelection()
         self.config.datanorm = int(self.ctldatanorm.GetValue())
         self.config.intthresh = ud.string_to_value(self.ctlintthresh.GetValue())
@@ -1142,7 +1209,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.separation = ud.string_to_value(self.ctlsep.GetValue())
         self.config.adductmass = ud.string_to_value(self.ctladductmass.GetValue())
 
-        if self.htmode:
+        if self.chrom_mode:
             self.config.CDScanCompress = ud.string_to_value(self.ctlscancompress.GetValue())
             self.config.HTksmooth = ud.string_to_value(self.ctlkernelsmooth.GetValue())
             #            self.config.htbit = int(self.ctlhtseq.GetStringSelection())
@@ -1207,6 +1274,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.peakcmap = str(self.ctlpeakcm.GetStringSelection())
 
         self.config.csig = ud.string_to_value(self.ctlcsig.GetValue())
+        if self.chrom_mode:
+            self.config.dtsig = ud.string_to_value(self.ctldtsig.GetValue())
 
         if not self.config.minmz and not ud.isempty(self.pres.eng.data.rawdata):
             self.config.minmz = np.amin(self.pres.eng.data.rawdata[:, 0])
@@ -1239,6 +1308,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.plotbutton2.SetToolTip(wx.ToolTip("Plot individual peak species in m/z. (Ctrl+K)"))
 
         self.rununidec.SetToolTip(wx.ToolTip("Write Configuration File, Run UniDec, and Plot Results. (Ctrl+R)"))
+        if self.chrom_mode:
+            self.rununidecstack.SetToolTip(wx.ToolTip("Run UniDec on the full scan stack."))
         self.ctlmzsig.SetToolTip(wx.ToolTip(
             "Expected peak FWHM in m/z (Th).\nFor nonlinear mode, minimum FWHM"
             "\nSee Tools>Peak Width Tool for more tools."))
@@ -1277,6 +1348,16 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.ctladductmass.SetToolTip(wx.ToolTip("Mass of charge carrying adduct;\ntypically the mass of a proton"))
         self.ctlminnativez.SetToolTip(wx.ToolTip("Minimum offset from a native charge state"))
         self.ctlmaxnativez.SetToolTip(wx.ToolTip("Maximum offset from a native charge state"))
+        self.ctlsuppressiontopn.SetToolTip(
+            wx.ToolTip("Keep only the top N charge states at each m/z. Set to 0 to disable."))
+        self.ctlsuppressiontopx.SetToolTip(
+            wx.ToolTip("Suppress charge states below this fraction of the local maximum (0 to 1)."))
+        self.ctlsuppressionstartit.SetToolTip(
+            wx.ToolTip("Begin applying suppression after this iteration."))
+        self.ctlsuppressionsatellite.SetToolTip(
+            wx.ToolTip("Suppress charge states within +/- this many charges of a stronger local maximum."))
+        self.ctlsuppressionharmonic.SetToolTip(
+            wx.ToolTip("Suppress weaker harmonic charge assignments. Requires consecutive integer charges."))
         self.ctlbselect.SetToolTip(wx.ToolTip(
             "Select whether to suppress deconvolution artifacts"))
         # TODO: Set several of these that are gone. Edit the others.
@@ -1344,11 +1425,14 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.autobutton.SetToolTip(wx.ToolTip("Process Data, Run UniDec, Pick Peaks (Ctrl+E)"))
         self.ctlslope.SetToolTip(wx.ToolTip("Slope for conversion of intensity to charge.\nz=I/slope"))
         self.ctlcsig.SetToolTip(wx.ToolTip("Width of Charge Distribution.\nFWHM of the charge distribution."))
+        if self.chrom_mode:
+            self.ctldtsig.SetToolTip(wx.ToolTip(
+                "Chromatographic peak width used by full-stack UCCD deconvolution."))
 
         self.ctlzsmoothcheck.SetToolTip(
             wx.ToolTip("Select whether to assume a smooth charge state distribution"))
 
-        if self.htmode:
+        if self.chrom_mode:
             self.ctlscancompress.SetToolTip(wx.ToolTip(
                 "Average each n scans together. This reduces the number of scans by a factor of n."))
 
@@ -1491,21 +1575,21 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.expand_list([0, 1])
 
     def on_expand_yellow(self, e=None):
-        if self.htmode:
+        if self.chrom_mode:
             yellow = [9, 7, 8]
         else:
             yellow = [2, 3, 4]
         self.expand_list(yellow)
 
     def on_expand_red(self, e=None):
-        if self.htmode:
+        if self.chrom_mode:
             red = [10, 11]
         else:
             red = [5, 6]
         self.expand_list(red)
 
     def on_expand_main(self, e=None):
-        if self.htmode:
+        if self.chrom_mode:
             self.expand_list([0, 2, 8, 7, 10])
         else:
             self.expand_list([0, 2, 3, 5])
@@ -1537,6 +1621,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             self.foldpanels.Collapse(self.foldpanelht)
             self.foldpanels.Expand(self.foldpanelft)
         elif "PP" in demultiplexmode:
+            self.foldpanels.Collapse(self.foldpanelht)
+            self.foldpanels.Collapse(self.foldpanelft)
+            self.foldpanels.Collapse(self.foldpanelim)
+        elif "MRS" in demultiplexmode:
             self.foldpanels.Collapse(self.foldpanelht)
             self.foldpanels.Collapse(self.foldpanelft)
             self.foldpanels.Collapse(self.foldpanelim)

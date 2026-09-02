@@ -76,6 +76,9 @@ class UniDecConfig(object):
         self.deconfile = ''
         self.errorfile = ''
         self.fitdatfile = ''
+        self.uccdfile = ''
+        self.uccddeconfile = ''
+        self.uccdfitfile = ''
         self.massgridfile = ''
         self.massdatfile = ''
         self.cdrawextracts = ''
@@ -1353,6 +1356,9 @@ class UniDecConfig(object):
         self.massdatfile = self.outfname + s + "mass.txt"
         self.massgridfile = self.outfname + s + "massgrid.bin"
         self.fitdatfile = self.outfname + s + "fitdat.bin"
+        self.uccdfile = self.outfname + s + "uccd_input.bin"
+        self.uccddeconfile = self.outfname + s + "uccd_decon.bin"
+        self.uccdfitfile = self.outfname + s + "uccd_fit.bin"
         self.errorfile = self.outfname + s + "error.txt"
         self.deconfile = self.outfname + s + "decon.txt"
         self.mzgridfile = self.outfname + s + "grid.bin"
@@ -2082,7 +2088,8 @@ class Chromatogram:
     def to_row(self):
         out = [self.label, str(self.color), str(self.index), str(self.mzrange[0]), str(self.mzrange[1]),
                str(self.zrange[0]), str(self.zrange[1]), str(self.sum), str(self.ht), str(self.sarray[0])
-            , str(self.sarray[1]), str(self.sarray[2]), str(self.sarray[3])]
+            , str(self.sarray[1]), str(self.sarray[2]), str(self.sarray[3]), str(self.massrange[0]),
+               str(self.massrange[1]), str(self.massmode)]
         return out
 
 
@@ -2116,23 +2123,26 @@ class ChromatogramContainer:
         else:
             chrom.index = len(self.chromatograms)
 
-        if mzrange is not None:
+        if mzrange is not None and len(mzrange) >= 2 and mzrange[0] != -1:
             chrom.mzrange = mzrange
             chrom.massmode = False
 
-        if zrange is not None:
+        if zrange is not None and len(zrange) >= 2 and zrange[0] != -1:
             chrom.zrange = zrange
 
-        if massrange is not None:
+        if massrange is not None and len(massrange) >= 2 and massrange[0] != -1:
             chrom.massrange = massrange
             chrom.massmode = True
 
-        if sarray is not None:
+        if sarray is not None and len(sarray) >= 2 and sarray[0] != -1 and sarray[1] != -1:
             chrom.sarray = sarray
             chrom.swoopmode = True
             chrom.massmode = False
 
-        chrom.massmode = massmode
+        # Preserve the mode inferred from the supplied extraction range. This
+        # used to reset mass EICs to m/z mode because massmode defaults False.
+        if massmode:
+            chrom.massmode = True
 
         # If label already exists, replace it
         if label in [x.label for x in self.chromatograms]:

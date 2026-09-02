@@ -5,7 +5,7 @@ import wx.lib.scrolledpanel as scrolled
 
 from unidec.modules.gui_elements import ud_controls
 from unidec.modules.gui_elements import ud_menu
-from unidec.modules.plotting import PlottingWindow, plot3d, ColorPlot
+from unidec.modules.plotting import PlottingWindow
 from unidec.modules import miscwindows
 from unidec.modules.gui_elements import peaklistsort
 from unidec.modules.gui_elements.mainwindow_base import MainwindowBase
@@ -21,6 +21,8 @@ class Mainwindow(MainwindowBase):
     Main UniDec GUI Window.
     """
 
+    mode_imflag = 0
+
     def __init__(self, parent, title, config, iconfile=None, tabbed=None):
         """
         initialize window and feed in links to presenter and config.
@@ -30,6 +32,7 @@ class Mainwindow(MainwindowBase):
         :param config: UniDecConfig object ->self.config
         :return: None
         """
+        config.imflag = self.mode_imflag
         MainwindowBase.__init__(self, parent, title, config, iconfile, tabbed)
 
         if tabbed is None:
@@ -102,8 +105,10 @@ class Mainwindow(MainwindowBase):
         :return: None
         """
         # Create Status Bar
+        statusbar_log_silencer = wx.LogNull()
         self.CreateStatusBar(7)
-        self.SetStatusWidths([-1, 300, 200, 200, 250, 150, 130])
+        self.SetStatusWidths([-1, -6, -4, -4, -5, -3, -3])
+        del statusbar_log_silencer
         # Sizers to develop layout
         # s1 = (min(self.displaysize[0], 1851), self.displaysize[1])
         # s2 = (550, self.displaysize[1])
@@ -148,51 +153,17 @@ class Mainwindow(MainwindowBase):
             miscwindows.setup_tab_box(tab5, self.plot5)
             miscwindows.setup_tab_box(tab6, self.plot6)
 
-            if self.config.imflag == 1:
-                tab1im = wx.Panel(plotwindow)
-                tab1fit = wx.Panel(plotwindow)
-                tab2ccs = wx.Panel(plotwindow)
-                tab3color = wx.Panel(plotwindow)
-                tab5mccs = wx.Panel(plotwindow)
-                tab5ccsz = wx.Panel(plotwindow)
-                tab9 = wx.Panel(plotwindow)
-                tab10 = wx.Panel(plotwindow)
-
-                self.plot1im = PlottingWindow.Plot2d(tab1im, figsize=figsize)
-                self.plot1fit = PlottingWindow.Plot2d(tab1fit, figsize=figsize)
-                self.plot2ccs = PlottingWindow.Plot1d(tab2ccs, figsize=figsize)
-                self.plot5mccs = PlottingWindow.Plot2d(tab5mccs, figsize=figsize)
-                self.plot5ccsz = PlottingWindow.Plot2d(tab5ccsz, figsize=figsize)
-                self.plot3color = ColorPlot.ColorPlot2D(tab3color, figsize=figsize)
-                self.plot9 = plot3d.CubePlot(tab9, figsize=figsize)
-                self.plot10 = plot3d.CubePlot(tab10, figsize=figsize)
-
-                miscwindows.setup_tab_box(tab1im, self.plot1im)
-                miscwindows.setup_tab_box(tab1fit, self.plot1fit)
-                miscwindows.setup_tab_box(tab2ccs, self.plot2ccs)
-                miscwindows.setup_tab_box(tab3color, self.plot3color)
-                miscwindows.setup_tab_box(tab5mccs, self.plot5mccs)
-                miscwindows.setup_tab_box(tab5ccsz, self.plot5ccsz)
-                miscwindows.setup_tab_box(tab9, self.plot9)
-                miscwindows.setup_tab_box(tab10, self.plot10)
+            self.setup_mode_tabbed_plots(plotwindow, figsize)
 
             plotwindow.AddPage(tab1, "MS Data v. Fit")
-            if self.config.imflag == 1:
-                plotwindow.AddPage(tab1im, "IM-MS Data")
-                plotwindow.AddPage(tab1fit, "IM-MS Fit")
-                plotwindow.AddPage(tab3color, "IM-MS Charges")
-                plotwindow.AddPage(tab9, "m/z Cube")
+            self.add_mode_tabs(plotwindow, "mz")
             plotwindow.AddPage(tab3, "m/z Grid")
             plotwindow.AddPage(tab2, "Mass Distribution")
-            if self.config.imflag == 1:
-                plotwindow.AddPage(tab2ccs, "CCS Distribution")
+            self.add_mode_tabs(plotwindow, "ccs")
 
             plotwindow.AddPage(tab4, "Individual Peaks")
             plotwindow.AddPage(tab5, "Mass vs. Charge")
-            if self.config.imflag == 1:
-                plotwindow.AddPage(tab5mccs, "Mass vs. CCS ")
-                plotwindow.AddPage(tab5ccsz, "CCS vs. Charge")
-                plotwindow.AddPage(tab10, "Mass Cube")
+            self.add_mode_tabs(plotwindow, "mass")
             plotwindow.AddPage(tab6, "Bar Chart")
         # Scrolled panel view of plots
         else:
@@ -208,38 +179,8 @@ class Mainwindow(MainwindowBase):
             self.plot5 = PlottingWindow.Plot2d(plotwindow, figsize=figsize, parent=plotwindow)
             self.plot6 = PlottingWindow.Plot1d(plotwindow, figsize=figsize, parent=plotwindow)
 
-            if self.config.imflag == 1:
-                self.plot1im = PlottingWindow.Plot2d(plotwindow, figsize=figsize)
-                self.plot1fit = PlottingWindow.Plot2d(plotwindow, figsize=figsize)
-                self.plot2ccs = PlottingWindow.Plot1d(plotwindow, figsize=figsize)
-                self.plot5mccs = PlottingWindow.Plot2d(plotwindow, figsize=figsize)
-                self.plot5ccsz = PlottingWindow.Plot2d(plotwindow, figsize=figsize)
-                self.plot3color = ColorPlot.ColorPlot2D(plotwindow, figsize=figsize)
-                self.plot9 = plot3d.CubePlot(plotwindow, figsize=figsize)
-                self.plot10 = plot3d.CubePlot(plotwindow, figsize=figsize)
-
-            if self.config.imflag == 0:
-                self.sizerplot.Add(self.plot1, (0, 0), span=(1, 1), flag=wx.EXPAND)
-                self.sizerplot.Add(self.plot2, (0, 1), span=(1, 1), flag=wx.EXPAND)
-                self.sizerplot.Add(self.plot3, (1, 0), span=(1, 1), flag=wx.EXPAND)
-                self.sizerplot.Add(self.plot4, (1, 1), span=(1, 1), flag=wx.EXPAND)
-                self.sizerplot.Add(self.plot5, (2, 0), span=(1, 1), flag=wx.EXPAND)
-                self.sizerplot.Add(self.plot6, (2, 1), span=(1, 1), flag=wx.EXPAND)
-            else:
-                self.sizerplot.Add(self.plot1, (0, 0), span=(1, 1), flag=wx.EXPAND)
-                self.sizerplot.Add(self.plot1im, (0, 1), span=(1, 1), flag=wx.EXPAND)
-                self.sizerplot.Add(self.plot1fit, (1, 1), span=(1, 1), flag=wx.EXPAND)
-                self.sizerplot.Add(self.plot3color, (1, 0), span=(1, 1), flag=wx.EXPAND)
-                self.sizerplot.Add(self.plot2, (2, 0), span=(1, 1), flag=wx.EXPAND)
-                self.sizerplot.Add(self.plot2ccs, (3, 0), span=(1, 1), flag=wx.EXPAND)
-                self.sizerplot.Add(self.plot3, (2, 1), span=(1, 1), flag=wx.EXPAND)
-                self.sizerplot.Add(self.plot4, (4, 0), span=(1, 1), flag=wx.EXPAND)
-                self.sizerplot.Add(self.plot5, (3, 1), span=(1, 1), flag=wx.EXPAND)
-                self.sizerplot.Add(self.plot5mccs, (4, 1), span=(1, 1), flag=wx.EXPAND)
-                self.sizerplot.Add(self.plot5ccsz, (5, 1), span=(1, 1), flag=wx.EXPAND)
-                self.sizerplot.Add(self.plot6, (5, 0), span=(1, 1), flag=wx.EXPAND)
-                self.sizerplot.Add(self.plot9, (6, 0), span=(1, 1), flag=wx.EXPAND)
-                self.sizerplot.Add(self.plot10, (6, 1), span=(1, 1), flag=wx.EXPAND)
+            self.setup_mode_scrolled_plots(plotwindow, figsize)
+            self.layout_scrolled_plots()
 
             # plotwindow.SetScrollbars(1, 1,1,1)
             if self.system == "Linux":
@@ -261,13 +202,8 @@ class Mainwindow(MainwindowBase):
 
 
         self.plots = [self.plot1, self.plot2, self.plot3, self.plot4, self.plot5, self.plot6]
-        if self.config.imflag == 1:
-            self.plots = self.plots + [self.plot1im, self.plot1fit, self.plot2ccs, self.plot5mccs, self.plot5ccsz,
-                                       self.plot3color, self.plot9, self.plot10]
         self.plotnames = ["Figure1", "Figure2", "Figure3", "Figure4", "Figure5", "Figure6"]
-        if self.config.imflag == 1:
-            self.plotname = self.plotnames + ["Figure1im", "Figure1fit", "Figure2ccs", "Figure3color", "Figure5ccsz",
-                                              "Figure5massccs", "mzCube", "massCube"]
+        self.extend_mode_plot_metadata()
 
         # ...........................
         #
@@ -310,6 +246,26 @@ class Mainwindow(MainwindowBase):
 
         self.Layout()
         self.plotpanel.SetMinSize(wx.Size(-1,-1))
+
+    def setup_mode_tabbed_plots(self, plotwindow, figsize):
+        """Hook for mode-specific tabbed plots."""
+
+    def add_mode_tabs(self, plotwindow, section):
+        """Hook for ordering mode-specific tabs among shared tabs."""
+
+    def setup_mode_scrolled_plots(self, plotwindow, figsize):
+        """Hook for mode-specific plots in the scrolling layout."""
+
+    def layout_scrolled_plots(self):
+        self.sizerplot.Add(self.plot1, (0, 0), span=(1, 1), flag=wx.EXPAND)
+        self.sizerplot.Add(self.plot2, (0, 1), span=(1, 1), flag=wx.EXPAND)
+        self.sizerplot.Add(self.plot3, (1, 0), span=(1, 1), flag=wx.EXPAND)
+        self.sizerplot.Add(self.plot4, (1, 1), span=(1, 1), flag=wx.EXPAND)
+        self.sizerplot.Add(self.plot5, (2, 0), span=(1, 1), flag=wx.EXPAND)
+        self.sizerplot.Add(self.plot6, (2, 1), span=(1, 1), flag=wx.EXPAND)
+
+    def extend_mode_plot_metadata(self):
+        """Hook for plots exported only by a specialized mode."""
 
     # def resize(self, e=None):
     #     # fullsize = self.splitterwindow.GetSize()

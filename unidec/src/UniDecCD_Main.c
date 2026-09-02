@@ -201,7 +201,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 
 	int size[3] = { 0,0,0 };
 
-	int* zupind = NULL, * zloind = NULL;
+	int* zupind = NULL, * zloind = NULL, * nztab = NULL;
 	int* mupind = NULL, * mloind = NULL;
 	char* barr = NULL;
 
@@ -210,7 +210,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 		* dataInt = NULL,
 		* peakshape = NULL,
 		*mkernel = NULL,
-		*blur = NULL, *newblur=NULL, *newblur2=NULL, *oldblur=NULL
+		*blur = NULL, *newblur=NULL, *newblur2=NULL, *oldblur=NULL, *smooth_sums=NULL
 		;
 
 	//Reading In Data
@@ -253,6 +253,16 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 		exit(1);
 	}
 	PullXY(mzext, zext, mzdat, zdat, size);
+	nztab = calloc(size[1], sizeof(int));
+	if (nztab == NULL) {
+		printf("Error allocating memory for charge states\n");
+		exit(1);
+	}
+	int suppression_harmonic = config.suppression_harmonic;
+	if (!setup_suppression_ztab(nztab, zext, size[1]) && suppression_harmonic > 0) {
+		printf("Harmonic suppression requires a consecutive, nonzero integer charge axis; skipping it.\n");
+		suppression_harmonic = 0;
+	}
 	float mzranges[4] = { 0,0,0,0 };
 	mzranges[0] = mzext[0];
 	mzranges[1] = mzext[size[0] - 1];
@@ -314,8 +324,9 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	newblur = calloc(lines, sizeof(float));
 	newblur2 = calloc(lines, sizeof(float));
 	oldblur = calloc(lines, sizeof(float));
+	smooth_sums = calloc(size[1], sizeof(float));
 	barr = calloc(lines, sizeof(char));
-	if (blur == NULL || newblur == NULL || newblur2 == NULL || oldblur == NULL || barr == NULL) {
+	if (blur == NULL || newblur == NULL || newblur2 == NULL || oldblur == NULL || smooth_sums == NULL || barr == NULL) {
 		printf("Error allocating memory for iteration arrays\n");
 		exit(1);
 	}
@@ -335,7 +346,15 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 		}
 		// Apply point smoothing
 		if (config.psig > 0) {
-			point_smoothing(blur, barr, size[0], size[1], abs((int)config.psig));
+			point_smoothing(blur, newblur, smooth_sums, barr, size[0], size[1], abs((int)config.psig));
+		}
+		// Apply the same charge-state suppression modes as regular UniDec.
+		if (m > config.suppression_startit &&
+			(config.suppression_satellite > 0 || suppression_harmonic > 0 ||
+			 config.suppression_topn > 0 || config.suppression_topx > 0)) {
+			apply_suppressions(blur, newblur, size[0], size[1],
+				config.suppression_satellite, suppression_harmonic, nztab,
+				config.suppression_topn, config.suppression_topx, config.suppression_percent);
 		}
 		// Apply charge smoothing
 		if (config.zsig!=0) {
@@ -440,7 +459,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	// Write to text
 	FILE* out_ptr = NULL;
 	char outstring4[510];
-	sprintf(outstring4, "%s_decon.txt", config.outfile);
+	sprintf(outstring4, "%s%s", config.outfile, output_suffix(config.outfile, "_decon.txt"));
 	out_ptr = fopen(outstring4, "w");
 	if (out_ptr == 0) { printf("Error Opening %s\n", outstring4); exit(1); }
 	for (int i = 0; i < lines; i++)
@@ -459,6 +478,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	free(newblur);
 	free(newblur2);
 	free(oldblur);
+	free(smooth_sums);
 
 	free(peakshape);
 	fftwf_free(peakshape_FFT);
@@ -472,6 +492,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	free(mupind);
 	free(mzext);
 	free(zext);
+	free(nztab);
 
 	fftwf_destroy_plan(p1);
 	fftwf_destroy_plan(p3);

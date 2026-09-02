@@ -44,7 +44,14 @@ int main(int argc, char *argv[])
 
 	if (argc > 2)
 	{
-		if (strcmp(argv[2], "-nthreads") == 0) { omp_set_num_threads(atoi(argv[3])); printf("Number of Threads: %d\n", atoi(argv[3])); }
+		if (strcmp(argv[2], "-nthreads") == 0) {
+#ifdef _OPENMP
+			omp_set_num_threads(atoi(argv[3]));
+			printf("Number of Threads: %d\n", atoi(argv[3]));
+#else
+			printf("OpenMP is unavailable; -nthreads is ignored.\n");
+#endif
+		}
 	}
 
 	Config config;
@@ -75,6 +82,11 @@ int main(int argc, char *argv[])
 	{
 		printf("UniDec Ion Mobility Run\n");
 		result = run_unidec_IM(argc, argv, config);
+	}
+	else if (config.cdmsflag == 2)
+	{
+		printf("UniDec Chromatographic CDMS Run\n");
+		result = run_unidec_UCCD(argc, argv, config);
 	}
 	else if (config.cdmsflag == 1)
 	{

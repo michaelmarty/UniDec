@@ -1752,7 +1752,8 @@ def exe_call(call, silent=False):
     :param silent: Whether to print the output of exepath to the standard out
     :return: Standard error of exepath execution
     """
-    print("System Call:", call)
+    if not silent:
+        print("System Call:", call)
     result = subprocess.run(call, shell=False, capture_output=True, text=True)
     out = result.returncode
     if not silent:

@@ -1,6 +1,11 @@
 import warnings
+import os
+import sys
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
+
+if __package__ in (None, ""):
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import wx
 import wx.html
@@ -11,6 +16,7 @@ from unidec.modules.unidec_enginebase import UniDecEngine
 
 from unidec.UniDecCD import UniDecCDApp
 from unidec.GUniDec import UniDecApp
+from unidec.UniDecIM import UniDecIMApp
 
 import unidec.DataCollector as datacollector
 from unidec import MetaUniDec as mudpres
@@ -22,9 +28,6 @@ from unidec.UPP import UPPApp
 from unidec.modules import unidecstructure
 from unidec.UniChromCD import UniChromCDApp
 from unidec.IsoDecGUI import IsoDecPres
-import wx.py as py
-import os
-import sys
 import locale
 
 locale.setlocale(locale.LC_ALL, 'C')
@@ -54,18 +57,27 @@ class UniDecLauncher(UniDecPres):
         if "--meta" in sys.argv[1:] or "-m" in sys.argv[1:]:
             print("Launching Meta")
             self.view.button4()
+            return
 
         if "--chrom" in sys.argv[1:] or "-c" in sys.argv[1:]:
             print("Launching UniChrom")
             self.view.button8()
+            return
 
         if "--unidec" in sys.argv[1:] or "-u" in sys.argv[1:]:
             print("Launching UniDec")
             self.view.button1()
+            return
+
+        if "--im" in sys.argv[1:] or "-i" in sys.argv[1:]:
+            print("Launching UniDec IM")
+            self.view.button5()
+            return
 
         if "--ucd" in sys.argv[1:] or "-d" in sys.argv[1:]:
             print("Launching UniDecCD")
             self.view.button9()
+            return
 
         if len(sys.argv) > 1:
             self.view.button8()
@@ -94,11 +106,11 @@ class Lview(wx.Frame):
 
         sizer = wx.GridBagSizer(wx.HORIZONTAL)
         panel = wx.Panel(self)
-        button1 = wx.Button(panel, -1, "UniDec\n\nDeconvolve MS and IM-MS")
+        button1 = wx.Button(panel, -1, "UniDec\n\nDeconvolve mass spectra")
         button2 = wx.Button(panel, -1, "Data Collector\n\nVisualize multiple spectra\nExtract Trends and Kd's")
         button3 = wx.Button(panel, -1, "Import Wizard\n\nBatch convert Waters Raw to Txt")
         button4 = wx.Button(panel, -1, "MetaUniDec\n\nBatch process and visualize MS spectra")
-        button5 = wx.Button(panel, -1, "UniDec API Shell\n\nScript UniDec with console")
+        button5 = wx.Button(panel, -1, "UniDec IM\n\nDeconvolve ion mobility-mass spectra")
         button6 = wx.Button(panel, -1, "HDF5 Import Wizard\n\nImport Data into HDF5 for MetaUniDec")
         button7 = wx.Button(panel, -1, "UltraMeta Data Collector\n\nVisualize Multiple HDF5 Data Sets\nFit Trends")
         button8 = wx.Button(panel, -1, "UniChrom\n\nDeconvolution of Chromatograms\nUniDec for LC/MS Data")
@@ -181,9 +193,8 @@ class Lview(wx.Frame):
         app.start()
 
     def button5(self, e=None):
-        print("Launching Scripting Shell")
-        app = Shell()
-        # noinspection PyUnresolvedReferences
+        print("Launching UniDec IM")
+        app = UniDecIMApp()
         app.start()
 
     def button6(self, e=None):
@@ -222,20 +233,6 @@ class Lview(wx.Frame):
         print("Launching IsoDec")
         app = IsoDecPres()
         app.start()
-
-class Shell(object):
-    def __init__(self, *args, **kwargs):
-        self.__wx_app = wx.App(redirect=True)
-
-        self.shell = py.shell.Shell(wx.Frame(None))
-
-        self.shellwindow = py.shell.ShellFrame(self.shell, title="UniDecShell").Show()
-        # self.shell.Execute('app=UniDecApp()')
-        # self.shell.Execute('app.start()')
-        # self.shellwindow.Center()
-        # self.shell.setFocus()
-        self.__wx_app.MainLoop()
-
 
 def run_launcher(*args, **kwargs):
     multiprocessing.freeze_support()

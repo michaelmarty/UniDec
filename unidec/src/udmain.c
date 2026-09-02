@@ -16,6 +16,29 @@
 
 #include "udmain.h"
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+typedef struct IterationTimings {
+	double softmax;
+	double point_smoothing;
+	double suppression;
+	double blur;
+	double richardson_lucy;
+	double convergence;
+} IterationTimings;
+
+static double IterationWallTime(void) {
+#ifdef _OPENMP
+	return omp_get_wtime();
+#else
+	struct timespec now;
+	timespec_get(&now, TIME_UTC);
+	return (double)now.tv_sec + (double)now.tv_nsec * 1e-9;
+#endif
+}
+
 
 Decon ExitToBlank(const Config config, Decon decon)
 {
@@ -69,7 +92,7 @@ int SetupDeconvolution(const Config config, const Input inp, Decon *decon, Intra
 	//
 	//....................................................................
 
-	SetUpPeakShape(config, inp, decon, silent, 1);
+	SetUpPeakShape(config, inp, decon, silent, silent == 0);
 
 	//....................................................
 	//
@@ -92,6 +115,26 @@ int SetupDeconvolution(const Config config, const Input inp, Decon *decon, Intra
 	decon->blur = calloc(intra->ln, sizeof(float));
 	decon->newblur = calloc(intra->ln, sizeof(float));
 	intra->oldblur = calloc(intra->ln, sizeof(float));
+	intra->rl_deltas = malloc((size_t)config.lengthmz * sizeof(float));
+	intra->rl_denom = malloc((size_t)config.lengthmz * sizeof(float));
+	const int needs_grid_scratch = config.psig >= 1 || config.suppression_satellite > 0 ||
+		config.suppression_harmonic > 0 || config.suppression_topn > 0 || config.suppression_topx > 0;
+	if (needs_grid_scratch) {
+		intra->smoothing_scratch = malloc((size_t)intra->ln * sizeof(float));
+	}
+	if (config.psig >= 1) {
+		intra->smoothing_sums = malloc((size_t)config.numz * sizeof(float));
+	}
+	if (config.zsig >= 0 && config.msig >= 0 && intra->numclose > 1) {
+		intra->log_blur = malloc((size_t)intra->ln * sizeof(float));
+	}
+	if (intra->rl_deltas == NULL || intra->rl_denom == NULL ||
+		(needs_grid_scratch && intra->smoothing_scratch == NULL) ||
+		(config.psig >= 1 && intra->smoothing_sums == NULL) ||
+		(config.zsig >= 0 && config.msig >= 0 && intra->numclose > 1 && intra->log_blur == NULL)) {
+		fprintf(stderr, "Error allocating iteration scratch arrays.\n");
+		exit(11);
+	}
 
 	if (config.baselineflag == 1) {
 		printf("Auto Baseline Mode On: %d\n", config.aggressiveflag);
@@ -171,14 +214,16 @@ int SetupDeconvolution(const Config config, const Input inp, Decon *decon, Intra
 	return badness;
 }
 
-int CheckConvergence(const Config config, Decon * decon, IntraDecon *intra, int iterations, const int silent) {
+int CheckConvergence(const Config *config, Decon * decon, IntraDecon *intra, int iterations, const int silent) {
 	float diff = 0;
 	float tot = 0;
-	for (int i = 0; i < config.lengthmz * config.numz; i++)
+	#pragma omp parallel for reduction(+:diff,tot) schedule(static)
+	for (int i = 0; i < intra->ln; i++)
 	{
 		if (intra->barr[i] == 1)
 		{
-			diff += powf((decon->blur[i] - intra->oldblur[i]), 2);
+			const float delta = decon->blur[i] - intra->oldblur[i];
+			diff += delta * delta;
 			tot += decon->blur[i];
 		}
 	}
@@ -189,7 +234,7 @@ int CheckConvergence(const Config config, Decon * decon, IntraDecon *intra, int 
 
 	//printf("Iteration: %d Convergence: %f\n", iterations, decon.conv);
 	if (decon->conv < 0.000001) {
-		if (intra->off == 1 && config.numit > 0) {
+		if (intra->off == 1 && config->numit > 0) {
 			if (silent == 0) { printf("Converged in %d iterations.\n", iterations); }
 			return 1;
 		}
@@ -199,65 +244,67 @@ int CheckConvergence(const Config config, Decon * decon, IntraDecon *intra, int 
 	return 0;
 }
 
-void RunIteration(const Config config, Decon *decon, IntraDecon * intra, const Input inp, int iterations) {
+void RunIteration(const Config *config, Decon *decon, IntraDecon * intra, const Input *inp, int iterations,
+	IterationTimings *timings) {
 	decon->iterations = iterations;
 	// if (config.minratio > 0){
 	// 	adjust_ratios(config, barr, intra.numclose, closeind, decon.blur);
 	// }
 
 	// Softmax
-	if (config.beta > 0 && iterations > 0)
+	if (config->beta > 0 && iterations > 0)
 	{
-		softargmax(decon->blur, config.lengthmz, config.numz, config.beta/intra->betafactor);
+		const double start = timings != NULL ? IterationWallTime() : 0;
+		softargmax(decon->blur, config->lengthmz, config->numz, config->beta/intra->betafactor);
+		if (timings != NULL) { timings->softmax += IterationWallTime() - start; }
 		//printf("Beta %f\n", beta);
 		// softmax_peakwidth(config, decon, decon.blur, barr, config.beta/betafactor);
 	}
 
 	// Point Smoothing
-	if (config.psig >= 1 && iterations > 0)
+	if (config->psig >= 1 && iterations > 0)
 	{
-		point_smoothing(decon->blur, intra->barr, config.lengthmz, config.numz, abs((int)config.psig));
+		const double start = timings != NULL ? IterationWallTime() : 0;
+		point_smoothing(decon->blur, intra->smoothing_scratch, intra->smoothing_sums, intra->barr,
+			config->lengthmz, config->numz, abs((int)config->psig));
+		if (timings != NULL) { timings->point_smoothing += IterationWallTime() - start; }
 		//printf("Point Smoothed %f\n", config.psig);
 	}
 
 	// Suppression options
-	if (config.suppression_satellite > 0 && iterations > config.suppression_startit) {
-		suppression_satelite(decon->blur, config.lengthmz, config.numz, config.suppression_satellite);
+	const double suppression_start = timings != NULL ? IterationWallTime() : 0;
+	if (iterations > config->suppression_startit &&
+		(config->suppression_satellite > 0 || config->suppression_harmonic > 0 ||
+		 config->suppression_topn > 0 || config->suppression_topx > 0)) {
+		apply_suppressions(decon->blur, intra->smoothing_scratch, config->lengthmz, config->numz,
+			config->suppression_satellite, config->suppression_harmonic, inp->nztab,
+			config->suppression_topn, config->suppression_topx, config->suppression_percent);
 	}
-
-	if (config.suppression_harmonic > 0 && iterations > config.suppression_startit) {
-		suppression_harmonic(decon->blur, config.lengthmz, config.numz, inp.nztab);
-	}
-
-	if (config.suppression_topn > 0 && iterations > config.suppression_startit)
-	{
-		highest_n_chargestates(decon->blur, config.lengthmz, config.numz, config.suppression_topn, config.suppression_percent);
-	}
-
-	if (config.suppression_topx > 0 && iterations > config.suppression_startit)
-	{
-		clip_minor_chargestates(decon->blur, config.lengthmz, config.numz, config.suppression_topx, config.suppression_percent);
-	}
+	if (timings != NULL) { timings->suppression += IterationWallTime() - suppression_start; }
 
 
 	//Run Blurs
-	if (config.zsig >= 0 && config.msig >= 0) {
-		blur_it_mean(*intra, decon->newblur, decon->blur, config.zerolog);
+	const double blur_start = timings != NULL ? IterationWallTime() : 0;
+	if (config->zsig >= 0 && config->msig >= 0) {
+		blur_it_mean(intra, decon->newblur, decon->blur, config->zerolog);
 	}
-	else if (config.zsig > 0 && config.msig < 0)
+	else if (config->zsig > 0 && config->msig < 0)
 	{
-		blur_it_hybrid1(*intra, config.lengthmz, config.numz, decon->newblur, decon->blur, config.zerolog);
+		blur_it_hybrid1(intra, config->lengthmz, config->numz, decon->newblur, decon->blur, config->zerolog);
 	}
-	else if (config.zsig < 0 && config.msig > 0)
+	else if (config->zsig < 0 && config->msig > 0)
 	{
-		blur_it_hybrid2(*intra, config.lengthmz, config.numz, decon->newblur, decon->blur, config.zerolog);
+		blur_it_hybrid2(intra, config->lengthmz, config->numz, decon->newblur, decon->blur, config->zerolog);
 	}
 	else {
-		blur_it(*intra, decon->newblur, decon->blur);
+		blur_it(intra, decon->newblur, decon->blur);
 	}
+	if (timings != NULL) { timings->blur += IterationWallTime() - blur_start; }
 
 	//Run Richardson-Lucy Deconvolution
-	deconvolve_iteration_speedy(config, decon, *intra, inp.dataMZ);
+	const double rl_start = timings != NULL ? IterationWallTime() : 0;
+	deconvolve_iteration_speedy(config, decon, intra, inp->dataMZ);
+	if (timings != NULL) { timings->richardson_lucy += IterationWallTime() - rl_start; }
 }
 
 void SetupOutputs(const Config config, Decon * decon, const IntraDecon intra, const Input inp, const int silent) {
@@ -275,9 +322,9 @@ void SetupOutputs(const Config config, Decon * decon, const IntraDecon intra, co
 		}
 		else
 		{
-			MakePeakShape1D(config, decon, inp.dataMZ, 0, 0);
+			MakePeakShape1D(config, decon, inp.dataMZ, 0, 0, silent);
 		}
-		printf("mzdist reset: %f\n", config.mzsig);
+		if (silent == 0) { printf("mzdist reset: %f\n", config.mzsig); }
 	}
 
 
@@ -367,8 +414,9 @@ void SetupOutputs(const Config config, Decon * decon, const IntraDecon intra, co
 
 	//Checks to make sure the mass axis is good and makes a dummy axis if not
 	decon->mlen = (int)((massmax - massmin) / config.massbins);
-	int mn = decon->mlen * config.numz;
-	size_t sizemn = (size_t)mn * sizeof(float);
+	// Fast Profile/Centroid retain the summed mass spectrum but intentionally
+	// omit the large per-charge mass grid.
+	const int keep_mass_grid = config.rawflag == 0 || config.rawflag == 1;
 	if (decon->mlen < 1) {
 		printf("ERROR: No masses detected. Length: %d\n", decon->mlen);
 		massmax = config.massub;
@@ -378,9 +426,9 @@ void SetupOutputs(const Config config, Decon * decon, const IntraDecon intra, co
 		//Declare the memory
 		decon->massaxis = calloc(decon->mlen, sizeof(float));
 		decon->massaxisval = calloc(decon->mlen, sizeof(float));
-		decon->massgrid = calloc(mn, sizeof(float));
-		memset(decon->massaxisval, 0, decon->mlen * sizeof(float));
-		memset(decon->massgrid, 0, sizemn);
+		if (keep_mass_grid) {
+			decon->massgrid = calloc((size_t)decon->mlen * config.numz, sizeof(float));
+		}
 
 		//Create the mass axis
 		for (int i = 0; i < decon->mlen; i++)
@@ -394,9 +442,9 @@ void SetupOutputs(const Config config, Decon * decon, const IntraDecon intra, co
 		//Declare the memory
 		decon->massaxis = calloc(decon->mlen, sizeof(float));
 		decon->massaxisval = calloc(decon->mlen, sizeof(float));
-		decon->massgrid = calloc(mn, sizeof(float));
-		memset(decon->massaxisval, 0, decon->mlen * sizeof(float));
-		memset(decon->massgrid, 0, sizemn);
+		if (keep_mass_grid) {
+			decon->massgrid = calloc((size_t)decon->mlen * config.numz, sizeof(float));
+		}
 		if (silent == 0) { printf("Mass axis length: %d\n", decon->mlen); }
 
 
@@ -425,7 +473,7 @@ void SetupOutputs(const Config config, Decon * decon, const IntraDecon intra, co
 		// Scores
 		// .......................................
 
-		if (silent==0) {
+		if (silent == 0 && keep_mass_grid) {
 			//Note this will not execute if the mass axis is bad
 			float scorethreshold = 0;
 			decon->uniscore = score(config, decon, inp, scorethreshold, silent);
@@ -467,22 +515,37 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 
 	if (silent == 0) { printf("Iterating..."); }
 
-	for (int iterations = 0; iterations < abs(config.numit); iterations++)
+	const int max_iterations = abs(config.numit);
+	const int final_convergence_start = 9 * max_iterations / 10;
+	IterationTimings timings = {0};
+	IterationTimings *timing_ptr = silent == 0 ? &timings : NULL;
+	for (int iterations = 0; iterations < max_iterations; iterations++)
 	{
 		// Run the iteration
-		RunIteration(config, &decon, &intra, inp, iterations);
+		RunIteration(&config, &decon, &intra, &inp, iterations, timing_ptr);
 
 		//Determine the metrics for conversion. Only do this every 10% to speed up.
-		if ((config.numit < 10 || iterations % 10 == 0 || iterations % 10 == 1 || iterations>0.9 * config.numit)) {
-			int converged = CheckConvergence(config, &decon, &intra, iterations, silent);
+		if (max_iterations < 10 || iterations == 1 || iterations % 10 == 0 ||
+			iterations >= final_convergence_start) {
+			const double convergence_start = timing_ptr != NULL ? IterationWallTime() : 0;
+			int converged = CheckConvergence(&config, &decon, &intra, iterations, silent);
+			if (timing_ptr != NULL) { timings.convergence += IterationWallTime() - convergence_start; }
 			if (converged == 1) { break; }
 		}
+	}
+	if (timing_ptr != NULL) {
+		const double timed_total = timings.softmax + timings.point_smoothing + timings.suppression +
+			timings.blur + timings.richardson_lucy + timings.convergence;
+		printf("\nIteration Stage Times (s): Softmax %.6f  PointSmooth %.6f  Suppression %.6f  "
+			"Blur %.6f  RichardsonLucy %.6f  Convergence %.6f  Total %.6f\n",
+			timings.softmax, timings.point_smoothing, timings.suppression, timings.blur,
+			timings.richardson_lucy, timings.convergence, timed_total);
 	}
 
 	SetupOutputs(config, &decon, intra, inp, silent);
 
 	// Print out time
-	printf("Deconvolution Time: %f\n", (float)(clock() - starttime) / CLOCKS_PER_SEC);
+	if (silent == 0) { printf("Deconvolution Time: %f\n", (float)(clock() - starttime) / CLOCKS_PER_SEC); }
 
 	//Free Memory
 	FreeIntraDecon(intra);
