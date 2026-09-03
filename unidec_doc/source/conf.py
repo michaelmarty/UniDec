@@ -11,6 +11,7 @@ from pathlib import Path
 # Make the public repository importable on Windows and in the Linux Pages runner.
 repository_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(repository_root))
+from unidec._version import __version__
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -21,7 +22,8 @@ with (repository_root / 'pyproject.toml').open('rb') as pyproject_file:
 project = project_metadata['name']
 copyright = f'{date.today().year}, University of Arizona'
 author = 'Michael Marty'
-release = project_metadata['version']
+
+release = __version__
 version = release
 
 # -- General configuration ---------------------------------------------------
