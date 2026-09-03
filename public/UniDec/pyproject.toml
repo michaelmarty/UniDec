@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "UniDec"
-version = "9.0.0"
+dynamic = ["version"]
 description = "Universal Deconvolution of Mass and Ion Mobility Spectra"
 readme = "readme.md"
 authors = [{ name = "Michael Marty", email = "mtmarty@utexas.edu" }]
@@ -43,6 +43,9 @@ isodec = "isodec.__main__:main"
 
 [tool.setuptools]
 include-package-data = true
+
+[tool.setuptools.dynamic]
+version = {attr = "unidec._version.__version__"}
 
 #[tool.setuptools.packages.find]
 #where = ["unidec"]

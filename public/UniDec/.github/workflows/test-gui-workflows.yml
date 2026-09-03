@@ -8,13 +8,6 @@ on:
       - "pyproject.toml"
       - "tests/**"
       - "unidec/**"
-  pull_request:
-    paths:
-      - ".github/workflows/test-gui-workflows.yml"
-      - "build_native.sh"
-      - "pyproject.toml"
-      - "tests/**"
-      - "unidec/**"
   workflow_dispatch:
 
 permissions:

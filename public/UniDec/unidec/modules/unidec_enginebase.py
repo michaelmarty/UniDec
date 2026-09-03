@@ -1,12 +1,12 @@
 from unidec.modules import peakstructure
 from unidec.modules.plotting import plot1d, plot2d
-import unidec.modules.unidecstructure as unidecstructure
+from unidec._version import __version__
 import time
 from unidec.modules.html_writer import *
 
 
 
-version = unidecstructure.version
+version = __version__
 
 def copy_config(config):
     # return deepcopy(config)
@@ -731,7 +731,6 @@ class UniDecEngine:
             # os.system(self.config.opencommand + "\"" + outfile + "\"")
 
         return outfile
-
 
 
 
