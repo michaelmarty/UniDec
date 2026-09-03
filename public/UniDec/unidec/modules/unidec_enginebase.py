@@ -1,6 +1,7 @@
 from unidec.modules import peakstructure
 from unidec.modules.plotting import plot1d, plot2d
 from unidec._version import __version__
+import unidec.modules.unidecstructure as unidecstructure
 import time
 from unidec.modules.html_writer import *
 
@@ -731,6 +732,5 @@ class UniDecEngine:
             # os.system(self.config.opencommand + "\"" + outfile + "\"")
 
         return outfile
-
 
 
