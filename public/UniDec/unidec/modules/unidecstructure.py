@@ -6,12 +6,13 @@ import platform
 # import matplotlib.cm as cm
 import matplotlib as mpl
 import h5py
+from unidec._version import __version__
 from unidec.modules.hdf5_tools import replace_dataset, get_dataset
 import io
 
 __author__ = 'Michael.Marty'
 
-version = "9.0.0"
+version = __version__
 
 
 def ofile_reader(path):
