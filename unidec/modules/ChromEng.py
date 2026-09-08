@@ -2,7 +2,7 @@ import os
 import numpy as np
 import unidec.tools as ud
 from UniDecImporter.ImporterFactory import ImporterFactory
-from unidec.metaunidec.mudeng import MetaUniDec
+from unidec.metaunidec.mudeng import MetaUniDec, metaunidec_call
 from unidec.engine import UniDec
 from copy import deepcopy
 
@@ -34,7 +34,22 @@ class ChromEngine(MetaUniDec):
         self.mzdata = None
         self.procdata = None
         self.config.default_high_res()
+        # Zero preserves the original scan-wise MetaUniDec workflow. Positive
+        # values enable coupled chromatographic deconvolution in the C engine.
+        self.config.dtsig = 0.0
         self.unidec_eng = UniDec(ignore_args=True)
+
+    def run_unidec(self):
+        """Select scan-wise MetaUniDec or coupled UniChrom using ``dtsig``."""
+        if not self.check_badness():
+            self.pks.peaks = []
+            self.config.write_hdf5()
+            self.out = metaunidec_call(self.config)
+            if self.out == 0:
+                self.data.import_hdf5()
+                self.update_history()
+            return self.out
+        return 1
 
     def open_chrom(self, path, load_hdf5=True, refresh=False):
         if os.path.splitext(path)[1] == ".hdf5":

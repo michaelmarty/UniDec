@@ -204,7 +204,9 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         self.sizer3.Add(self.peakpanel, 0, wx.EXPAND)
         self.mainsizer.Add(self.sizer3, 0, wx.EXPAND)
 
-        self.controls = main_controls(self, self.config, self.pres, self.panel, self.icon_path)
+        self.controls = main_controls(
+            self, self.config, self.pres, self.panel, self.icon_path, chrom_mode=True
+        )
         self.mainsizer.Add(self.controls, 0, wx.EXPAND)
 
         self.panel.SetSizer(self.mainsizer)

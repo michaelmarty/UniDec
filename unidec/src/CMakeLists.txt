@@ -89,6 +89,8 @@ add_executable(unidec
         UniDecCD_Main.h
         UCCD_Main.c
         UCCD_Main.h
+        UniChrom_Main.c
+        UniChrom_Main.h
         MetaUniDec_Main.c
         MetaUniDec_Main.h
 )

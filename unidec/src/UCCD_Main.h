@@ -41,15 +41,15 @@ void setup_blur_m_UCCD(int *mupind, int *mloind, const float *mzdat,
                        const float *zdat, int scan_length, float adductmass,
                        const float mzranges[4], const int size[3], float molig);
 
-void make_kernel3D_UCCD(float *peak, const int size[3], const float *chromext,
-                        const float *mzext, const float *zext, float chromsig,
+void make_kernel3D_UCCD(float *peak, const int size[3], const float *mzext,
+                        const float *zext, float chromsig,
                         float mzsig, float zsig, int psfun, int zpsfun);
 
 /*
- * config.dtsig is the chromatographic peak width, expressed in chromatography-
- * coordinate units. config.mzsig and config.csig are the m/z and charge peak
- * widths, respectively. Zero disables broadening on the corresponding axis.
- * Iterative charge-state smoothing remains controlled by config.zsig.
+ * config.dtsig is the chromatographic peak width in scans. config.mzsig and
+ * config.csig are the m/z and charge peak widths, respectively. Zero disables
+ * broadening on the corresponding axis. Iterative charge-state smoothing
+ * remains controlled by config.zsig.
  */
 int run_unidec_UCCD(int argc, char *argv[], Config config);
 

@@ -26,10 +26,12 @@ class TestMajorWindowLaunches(unittest.TestCase):
         self._assert_window_launches("unidec.UniDecIM", "UniDecIMApp")
 
     def test_metaunidec_launches(self):
-        self._assert_window_launches("unidec.MetaUniDec", "UniDecApp", has_suppression_controls=True)
+        self._assert_window_launches("unidec.MetaUniDec", "UniDecApp", has_suppression_controls=True,
+                                     has_chrom_width=False)
 
     def test_unichrom_launches(self):
-        self._assert_window_launches("unidec.UniChrom", "ChromApp", has_suppression_controls=True)
+        self._assert_window_launches("unidec.UniChrom", "ChromApp", has_suppression_controls=True,
+                                     has_chrom_width=True)
 
     def test_ucd_launches_without_full_stack_button(self):
         self._assert_window_launches("unidec.UniDecCD", "UniDecCDApp", False)
@@ -38,7 +40,8 @@ class TestMajorWindowLaunches(unittest.TestCase):
         self._assert_window_launches("unidec.UniChromCD", "UniChromCDApp", True)
 
     def _assert_window_launches(self, module_name, class_name, has_full_stack_button=None,
-                                has_suppression_controls=False, launcher_layout=False):
+                                has_suppression_controls=False, launcher_layout=False,
+                                has_chrom_width=None):
         """Construct a window in an isolated process without entering its event loop."""
         script = f"""
 import importlib
@@ -66,6 +69,14 @@ try:
             "ctlsuppressionstartit",
         )
         assert all(hasattr(app.view.controls, name) for name in suppression_controls)
+    expected_chrom_width = {has_chrom_width!r}
+    if expected_chrom_width is not None:
+        assert hasattr(app.view.controls, "ctldtsig") is expected_chrom_width
+        if expected_chrom_width:
+            assert app.eng.config.dtsig == 0
+            app.view.controls.ctldtsig.SetValue("2.5")
+            app.view.controls.export_gui_to_config()
+            assert app.eng.config.dtsig == 2.5
     if {launcher_layout!r}:
         buttons = [child for panel in app.view.GetChildren() for child in panel.GetChildren()
                    if child.__class__.__name__ == "Button"]
