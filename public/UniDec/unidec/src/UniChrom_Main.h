@@ -11,7 +11,7 @@
 /*
  * config.dtsig is the chromatography peak width in scans.
  * The HDF5 spectra are coupled as [chromatography][m/z][charge] and processed
- * with three-dimensional FFTs.
+ * with two-dimensional FFTs after summing latent charge.
  */
 int run_chromatogram(int argc, char *argv[], Config config);
 
