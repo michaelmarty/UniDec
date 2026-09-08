@@ -218,6 +218,13 @@ class main_controls(wx.Panel):
         sizercontrol2a.Add(self.ctlpeakwidthcheck, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
+        if self.chrom_mode:
+            self.ctldtsig = wx.TextCtrl(panel2a, value="", size=size1)
+            sizercontrol2a.Add(wx.StaticText(panel2a, label="Chrom. Peak Width (scans): "), (i, 0),
+                               flag=wx.ALIGN_CENTER_VERTICAL)
+            sizercontrol2a.Add(self.ctldtsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
         self.ctlpselect = wx.RadioBox(panel2a, label="Smooth Nearby Points",
                                       choices=["None", "Some", "Lots", "Other"])
         self.parent.Bind(wx.EVT_RADIOBOX, self.on_p_select, self.ctlpselect)
@@ -358,13 +365,6 @@ class main_controls(wx.Panel):
                                        choices=["Integrate", "Interpolate", "Smart"])
         gbox2b.Add(self.ctlpoolflag, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
-
-        if self.chrom_mode:
-            self.ctldtsig = wx.TextCtrl(panel2b, value="", size=size1)
-            gbox2b.Add(wx.StaticText(panel2b, label="Chrom. Peak Width (scans): "), (i, 0),
-                       flag=wx.ALIGN_CENTER_VERTICAL)
-            gbox2b.Add(self.ctldtsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
 
         self.ctlrawflag = wx.RadioBox(
             panel2b, label="Output Type",

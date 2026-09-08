@@ -847,8 +847,10 @@ void clip_minor_chargestates(float *blur, const int lengthmz, const int numz, co
 }
 
 
-void point_smoothing(float *blur, float *scratch, float *sums, const char *barr, const int lengthmz,
-                     const int numz, const int width) {
+static void point_smoothing_impl(float *blur, float *scratch, float *sums,
+                                 const char *barr, const int lengthmz,
+                                 const int numz, const int width,
+                                 const int parallel_blocks) {
     const float fwidth = (float) width;
     if (scratch && sums) {
         const size_t grid_size = (size_t) lengthmz * numz * sizeof(float);
@@ -858,7 +860,7 @@ void point_smoothing(float *blur, float *scratch, float *sums, const char *barr,
         // values in every m/z row while retaining independent rolling sums.
         const int charge_block_size = 4;
         const int num_blocks = (numz + charge_block_size - 1) / charge_block_size;
-        #pragma omp parallel for schedule(static)
+        #pragma omp parallel for schedule(static) if(parallel_blocks)
         for (int block = 0; block < num_blocks; block++) {
             const int charge_start = block * charge_block_size;
             int charge_end = charge_start + charge_block_size;
@@ -903,6 +905,16 @@ void point_smoothing(float *blur, float *scratch, float *sums, const char *barr,
             }
         }
     }
+}
+
+void point_smoothing(float *blur, float *scratch, float *sums, const char *barr, const int lengthmz,
+                     const int numz, const int width) {
+    point_smoothing_impl(blur, scratch, sums, barr, lengthmz, numz, width, 1);
+}
+
+void point_smoothing_serial(float *blur, float *scratch, float *sums, const char *barr,
+                            const int lengthmz, const int numz, const int width) {
+    point_smoothing_impl(blur, scratch, sums, barr, lengthmz, numz, width, 0);
 }
 
 

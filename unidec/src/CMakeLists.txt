@@ -190,6 +190,10 @@ endif()
 
 
 option(UNIDEC_ENABLE_OPENMP "Build UniDec with OpenMP parallelism" ON)
+option(UNIDEC_PROFILE_UNICHROM "Emit coarse UniChrom phase timings" OFF)
+if(UNIDEC_PROFILE_UNICHROM)
+    target_compile_definitions(unidec PRIVATE UNICHROM_PROFILE)
+endif()
 if(UNIDEC_ENABLE_OPENMP)
     find_package(OpenMP)
 endif()
