@@ -22,6 +22,5 @@
 #include "udmain.h"
 
 int run_metaunidec(int argc, char* argv[], Config config);
-int run_chromatogram(int argc, char* argv[], Config config);
 
 #endif

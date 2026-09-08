@@ -7,11 +7,12 @@ import wx.lib.scrolledpanel as scrolled
 
 # noinspection PyMissingConstructor
 class main_controls(wx.Panel):
-    def __init__(self, parent, config, pres, panel, iconfile):
+    def __init__(self, parent, config, pres, panel, iconfile, chrom_mode=False):
         super(wx.Panel, self).__init__(panel)
         self.parent = parent
         self.config = config
         self.pres = pres
+        self.chrom_mode = chrom_mode
         self.backgroundchoices = self.config.backgroundchoices
         self.psigsettings = [0, 1, 10, 100]
         self.betasettings = [0, 50, 500, 1000]
@@ -358,6 +359,21 @@ class main_controls(wx.Panel):
         gbox2b.Add(self.ctlpoolflag, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
+        if self.chrom_mode:
+            self.ctldtsig = wx.TextCtrl(panel2b, value="", size=size1)
+            gbox2b.Add(wx.StaticText(panel2b, label="Chrom. Peak Width (scans): "), (i, 0),
+                       flag=wx.ALIGN_CENTER_VERTICAL)
+            gbox2b.Add(self.ctldtsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+
+        self.ctlrawflag = wx.RadioBox(
+            panel2b, label="Output Type",
+            choices=["Reconvolved/Profile", "Raw/Centroid", "Fast Profile", "Fast Centroid"],
+            majorDimension=2,
+        )
+        gbox2b.Add(self.ctlrawflag, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
+
         self.ctlnumit = wx.TextCtrl(panel2b, value='', size=size1)
         gbox2b.Add(wx.StaticText(panel2b, label='Maximum # of Iterations: '), (i, 0),
                    flag=wx.ALIGN_CENTER_VERTICAL)
@@ -481,10 +497,6 @@ class main_controls(wx.Panel):
         self.ctlpublicationmode = wx.CheckBox(panel3b, label="Publication Mode")
         gbox3b.Add(self.ctlpublicationmode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
-        self.ctlrawflag = wx.RadioBox(panel3b, label="", choices=["Reconvolved/Profile", "Raw/Centroid", "Fast Profile", "Fast Centroid"], majorDimension=2)
-        gbox3b.Add(self.ctlrawflag, (i, 0), span=(1, 2), flag=wx.EXPAND)
-        i += 1
-
         self.ctlnormpeakthresh = wx.CheckBox(panel3b, label="Normalize Peak Picking Threshold")
         gbox3b.Add(self.ctlnormpeakthresh, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
@@ -611,6 +623,8 @@ class main_controls(wx.Panel):
             self.ctlsuppressionharmonic.SetValue(bool(self.config.suppression_harmonic))
             self.ctlsuppressionstartit.SetValue(str(self.config.suppression_startit))
             self.ctlmzsig.SetValue(str(self.config.mzsig))
+            if self.chrom_mode:
+                self.ctldtsig.SetValue(str(self.config.dtsig))
             self.ctlpsfun.SetSelection(self.config.psfun)
             self.ctlnorm.SetSelection(int(self.config.peaknorm))
             self.ctlmasslb.SetValue(str(self.config.masslb))
@@ -744,6 +758,8 @@ class main_controls(wx.Panel):
         self.config.suppression_harmonic = int(self.ctlsuppressionharmonic.GetValue())
         self.config.suppression_startit = ud.string_to_int(self.ctlsuppressionstartit.GetValue())
         self.config.mzsig = ud.string_to_value(self.ctlmzsig.GetValue())
+        if self.chrom_mode:
+            self.config.dtsig = ud.string_to_value(self.ctldtsig.GetValue())
         self.config.massub = ud.string_to_value(self.ctlmassub.GetValue())
         self.config.masslb = ud.string_to_value(self.ctlmasslb.GetValue())
         self.config.mtabsig = ud.string_to_value(self.ctlmtabsig.GetValue())
@@ -841,6 +857,9 @@ class main_controls(wx.Panel):
         self.ctlthresh2.SetToolTip(wx.ToolTip(
             "Set threshold for peaks to be plotted in m/z. Peak at given charge state must be greater than threshold * maximum m/z intensity."))
         self.ctlsep.SetToolTip(wx.ToolTip("Set distance between isolated peak m/z plots."))
+        if self.chrom_mode:
+            self.ctldtsig.SetToolTip(wx.ToolTip(
+                "Chromatographic peak FWHM in scans for coupled UniChrom deconvolution."))
         self.ctlwindow.SetToolTip(
             wx.ToolTip("Peak detection window. Peak must be maximum in a +/- window range in mass (Da)."))
         self.ctlthresh.SetToolTip(wx.ToolTip(

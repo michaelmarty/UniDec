@@ -390,14 +390,17 @@ class MetaUniDecBase(UniDecPres):
         tstart = time.perf_counter()
         self.export_config()
         self.check_badness()
-        self.eng.run_unidec()
+        result = self.eng.run_unidec()
+        if result not in (None, 0):
+            self.view.SetStatusText("UniDec failed (exit code %s)" % result, number=5)
+            return result
         tend = time.perf_counter()
         self.eng.config.runtime = (tend - tstart)
         self.makeplot1()
         self.makeplot2_mud()
         print("Run Time:", self.eng.config.runtime)
         self.view.SetStatusText("UniDec Done %.2gs" % self.eng.config.runtime, number=5)
-        pass
+        return result
 
     def on_pick_peaks(self, e=None):
         """

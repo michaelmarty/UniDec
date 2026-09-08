@@ -541,6 +541,11 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox2b.Add(self.ctlpoolflag, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
+        self.ctlrawflag = wx.RadioBox(panel2b, label="Output Type",
+                                      choices=["Reconvolved/Profile", "Raw/Centroid"])
+        gbox2b.Add(self.ctlrawflag, (i, 0), span=(1, 2), flag=wx.EXPAND)
+        i += 1
+
         self.ctladductmass = wx.TextCtrl(panel2b, value='', size=size1)
         gbox2b.Add(self.ctladductmass, (i, 1), span=(1, 1))
         gbox2b.Add(wx.StaticText(panel2b, label="Adduct Mass (Da): "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -676,10 +681,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         self.ctlpublicationmode = wx.CheckBox(panel3b, label="Publication Mode")
         gbox3b.Add(self.ctlpublicationmode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-        i += 1
-
-        self.ctlrawflag = wx.RadioBox(panel3b, label="", choices=["Reconvolved/Profile", "Raw/Centroid"])
-        gbox3b.Add(self.ctlrawflag, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 
         self.ctlnorm = wx.RadioBox(panel3b, label="Peak Normalization", choices=["None", "Max", "Total"])

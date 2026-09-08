@@ -52,6 +52,8 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         self.config.filetype = 1
         self.config.metamode = -1
         self.config.linflag = 2
+        # In HDF5 workflows dtsig is the opt-in switch for coupled UniChrom.
+        self.config.dtsig = 0.0
         # Merged MetaUniDec outputs do not require per-spectrum charge grids.
         self.config.rawflag = 2
 

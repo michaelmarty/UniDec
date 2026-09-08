@@ -18,6 +18,9 @@ Config ImportConfig(int argc, char * argv[], Config config)
 		if (strstr(argv[1], ".hdf5")) {
 			hid_t file_id;
 			config.filetype = 1;
+			/* UniChrom is opt-in for HDF5 files.  A missing dtsig attribute
+			 * must not inherit the nonzero ion-mobility default. */
+			config.dtsig = 0;
 			file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
 			config = mh5LoadConfig(config, file_id);
 			//printf("Using HDF5 mode\n");
@@ -66,13 +69,12 @@ int main(int argc, char *argv[])
 
 	if (config.metamode != -2)
 	{
-		if (config.dtsig < 1){
-		printf("MetaUniDec Run: %d\n", config.metamode);
-		result = run_metaunidec(argc, argv, config);
-		}
-		else {
-			printf("\n\n UniChrom Run: %d\n\n", config.metamode);
+		if (config.dtsig > 0) {
+			printf("UniChrom Run: %d\n", config.metamode);
 			result = run_chromatogram(argc, argv, config);
+		} else {
+			printf("MetaUniDec Run: %d\n", config.metamode);
+			result = run_metaunidec(argc, argv, config);
 		}
 		return result;
 	}

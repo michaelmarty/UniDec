@@ -113,7 +113,8 @@ class Lview(wx.Frame):
         button5 = wx.Button(panel, -1, "UniDec IM\n\nDeconvolve ion mobility-mass spectra")
         button6 = wx.Button(panel, -1, "HDF5 Import Wizard\n\nImport Data into HDF5 for MetaUniDec")
         button7 = wx.Button(panel, -1, "UltraMeta Data Collector\n\nVisualize Multiple HDF5 Data Sets\nFit Trends")
-        button8 = wx.Button(panel, -1, "UniChrom\n\nDeconvolution of Chromatograms\nUniDec for LC/MS Data")
+        button8 = wx.Button(panel, -1,
+                            "UniChrom\n\nCoupled Deconvolution of Chromatograms\nUniDec for LC/MS Data")
         button9 = wx.Button(panel, -1, "UniDecCD\n\nDeconvolution of Charge Detection MS\nUniDec for CD-MS Data")
         button10 = wx.Button(panel, -1, "UniDec Processing HEKPipeline\n\nBatch Processing Workflow")
         button11 = wx.Button(panel, -1,
@@ -211,7 +212,7 @@ class Lview(wx.Frame):
         app.MainLoop()
 
     def button8(self, e=None):
-        print("Launching UniChrom2")
+        print("Launching UniChrom")
         app = ChromApp()
         app.start()
 
