@@ -1,6 +1,6 @@
 # UniChrom performance investigation and implementation handoff
 
-Updated 2026-09-08 after implementing and validating charge-summed 2-D FFTs.
+Updated 2026-09-09 after implementing and validating charge-summed 2-D FFTs.
 This is the remaining-work handoff; the completed reduction is no longer an
 implementation task. The measurements below come from that implementation
 session. This document update runs no application code, builds or benchmarks.
@@ -89,21 +89,64 @@ post-warmup runs versus 0.285 s for the SIMD-only build; that difference is
 within run-to-run noise, but the qualifiers are retained because they are
 semantically valid and cost-free. No further exact gain has yet been shown.
 
-The next exact change removed duplicate work in the positive-floor branch of
-`blur_it_UCCD`: it now computes one sanitized `log(input[i] + floor)` per cell
-into the existing output scratch buffer, then performs the neighbor average and
-exponential in a second SIMD pass. This is algebraically equivalent to the
-previous three-log form for the function's float intermediates and retains the
-same non-finite and nonnegative handling. The profiled `zsig` phase fell from
-about 0.136 s to 0.055 s, and solve time from 0.192 s to 0.110 s. Five fresh
-matched runs measured 0.199 s median end-to-end versus 0.350 s for the prior
-SIMD build (about 43% lower). The native equivalence suite still passes.
+The attempted two-pass positive-floor optimization in `blur_it_UCCD` was
+incorrect and has been reverted. It wrote logarithms into the output scratch
+buffer, then overwrote that buffer with exponentiated results while later cells
+still gathered neighboring values from it. The result mixed log-domain and
+intensity-domain values. The existing native oracle had `zzsig=0`, so it did
+not exercise this path. Keep the SIMD single-pass implementation, which reads
+all three input values and computes their logarithms before writing one output.
+A `zzsig=1` native oracle case now covers this dependency.
 
 An attempted durable sparse-mask case using a narrow positive mass window did
 not match the existing oracle, so that fixture was removed pending diagnosis.
 The sparse implementation remains unclaimed by regression coverage; broad
 window cases continue to exercise the dense fallback. Sparse correctness is
 now a follow-up before further sparse tuning.
+
+The mirrored direct-convolution experiment was fast on the synthetic timing
+case but produced unacceptable `dtsig=1` GUI results on representative data.
+It changed kernel truncation, m/z and scan boundary handling, iteration
+normalization, and adjoint edge weighting simultaneously. Attempts to correct
+the reflected-boundary sensitivity did not restore the expected result. The
+experiment, its CMake option, and its special regression were removed; the
+source and installed executable are back on the committed reduced-FFT solver.
+
+On the synthetic GUI command path, the restored FFT build gives a median
+normalized m/z-grid correlation of 0.994 between `dtsig=0` and `dtsig=1`
+(relative L2 about 10.7%). Treat this as a smoke comparison rather than a
+scientific acceptance result.
+
+The scan-boundary fix is now implemented around the validated FFT operator.
+Each side is padded by `ceil(3 * dtsig)` after `dtsig` is converted to internal
+sigma units. Mirrored padding is the default. The internal configuration/HDF5
+attribute `unichromzeropad=1` selects zero-filled padding instead. The forward
+operation
+extends and crops the scan axis; the adjoint center-pads and folds mirrored
+samples back onto their source scans. An `H^T 1` sensitivity correction keeps
+the Richardson-Lucy update normalized at the boundaries. Output reconvolution
+uses the same extension and crop. A first-scan-only regression verifies that
+the last scan remains below 1% of the first, and the numerical oracle covers
+both boundary modes.
+
+The exact reported `SEC_Native_Bispecific_Special.hdf5` file identified the
+charge-smoothing regression above. Its configuration uses `zzsig=1` for 50
+iterations. With the incorrect two-pass smoother, `dtsig=1` ended at a reported
+convergence metric of 8517.46 and its mass grid was effectively unrelated to
+the `dtsig=0` result (median normalized correlation -0.0025). With the restored
+single-pass smoother, convergence is 0.04596; the median normalized correlation
+between `dtsig=0` and `dtsig=1` is 0.993 for the m/z grid and 0.946 for the mass
+grid. These comparisons use copies of the same source file and the GUI's
+`-decon` then `-grids` command sequence.
+
+On the same file after boundary padding, `dtsig=1` uses two padded scans per
+side. Single runs measured 1.522 s for mirrored deconvolution and 1.527 s for
+zero-padded deconvolution, versus 1.101 s for the separate `dtsig=0` command.
+Mirrored and zero-padded outputs are nearly identical away from the boundaries:
+their median normalized correlations exceed 0.9999999 for both m/z and mass;
+the two edge scans have relative differences of about 0.18% in m/z and 1.28%
+in mass. Against `dtsig=0`, mirrored padding retains median correlations of
+0.993 for m/z and 0.944 for mass on this file.
 
 ## Scope and objective
 
@@ -398,8 +441,9 @@ contexts across simultaneous workers.
   finiteness and nonnegative checks, plus the checkpoint schedule and meaning
   of `oldblur` (previous checkpoint, not necessarily previous iteration).
 - `blur_it_UCCD` repeats log evaluations for each neighbor in positive-floor
-  regularization. Consider one log/validity pass followed by neighbor gathers
-  and exp only if this is a measured hotspot; extra scratch traffic may lose.
+  regularization. Do not reuse its output buffer for a separate log pass: its
+  neighbor gathers make that in-place strategy order-dependent. Any future log
+  cache requires distinct immutable storage and must pass the `zzsig` oracle.
 - `softargmax` has its own OpenMP loop inside HDF5's scan-parallel call; avoid
   introducing another nested level there. Point smoothing's UniChrom path is
   now scan-parallel with private sums; keep its other callers unchanged and

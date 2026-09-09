@@ -14,10 +14,10 @@ import h5py
 import numpy as np
 
 
-def write_input(path, scans=5, charges=4, **settings):
+def write_input(path, scans=5, charges=4, wide_mz=False, edge_only=False, **settings):
     config = dict(
         metamode=-1, startz=2, endz=charges + 1, numit=-4,
-        dtsig=2.5, mzsig=1.2, psfun=0, rawflag=1, datanorm=0,
+        dtsig=2.5, unichromzeropad=0, mzsig=1.2, psfun=0, rawflag=1, datanorm=0,
         zzsig=0., msig=0., psig=0., beta=0.,
         masslb=-2008., massub=-4040., massbins=1., adductmass=0.,
         nativezlb=-100., nativezub=100., intthresh=0.,
@@ -26,7 +26,8 @@ def write_input(path, scans=5, charges=4, **settings):
     if charges == 1:
         config["masslb"] = -100.
     config.update(settings)
-    mz = np.arange(1000., 1012., dtype=np.float32)
+    mz = (np.linspace(500., 2000., 64, dtype=np.float32) if wide_mz else
+          np.arange(1000., 1012., dtype=np.float32))
     with h5py.File(path, "w") as hdf:
         attrs = hdf.create_group("config").attrs
         for name, value in config.items():
@@ -34,8 +35,14 @@ def write_input(path, scans=5, charges=4, **settings):
         dataset = hdf.create_group("ms_dataset")
         dataset.attrs["num"] = np.int32(scans)
         for scan in range(scans):
-            signal = .1 + np.exp(-((mz - 1002. - scan) / 1.5) ** 2)
-            signal += .3 * np.exp(-((mz - 1009.) / 1.2) ** 2)
+            if wide_mz:
+                signal = .1 + np.exp(-((mz - 900. - 10 * scan) / 100.) ** 2)
+                signal += .3 * np.exp(-((mz - 1600.) / 80.) ** 2)
+            else:
+                signal = .1 + np.exp(-((mz - 1002. - scan) / 1.5) ** 2)
+                signal += .3 * np.exp(-((mz - 1009.) / 1.2) ** 2)
+            if edge_only and scan > 0:
+                signal = np.full_like(mz, 1e-8)
             dataset.create_group(str(scan)).create_dataset(
                 "raw_data", data=np.column_stack((mz, signal)).astype(np.float32))
     return config
@@ -55,6 +62,51 @@ def peak(center, axis, width, shape):
                     lorentzian)
 
 
+def charge_smooth_reference(cube, mz, charges, config, floor):
+    """Apply one charge-smoothing pass from an unchanged input cube."""
+    mz_count, charge_count = cube.shape[1:]
+    up = np.empty(mz_count * charge_count, dtype=int)
+    down = np.empty_like(up)
+    for mz_index, mz_value in enumerate(mz):
+        for charge_index, charge in enumerate(charges):
+            index = mz_index * charge_count + charge_index
+            mass = (mz_value - config["adductmass"]) * charge
+            upper_mz = mass / (charge + 1) + config["adductmass"]
+            lower_mz = (mass / (charge - 1) + config["adductmass"]
+                        if charge != 1 else 0.)
+
+            def mapped_index(value):
+                position = ((value - mz[0]) / (mz[-1] - mz[0]) * (mz_count - 1))
+                return int(np.floor(position + .5))
+
+            upper_index = mapped_index(upper_mz)
+            if charge_index == charge_count - 1 or not 0 <= upper_index < mz_count:
+                up[index] = index
+            else:
+                up[index] = upper_index * charge_count + charge_index + 1
+            lower_index = mapped_index(lower_mz)
+            if charge_index == 0 or not 0 <= lower_index < mz_count:
+                down[index] = index
+            else:
+                down[index] = lower_index * charge_count + charge_index - 1
+
+    flat = cube.reshape(len(cube), -1)
+    logs = np.log(flat + floor)
+    logs[~np.isfinite(logs)] = 0
+    return np.maximum(np.exp((logs + logs[:, down] + logs[:, up]) / 3) - floor,
+                      0).reshape(cube.shape)
+
+
+def scan_source_indexes(scan_count, padding, zero_padding):
+    indexes = np.arange(scan_count + 2 * padding) - padding
+    if zero_padding:
+        return np.where((indexes >= 0) & (indexes < scan_count), indexes, -1)
+    if scan_count == 1:
+        return np.zeros_like(indexes)
+    indexes %= 2 * scan_count
+    return np.where(indexes < scan_count, indexes, 2 * scan_count - indexes - 1)
+
+
 def cube_reference(initial, mz, config):
     """Keep the old full 3-D forward/sum/broadcast/adjoint operator as oracle."""
     charges = np.arange(config["startz"], config["endz"] + 1)
@@ -68,25 +120,51 @@ def cube_reference(initial, mz, config):
     per_charge = np.divide(initial, count, out=np.zeros_like(initial), where=count > 0)
     cube = per_charge[:, :, None] * allowed
     observed = per_charge * (len(charges) + 2)
-    t = np.arange(len(initial), dtype=float)
     mzsig = config["mzsig"] / (2.35482 if config["psfun"] == 0 else 1)
     dtsig = config["dtsig"] / 2.35482
+    padding = int(np.ceil(3 * dtsig))
+    padded_scans = len(initial) + 2 * padding
+    t = np.arange(padded_scans, dtype=float)
     km = peak(mz[0], mz, mzsig, config["psfun"])
     km += peak(2 * mz[-1] - mz[-2], mz, mzsig, config["psfun"])
-    kt = (np.ones(1) if len(t) == 1 else
-          peak(0, t, dtsig, config["psfun"]) + peak(len(t), t, dtsig, config["psfun"]))
-    kernel = np.zeros_like(cube)
+    kt = peak(0, t, dtsig, config["psfun"]) + peak(len(t), t, dtsig, config["psfun"])
+    kernel = np.zeros((padded_scans, len(mz), len(charges)))
     kernel[:, :, 0] = kt[:, None] * km
     spectrum = np.fft.fftn(kernel)
+    sources = scan_source_indexes(len(initial), padding, config["unichromzeropad"])
+
+    def forward(values):
+        extended = np.zeros_like(kernel)
+        valid = sources >= 0
+        extended[valid] = values[sources[valid]]
+        result = np.fft.ifftn(np.fft.fftn(extended) * spectrum).real
+        return result[p:c]
+
+    def adjoint(values):
+        extended = np.zeros_like(kernel)
+        extended[p:c] = values
+        padded = np.fft.ifftn(np.fft.fftn(extended) * spectrum.conj()).real
+        result = np.zeros_like(values)
+        for scan, source in enumerate(sources):
+            if source >= 0:
+                result[source] += padded[scan]
+        return result
+
+    p, c = padding, padding + len(initial)
+    sensitivity = adjoint(np.ones_like(cube))
     for _ in range(abs(config["numit"])):
-        predicted_cube = np.fft.ifftn(np.fft.fftn(cube) * spectrum).real
+        if config["zzsig"] != 0:
+            cube = charge_smooth_reference(
+                cube, mz, charges, config, config["zzsig"] * observed.max())
+            cube *= allowed
+        predicted_cube = forward(cube)
         predicted = predicted_cube.sum(axis=2)
         ratio = np.divide(observed, predicted, out=np.zeros_like(observed), where=predicted > 0)
         broadcast = np.broadcast_to(ratio[:, :, None], cube.shape)
-        cube *= np.fft.ifftn(np.fft.fftn(broadcast) * spectrum.conj()).real
+        cube *= adjoint(broadcast) * kernel.sum() / sensitivity
         cube = np.maximum(cube, 0) * allowed
     if config["rawflag"] in (0, 2):
-        cube = np.fft.ifftn(np.fft.fftn(cube) * spectrum / kernel.sum()).real
+        cube = forward(cube) / kernel.sum()
         cube = np.maximum(cube, 0) * allowed
     if config["datanorm"] == 1 and cube.max() > 0:
         cube *= observed.max() / cube.max()
@@ -112,11 +190,25 @@ class TestUniChromNative(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return result.stdout
 
+    def test_scan_padding_prevents_first_to_last_wrap(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory, "edge.hdf5")
+            write_input(path, edge_only=True, numit=0, rawflag=0)
+            output = self.run_native(path)
+            self.assertIn("mirrored padding", output)
+            with h5py.File(path, "r") as hdf:
+                mz_count = len(hdf["ms_dataset/mz_axis"])
+                grid = hdf["ms_dataset/mz_grid"][:].reshape(-1, mz_count)
+            self.assertLess(grid[-1].max(), grid[0].max() * .01)
+
     def test_matches_charge_cube_reference(self):
         cases = [dict(psfun=shape, rawflag=rawflag, datanorm=norm)
                  for shape in range(3) for rawflag in range(4) for norm in range(2)]
         cases += [dict(scans=1), dict(charges=1), dict(mzsig=0.),
-                  dict(scans=4, charges=3), dict(dtsig=.05)]
+                  dict(scans=4, charges=3), dict(dtsig=.05),
+                  dict(unichromzeropad=1),
+                  dict(wide_mz=True, charges=10, zzsig=1., numit=-8,
+                       masslb=-100., massub=-25000., massbins=10.)]
         for case in cases:
             with self.subTest(**case), tempfile.TemporaryDirectory() as directory:
                 path = Path(directory, "chrom.hdf5")
