@@ -2,6 +2,15 @@
 
 This companion to `AGENTS.md` routes common tasks to the files and checks most likely to matter. It is repository documentation, not an installable Codex skill package.
 
+## Agent Principles
+
+Apply these principles when using any workflow in this guide:
+
+- Think before coding. State assumptions, surface ambiguity and tradeoffs, and ask for clarification when they materially affect the result.
+- Choose the simplest complete implementation. Do not add speculative features, one-use abstractions, or unrequested flexibility.
+- Keep changes surgical. Match local style, avoid unrelated cleanup, and remove only orphans created by the current change.
+- Define success in terms of checks. For multi-step work, state a short plan with a verification step for each part, then run the narrowest relevant checks and broaden them according to risk.
+
 ## Choose the Workflow
 
 | Task | Inspect first | Minimum useful validation |

@@ -15,6 +15,13 @@ This file applies to the entire repository. A more deeply nested `AGENTS.md`, if
 
 See `SKILLS.md` for a task-to-workflow map and focused validation recipes.
 
+## Agent Principles
+
+- Think before coding: state assumptions, surface ambiguity and tradeoffs, and ask when the intended behavior is unclear.
+- Prefer simplicity: implement the smallest solution that satisfies the request; avoid speculative features, abstractions, and configurability.
+- Make surgical changes: touch only code needed for the request, preserve surrounding style, and avoid drive-by cleanup or refactoring. Remove only unused code made obsolete by the change.
+- Work toward verifiable goals: define the success check before implementation, make a brief plan for multi-step work, and loop until the relevant checks pass.
+
 ## Working Agreements
 
 1. Read the nearest README, package metadata, tests, and build files before changing behavior.
