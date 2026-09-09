@@ -433,7 +433,7 @@ void PrintHelp() {
     printf("\t\t\t\t0=Integration\n");
     printf("\t\t\t\t1=Interpolation\n");
     printf("\t\t\t\t2=Smart blend of interpolation and integration\n");
-    printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@utexas.edu) commit date 6/25/2026\n");
+    printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@utexas.edu) commit date 9/9/2026\n");
     //printf("\nsize of: %d",sizeof(char));
 
     /*

@@ -264,29 +264,24 @@ static float periodic_scan_peak_UCCD(const int length, const int index,
 
 void blur_it_UCCD(float * restrict output, const float * restrict input,
                   const int * restrict upinds, const int * restrict loinds,
-    const int length, const float floor)
+                  const int length, const float floor)
 {
-    if (floor > 0) {
 #pragma omp simd
-        for (int i = 0; i < length; i++) {
-            float value = logf(input[i] + floor);
-            if (isnan(value) || isinf(value)) { value = 0; }
-            output[i] = value;
-        }
-#pragma omp simd
-        for (int i = 0; i < length; i++) {
-            const float average = (output[i] + output[loinds[i]] +
-                                   output[upinds[i]]) / 3.0f;
-            const float newval = expf(average) - floor;
+    for (int i = 0; i < length; i++) {
+        float i1 = input[i];
+        float i2 = input[loinds[i]];
+        float i3 = input[upinds[i]];
+        if (floor > 0) {
+            i1 = logf(i1 + floor);
+            i2 = logf(i2 + floor);
+            i3 = logf(i3 + floor);
+            if (isnan(i1) || isinf(i1)) { i1 = 0; }
+            if (isnan(i2) || isinf(i2)) { i2 = 0; }
+            if (isnan(i3) || isinf(i3)) { i3 = 0; }
+            const float newval = expf((i1 + i2 + i3) / 3.0f) - floor;
             output[i] = newval > 0 ? newval : 0;
-        }
-    } else {
-        const float ratio = fabsf(floor);
-#pragma omp simd
-        for (int i = 0; i < length; i++) {
-            const float i1 = input[i];
-            const float i2 = input[loinds[i]];
-            const float i3 = input[upinds[i]];
+        } else {
+            const float ratio = fabsf(floor);
             output[i] = (i1 + i2 * ratio + i3 * ratio) / 3.0f;
         }
     }

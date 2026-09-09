@@ -64,6 +64,7 @@ def read_fasta(path):
 
     if sequence_parts:
         sequences.append("".join(sequence_parts).upper())
+    print(len(sequences), "sequences read from", path)
     return sequences
 
 
