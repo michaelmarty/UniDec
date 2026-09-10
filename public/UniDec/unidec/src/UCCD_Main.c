@@ -262,28 +262,35 @@ static float periodic_scan_peak_UCCD(const int length, const int index,
 }
 
 
-void blur_it_UCCD(float * restrict output, const float * restrict input,
+void blur_it_UCCD(float * restrict data, float * restrict scratch,
                   const int * restrict upinds, const int * restrict loinds,
                   const int length, const float floor)
 {
+    if (floor > 0) {
 #pragma omp simd
-    for (int i = 0; i < length; i++) {
-        float i1 = input[i];
-        float i2 = input[loinds[i]];
-        float i3 = input[upinds[i]];
-        if (floor > 0) {
-            i1 = logf(i1 + floor);
-            i2 = logf(i2 + floor);
-            i3 = logf(i3 + floor);
-            if (isnan(i1) || isinf(i1)) { i1 = 0; }
-            if (isnan(i2) || isinf(i2)) { i2 = 0; }
-            if (isnan(i3) || isinf(i3)) { i3 = 0; }
-            const float newval = expf((i1 + i2 + i3) / 3.0f) - floor;
-            output[i] = newval > 0 ? newval : 0;
-        } else {
-            const float ratio = fabsf(floor);
-            output[i] = (i1 + i2 * ratio + i3 * ratio) / 3.0f;
+        for (int i = 0; i < length; i++) {
+            float value = logf(data[i] + floor);
+            if (isnan(value) || isinf(value)) { value = 0; }
+            scratch[i] = value;
         }
+        /* All logs are complete. Keep scratch immutable while gathering
+         * neighbors; writing results into it would corrupt later reads. */
+#pragma omp simd
+        for (int i = 0; i < length; i++) {
+            const float i1 = scratch[i];
+            const float i2 = scratch[loinds[i]];
+            const float i3 = scratch[upinds[i]];
+            const float newval = expf((i1 + i2 + i3) / 3.0f) - floor;
+            data[i] = newval > 0 ? newval : 0;
+        }
+    } else {
+        const float ratio = fabsf(floor);
+#pragma omp simd
+        for (int i = 0; i < length; i++) {
+            scratch[i] = (data[i] + data[loinds[i]] * ratio +
+                          data[upinds[i]] * ratio) / 3.0f;
+        }
+        memcpy(data, scratch, (size_t)length * sizeof(float));
     }
 }
 
@@ -897,16 +904,12 @@ int run_unidec_UCCD(int argc, char *argv[], Config config)
                 const int offset = scan * scan_length;
                 float *const scratch = newblur + offset;
                 if (config.zsig != 0) {
-                    blur_it_UCCD(scratch, blur + offset, zupind, zloind,
+                    blur_it_UCCD(blur + offset, scratch, zupind, zloind,
                                  scan_length, config.zsig * dmax);
-                    memcpy(blur + offset, scratch,
-                           (size_t)scan_length * sizeof(float));
                 }
                 if (config.msig != 0) {
-                    blur_it_UCCD(scratch, blur + offset, mupind, mloind,
+                    blur_it_UCCD(blur + offset, scratch, mupind, mloind,
                                  scan_length, config.msig * dmax);
-                    memcpy(blur + offset, scratch,
-                           (size_t)scan_length * sizeof(float));
                 }
             }
         }

@@ -700,6 +700,7 @@ int run_chromatogram(int argc, char *argv[], Config config)
     int convergence_seen = 0;
 #ifdef UNICHROM_PROFILE
     clock_t profile_regularizers = 0, profile_projection = 0;
+    clock_t profile_point = 0, profile_charge = 0, profile_mass = 0;
     clock_t profile_fft = 0, profile_update = 0, profile_convergence = 0;
 #endif
     UNICHROM_PROFILE_START(solve);
@@ -715,6 +716,9 @@ int run_chromatogram(int argc, char *argv[], Config config)
                            mz_count, config.numz, config.beta / beta_factor);
             }
         }
+#ifdef UNICHROM_PROFILE
+        clock_t regularizer_tick = clock();
+#endif
         if (config.psig >= 1 && iteration > 0) {
             #pragma omp parallel for schedule(static) if(scan_count > 1)
             for (int scan = 0; scan < scan_count; scan++) {
@@ -725,6 +729,9 @@ int run_chromatogram(int argc, char *argv[], Config config)
                                 abs((int)config.psig));
             }
         }
+#ifdef UNICHROM_PROFILE
+        profile_point += clock() - regularizer_tick;
+#endif
         if (iteration > config.suppression_startit &&
             (config.suppression_satellite > 0 || config.suppression_harmonic > 0 ||
              config.suppression_topn > 0 || config.suppression_topx > 0)) {
@@ -733,25 +740,31 @@ int run_chromatogram(int argc, char *argv[], Config config)
                                nztab, config.suppression_topn, config.suppression_topx,
                                config.suppression_percent);
         }
-        if (config.zsig != 0 || config.msig != 0) {
+#ifdef UNICHROM_PROFILE
+        regularizer_tick = clock();
+#endif
+        if (config.zsig != 0) {
             #pragma omp parallel for schedule(static) if(scan_count > 1)
             for (int scan = 0; scan < scan_count; scan++) {
                 const size_t offset = (size_t)scan * scan_length;
-                if (config.zsig != 0) {
-                    blur_it_UCCD(scratch + offset, blur + offset, zupind, zloind,
-                                 scan_length, config.zsig * data_max);
-                    memcpy(blur + offset, scratch + offset,
-                           (size_t)scan_length * sizeof(float));
-                }
-                if (config.msig != 0) {
-                    blur_it_UCCD(scratch + offset, blur + offset, mupind, mloind,
-                                 scan_length, config.msig * data_max);
-                    memcpy(blur + offset, scratch + offset,
-                           (size_t)scan_length * sizeof(float));
-                }
+                blur_it_UCCD(blur + offset, scratch + offset, zupind, zloind,
+                             scan_length, config.zsig * data_max);
             }
         }
 #ifdef UNICHROM_PROFILE
+        profile_charge += clock() - regularizer_tick;
+        regularizer_tick = clock();
+#endif
+        if (config.msig != 0) {
+            #pragma omp parallel for schedule(static) if(scan_count > 1)
+            for (int scan = 0; scan < scan_count; scan++) {
+                const size_t offset = (size_t)scan * scan_length;
+                blur_it_UCCD(blur + offset, scratch + offset, mupind, mloind,
+                             scan_length, config.msig * data_max);
+            }
+        }
+#ifdef UNICHROM_PROFILE
+        profile_mass += clock() - regularizer_tick;
         profile_regularizers += clock() - profile_tick;
         profile_tick = clock();
 #endif
@@ -850,6 +863,9 @@ int run_chromatogram(int argc, char *argv[], Config config)
     printf(" done (metric %.6g)\n", convergence);
 #ifdef UNICHROM_PROFILE
     fprintf(stderr, "UniChrom profile solve.regularizers %.6f s\n", (double)profile_regularizers / CLOCKS_PER_SEC);
+    fprintf(stderr, "UniChrom profile regularizer.point  %.6f s\n", (double)profile_point / CLOCKS_PER_SEC);
+    fprintf(stderr, "UniChrom profile regularizer.charge %.6f s\n", (double)profile_charge / CLOCKS_PER_SEC);
+    fprintf(stderr, "UniChrom profile regularizer.mass   %.6f s\n", (double)profile_mass / CLOCKS_PER_SEC);
     fprintf(stderr, "UniChrom profile solve.projection   %.6f s\n", (double)profile_projection / CLOCKS_PER_SEC);
     fprintf(stderr, "UniChrom profile solve.fft          %.6f s\n", (double)profile_fft / CLOCKS_PER_SEC);
     fprintf(stderr, "UniChrom profile solve.update       %.6f s\n", (double)profile_update / CLOCKS_PER_SEC);
