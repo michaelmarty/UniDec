@@ -858,7 +858,9 @@ static void point_smoothing_impl(float *blur, float *scratch, float *sums,
 
         // Process small contiguous charge blocks. Each worker walks adjacent
         // values in every m/z row while retaining independent rolling sums.
-        const int charge_block_size = 4;
+        // A serial scan can traverse a full contiguous charge row. Small
+        // blocks remain useful when charges are distributed across workers.
+        const int charge_block_size = parallel_blocks ? 4 : numz;
         const int num_blocks = (numz + charge_block_size - 1) / charge_block_size;
         #pragma omp parallel for schedule(static) if(parallel_blocks)
         for (int block = 0; block < num_blocks; block++) {
@@ -873,6 +875,7 @@ static void point_smoothing_impl(float *blur, float *scratch, float *sums,
 
             for (int k = 0; k < initial_high; k++) {
                 const float *source_row = scratch + (size_t) k * numz;
+                #pragma omp simd
                 for (int j = charge_start; j < charge_end; j++) {
                     sums[j] += source_row[j];
                 }
@@ -881,6 +884,7 @@ static void point_smoothing_impl(float *blur, float *scratch, float *sums,
             for (int i = 0; i < lengthmz; i++) {
                 float *output_row = blur + (size_t) i * numz;
                 const char *mask_row = barr + (size_t) i * numz;
+                #pragma omp simd
                 for (int j = charge_start; j < charge_end; j++) {
                     if (mask_row[j] == 1) {
                         output_row[j] = sums[j] / (1.0f + 2.0f * fwidth);
@@ -890,6 +894,7 @@ static void point_smoothing_impl(float *blur, float *scratch, float *sums,
                 const int remove_index = i - width;
                 if (remove_index >= 0) {
                     const float *remove_row = scratch + (size_t) remove_index * numz;
+                    #pragma omp simd
                     for (int j = charge_start; j < charge_end; j++) {
                         sums[j] -= remove_row[j];
                     }
@@ -898,6 +903,7 @@ static void point_smoothing_impl(float *blur, float *scratch, float *sums,
                 const int add_index = i + width + 1;
                 if (add_index < lengthmz) {
                     const float *add_row = scratch + (size_t) add_index * numz;
+                    #pragma omp simd
                     for (int j = charge_start; j < charge_end; j++) {
                         sums[j] += add_row[j];
                     }

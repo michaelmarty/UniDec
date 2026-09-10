@@ -70,6 +70,23 @@ int main(int argc, char *argv[])
 	if (config.metamode != -2)
 	{
 		if (config.dtsig > 0) {
+			/* A grid refresh consumes the coupled outputs; it must not run
+			 * chromatographic deconvolution a second time. */
+			if (argc > 2 && strcmp(argv[2], "-grids") == 0) {
+				if (config.exchoice == 6 || config.exchoice == 7) {
+					fprintf(stderr, "UniChrom charge extraction requires charge-resolved outputs, which are not yet available.\n");
+					return 12;
+				}
+				hid_t file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
+				if (file_id < 0) { return 2; }
+				const int ready = question_grids(file_id);
+				H5Fclose(file_id);
+				if (!ready) {
+					result = run_chromatogram(argc, argv, config);
+					if (result != 0) { return result; }
+				}
+				return run_metaunidec(argc, argv, config);
+			}
 			printf("UniChrom Run: %d\n", config.metamode);
 			result = run_chromatogram(argc, argv, config);
 		} else {
