@@ -222,11 +222,46 @@ class TestUniChromNative(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory, "charges.hdf5")
             for mode in (6, 7):
-                write_input(path, exchoice=mode)
-                result = subprocess.run([self.executable, str(path), "-grids"],
+                for command in ("-grids", "-all"):
+                    write_input(path, exchoice=mode)
+                    result = subprocess.run([self.executable, str(path), command],
+                                            capture_output=True, text=True, timeout=60)
+                    self.assertEqual(result.returncode, 12)
+                    self.assertIn("charge-resolved outputs", result.stderr)
+                    self.assertNotIn("iterating", result.stdout)
+
+    def test_positive_width_command_contracts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory, "commands.hdf5")
+            write_input(path)
+            output = self.run_native(path, "-proc")
+            self.assertNotIn("iterating", output)
+            with h5py.File(path, "r") as hdf:
+                self.assertIn("ms_dataset/0/processed_data", hdf)
+                self.assertNotIn("ms_dataset/mz_grid", hdf)
+
+            write_input(path)
+            output = self.run_native(path, "-all")
+            self.assertEqual(output.count("iterating"), 1)
+            with h5py.File(path, "r") as hdf:
+                self.assertIn("ms_dataset/mz_grid", hdf)
+                self.assertIn("ms_dataset/mass_grid", hdf)
+                self.assertIn("peaks/peakdata", hdf)
+
+            for command in ("-extract", "-peaks"):
+                self.assertNotIn("iterating", self.run_native(path, command))
+
+            write_input(path)
+            output = self.run_native(path, "-newgrids")
+            self.assertEqual(output.count("iterating"), 1)
+            with h5py.File(path, "r") as hdf:
+                self.assertIn("peaks/peakdata", hdf)
+
+            for command in ("-ultraextract", "-charges", "-scanpeaks"):
+                result = subprocess.run([self.executable, str(path), command],
                                         capture_output=True, text=True, timeout=60)
                 self.assertEqual(result.returncode, 12)
-                self.assertIn("charge-resolved outputs", result.stderr)
+                self.assertIn("charge-resolved per-scan outputs", result.stderr)
                 self.assertNotIn("iterating", result.stdout)
 
     def test_scan_padding_prevents_first_to_last_wrap(self):
@@ -246,6 +281,7 @@ class TestUniChromNative(unittest.TestCase):
         cases += [dict(scans=1), dict(charges=1), dict(mzsig=0.),
                   dict(scans=4, charges=3), dict(dtsig=.05),
                   dict(unichromzeropad=1),
+                  dict(charges=7, rawflag=0),
                   dict(psig=1.), dict(psig=3., charges=7),
                   dict(psig=20., scans=1, charges=1),
                   dict(wide_mz=True, charges=10, psig=1., zzsig=1., numit=-8,

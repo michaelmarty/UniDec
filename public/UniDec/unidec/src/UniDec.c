@@ -70,9 +70,22 @@ int main(int argc, char *argv[])
 	if (config.metamode != -2)
 	{
 		if (config.dtsig > 0) {
+			const char* command = argc > 2 ? argv[2] : NULL;
+			if (command != NULL &&
+				(strcmp(command, "-proc") == 0 || strcmp(command, "-extract") == 0 ||
+				 strcmp(command, "-peaks") == 0)) {
+				return run_metaunidec(argc, argv, config);
+			}
+			if (command != NULL &&
+				(strcmp(command, "-ultraextract") == 0 || strcmp(command, "-charges") == 0 ||
+				 strcmp(command, "-scanpeaks") == 0)) {
+				fprintf(stderr, "UniChrom does not provide the charge-resolved per-scan outputs required by %s.\n",
+						command);
+				return 12;
+			}
 			/* A grid refresh consumes the coupled outputs; it must not run
 			 * chromatographic deconvolution a second time. */
-			if (argc > 2 && strcmp(argv[2], "-grids") == 0) {
+			if (command != NULL && strcmp(command, "-grids") == 0) {
 				if (config.exchoice == 6 || config.exchoice == 7) {
 					fprintf(stderr, "UniChrom charge extraction requires charge-resolved outputs, which are not yet available.\n");
 					return 12;
@@ -87,8 +100,18 @@ int main(int argc, char *argv[])
 				}
 				return run_metaunidec(argc, argv, config);
 			}
+			if (command != NULL && strcmp(command, "-all") == 0 &&
+				(config.exchoice == 6 || config.exchoice == 7)) {
+				fprintf(stderr, "UniChrom charge extraction requires charge-resolved outputs, which are not yet available.\n");
+				return 12;
+			}
 			printf("UniChrom Run: %d\n", config.metamode);
 			result = run_chromatogram(argc, argv, config);
+			if (result == 0 && command != NULL &&
+				(strcmp(command, "-all") == 0 || strcmp(command, "-newgrids") == 0)) {
+				argv[2] = "-grids";
+				result = run_metaunidec(argc, argv, config);
+			}
 		} else {
 			printf("MetaUniDec Run: %d\n", config.metamode);
 			result = run_metaunidec(argc, argv, config);
