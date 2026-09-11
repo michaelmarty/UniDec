@@ -847,15 +847,12 @@ void clip_minor_chargestates(float *blur, const int lengthmz, const int numz, co
 }
 
 
-static void point_smoothing_impl(float *blur, float *scratch, float *sums,
-                                 const char *barr, const int lengthmz,
-                                 const int numz, const int width,
-                                 const int parallel_blocks) {
+static void point_smoothing_from_source(float *output, const float *source, float *sums,
+                                        const char *barr, const int lengthmz,
+                                        const int numz, const int width,
+                                        const int parallel_blocks) {
     const float fwidth = (float) width;
-    if (scratch && sums) {
-        const size_t grid_size = (size_t) lengthmz * numz * sizeof(float);
-        memcpy(scratch, blur, grid_size);
-
+    if (output && source && sums) {
         // Process small contiguous charge blocks. Each worker walks adjacent
         // values in every m/z row while retaining independent rolling sums.
         // A serial scan can traverse a full contiguous charge row. Small
@@ -874,7 +871,7 @@ static void point_smoothing_impl(float *blur, float *scratch, float *sums,
             if (initial_high > lengthmz) { initial_high = lengthmz; }
 
             for (int k = 0; k < initial_high; k++) {
-                const float *source_row = scratch + (size_t) k * numz;
+                const float *source_row = source + (size_t) k * numz;
                 #pragma omp simd
                 for (int j = charge_start; j < charge_end; j++) {
                     sums[j] += source_row[j];
@@ -882,18 +879,21 @@ static void point_smoothing_impl(float *blur, float *scratch, float *sums,
             }
 
             for (int i = 0; i < lengthmz; i++) {
-                float *output_row = blur + (size_t) i * numz;
+                float *output_row = output + (size_t) i * numz;
+                const float *source_row = source + (size_t) i * numz;
                 const char *mask_row = barr + (size_t) i * numz;
                 #pragma omp simd
                 for (int j = charge_start; j < charge_end; j++) {
                     if (mask_row[j] == 1) {
                         output_row[j] = sums[j] / (1.0f + 2.0f * fwidth);
+                    } else {
+                        output_row[j] = source_row[j];
                     }
                 }
 
                 const int remove_index = i - width;
                 if (remove_index >= 0) {
-                    const float *remove_row = scratch + (size_t) remove_index * numz;
+                    const float *remove_row = source + (size_t) remove_index * numz;
                     #pragma omp simd
                     for (int j = charge_start; j < charge_end; j++) {
                         sums[j] -= remove_row[j];
@@ -902,7 +902,7 @@ static void point_smoothing_impl(float *blur, float *scratch, float *sums,
 
                 const int add_index = i + width + 1;
                 if (add_index < lengthmz) {
-                    const float *add_row = scratch + (size_t) add_index * numz;
+                    const float *add_row = source + (size_t) add_index * numz;
                     #pragma omp simd
                     for (int j = charge_start; j < charge_end; j++) {
                         sums[j] += add_row[j];
@@ -913,14 +913,25 @@ static void point_smoothing_impl(float *blur, float *scratch, float *sums,
     }
 }
 
+static void point_smoothing_impl(float *blur, float *scratch, float *sums,
+                                 const char *barr, const int lengthmz,
+                                 const int numz, const int width,
+                                 const int parallel_blocks) {
+    if (blur && scratch && sums) {
+        memcpy(scratch, blur, (size_t) lengthmz * numz * sizeof(float));
+        point_smoothing_from_source(blur, scratch, sums, barr, lengthmz,
+                                    numz, width, parallel_blocks);
+    }
+}
+
 void point_smoothing(float *blur, float *scratch, float *sums, const char *barr, const int lengthmz,
                      const int numz, const int width) {
     point_smoothing_impl(blur, scratch, sums, barr, lengthmz, numz, width, 1);
 }
 
-void point_smoothing_serial(float *blur, float *scratch, float *sums, const char *barr,
-                            const int lengthmz, const int numz, const int width) {
-    point_smoothing_impl(blur, scratch, sums, barr, lengthmz, numz, width, 0);
+void point_smoothing_to_scratch(const float *blur, float *scratch, float *sums, const char *barr,
+                                const int lengthmz, const int numz, const int width) {
+    point_smoothing_from_source(scratch, blur, sums, barr, lengthmz, numz, width, 0);
 }
 
 
