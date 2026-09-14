@@ -91,6 +91,8 @@ add_executable(unidec
         UCCD_Main.h
         UniChrom_Main.c
         UniChrom_Main.h
+        UniChrom_Nonlinear.c
+        UniChrom_Nonlinear.h
         MetaUniDec_Main.c
         MetaUniDec_Main.h
 )
@@ -190,7 +192,7 @@ endif()
 
 
 option(UNIDEC_ENABLE_OPENMP "Build UniDec with OpenMP parallelism" ON)
-option(UNIDEC_PROFILE_UNICHROM "Emit coarse UniChrom phase timings" OFF)
+option(UNIDEC_PROFILE_UNICHROM "Emit UniChrom wall-time phase timings" OFF)
 if(UNIDEC_PROFILE_UNICHROM)
     target_compile_definitions(unidec PRIVATE UNICHROM_PROFILE)
 endif()

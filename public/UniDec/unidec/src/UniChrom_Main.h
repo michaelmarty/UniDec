@@ -10,8 +10,8 @@
 
 /*
  * config.dtsig is the chromatography peak width in scans.
- * The HDF5 spectra are coupled as [chromatography][m/z][charge] and processed
- * with two-dimensional FFTs after summing latent charge.
+ * UClineardecon=1 uses a common linear m/z grid and FFT convolution.
+ * UClineardecon=0 keeps each processed m/z axis and uses direct convolution.
  */
 int run_chromatogram(int argc, char *argv[], Config config);
 

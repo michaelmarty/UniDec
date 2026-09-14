@@ -74,9 +74,13 @@ try:
         assert hasattr(app.view.controls, "ctldtsig") is expected_chrom_width
         if expected_chrom_width:
             assert app.eng.config.dtsig == 0
+            assert hasattr(app.view.controls, "ctlUClineardecon")
+            assert app.view.controls.ctlUClineardecon.GetValue()
             app.view.controls.ctldtsig.SetValue("2.5")
+            app.view.controls.ctlUClineardecon.SetValue(False)
             app.view.controls.export_gui_to_config()
             assert app.eng.config.dtsig == 2.5
+            assert app.eng.config.UClineardecon == 0
     if {launcher_layout!r}:
         buttons = [child for panel in app.view.GetChildren() for child in panel.GetChildren()
                    if child.__class__.__name__ == "Button"]

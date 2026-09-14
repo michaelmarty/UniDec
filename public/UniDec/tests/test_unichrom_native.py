@@ -14,19 +14,21 @@ import h5py
 import numpy as np
 
 
-def write_input(path, scans=5, charges=4, wide_mz=False, edge_only=False, **settings):
+def write_input(path, scans=5, charges=4, wide_mz=False, mz_points=None,
+                nonlinear_mz=False, edge_only=False, **settings):
     config = dict(
         metamode=-1, startz=2, endz=charges + 1, numit=-4,
         dtsig=2.5, unichromzeropad=0, mzsig=1.2, psfun=0, rawflag=1, datanorm=0,
         zzsig=0., msig=0., psig=0., beta=0.,
         masslb=-2008., massub=-4040., massbins=1., adductmass=0.,
-        nativezlb=-100., nativezub=100., intthresh=0.,
+        nativezlb=-100., nativezub=100., intthresh=0., molig=1.,
+        UClineardecon=1,
         minmz=0., maxmz=2000., mzbins=0., subbuff=0., reductionpercent=0.,
     )
     if charges == 1:
         config["masslb"] = -100.
     config.update(settings)
-    mz = (np.linspace(500., 2000., 64, dtype=np.float32) if wide_mz else
+    mz = (np.linspace(500., 2000., mz_points or 64, dtype=np.float32) if wide_mz else
           np.arange(1000., 1012., dtype=np.float32))
     with h5py.File(path, "w") as hdf:
         attrs = hdf.create_group("config").attrs
@@ -35,16 +37,21 @@ def write_input(path, scans=5, charges=4, wide_mz=False, edge_only=False, **sett
         dataset = hdf.create_group("ms_dataset")
         dataset.attrs["num"] = np.int32(scans)
         for scan in range(scans):
+            scan_mz = mz
+            if nonlinear_mz:
+                fraction = np.linspace(0., 1., len(mz) + scan, dtype=np.float32)
+                scan_mz = (mz[0] + (mz[-1] - mz[0]) *
+                           fraction ** (1.02 + .01 * scan) + .02 * scan)
             if wide_mz:
-                signal = .1 + np.exp(-((mz - 900. - 10 * scan) / 100.) ** 2)
-                signal += .3 * np.exp(-((mz - 1600.) / 80.) ** 2)
+                signal = .1 + np.exp(-((scan_mz - 900. - 10 * scan) / 100.) ** 2)
+                signal += .3 * np.exp(-((scan_mz - 1600.) / 80.) ** 2)
             else:
-                signal = .1 + np.exp(-((mz - 1002. - scan) / 1.5) ** 2)
-                signal += .3 * np.exp(-((mz - 1009.) / 1.2) ** 2)
+                signal = .1 + np.exp(-((scan_mz - 1002. - scan) / 1.5) ** 2)
+                signal += .3 * np.exp(-((scan_mz - 1009.) / 1.2) ** 2)
             if edge_only and scan > 0:
-                signal = np.full_like(mz, 1e-8)
+                signal = np.full_like(scan_mz, 1e-8)
             dataset.create_group(str(scan)).create_dataset(
-                "raw_data", data=np.column_stack((mz, signal)).astype(np.float32))
+                "raw_data", data=np.column_stack((scan_mz, signal)).astype(np.float32))
     return config
 
 
@@ -90,6 +97,44 @@ def charge_smooth_reference(cube, mz, charges, config, floor):
             else:
                 down[index] = lower_index * charge_count + charge_index - 1
 
+    flat = cube.reshape(len(cube), -1)
+    if floor <= 0:
+        return ((flat + flat[:, down] * abs(floor) +
+                 flat[:, up] * abs(floor)) / 3).reshape(cube.shape)
+    logs = np.log(flat + floor)
+    logs[~np.isfinite(logs)] = 0
+    return np.maximum(np.exp((logs + logs[:, down] + logs[:, up]) / 3) - floor,
+                      0).reshape(cube.shape)
+
+
+def mass_smooth_indexes(mz, charges, config):
+    """Build the native mass-neighbor lookup tables."""
+    mz_count, charge_count = len(mz), len(charges)
+    up = np.empty(mz_count * charge_count, dtype=int)
+    down = np.empty_like(up)
+    for mz_index, mz_value in enumerate(mz):
+        for charge_index, charge in enumerate(charges):
+            index = mz_index * charge_count + charge_index
+            mass = (mz_value - config["adductmass"]) * charge
+
+            def mapped_index(value):
+                position = ((value - mz[0]) / (mz[-1] - mz[0]) * (mz_count - 1))
+                return int(np.floor(position + .5))
+
+            upper_index = mapped_index(
+                (mass + config["molig"]) / charge + config["adductmass"])
+            lower_index = mapped_index(
+                (mass - config["molig"]) / charge + config["adductmass"])
+            up[index] = (upper_index * charge_count + charge_index
+                         if 0 <= upper_index < mz_count else index)
+            down[index] = (lower_index * charge_count + charge_index
+                           if 0 <= lower_index < mz_count else index)
+    return up, down
+
+
+def mass_smooth_reference(cube, mz, charges, config, floor):
+    """Apply one mass-smoothing pass from an unchanged input cube."""
+    up, down = mass_smooth_indexes(mz, charges, config)
     flat = cube.reshape(len(cube), -1)
     if floor <= 0:
         return ((flat + flat[:, down] * abs(floor) +
@@ -167,6 +212,10 @@ def cube_reference(initial, mz, config):
         if config["zzsig"] != 0:
             cube = charge_smooth_reference(
                 cube, mz, charges, config, config["zzsig"] * observed.max())
+            cube *= allowed
+        if config["msig"] != 0:
+            cube = mass_smooth_reference(
+                cube, mz, charges, config, config["msig"] * observed.max())
             cube *= allowed
         predicted_cube = forward(cube)
         predicted = predicted_cube.sum(axis=2)
@@ -264,6 +313,83 @@ class TestUniChromNative(unittest.TestCase):
                 self.assertIn("charge-resolved per-scan outputs", result.stderr)
                 self.assertNotIn("iterating", result.stdout)
 
+    def test_nonlinear_direct_mode_matches_linearized_outputs(self):
+        case = dict(scans=4, charges=5, wide_mz=True, mz_points=128,
+                    nonlinear_mz=True, mzsig=15., numit=-8, rawflag=1,
+                    zzsig=1., msig=1., psig=1., molig=200.,
+                    masslb=-100., massub=-12000., massbins=10.)
+        with tempfile.TemporaryDirectory() as directory:
+            paths = [Path(directory, f"mode-{mode}.hdf5") for mode in (1, 0)]
+            outputs = []
+            for mode, path in zip((1, 0), paths):
+                write_input(path, UClineardecon=mode, **case)
+                output = self.run_native(path)
+                outputs.append(output)
+            self.assertIn("processing and linearizing", outputs[0])
+            self.assertIn("ragged direct convolution", outputs[1])
+
+            with h5py.File(paths[0], "r") as linear, h5py.File(paths[1], "r") as direct:
+                processed = [direct[f"ms_dataset/{scan}/processed_data"][:, 0]
+                             for scan in range(case["scans"])]
+                self.assertGreater(len({len(axis) for axis in processed}), 1)
+                self.assertFalse(np.array_equal(processed[0], processed[-1]))
+
+                def compare_grid(name):
+                    linear_axis = linear[f"ms_dataset/{name}_axis"][:]
+                    direct_axis = direct[f"ms_dataset/{name}_axis"][:]
+                    linear_grid = linear[f"ms_dataset/{name}_grid"][:].reshape(
+                        case["scans"], -1)
+                    direct_grid = direct[f"ms_dataset/{name}_grid"][:].reshape(
+                        case["scans"], -1)
+                    direct_grid = np.stack([
+                        np.interp(linear_axis, direct_axis, row, left=0, right=0)
+                        for row in direct_grid
+                    ])
+                    similarity = np.dot(linear_grid.ravel(), direct_grid.ravel())
+                    similarity /= (np.linalg.norm(linear_grid) * np.linalg.norm(direct_grid))
+                    self.assertGreaterEqual(similarity, .98)
+                    return linear_axis, direct_axis
+
+                compare_grid("mz")
+                linear_mass, direct_mass = compare_grid("mass")
+                linear_peak = linear_mass[np.argmax(linear["ms_dataset/mass_sum"][:])]
+                direct_peak = direct_mass[np.argmax(direct["ms_dataset/mass_sum"][:])]
+                self.assertLessEqual(abs(linear_peak - direct_peak), case["massbins"])
+                self.assertEqual(linear["config"].attrs["gridsflag"], 1)
+                self.assertEqual(direct["config"].attrs["gridsflag"], 1)
+
+    def test_uc_linear_decon_default_and_validation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory, "dispatch.hdf5")
+            write_input(path)
+            with h5py.File(path, "a") as hdf:
+                del hdf["config"].attrs["UClineardecon"]
+            self.assertIn("processing and linearizing", self.run_native(path))
+
+            write_input(path, UClineardecon=2)
+            result = subprocess.run([self.executable, str(path)], capture_output=True,
+                                    text=True, timeout=60)
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("UClineardecon must be 0 or 1", result.stderr)
+            self.assertNotIn("iterating", result.stdout)
+
+    def test_nonlinear_direct_preserves_empty_scan_and_singleton_modes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory, "edge-dimensions.hdf5")
+            write_input(path, scans=3, charges=1, UClineardecon=0,
+                        mzsig=0., unichromzeropad=1)
+            with h5py.File(path, "a") as hdf:
+                del hdf["ms_dataset/1/raw_data"]
+                hdf["ms_dataset/1"].create_dataset(
+                    "raw_data", data=np.empty((0, 2), dtype=np.float32))
+            self.assertIn("ragged direct convolution", self.run_native(path))
+            with h5py.File(path, "r") as hdf:
+                mz_count = len(hdf["ms_dataset/mz_axis"])
+                grid = hdf["ms_dataset/mz_grid"][:].reshape(3, mz_count)
+                self.assertTrue(np.isfinite(grid).all())
+                np.testing.assert_array_equal(grid[1], 0)
+                self.assertEqual(hdf["ms_dataset/1"].attrs["length_mz"].item(), 0)
+
     def test_scan_padding_prevents_first_to_last_wrap(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory, "edge.hdf5")
@@ -275,13 +401,50 @@ class TestUniChromNative(unittest.TestCase):
                 grid = hdf["ms_dataset/mz_grid"][:].reshape(-1, mz_count)
             self.assertLess(grid[-1].max(), grid[0].max() * .01)
 
+    def test_tiled_positive_smoothing_matches_reference_across_workers(self):
+        case = dict(scans=2, charges=2, wide_mz=True, mz_points=32769,
+                    zzsig=1., msig=1., numit=-2, rawflag=1,
+                    masslb=-100., massub=-10000., massbins=10.)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory, "tiled.hdf5")
+            config = write_input(path, **case)
+            with h5py.File(path, "a") as hdf:
+                hdf["config"].attrs.modify("numit", np.int32(0))
+            self.run_native(path, "-nthreads", "1")
+            with h5py.File(path, "r") as hdf:
+                mz = hdf["ms_dataset/mz_axis"][:].astype(float)
+                initial = hdf["ms_dataset/mz_grid"][:].reshape(2, -1).astype(float)
+            self.assertGreater(len(mz) * case["charges"], 65536)
+            self.assertNotEqual((len(mz) * case["charges"]) % 65536, 0)
+            indexes = np.arange(len(mz) * case["charges"])
+            up, down = mass_smooth_indexes(
+                mz, np.arange(config["startz"], config["endz"] + 1), config)
+            crosses_tile = (((indexes < 65536) & ((up >= 65536) | (down >= 65536))) |
+                            ((indexes >= 65536) & ((up < 65536) | (down < 65536))))
+            self.assertTrue(crosses_tile.any())
+            expected, _ = cube_reference(initial, mz, config)
+
+            results = []
+            for workers in (1, 4):
+                write_input(path, **case)
+                output = self.run_native(path, "-nthreads", str(workers))
+                self.assertIn(f"x {case['charges']} charge", output)
+                with h5py.File(path, "r") as hdf:
+                    results.append(hdf["ms_dataset/mz_grid"][:].reshape(2, -1))
+                np.testing.assert_allclose(results[-1], expected.sum(axis=2),
+                                           rtol=3e-4, atol=3e-6)
+            np.testing.assert_array_equal(results[0], results[1])
+
     def test_matches_charge_cube_reference(self):
         cases = [dict(psfun=shape, rawflag=rawflag, datanorm=norm)
                  for shape in range(3) for rawflag in range(4) for norm in range(2)]
-        cases += [dict(scans=1), dict(charges=1), dict(mzsig=0.),
+        cases += [dict(scans=1), dict(scans=1, zzsig=1.),
+                  dict(charges=1), dict(mzsig=0.),
                   dict(scans=4, charges=3), dict(dtsig=.05),
                   dict(unichromzeropad=1),
                   dict(charges=7, rawflag=0),
+                  dict(charges=12, rawflag=0,
+                       masslb=3000., massub=4050.),
                   dict(psig=1.), dict(psig=3., charges=7),
                   dict(psig=20., scans=1, charges=1),
                   dict(wide_mz=True, charges=10, psig=1., zzsig=1., numit=-8,

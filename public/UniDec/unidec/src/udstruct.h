@@ -156,6 +156,7 @@ struct Config {
     int imflag;
     //IM Parameters
     float dtsig;
+    int UClineardecon;
     float csig;
     float ccsub;
     float ccslb;
