@@ -19,8 +19,6 @@ typedef struct {
     int scan_count;
     int point_count;
     int *scan_offsets;
-    /* Scan numbers now; this is the single axis to replace with acquisition
-     * times when a time-based dtsig mode is added. */
     float *chrom_axis;
     float *mz;
     float *observed;
@@ -90,6 +88,19 @@ static int read_processed_UC(const Config config, UCRaggedData *data)
         }
         data->scan_offsets[scan] = (int)total;
         data->chrom_axis[scan] = (float)scan;
+        if (config.UCtype == 1) {
+            char group[1024];
+            snprintf(group, sizeof(group), "/ms_dataset/%d", scan);
+            const float legacy_time = float_attr(config.file_id, group, "timemid", NAN);
+            data->chrom_axis[scan] = float_attr(
+                config.file_id, group, "retention_time", legacy_time);
+            if (!isfinite(data->chrom_axis[scan]) ||
+                (scan > 0 && data->chrom_axis[scan] <= data->chrom_axis[scan - 1])) {
+                fprintf(stderr, "UniChrom retention times must be finite and strictly increasing (spectrum %d)\n",
+                        scan);
+                return 0;
+            }
+        }
         total += length;
     }
     data->scan_offsets[data->scan_count] = (int)total;
@@ -226,7 +237,7 @@ static int build_direct_operator_UC(const UCRaggedData *data,
 {
     memset(op, 0, sizeof(*op));
     op->length = data->point_count;
-    const double padding_value = ceil(3.0 * config.dtsig);
+    const double padding_value = config.UCtype == 1 ? 0 : ceil(3.0 * config.dtsig);
     if (padding_value > (INT_MAX - data->scan_count) / 2.0) { return 0; }
     const int padding = (int)padding_value;
     const int padded_count = data->scan_count + 2 * padding;
@@ -235,18 +246,41 @@ static int build_direct_operator_UC(const UCRaggedData *data,
     op->offsets = calloc((size_t)op->length + 1, sizeof(size_t));
     if (time_weights == NULL || op->offsets == NULL) { free(time_weights); return 0; }
 
-    /* Keep construction of the temporal matrix separate from the ragged m/z
-     * response so a later mode can calculate these weights from chrom_axis. */
-    for (int target = 0; target < data->scan_count; target++) {
-        const int target_extended = target + padding;
-        for (int extended = 0; extended < padded_count; extended++) {
-            int source = extended - padding;
-            if (zero_padding && (source < 0 || source >= data->scan_count)) { continue; }
-            if (!zero_padding) { source = mirrored_scan_UC(source, data->scan_count); }
-            int delta = target_extended - extended;
-            if (delta < 0) { delta += padded_count; }
-            time_weights[index2D(data->scan_count, target, source)] +=
-                periodic_scan_peak_UC(padded_count, delta, config.dtsig, config.psfun);
+    if (config.UCtype == 1) {
+        const float left_edge = data->scan_count == 1 ? data->chrom_axis[0] :
+            data->chrom_axis[0] - (data->chrom_axis[1] - data->chrom_axis[0]) / 2;
+        const float right_edge = data->scan_count == 1 ? data->chrom_axis[0] :
+            data->chrom_axis[data->scan_count - 1] +
+            (data->chrom_axis[data->scan_count - 1] -
+             data->chrom_axis[data->scan_count - 2]) / 2;
+        for (int target = 0; target < data->scan_count; target++) {
+            for (int source = 0; source < data->scan_count; source++) {
+                float weight = mzpeakshape(data->chrom_axis[source],
+                                           data->chrom_axis[target],
+                                           config.dtsig, config.psfun);
+                if (!zero_padding && data->scan_count > 1) {
+                    weight += mzpeakshape(2 * left_edge - data->chrom_axis[source],
+                                          data->chrom_axis[target],
+                                          config.dtsig, config.psfun);
+                    weight += mzpeakshape(2 * right_edge - data->chrom_axis[source],
+                                          data->chrom_axis[target],
+                                          config.dtsig, config.psfun);
+                }
+                time_weights[index2D(data->scan_count, target, source)] = weight;
+            }
+        }
+    } else {
+        for (int target = 0; target < data->scan_count; target++) {
+            const int target_extended = target + padding;
+            for (int extended = 0; extended < padded_count; extended++) {
+                int source = extended - padding;
+                if (zero_padding && (source < 0 || source >= data->scan_count)) { continue; }
+                if (!zero_padding) { source = mirrored_scan_UC(source, data->scan_count); }
+                int delta = target_extended - extended;
+                if (delta < 0) { delta += padded_count; }
+                time_weights[index2D(data->scan_count, target, source)] +=
+                    periodic_scan_peak_UC(padded_count, delta, config.dtsig, config.psfun);
+            }
         }
     }
 
@@ -641,6 +675,7 @@ int run_chromatogram_nonlinear(int argc, char *argv[], Config config)
     if (!read_processed_UC(config, &data) ||
         !build_direct_operator_UC(&data, config, zero_padding, &op)) {
         fprintf(stderr, "Unable to initialize nonlinear UniChrom response\n");
+        result = 2;
         goto cleanup;
     }
 
@@ -702,7 +737,8 @@ int run_chromatogram_nonlinear(int argc, char *argv[], Config config)
     const float beta_factor = data_max > 1 ? data_max : 1;
     double convergence = 0;
     int convergence_seen = 0;
-    printf("UniChrom: iterating with ragged direct convolution.");
+    printf("UniChrom: iterating with ragged direct convolution (%s units).",
+           config.UCtype == 1 ? "retention-time" : "scan");
     for (int iteration = 0; iteration < abs(config.numit); iteration++) {
         if (config.beta > 0 && iteration > 0) {
             softargmax(blur, data.point_count, config.numz, config.beta / beta_factor);

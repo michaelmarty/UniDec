@@ -277,6 +277,7 @@ class UniDecConfig(object):
         self.nativeccslb = -20000
         self.dtsig = 0.2
         self.UClineardecon = 1
+        self.UCtype = 0
         self.unichromzeropad = 0
         self.ccsbins = 100
         self.compressflag = 1
@@ -670,6 +671,7 @@ class UniDecConfig(object):
         self.nativeccslb = -20000
         self.dtsig = 0.2
         self.UClineardecon = 1
+        self.UCtype = 0
         self.unichromzeropad = 0
         self.ccsbins = 100
         self.compressflag = 1
@@ -1165,6 +1167,7 @@ class UniDecConfig(object):
             "mindt": self.mindt,
             "maxdt": self.maxdt, "ccsub": self.ccsub, "ccslb": self.ccslb, "dtsig": self.dtsig,
             "UClineardecon": self.UClineardecon,
+            "UCtype": self.UCtype,
             "unichromzeropad": self.unichromzeropad, "csig": self.csig,
             "ccsbins": self.ccsbins, "subbufdt": self.subbufdt, "smoothdt": self.smoothdt,
             "ubnativeccs": self.nativeccsub, "lbnativeccs": self.nativeccslb, "twaveflag": self.twaveflag,
@@ -1287,6 +1290,7 @@ class UniDecConfig(object):
         self.ccslb = read_attr(self.ccslb, "ccslb", config_group)
         self.dtsig = read_attr(self.dtsig, "dtsig", config_group)
         self.UClineardecon = read_attr(self.UClineardecon, "UClineardecon", config_group)
+        self.UCtype = read_attr(self.UCtype, "UCtype", config_group)
         self.unichromzeropad = read_attr(self.unichromzeropad, "unichromzeropad", config_group)
         self.csig = read_attr(self.csig, "csig", config_group)
         self.ccsbins = read_attr(self.ccsbins, "ccsbins", config_group)

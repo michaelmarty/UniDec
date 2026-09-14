@@ -10,18 +10,32 @@ from unidec.modules.unidecstructure import UniDecConfig
 
 
 class TestUniChromWorkflow(unittest.TestCase):
-    def test_linear_decon_setting_round_trips_through_hdf5(self):
+    def test_unichrom_settings_round_trip_through_hdf5(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory, "config.hdf5")
             config = UniDecConfig()
             self.assertEqual(config.UClineardecon, 1)
+            self.assertEqual(config.UCtype, 0)
             config.UClineardecon = 0
+            config.UCtype = 1
             config.write_hdf5(str(path))
             with h5py.File(path, "r") as hdf:
                 self.assertEqual(hdf["config"].attrs["UClineardecon"], 0)
+                self.assertEqual(hdf["config"].attrs["UCtype"], 1)
             restored = UniDecConfig()
             restored.read_hdf5(str(path))
             self.assertEqual(restored.UClineardecon, 0)
+            self.assertEqual(restored.UCtype, 1)
+
+    def test_chromatogram_folder_gets_retention_time_metadata(self):
+        engine = object.__new__(ChromEngine)
+        engine.chromdat = Mock()
+        engine.chromdat.get_avg_scan.return_value = "spectrum"
+        engine.chromdat.get_times_from_scans.return_value = (1.0, 1.4, 1.8)
+
+        self.assertEqual(engine.get_data_from_scans((10, 12)), "spectrum")
+
+        self.assertEqual(engine.attrs["retention_time"], 1.4)
 
     @patch("unidec.modules.ChromEng.metaunidec_call", return_value=0)
     def test_positive_width_is_written_for_c_dispatch(self, call):

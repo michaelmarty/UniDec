@@ -22,7 +22,7 @@ def write_input(path, scans=5, charges=4, wide_mz=False, mz_points=None,
         zzsig=0., msig=0., psig=0., beta=0.,
         masslb=-2008., massub=-4040., massbins=1., adductmass=0.,
         nativezlb=-100., nativezub=100., intthresh=0., molig=1.,
-        UClineardecon=1, poolflag=0,
+        UClineardecon=1, UCtype=0, poolflag=0,
         minmz=0., maxmz=2000., mzbins=0., subbuff=0., reductionpercent=0.,
     )
     if charges == 1:
@@ -50,7 +50,11 @@ def write_input(path, scans=5, charges=4, wide_mz=False, mz_points=None,
                 signal += .3 * np.exp(-((scan_mz - 1009.) / 1.2) ** 2)
             if edge_only and scan > 0:
                 signal = np.full_like(scan_mz, 1e-8)
-            dataset.create_group(str(scan)).create_dataset(
+            group = dataset.create_group(str(scan))
+            retention_time = np.float32([0., .4, 1.5, 3., 5.][scan] if scan < 5 else scan)
+            group.attrs["timemid"] = retention_time
+            group.attrs["retention_time"] = retention_time
+            group.create_dataset(
                 "raw_data", data=np.column_stack((scan_mz, signal)).astype(np.float32))
     return config
 
@@ -374,6 +378,7 @@ class TestUniChromNative(unittest.TestCase):
             write_input(path)
             with h5py.File(path, "a") as hdf:
                 del hdf["config"].attrs["UClineardecon"]
+                del hdf["config"].attrs["UCtype"]
             self.assertIn("processing and linearizing", self.run_native(path))
 
             write_input(path, UClineardecon=2)
@@ -382,6 +387,31 @@ class TestUniChromNative(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertIn("UClineardecon must be 0 or 1", result.stderr)
             self.assertNotIn("iterating", result.stdout)
+
+            write_input(path, UCtype=2)
+            result = subprocess.run([self.executable, str(path)], capture_output=True,
+                                    text=True, timeout=60)
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("UCtype must be 0 (scans) or 1 (time)", result.stderr)
+
+    def test_time_width_forces_nonlinear_mode_and_requires_retention_times(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory, "time-width.hdf5")
+            write_input(path, scans=4, UCtype=1, UClineardecon=1, dtsig=.8)
+            output = self.run_native(path)
+            self.assertIn("ragged direct convolution (retention-time units)", output)
+            self.assertNotIn("processing and linearizing", output)
+
+            write_input(path, scans=4, UCtype=1, dtsig=.8)
+            with h5py.File(path, "a") as hdf:
+                del hdf["ms_dataset/2"].attrs["retention_time"]
+            self.run_native(path)
+            with h5py.File(path, "a") as hdf:
+                del hdf["ms_dataset/2"].attrs["timemid"]
+            result = subprocess.run([self.executable, str(path)], capture_output=True,
+                                    text=True, timeout=60)
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("retention times must be finite and strictly increasing", result.stderr)
 
     def test_nonlinear_direct_preserves_empty_scan_and_singleton_modes(self):
         with tempfile.TemporaryDirectory() as directory:
