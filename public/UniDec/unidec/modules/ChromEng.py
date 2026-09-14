@@ -123,7 +123,7 @@ class ChromEngine(MetaUniDec):
         print("Scans:", self.scans)
 
         attrs = {"timestart": minval, "timeend": maxval,
-                 "timemid": midval,
+                 "timemid": midval, "retention_time": midval,
                  "scanstart": minscan, "scanend": maxscan,
                  "scanmid": (minscan + maxscan) / 2.}
         self.attrs = attrs

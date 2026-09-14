@@ -165,6 +165,7 @@ void SetDefaultConfig(Config *config) {
     //IM Parameters
     config->dtsig = 0.2f;
     config->UClineardecon = 1;
+    config->UCtype = 0;
     config->csig = 1;
     config->ccsub = 20000;
     config->ccslb = -20000;

@@ -906,10 +906,11 @@ their existing indexing rules. Empty scans keep their positions in the scan
 kernel and produce zero output rows. Only completed results are interpolated to
 common m/z and mass axes for the established HDF5 and GUI import contract.
 
-`dtsig` is currently measured in scans. The temporal matrix construction is
-kept separate from the ragged m/z response, and the ragged data structure has a
-chromatographic axis field so a later setting can calculate weights from
-acquisition time without changing the m/z operator or iteration loop.
+`UCtype=0` keeps the default interpretation of `dtsig` in scans. `UCtype=1`
+interprets it in retention-time units, forces the nonlinear direct solver and
+builds the temporal response from the strictly increasing `retention_time`
+attribute stored on each spectrum group. The GUI disables linearization while
+time units are selected. Files without `UCtype` retain the scan-based default.
 
 Full 50-iteration comparisons on the two repository examples met the accepted
 0.98 normalized cosine threshold after interpolating results to the linear

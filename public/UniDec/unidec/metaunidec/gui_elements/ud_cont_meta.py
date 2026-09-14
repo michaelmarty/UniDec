@@ -220,9 +220,15 @@ class main_controls(wx.Panel):
 
         if self.chrom_mode:
             self.ctldtsig = wx.TextCtrl(panel2a, value="", size=size1)
-            sizercontrol2a.Add(wx.StaticText(panel2a, label="Chrom. Peak Width (scans): "), (i, 0),
+            sizercontrol2a.Add(wx.StaticText(panel2a, label="Chrom. Peak Width: "), (i, 0),
                                flag=wx.ALIGN_CENTER_VERTICAL)
             sizercontrol2a.Add(self.ctldtsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
+            self.ctlUCtype = wx.Choice(panel2a, choices=["Scans", "Time"])
+            self.parent.Bind(wx.EVT_CHOICE, self.on_uctype, self.ctlUCtype)
+            sizercontrol2a.Add(wx.StaticText(panel2a, label="Peak Width Units: "), (i, 0),
+                               flag=wx.ALIGN_CENTER_VERTICAL)
+            sizercontrol2a.Add(self.ctlUCtype, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
             self.ctlUClineardecon = wx.CheckBox(panel2a, label="Linearize Before Coupled Deconvolution")
             sizercontrol2a.Add(self.ctlUClineardecon, (i, 0), span=(1, 2),
@@ -630,6 +636,8 @@ class main_controls(wx.Panel):
             if self.chrom_mode:
                 self.ctldtsig.SetValue(str(self.config.dtsig))
                 self.ctlUClineardecon.SetValue(bool(self.config.UClineardecon))
+                self.ctlUCtype.SetSelection(self.config.UCtype if self.config.UCtype in (0, 1) else 0)
+                self.on_uctype()
             self.ctlpsfun.SetSelection(self.config.psfun)
             self.ctlnorm.SetSelection(int(self.config.peaknorm))
             self.ctlmasslb.SetValue(str(self.config.masslb))
@@ -765,6 +773,7 @@ class main_controls(wx.Panel):
         self.config.mzsig = ud.string_to_value(self.ctlmzsig.GetValue())
         if self.chrom_mode:
             self.config.dtsig = ud.string_to_value(self.ctldtsig.GetValue())
+            self.config.UCtype = self.ctlUCtype.GetSelection()
             self.config.UClineardecon = int(self.ctlUClineardecon.GetValue())
         self.config.massub = ud.string_to_value(self.ctlmassub.GetValue())
         self.config.masslb = ud.string_to_value(self.ctlmasslb.GetValue())
@@ -865,7 +874,9 @@ class main_controls(wx.Panel):
         self.ctlsep.SetToolTip(wx.ToolTip("Set distance between isolated peak m/z plots."))
         if self.chrom_mode:
             self.ctldtsig.SetToolTip(wx.ToolTip(
-                "Chromatographic peak FWHM in scans for coupled UniChrom deconvolution."))
+                "Chromatographic peak FWHM in the selected units for coupled UniChrom deconvolution."))
+            self.ctlUCtype.SetToolTip(wx.ToolTip(
+                "Use scan positions or retention times stored with each spectrum."))
             self.ctlUClineardecon.SetToolTip(wx.ToolTip(
                 "Use the faster linear-grid FFT solver. Uncheck to deconvolve each processed nonlinear m/z axis directly."))
         self.ctlwindow.SetToolTip(
@@ -1059,6 +1070,14 @@ class main_controls(wx.Panel):
         elif value == 0:
             self.ctlmzsig.SetValue("0")
         self.export_gui_to_config()
+
+    def on_uctype(self, e=None):
+        time_mode = self.ctlUCtype.GetSelection() == 1
+        self.ctlUClineardecon.Enable(not time_mode)
+        if time_mode:
+            self.ctlUClineardecon.SetValue(False)
+        if e is not None:
+            self.export_gui_to_config()
 
     def on_p_select(self, e):
         value = self.ctlpselect.GetSelection()

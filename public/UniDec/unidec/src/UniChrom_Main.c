@@ -530,7 +530,11 @@ static void write_outputs_UniChrom(const Config config, const float *cube,
 
 int run_chromatogram(int argc, char *argv[], Config config)
 {
-    if (config.UClineardecon == 0) {
+    if (config.UCtype != 0 && config.UCtype != 1) {
+        fprintf(stderr, "UCtype must be 0 (scans) or 1 (time)\n");
+        return 2;
+    }
+    if (config.UCtype == 1 || config.UClineardecon == 0) {
         return run_chromatogram_nonlinear(argc, argv, config);
     }
     if (config.UClineardecon != 1) {
