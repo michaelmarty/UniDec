@@ -7,6 +7,7 @@
  */
 
 #include "UniChrom_Nonlinear.h"
+#include "UniChrom_Main.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -35,7 +36,6 @@ typedef struct {
     int *transpose_indices;
     float *transpose_weights;
     float *sensitivity;
-    float *row_sum;
 } UCDirectOperator;
 
 
@@ -268,8 +268,7 @@ static int build_direct_operator_UC(const UCRaggedData *data,
     op->edge_count = edge_count;
     op->indices = malloc(edge_count * sizeof(int));
     op->weights = malloc(edge_count * sizeof(float));
-    op->row_sum = calloc((size_t)op->length, sizeof(float));
-    if (op->indices == NULL || op->weights == NULL || op->row_sum == NULL) {
+    if (op->indices == NULL || op->weights == NULL) {
         free(time_weights); return 0;
     }
 
@@ -285,9 +284,6 @@ static int build_direct_operator_UC(const UCRaggedData *data,
                                       op->indices + edge, op->weights + edge);
         }
         op->offsets[target_point + 1] = edge;
-        for (size_t i = op->offsets[target_point]; i < edge; i++) {
-            op->row_sum[target_point] += op->weights[i];
-        }
     }
     op->edge_count = op->offsets[op->length];
     op->transpose_offsets = calloc((size_t)op->length + 1, sizeof(size_t));
@@ -319,7 +315,7 @@ static int build_direct_operator_UC(const UCRaggedData *data,
     free(positions);
     free(time_weights);
     for (int i = 0; i < op->length; i++) {
-        if (!(op->sensitivity[i] > 0) || !(op->row_sum[i] > 0)) {
+        if (!(op->sensitivity[i] > 0) || op->offsets[i] == op->offsets[i + 1]) {
             fprintf(stderr, "Nonlinear UniChrom response has an unsupported m/z point\n");
             return 0;
         }
@@ -334,7 +330,7 @@ static void free_direct_operator_UC(UCDirectOperator *op)
 {
     free(op->offsets); free(op->indices); free(op->weights);
     free(op->transpose_offsets); free(op->transpose_indices);
-    free(op->transpose_weights); free(op->sensitivity); free(op->row_sum);
+    free(op->transpose_weights); free(op->sensitivity);
     memset(op, 0, sizeof(*op));
 }
 
@@ -455,7 +451,7 @@ static int write_outputs_UC(const Config config, const UCRaggedData *data,
             forward_UC(op, plane, convolved);
             for (int point = 0; point < data->point_count; point++) {
                 output[(size_t)point * charge_count + charge] =
-                    convolved[point] / op->row_sum[point];
+                    convolved[point];
             }
         }
         clear_cube_UC(output, allowed, cube_length);
@@ -534,12 +530,14 @@ static int write_outputs_UC(const Config config, const UCRaggedData *data,
     float *mass_axis = calloc((size_t)mass_count, sizeof(float));
     float *mass_grid = calloc((size_t)data->scan_count * mass_count, sizeof(float));
     float *mass_sum = calloc((size_t)mass_count, sizeof(float));
+    float *merged_cube = calloc((size_t)mz_count * charge_count, sizeof(float));
     float *merged_charge = calloc((size_t)mz_count, sizeof(float));
     if (mass_axis == NULL || mass_grid == NULL || mass_sum == NULL ||
-        merged_charge == NULL) {
+        merged_cube == NULL || merged_charge == NULL) {
         free(output); free(plane); free(convolved);
         free(mz_axis); free(mz_grid); free(mz_sum);
-        free(mass_axis); free(mass_grid); free(mass_sum); free(merged_charge);
+        free(mass_axis); free(mass_grid); free(mass_sum);
+        free(merged_cube); free(merged_charge);
         return 0;
     }
     for (int i = 0; i < mass_count; i++) { mass_axis[i] = mass_min + i * config.massbins; }
@@ -560,6 +558,7 @@ static int write_outputs_UC(const Config config, const UCRaggedData *data,
             write_attr_float(config.file_id, group, "dtsig", config.dtsig);
             continue;
         }
+        memset(merged_cube, 0, (size_t)mz_count * charge_count * sizeof(float));
         for (int zi = 0; zi < charge_count; zi++) {
             for (int local = 0; local < point_count; local++) {
                 const int index = (first + local) * charge_count + zi;
@@ -568,23 +567,15 @@ static int write_outputs_UC(const Config config, const UCRaggedData *data,
             memset(merged_charge, 0, (size_t)mz_count * sizeof(float));
             interpolate_merge(mz_axis, merged_charge, data->mz + first, plane,
                               mz_count, point_count);
-            const int charge = config.startz + zi;
             for (int mz = 0; mz < mz_count; mz++) {
                 const float value = merged_charge[mz];
                 mz_values[mz] += value;
-                if (value <= 0) { continue; }
-                const float mass = calcmass(mz_axis[mz], charge, config.adductmass);
-                const float position = (mass - mass_min) / config.massbins;
-                const int lower = (int)floorf(position);
-                const float fraction = position - lower;
-                if (lower >= 0 && lower < mass_count) {
-                    mass_values[lower] += value * (1 - fraction);
-                }
-                if (lower + 1 >= 0 && lower + 1 < mass_count) {
-                    mass_values[lower + 1] += value * fraction;
-                }
+                merged_cube[(size_t)mz * charge_count + zi] = value;
             }
         }
+        transform_mass_grid_UniChrom(config, merged_cube, mz_axis, 1, mz_count,
+                                     charge_count, mass_min, mass_max, mass_axis,
+                                     mass_count, mass_values);
         char group[1024], path[1024];
         snprintf(group, sizeof(group), "/ms_dataset/%d", scan);
         snprintf(path, sizeof(path), "%s/mass_data", group);
@@ -617,7 +608,8 @@ static int write_outputs_UC(const Config config, const UCRaggedData *data,
     set_got_grids(config.file_id);
     free(output); free(plane); free(convolved);
     free(mz_axis); free(mz_grid); free(mz_sum);
-    free(mass_axis); free(mass_grid); free(mass_sum); free(merged_charge);
+    free(mass_axis); free(mass_grid); free(mass_sum);
+    free(merged_cube); free(merged_charge);
     return 1;
 }
 

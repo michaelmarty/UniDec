@@ -370,33 +370,59 @@ static void find_mass_axis_UniChrom(const Config config, const float *cube,
 }
 
 
-static void transform_mass_grid_UniChrom(const Config config, const float *cube,
-                                         const char *allowed, const int *mass_lower,
-                                         const float *mass_fraction,
-                                         const int size[3],
-                                         const int mass_count, float *mass_grid)
+void transform_mass_grid_UniChrom(Config config, const float *cube,
+                                  const float *mz_axis, const int scan_count,
+                                  const int mz_count, const int charge_count,
+                                  const float mass_min, const float mass_max,
+                                  float *mass_axis, const int mass_count,
+                                  float *mass_grid)
 {
-    const int scan_length = size[0] * size[1];
-    #pragma omp parallel for schedule(static) if(size[2] > 1)
-    for (int scan = 0; scan < size[2]; scan++) {
-        const float *scan_cube = cube + (size_t)scan * scan_length;
-        float *scan_mass = mass_grid + (size_t)scan * mass_count;
-        for (int mz = 0; mz < size[0]; mz++) {
-            for (int charge_index = 0; charge_index < size[1]; charge_index++) {
-                const int grid_index = index2D(size[1], mz, charge_index);
-                const float value = scan_cube[grid_index];
-                if (!allowed[grid_index] || value <= 0) { continue; }
-                const int lower = mass_lower[grid_index];
-                const float fraction = mass_fraction[grid_index];
-                if (lower >= 0 && lower < mass_count) {
-                    scan_mass[lower] += value * (1.0f - fraction);
-                }
-                if (lower + 1 >= 0 && lower + 1 < mass_count) {
-                    scan_mass[lower + 1] += value * fraction;
-                }
+    const int scan_length = mz_count * charge_count;
+    int *charges = malloc((size_t)charge_count * sizeof(int));
+    float *masses = config.poolflag == 0 ?
+        malloc((size_t)scan_length * sizeof(float)) : NULL;
+    if (charges == NULL || (config.poolflag == 0 && masses == NULL)) {
+        fprintf(stderr, "Unable to allocate UniChrom mass transform indexes\n");
+        exit(11);
+    }
+    for (int charge_index = 0; charge_index < charge_count; charge_index++) {
+        charges[charge_index] = config.startz + charge_index;
+    }
+    if (masses != NULL) {
+        for (int mz = 0; mz < mz_count; mz++) {
+            for (int charge_index = 0; charge_index < charge_count; charge_index++) {
+                masses[index2D(charge_count, mz, charge_index)] =
+                    calcmass(mz_axis[mz], charges[charge_index], config.adductmass);
             }
         }
     }
+    config.lengthmz = mz_count;
+    #pragma omp parallel for schedule(static) if(scan_count > 1)
+    for (int scan = 0; scan < scan_count; scan++) {
+        const float *scan_cube = cube + (size_t)scan * scan_length;
+        float *scan_mass = mass_grid + (size_t)scan * mass_count;
+        Decon decon = {0};
+        Input input = {0};
+        decon.blur = (float *)scan_cube;
+        decon.newblur = (float *)scan_cube;
+        decon.massaxis = mass_axis;
+        decon.massaxisval = scan_mass;
+        decon.mlen = mass_count;
+        input.dataMZ = (float *)mz_axis;
+        input.nztab = charges;
+        if (config.poolflag == 0) {
+            IntegrateTransform(config, &decon, masses, mass_max, mass_min);
+        } else if (config.poolflag == 1) {
+            InterpolateTransform(config, &decon, &input);
+        } else if (config.poolflag == 2) {
+            SmartTransform(config, &decon, &input);
+        } else {
+            fprintf(stderr, "Invalid UniChrom poolflag %d\n", config.poolflag);
+            exit(1987);
+        }
+    }
+    free(charges);
+    free(masses);
 }
 
 
@@ -452,29 +478,16 @@ static void write_outputs_UniChrom(const Config config, const float *cube,
     float *mass_axis = calloc((size_t)mass_count, sizeof(float));
     float *mass_grid = calloc((size_t)scan_count * mass_count, sizeof(float));
     float *mass_sum = calloc((size_t)mass_count, sizeof(float));
-    int *mass_lower = calloc((size_t)scan_length, sizeof(int));
-    float *mass_fraction = calloc((size_t)scan_length, sizeof(float));
-    if (mass_axis == NULL || mass_grid == NULL || mass_sum == NULL ||
-        mass_lower == NULL || mass_fraction == NULL) {
+    if (mass_axis == NULL || mass_grid == NULL || mass_sum == NULL) {
         fprintf(stderr, "Unable to allocate UniChrom mass outputs (%d bins)\n", mass_count);
         exit(11);
     }
     for (int mass = 0; mass < mass_count; mass++) {
         mass_axis[mass] = mass_min + (float)mass * config.massbins;
     }
-    for (int mz = 0; mz < mz_count; mz++) {
-        for (int charge_index = 0; charge_index < charge_count; charge_index++) {
-            const int grid_index = index2D(charge_count, mz, charge_index);
-            const int charge = config.startz + charge_index;
-            const float mass = calcmass(mz_axis[mz], charge, config.adductmass);
-            const float position = (mass - mass_min) / config.massbins;
-            const int lower = (int)floorf(position);
-            mass_lower[grid_index] = lower;
-            mass_fraction[grid_index] = position - (float)lower;
-        }
-    }
-    transform_mass_grid_UniChrom(config, cube, allowed, mass_lower,
-                                 mass_fraction, size, mass_count, mass_grid);
+    transform_mass_grid_UniChrom(config, cube, mz_axis, scan_count, mz_count,
+                                 charge_count, mass_min, mass_max, mass_axis,
+                                 mass_count, mass_grid);
     for (int scan = 0; scan < scan_count; scan++) {
         for (int mass = 0; mass < mass_count; mass++) {
             mass_sum[mass] += mass_grid[(size_t)scan * mass_count + mass];
@@ -512,7 +525,6 @@ static void write_outputs_UniChrom(const Config config, const float *cube,
            scan_count, mz_count, scan_count, mass_count);
     free(mz_grid); free(mz_sum);
     free(mass_axis); free(mass_grid); free(mass_sum);
-    free(mass_lower); free(mass_fraction);
 }
 
 

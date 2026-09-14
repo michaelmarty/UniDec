@@ -102,7 +102,7 @@ outer_grid = fig.add_gridspec(
     2,
     1,
     height_ratios=[1, 4],
-    hspace=0.05,
+    hspace=0.15,
 )
 spectrum_grid = outer_grid[0].subgridspec(1, 2, wspace=0.25)
 mass_grid = outer_grid[1].subgridspec(4, 2, hspace=0.08, wspace=0.25)
