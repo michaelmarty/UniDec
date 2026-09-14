@@ -224,6 +224,10 @@ class main_controls(wx.Panel):
                                flag=wx.ALIGN_CENTER_VERTICAL)
             sizercontrol2a.Add(self.ctldtsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
+            self.ctlUClineardecon = wx.CheckBox(panel2a, label="Linearize Before Coupled Deconvolution")
+            sizercontrol2a.Add(self.ctlUClineardecon, (i, 0), span=(1, 2),
+                               flag=wx.ALIGN_CENTER_VERTICAL)
+            i += 1
 
         self.ctlpselect = wx.RadioBox(panel2a, label="Smooth Nearby Points",
                                       choices=["None", "Some", "Lots", "Other"])
@@ -625,6 +629,7 @@ class main_controls(wx.Panel):
             self.ctlmzsig.SetValue(str(self.config.mzsig))
             if self.chrom_mode:
                 self.ctldtsig.SetValue(str(self.config.dtsig))
+                self.ctlUClineardecon.SetValue(bool(self.config.UClineardecon))
             self.ctlpsfun.SetSelection(self.config.psfun)
             self.ctlnorm.SetSelection(int(self.config.peaknorm))
             self.ctlmasslb.SetValue(str(self.config.masslb))
@@ -760,6 +765,7 @@ class main_controls(wx.Panel):
         self.config.mzsig = ud.string_to_value(self.ctlmzsig.GetValue())
         if self.chrom_mode:
             self.config.dtsig = ud.string_to_value(self.ctldtsig.GetValue())
+            self.config.UClineardecon = int(self.ctlUClineardecon.GetValue())
         self.config.massub = ud.string_to_value(self.ctlmassub.GetValue())
         self.config.masslb = ud.string_to_value(self.ctlmasslb.GetValue())
         self.config.mtabsig = ud.string_to_value(self.ctlmtabsig.GetValue())
@@ -860,6 +866,8 @@ class main_controls(wx.Panel):
         if self.chrom_mode:
             self.ctldtsig.SetToolTip(wx.ToolTip(
                 "Chromatographic peak FWHM in scans for coupled UniChrom deconvolution."))
+            self.ctlUClineardecon.SetToolTip(wx.ToolTip(
+                "Use the faster linear-grid FFT solver. Uncheck to deconvolve each processed nonlinear m/z axis directly."))
         self.ctlwindow.SetToolTip(
             wx.ToolTip("Peak detection window. Peak must be maximum in a +/- window range in mass (Da)."))
         self.ctlthresh.SetToolTip(wx.ToolTip(
