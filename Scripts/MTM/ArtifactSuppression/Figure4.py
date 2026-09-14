@@ -1,10 +1,16 @@
 import os
+import sys
+from pathlib import Path
 
 import matplotlib
 import numpy as np
+
+UNIDEC_ROOT = Path(__file__).resolve().parents[3] / "public" / "UniDec"
+sys.path.insert(0, str(UNIDEC_ROOT))
+
 from unidec.modules import CDEng
 
-matplotlib.use('WxAgg')
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 matplotlib.rcParams.update({
@@ -20,46 +26,18 @@ DATA_FILE = os.path.join(FIGURE_DIR, "GroEL_CDMS_1.RAW")
 
 # Analysis settings from GroEL_CDMS_1_unidecfiles/conf.dat.
 GROEL_CDMS_CONFIG = {
-    'numit': 50,
     'startz': 50,
-    'endz': 100,
-    'zzsig': 1e-6,
-    'psig': 5.0,
+    'endz': 85,
     'mzsig': 5.0,
-    'csig': 5.0,
     'psfun': 2,
     'psfunz': 2,
-    'rawflag': 0,
     'masslb': 600000.0,
     'massub': 1000000.0,
     'massbins': 10.0,
-    'minmz': 9992.689903846154,
-    'maxmz': 12573.891826923078,
-    'subbuff': 0.0,
-    'subtype': 0,
-    'smooth': 0.0,
-    'mzbins': 10.0,
-    'intthresh': 0.0,
-    'reductionpercent': 0.0,
-    'adductmass': 1.007276467,
-    'nativezlb': -100.0,
-    'nativezub': 100.0,
-    'poolflag': 1,
-    'linflag': 2,
-    'CDslope': 0.2074,
-    'CDzbins': 1,
-    'CDres': 0.0,
-    'CDScanStart': -1,
-    'CDScanEnd': -1,
-    'CDprethresh': 0.0,
-    'CDScanCompress': 0,
-    'smoothdt': 0.0,
-    'subbufdt': 0.0,
-    'suppression_topn': 0,
-    'suppression_percent': 0.0,
-    'suppression_startit': 0,
-    'suppression_harmonic': 0,
-    'suppression_satellite': 0,
+    'minmz': 10000,
+    'maxmz': 12500,
+    'mzbins':10,
+    'psig':1,
 }
 
 
@@ -75,9 +53,11 @@ def apply_config(engine):
         setattr(engine.config, option, value)
 
 
-def run_deconvolution(engine, beta=0, topx=0):
+def run_deconvolution(engine, beta=0, topx=0, topn=0, satellite=0):
     engine.config.beta = beta
     engine.config.suppression_topx = topx
+    engine.config.suppression_topn = topn
+    engine.config.suppression_satellite = satellite
     engine.run_deconvolution()
     return engine.harray.copy(), engine.data.massdat.copy()
 
@@ -85,11 +65,11 @@ def run_deconvolution(engine, beta=0, topx=0):
 engine = CDEng.UniDecCD()
 engine.open_file(DATA_FILE)
 
-# Keep generated files beside the selected RAW file even if a copied config
-# contains paths from another machine or working directory.
-engine.config.outfname = os.path.join(engine.config.udir, "")
-engine.config.default_file_names(s="")
-engine.config.confname = os.path.join(engine.config.udir, "conf.dat")
+# Keep generated files beside the selected RAW file with names understood by
+# both the installed UniDec 9.0 package and the current development version.
+output_prefix = os.path.splitext(os.path.basename(DATA_FILE))[0]
+engine.config.outfname = os.path.join(engine.config.udir, output_prefix)
+engine.config.default_file_names()
 apply_config(engine)
 
 engine.process_data()
@@ -100,13 +80,15 @@ raw_charge = engine.ztab.copy()
 
 default_grid, default_mass_data = run_deconvolution(engine, beta=0)
 beta_grid, beta_mass_data = run_deconvolution(engine, beta=1)
-top_grid, top_mass_data = run_deconvolution(engine, beta=0, topx=0.1)
+satellite_grid, satellite_mass_data = run_deconvolution(engine, beta=0, satellite=1)
+# top_grid, top_mass_data = run_deconvolution(engine, beta=0, topn=1)
 
 rows = [
     ('Raw Data', raw_grid, raw_mass_data),
     ('Default', default_grid, default_mass_data),
     ('Beta 1', beta_grid, beta_mass_data),
-    ('Top 0.1', top_grid, top_mass_data),
+    ('Satellite 1', satellite_grid, satellite_mass_data),
+    # ('Top 1', top_grid, top_mass_data),
 ]
 
 fig, axes = plt.subplots(
