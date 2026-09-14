@@ -92,7 +92,7 @@ plot_labels = [
 for panel_index, (axis, data, label) in enumerate(
         zip(axes.flat, mass_datasets, plot_labels)
 ):
-    axis.plot(data[:, 0] / 1000, normalize(data))
+    axis.plot(data[:, 0] / 1000, normalize(data), color="darkblue")
     axis.text(0.03, 0.95, chr(ord('A') + panel_index),
               transform=axis.transAxes, va='top', ha='left')
     axis.text(0.95, 0.95, label, transform=axis.transAxes,

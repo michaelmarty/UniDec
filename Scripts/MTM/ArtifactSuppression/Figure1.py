@@ -104,7 +104,7 @@ for column in range(2):
         axes[row, column] = fig.add_subplot(mass_grid[row - 1, column])
 flat_axes = axes.flat
 
-axes[0, 0].plot(spectrum[:, 0], normalize(spectrum))
+axes[0, 0].plot(spectrum[:, 0], normalize(spectrum), color="darkblue")
 axes[0, 0].set_xlabel(r'$\mathit{m/z}$')
 
 
@@ -120,7 +120,7 @@ mass_datasets = [
     massdat_topx005,
 ]
 for axis, data in zip(list(flat_axes)[1:], mass_datasets):
-    axis.plot(data[:, 0] / 1000, normalize(data))
+    axis.plot(data[:, 0] / 1000, normalize(data), color="darkblue")
     axis.set_ylim(0, 1)
 
 ypos = 15
