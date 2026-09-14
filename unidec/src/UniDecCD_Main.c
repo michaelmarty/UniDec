@@ -304,7 +304,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 		exit(1);
 	}
 	if (config.zsig != 0) { setup_blur_z(zupind, zloind, mzdat, zdat, lines, config.adductmass, mzranges, size);
-	printf("Charge Blur Set\n");
+	printf("Charge Blur Set. Suppression: %d %f %d %d\n", config.suppression_topn, config.suppression_topx, config.suppression_satellite, config.suppression_harmonic);
 	}
 
 	//Set up mass blur
