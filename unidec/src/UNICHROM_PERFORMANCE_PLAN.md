@@ -75,20 +75,11 @@ place to stop.
 
 ### Validation and bounded experiments completed (2026-09-14)
 
-`benchmark_unichrom.py` now reproduces the native and Python portions of the
-GUI consumer path on fresh temporary copies. It calls `ChromEngine.run_unidec`,
-including configuration export and per-scan HDF5 import, then calls
-`ChromEngine.pick_peaks`, including the required `-grids` refresh, grid/peak
-import and peak-object construction. It reports the executable SHA-256, input,
-worker count, first run, five warmed runs, configured or reported convergence
-iterations, phase distributions and peak native working set on Windows. Run it
-from `public/UniDec`, for example:
-
-```shell
-python unidec/src/benchmark_unichrom.py --executable <build>/unidec.exe \
-  --input "unidec/bin/Example Data/UniChrom/SEC_Native_Bispecific_Special.hdf5" \
-  --input "unidec/bin/Example Data/UniChrom/SEC_Native_Herceptin.hdf5"
-```
+The completed benchmark used fresh temporary input copies and measured the
+full GUI consumer path: configuration export, coupled native solve, per-scan
+HDF5 import, grid refresh, peak picking/import and peak-object construction.
+It recorded first and warmed runs, iteration counts, phase distributions and
+peak native working set on Windows.
 
 The worker sweep used unprofiled executable SHA-256
 `0c43a9d7b5b18488f688514ab869834116a9b8a28b8ba87cac9afd49bf121a62`,
@@ -926,13 +917,15 @@ reference axes:
 
 | Example | m/z grid | mass grid | Dominant mass bin |
 | --- | ---: | ---: | --- |
-| SEC Native Herceptin | 0.99135 | 0.99286 | 148218 Da in both modes |
-| SEC Native Bispecific Special | 0.99696 | 0.99910 | 195900 Da in both modes |
+| SEC Native Herceptin | 0.99933 | 0.99975 | 148222 Da in both modes |
+| SEC Native Bispecific Special | 0.99970 | 0.99972 | 193550/195900 Da in both modes |
 
-The corresponding marginal-sum similarities were 0.99447/0.99556 for
-Herceptin and 0.99730/0.99926 for Bispecific (m/z/mass). Peak picking found the
-same masses in both modes: 148218 Da for Herceptin and 193550/195900 Da for
-Bispecific. Regression coverage
+These values use `dtsig=1` and Reconvolved/Profile output. Direct-to-linear
+total intensity ratios were 0.99693/0.99690 for Herceptin and 0.99679/0.99080
+(m/z/mass) for Bispecific. Against `dtsig=0`, the linear/direct m/z totals were
+0.99941/0.99634 for Herceptin and 0.99948/0.99627 for Bispecific. The configured
+Smart mass transform gave linear/direct mass totals of 0.99260/0.98952 and
+0.98958/0.98048 relative to `dtsig=0`, respectively. Regression coverage
 also checks unequal axes, output shape and finiteness, regularizers, a zero-width
 m/z response, an empty middle scan, singleton charge, zero padding, HDF5 config
 round trips, default and invalid dispatch, and the UniChrom GUI control.

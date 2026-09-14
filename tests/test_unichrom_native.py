@@ -22,7 +22,7 @@ def write_input(path, scans=5, charges=4, wide_mz=False, mz_points=None,
         zzsig=0., msig=0., psig=0., beta=0.,
         masslb=-2008., massub=-4040., massbins=1., adductmass=0.,
         nativezlb=-100., nativezub=100., intthresh=0., molig=1.,
-        UClineardecon=1,
+        UClineardecon=1, poolflag=0,
         minmz=0., maxmz=2000., mzbins=0., subbuff=0., reductionpercent=0.,
     )
     if charges == 1:
@@ -315,11 +315,14 @@ class TestUniChromNative(unittest.TestCase):
 
     def test_nonlinear_direct_mode_matches_linearized_outputs(self):
         case = dict(scans=4, charges=5, wide_mz=True, mz_points=128,
-                    nonlinear_mz=True, mzsig=15., numit=-8, rawflag=1,
+                    nonlinear_mz=True, mzsig=15., numit=-8, rawflag=0,
                     zzsig=1., msig=1., psig=1., molig=200.,
-                    masslb=-100., massub=-12000., massbins=10.)
+                    masslb=-100., massub=-12000., massbins=10., poolflag=2)
         with tempfile.TemporaryDirectory() as directory:
             paths = [Path(directory, f"mode-{mode}.hdf5") for mode in (1, 0)]
+            baseline_path = Path(directory, "dtsig-zero.hdf5")
+            write_input(baseline_path, dtsig=0., **case)
+            self.run_native(baseline_path, "-all")
             outputs = []
             for mode, path in zip((1, 0), paths):
                 write_input(path, UClineardecon=mode, **case)
@@ -348,10 +351,17 @@ class TestUniChromNative(unittest.TestCase):
                     similarity = np.dot(linear_grid.ravel(), direct_grid.ravel())
                     similarity /= (np.linalg.norm(linear_grid) * np.linalg.norm(direct_grid))
                     self.assertGreaterEqual(similarity, .98)
+                    if name == "mz":
+                        self.assertLess(abs(direct_grid.sum() / linear_grid.sum() - 1), .02)
                     return linear_axis, direct_axis
 
                 compare_grid("mz")
                 linear_mass, direct_mass = compare_grid("mass")
+                with h5py.File(baseline_path, "r") as baseline:
+                    baseline_total = baseline["ms_dataset/mz_grid"][:].sum()
+                for result in (linear, direct):
+                    total = result["ms_dataset/mz_grid"][:].sum()
+                    self.assertLess(abs(total / baseline_total - 1), .02)
                 linear_peak = linear_mass[np.argmax(linear["ms_dataset/mass_sum"][:])]
                 direct_peak = direct_mass[np.argmax(direct["ms_dataset/mass_sum"][:])]
                 self.assertLessEqual(abs(linear_peak - direct_peak), case["massbins"])
