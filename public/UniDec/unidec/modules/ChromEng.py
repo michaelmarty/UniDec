@@ -3,7 +3,6 @@ import numpy as np
 import unidec.tools as ud
 from UniDecImporter.ImporterFactory import ImporterFactory
 from unidec.metaunidec.mudeng import MetaUniDec, metaunidec_call
-from unidec.engine import UniDec
 from copy import deepcopy
 
 chrom_file_exts = [".raw", ".Raw", ".RAW", ".d", ".mzML.gz", ".mzML"]
@@ -37,8 +36,6 @@ class ChromEngine(MetaUniDec):
         # Zero preserves the original scan-wise MetaUniDec workflow. Positive
         # values enable coupled chromatographic deconvolution in the C engine.
         self.config.dtsig = 0.0
-        self.unidec_eng = UniDec(ignore_args=True)
-
     def run_unidec(self):
         """Select scan-wise MetaUniDec or coupled UniChrom using ``dtsig``."""
         if not self.check_badness():
