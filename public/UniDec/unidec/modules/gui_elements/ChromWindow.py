@@ -124,38 +124,6 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         self.ypanel = ListCtrlPanel(self.panel, self.pres, size=(300, 300))
         self.leftsizer.Add(self.ypanel, 1, wx.EXPAND)
 
-        self.ctlsizer2 = wx.BoxSizer(wx.VERTICAL)
-        label = wx.StaticText(self.panel, label="UniDec of Manual Selection", size=(300, 30))
-        label.SetFont(labelfont)
-        self.ctlsizer2.Add(label, 0)
-
-        self.run_ud_button = wx.Button(self.panel, label="Run UniDec On Selection")
-        self.Bind(wx.EVT_BUTTON, self.pres.on_unidec_run, self.run_ud_button)
-        self.ctlsizer2.Add(self.run_ud_button)
-
-        self.pick_peaks_button_individual = wx.Button(self.panel, label="Pick Peaks On Selection")
-        self.Bind(wx.EVT_BUTTON, self.pres.on_pick_peaks_individual, self.pick_peaks_button_individual)
-        self.ctlsizer2.Add(self.pick_peaks_button_individual)
-
-        self.open_ud_button = wx.Button(self.panel, label="Open Selection in UniDec GUI")
-        self.Bind(wx.EVT_BUTTON, self.pres.on_open_ud, self.open_ud_button)
-        self.ctlsizer2.Add(self.open_ud_button)
-
-        label = wx.StaticText(self.panel, label="Peaks for Manual Selection", size=(300, 30))
-        label.SetFont(labelfont)
-        self.ctlsizer2.Add(label, 0)
-
-        self.singlepeakpanel = peaklistsort.PeakListCtrlPanel(self.panel, meta=False, size=(300, 300))
-        self.Bind(self.singlepeakpanel.EVT_DELETE_SELECTION_2, self.pres.on_single_delete, self.singlepeakpanel)
-        self.Bind(self.singlepeakpanel.EVT_CHARGE_STATE, self.pres.on_single_charge_states, self.singlepeakpanel)
-        self.Bind(self.singlepeakpanel.EVT_DIFFERENCES, self.pres.on_single_differences, self.singlepeakpanel)
-        self.Bind(self.singlepeakpanel.EVT_MASSES, self.pres.on_single_label_masses, self.singlepeakpanel)
-        self.Bind(self.singlepeakpanel.EVT_AREAS, self.pres.on_label_integral, self.singlepeakpanel)
-        self.Bind(self.singlepeakpanel.EVT_NAMES, self.pres.on_label_names, self.singlepeakpanel)
-        self.ctlsizer2.Add(self.singlepeakpanel, 0, wx.EXPAND)
-
-        self.leftsizer.Add(self.ctlsizer2, 0, wx.EXPAND)
-
         self.mainsizer.Add(self.leftsizer, 0, wx.EXPAND)
 
         plotwindow = scrolled.ScrolledPanel(self.panel)
@@ -165,9 +133,9 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         self.plotc = PlottingWindow.Plot1d(plotwindow, figsize=figsize)  # Chromatogram
         self.plotm = PlottingWindow.Plot1d(plotwindow, figsize=figsize)  # Selection from chromatogram
         self.plot1 = PlottingWindow.Plot1d(plotwindow, smash=1, figsize=figsize)  # MUD Plot 1 m/z cascade
-        self.plot2 = PlottingWindow.Plot1d(plotwindow, figsize=figsize)  # MUD Deconvolved Data
+        self.plot2 = PlottingWindow.Plot1d(plotwindow, figsize=figsize,
+                                           axes=[0.11, 0.11, 0.86, 0.8])  # MUD Deconvolved Data
         self.plot7 = PlottingWindow.Plot1d(plotwindow, figsize=figsize)  # MUD Extraction
-        self.plot2s = PlottingWindow.Plot1d(plotwindow, figsize=figsize)  # Selection mass
         self.plot3 = PlottingWindow.Plot2d(plotwindow, figsize=figsize)  # MUD 2D m/z vs. time
         self.plot5 = PlottingWindow.Plot2d(plotwindow, figsize=figsize)  # MUD 2D mass vs. time
 
@@ -176,17 +144,16 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         #pub.subscribe(self.pres.on_selection, 'scans_selected')
 
         sizerplot.Add(self.plotc, (0, 0), span=(1, 1), flag=wx.EXPAND)
-        sizerplot.Add(self.plotm, (1, 0), span=(1, 1), flag=wx.EXPAND)
         sizerplot.Add(self.plot1, (0, 1), span=(1, 1), flag=wx.EXPAND)
-        sizerplot.Add(self.plot2, (1, 1), span=(1, 1), flag=wx.EXPAND)
+        sizerplot.Add(self.plot2, (1, 0), span=(1, 2), flag=wx.EXPAND)
+        sizerplot.Add(self.plotm, (2, 0), span=(1, 1), flag=wx.EXPAND)
         sizerplot.Add(self.plot7, (2, 1), span=(1, 1), flag=wx.EXPAND)
-        sizerplot.Add(self.plot2s, (2, 0), span=(1, 1), flag=wx.EXPAND)
         sizerplot.Add(self.plot3, (3, 0), span=(1, 1), flag=wx.EXPAND)
         sizerplot.Add(self.plot5, (3, 1), span=(1, 1), flag=wx.EXPAND)
 
-        self.plots = [self.plotc, self.plot7, self.plot1, self.plot2, self.plotm, self.plot2s, self.plot3, self.plot5]
+        self.plots = [self.plotc, self.plot7, self.plot1, self.plot2, self.plotm, self.plot3, self.plot5]
         self.plotnames = ["Chrom_TIC", "ChromFigure_XIC", "ChromFigure_mz", "ChromFigure_mass", "Chrom_mz_selected",
-                          "Chrom_mass_selected", "Chrom2Dmz", "Chrom2Dmass"]
+                          "Chrom2Dmz", "Chrom2Dmass"]
 
         self.plotpanel = plotwindow
 

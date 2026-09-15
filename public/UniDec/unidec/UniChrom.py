@@ -7,7 +7,6 @@ import multiprocessing
 from unidec.modules.gui_elements.ChromWindow import ChromWindow
 from unidec.modules.isolated_packages import FileDialogs
 from unidec.modules.ChromEng import ChromEngine, chrom_file_exts
-from unidec import GUniDec
 import platform
 
 
@@ -100,7 +99,8 @@ class ChromApp(MetaUniDecBase):
             self.on_selection(time_range[0], time_range[1])
 
     def quick_auto(self, e=None):
-        self.on_unidec_run()
+        # self.on_unidec_run()
+        pass
 
     def update_hdf5(self, export=True):
         self.view.clear_plots()
@@ -188,16 +188,16 @@ class ChromApp(MetaUniDecBase):
             data = self.eng.mzdata
         self.makeplot4(plot=self.view.plotm, data=data)
 
-    def plot_single_mass(self):
-        self.makeplot2(plot=self.view.plot2s, data=self.eng.massdat)
+    # def plot_single_mass(self):
+    #     self.makeplot2(plot=self.view.plot2s, data=self.eng.massdat)
 
-    def plot_single_pks(self):
-        if self.eng.procdata is not None:
-            data = self.eng.procdata
-        else:
-            data = self.eng.mzdata
-        self.makeplot2(plot=self.view.plot2s, data=self.eng.massdat, pks=self.eng.unidec_eng.pks)
-        self.makeplot4(plot=self.view.plotm, data=data, pks=self.eng.unidec_eng.pks)
+    # def plot_single_pks(self):
+    #     if self.eng.procdata is not None:
+    #         data = self.eng.procdata
+    #     else:
+    #         data = self.eng.mzdata
+    #     self.makeplot2(plot=self.view.plot2s, data=self.eng.massdat, pks=self.eng.unidec_eng.pks)
+    #     self.makeplot4(plot=self.view.plotm, data=data, pks=self.eng.unidec_eng.pks)
 
     def on_selection_event(self, event):
         self.on_selection(event.smin, event.smax)
@@ -218,42 +218,42 @@ class ChromApp(MetaUniDecBase):
     def select_all(self, e=None):
         self.on_selection(0, 100000000000000)
 
-    def export_selection(self, e=None):
-        self.export_config()
-        self.export_fname = os.path.splitext(self.eng.filename)[0] + "_selection.txt"
-        self.eng.unidec_eng.pass_data_in(self.eng.mzdata, dirname=self.eng.config.udir, fname=self.export_fname)
-        self.eng.config.config_export(self.eng.unidec_eng.config.confname)
-        self.eng.unidec_eng.config.config_import(self.eng.unidec_eng.config.confname)
+    # Manual-selection UniDec workflow retained for reference after removing its controls.
+    # def export_selection(self, e=None):
+    #     self.export_config()
+    #     self.export_fname = os.path.splitext(self.eng.filename)[0] + "_selection.txt"
+    #     self.eng.unidec_eng.pass_data_in(self.eng.mzdata, dirname=self.eng.config.udir, fname=self.export_fname)
+    #     self.eng.config.config_export(self.eng.unidec_eng.config.confname)
+    #     self.eng.unidec_eng.config.config_import(self.eng.unidec_eng.config.confname)
 
-    def on_unidec_run(self, e=None):
-        self.export_selection()
-        self.eng.unidec_eng.process_data()
-        self.eng.unidec_eng.run_unidec(efficiency=True)
+    # def on_unidec_run(self, e=None):
+    #     self.export_selection()
+    #     self.eng.unidec_eng.process_data()
+    #     self.eng.unidec_eng.run_unidec(efficiency=True)
+    #     self.eng.procdata = self.eng.unidec_eng.data.data2
+    #     self.eng.massdat = self.eng.unidec_eng.data.massdat
+    #     self.plot_single_mz()
+    #     self.plot_single_mass()
 
-        self.eng.procdata = self.eng.unidec_eng.data.data2
-        self.eng.massdat = self.eng.unidec_eng.data.massdat
+    # def on_pick_peaks_individual(self, e=None):
+    #     self.export_config()
+    #     self.eng.config.config_export(self.eng.unidec_eng.config.confname)
+    #     self.eng.unidec_eng.config.config_import(self.eng.unidec_eng.config.confname)
+    #     self.eng.unidec_eng.pick_peaks()
+    #     print(self.eng.unidec_eng.pks.masses)
+    #     self.plot_single_pks()
+    #     self.view.singlepeakpanel.add_data(self.eng.unidec_eng.pks)
 
-        self.plot_single_mz()
-        self.plot_single_mass()
-        pass
+    def on_open_ud(self, index):
+        from unidec import GUniDec
 
-    def on_pick_peaks_individual(self, e=None):
-        self.export_config()
-        self.eng.config.config_export(self.eng.unidec_eng.config.confname)
-        self.eng.unidec_eng.config.config_import(self.eng.unidec_eng.config.confname)
-        self.eng.unidec_eng.pick_peaks()
-        print(self.eng.unidec_eng.pks.masses)
-        self.plot_single_pks()
-        self.view.singlepeakpanel.add_data(self.eng.unidec_eng.pks)
-        pass
-
-    def on_open_ud(self, e=None):
-        self.export_selection()
-        if self.export_fname is not None:
-            path = os.path.join(self.eng.config.udir, self.export_fname)
-            print("Launching UniDec:")
-            app = GUniDec.UniDecApp(path=path)
-            app.start()
+        spectrum = self.eng.data.spectra[index]
+        filename = os.path.splitext(self.eng.filename or "unichrom")[0] + "_spectrum_" + str(index + 1) + ".txt"
+        self.eng.unidec_eng.pass_data_in(spectrum.rawdata, dirname=self.eng.config.udir, fname=filename)
+        path = os.path.join(self.eng.config.udir, filename)
+        print("Launching UniDec:", path)
+        app = GUniDec.UniDecApp(path=path)
+        app.start()
 
     def make_selection(self, index=0):
         print("Selection Index is now:", index)
@@ -310,20 +310,20 @@ class ChromApp(MetaUniDecBase):
         self.makeplot7()
         self.plot_sums()
 
-    def on_single_delete(self, e=None):
-        self.plot_single_pks()
+    # def on_single_delete(self, e=None):
+    #     self.plot_single_pks()
 
-    def on_single_charge_states(self, e=None):
-        self.on_charge_states(self, plot=self.view.plotm, peakpanel=self.view.singlepeakpanel,
-                              data=self.eng.unidec_eng.data.data2)
+    # def on_single_charge_states(self, e=None):
+    #     self.on_charge_states(self, plot=self.view.plotm, peakpanel=self.view.singlepeakpanel,
+    #                           data=self.eng.unidec_eng.data.data2)
 
-    def on_single_differences(self, e=None):
-        self.on_differences(self, plot=self.view.plot2s,
-                            massdat=self.eng.unidec_eng.data.massdat, pks=self.eng.unidec_eng.pks)
+    # def on_single_differences(self, e=None):
+    #     self.on_differences(self, plot=self.view.plot2s,
+    #                         massdat=self.eng.unidec_eng.data.massdat, pks=self.eng.unidec_eng.pks)
 
-    def on_single_label_masses(self, e=None):
-        self.on_label_masses(self, peakpanel=self.view.singlepeakpanel, pks=self.eng.unidec_eng.pks,
-                             plot=self.view.plot2s, dataobj=self.eng.unidec_eng.data)
+    # def on_single_label_masses(self, e=None):
+    #     self.on_label_masses(self, peakpanel=self.view.singlepeakpanel, pks=self.eng.unidec_eng.pks,
+    #                          plot=self.view.plot2s, dataobj=self.eng.unidec_eng.data)
 
     def on_replot(self, e=None, plotsums=True):
         self.export_config()
