@@ -1,4 +1,5 @@
 import os
+from copy import deepcopy
 import numpy as np
 import wx
 from pubsub import pub
@@ -248,12 +249,29 @@ class ChromApp(MetaUniDecBase):
         from unidec import GUniDec
 
         spectrum = self.eng.data.spectra[index]
-        filename = os.path.splitext(self.eng.filename or "unichrom")[0] + "_spectrum_" + str(index + 1) + ".txt"
-        self.eng.unidec_eng.pass_data_in(spectrum.rawdata, dirname=self.eng.config.udir, fname=filename)
+        filename = (os.path.splitext(self.eng.filename or "unichrom")[0]
+                    + "_spectrum_" + str(index + 1) + ".txt")
         path = os.path.join(self.eng.config.udir, filename)
+        os.makedirs(self.eng.config.udir, exist_ok=True)
+        np.savetxt(path, spectrum.rawdata)
+
+        unidec_config = deepcopy(self.eng.config)
+        unidec_config.imflag = 0
+        unidec_config.cdmsflag = 0
+        unidec_config.metamode = -2
+        unidec_config.filetype = 0
+        unidec_config.rawflag %= 2
+        unidec_config.udir = os.path.splitext(path)[0] + "_unidecfiles"
+        os.makedirs(unidec_config.udir, exist_ok=True)
+        unidec_config.outfname = os.path.join(unidec_config.udir,
+                                               os.path.splitext(filename)[0])
+        unidec_config.default_file_names()
+        unidec_config.config_export(unidec_config.confname)
+
         print("Launching UniDec:", path)
         app = GUniDec.UniDecApp(path=path)
         app.start()
+        return app
 
     def make_selection(self, index=0):
         print("Selection Index is now:", index)
