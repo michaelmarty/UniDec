@@ -14,6 +14,39 @@ def _has_gui_display():
     return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
 
 
+class TestUniDecStartupImports(unittest.TestCase):
+    def test_unidec_import_defers_optional_workflows(self):
+        script = """
+import sys
+import unidec.GUniDec
+
+deferred_modules = (
+    "UniDecImporter.ImporterFactory",
+    "unidec.DataCollector",
+    "unidec.ImportWizard",
+    "unidec.metaunidec.mudstruct",
+    "unidec.modules.Extract2D",
+    "unidec.modules.GridDecon",
+    "unidec.modules.MassDefects",
+    "unidec.modules.fft_window",
+    "unidec.modules.masstools",
+    "unidec.modules.nativez",
+    "unidec.modules.isolated_packages.score_window",
+    "unidec.modules.isolated_packages.texmaker",
+)
+loaded_modules = [name for name in deferred_modules if name in sys.modules]
+assert not loaded_modules, loaded_modules
+"""
+        result = subprocess.run(
+            [sys.executable, "-c", script],
+            cwd=UNIDEC_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+
 @unittest.skipUnless(_has_gui_display(), "wxPython requires a graphical display")
 class TestMajorWindowLaunches(unittest.TestCase):
     def test_launcher_launches(self):
