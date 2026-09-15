@@ -66,7 +66,7 @@ class Plot1dBase(PlotBase):
             if config.publicationmode != 0:
                 pubflag = 1
 
-            if config.datanorm == 0 and not config.htmode:
+            if config.datanorm == 0 and not config.htmode and not self._axes_explicit:
                 self._axes = [0.2, 0.11, 0.75, 0.8]
 
         self.subplot1 = self.figure.add_axes(self._axes)

@@ -4,7 +4,7 @@ from unidec.modules import peakwidthtools
 import os
 import numpy as np
 import unidec.tools as ud
-from unidec.modules import ManualSelectionWindow, AutocorrWindow, peakstructure
+from unidec.modules import ManualSelectionWindow, peakstructure
 from unidec.modules import SubDiv, miscwindows
 from unidec.metaunidec.mudstruct import MetaDataSet
 import sys
@@ -670,6 +670,8 @@ class UniDecPres(object):
         :param e: Unused event
         :return: None
         """
+        from unidec.modules import AutocorrWindow
+
         dlg = AutocorrWindow.AutocorrWindow(self.view)
         dlg.initalize_dialog(self.eng.config, self.eng.data.massdat)
         dlg.ShowModal()

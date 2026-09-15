@@ -326,6 +326,10 @@ Added in Artifact Suppression settings introduced in version 8.2 to other window
 
 Had Codex help make some speed improvements to UniDec and other core workflows. 
 
+Several major improvements to UniChrom, especially including both linear and nonlinear chromatographic deconvolution. This takes into account neighboring scans when deconvolving. It takes a new parameter, the chromatographic peak width, which can be defined either in scans or in retention time. If specified in scans, you can use a linearized mode to speed up deconvolution. Otherwise, it will use nonlinear deconvolution.
+
+Removed the option to use UniDec on selected spectra in UniChrom. This is still indirectly possible by selecting a set of scans, clicking "Add From Manual Selection" and then right clicking on that scan and selecting the "Open Spectrum in UniDec" option.
+
 Added in full stack deconvolution on UniChromCD. This will deconvolve each frame in the chromatogram. It also includes the first use of chromatographic deconvolution, meaning that it can take info from adjacent scans and use that to help in deconvolution. That also means you can do chromatographic peak sharpening if you would like. To turn this on, switch to Centroid mode for the deconvolution output. 
 
 Added in automated testing, document building, and publishing with the help of Codex. 

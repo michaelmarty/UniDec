@@ -31,7 +31,7 @@ class TestMajorWindowLaunches(unittest.TestCase):
 
     def test_unichrom_launches(self):
         self._assert_window_launches("unidec.UniChrom", "ChromApp", has_suppression_controls=True,
-                                     has_chrom_width=True)
+                                     has_chrom_width=True, has_chrom_spectrum_menu=True)
 
     def test_ucd_launches_without_full_stack_button(self):
         self._assert_window_launches("unidec.UniDecCD", "UniDecCDApp", False)
@@ -41,11 +41,12 @@ class TestMajorWindowLaunches(unittest.TestCase):
 
     def _assert_window_launches(self, module_name, class_name, has_full_stack_button=None,
                                 has_suppression_controls=False, launcher_layout=False,
-                                has_chrom_width=None):
+                                has_chrom_width=None, has_chrom_spectrum_menu=False):
         """Construct a window in an isolated process without entering its event loop."""
         script = f"""
 import importlib
-from unittest.mock import patch
+import numpy as np
+from unittest.mock import Mock, patch
 
 module = importlib.import_module({module_name!r})
 app_type = getattr(module, {class_name!r})
@@ -93,6 +94,32 @@ try:
         assert all("UniDec API Shell" not in label for label in labels)
         im_button = next(button for button in buttons if button.GetLabel().startswith("UniDec IM"))
         assert im_button.GetParent().GetSizer().GetItemPosition(im_button) == (5, 1)
+    if {has_chrom_spectrum_menu!r}:
+        assert not hasattr(app.view, "open_ud_button")
+        assert not hasattr(app.view, "run_ud_button")
+        assert not hasattr(app.view, "pick_peaks_button_individual")
+        assert not hasattr(app.view, "singlepeakpanel")
+        assert not hasattr(app.view, "plot2s")
+        assert hasattr(app.view.ypanel, "popupID12")
+        plot_sizer = app.view.plotpanel.GetSizer()
+        assert plot_sizer.GetItemPosition(app.view.plot2) == (1, 0)
+        assert plot_sizer.GetItemSpan(app.view.plot2) == (1, 2)
+        assert plot_sizer.GetItemPosition(app.view.plotm) == (2, 0)
+        app.view.plot2.plotrefreshtop(np.array([1.0, 2.0]), np.array([1.0, 2.0]), config=app.eng.config)
+        assert np.allclose(app.view.plot2.subplot1.get_position().bounds, [0.11, 0.11, 0.86, 0.8])
+        raw_data = object()
+        spectrum = Mock(rawdata=raw_data)
+        app.eng.data.spectra = [spectrum]
+        app.eng.filename = "sample.raw"
+        app.eng.config.udir = "test-output"
+        app.eng.unidec_eng.pass_data_in = Mock()
+        launched = Mock()
+        with patch("unidec.GUniDec.UniDecApp", return_value=launched) as launch:
+            app.on_open_ud(0)
+        app.eng.unidec_eng.pass_data_in.assert_called_once_with(
+            raw_data, dirname="test-output", fname="sample_spectrum_1.txt")
+        launch.assert_called_once()
+        launched.start.assert_called_once_with()
 finally:
     app.view.Destroy()
     app.wx_app.Yield()
