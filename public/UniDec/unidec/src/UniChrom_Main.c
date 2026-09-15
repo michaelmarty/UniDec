@@ -9,6 +9,7 @@
  */
 
 #include "UniChrom_Main.h"
+#include "UniChrom_Nonlinear.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -18,53 +19,106 @@
 #endif
 
 #define UNICHROM_OMP_MIN_LENGTH 32768
+#define UNICHROM_OUTPUT_BATCH_SIZE 4
+#define UNICHROM_SMOOTH_TILE_SIZE 65536
 
 #ifdef UNICHROM_PROFILE
-#define UNICHROM_PROFILE_START(name) const clock_t unichrom_profile_##name = clock()
+static double unichrom_profile_time(void)
+{
+#ifdef _OPENMP
+    return omp_get_wtime();
+#else
+    struct timespec now;
+    timespec_get(&now, TIME_UTC);
+    return (double)now.tv_sec + (double)now.tv_nsec * 1e-9;
+#endif
+}
+#define UNICHROM_PROFILE_START(name) const double unichrom_profile_##name = unichrom_profile_time()
 #define UNICHROM_PROFILE_END(name) \
     fprintf(stderr, "UniChrom profile %-16s %.6f s\n", #name, \
-            (double)(clock() - unichrom_profile_##name) / CLOCKS_PER_SEC)
+            unichrom_profile_time() - unichrom_profile_##name)
 #else
 #define UNICHROM_PROFILE_START(name)
 #define UNICHROM_PROFILE_END(name)
 #endif
 
 typedef struct {
+    int mz_count;
+    int scan_count;
+    int scan_padding;
+    int padded_scan_count;
+    int mirror_padding;
     int real_length;
     int spectrum_length;
     int normalization;
+    int *scan_source;
     float *real_work;
+    float *cropped_work;
     fftwf_complex *spectrum_work;
     fftwf_plan forward_plan;
     fftwf_plan backward_plan;
 } UniChromFFT;
 
+static void blur_positive_batches_UniChrom(float *data, float *scratch,
+                                            const int *upinds,
+                                            const int *loinds, int length,
+                                            int batch_count, float floor);
 
-static int initialize_fft_UniChrom(UniChromFFT *context, const int size[3])
+
+static int mirrored_scan_UniChrom(int scan, const int scan_count)
+{
+    if (scan_count == 1) { return 0; }
+    const int period = 2 * scan_count;
+    scan %= period;
+    if (scan < 0) { scan += period; }
+    return scan < scan_count ? scan : period - scan - 1;
+}
+
+
+static int initialize_fft_UniChrom(UniChromFFT *context, const int size[3],
+                                   const float dtsig, const int zero_padding)
 {
     memset(context, 0, sizeof(*context));
-    const int64_t real_length = (int64_t)size[2] * size[0];
-    const int64_t spectrum_length = (int64_t)size[2] * (size[0] / 2 + 1);
+    const int64_t padding = (int64_t)ceilf(3.0f * dtsig);
+    const int64_t padded_scan_count = (int64_t)size[2] + 2 * padding;
+    const int64_t real_length = padded_scan_count * size[0];
+    const int64_t spectrum_length = padded_scan_count * (size[0] / 2 + 1);
     if (real_length <= 0 || real_length > INT_MAX ||
-        spectrum_length <= 0 || spectrum_length > INT_MAX) {
+        spectrum_length <= 0 || spectrum_length > INT_MAX ||
+        padding < 0 || padding > INT_MAX || padded_scan_count > INT_MAX) {
         fprintf(stderr, "UniChrom FFT grid is too large\n");
         return 0;
     }
+    context->mz_count = size[0];
+    context->scan_count = size[2];
+    context->scan_padding = (int)padding;
+    context->padded_scan_count = (int)padded_scan_count;
+    context->mirror_padding = !zero_padding;
     context->real_length = (int)real_length;
     context->spectrum_length = (int)spectrum_length;
     context->normalization = context->real_length;
+    context->scan_source = malloc((size_t)context->padded_scan_count * sizeof(int));
     context->real_work = fftwf_malloc((size_t)context->real_length * sizeof(float));
+    context->cropped_work = fftwf_malloc(
+        (size_t)context->scan_count * context->mz_count * sizeof(float));
     context->spectrum_work = fftwf_malloc(
         (size_t)context->spectrum_length * sizeof(fftwf_complex));
-    if (context->real_work == NULL || context->spectrum_work == NULL) {
+    if (context->scan_source == NULL || context->real_work == NULL ||
+        context->cropped_work == NULL || context->spectrum_work == NULL) {
         fprintf(stderr, "Unable to allocate UniChrom FFT workspace\n");
         return 0;
     }
+    for (int scan = 0; scan < context->padded_scan_count; scan++) {
+        const int source = scan - context->scan_padding;
+        context->scan_source[scan] = source >= 0 && source < context->scan_count ? source :
+            (context->mirror_padding ?
+             mirrored_scan_UniChrom(source, context->scan_count) : -1);
+    }
     context->forward_plan = fftwf_plan_dft_r2c_2d(
-        size[2], size[0], context->real_work,
+        context->padded_scan_count, size[0], context->real_work,
         context->spectrum_work, FFTW_ESTIMATE);
     context->backward_plan = fftwf_plan_dft_c2r_2d(
-        size[2], size[0], context->spectrum_work,
+        context->padded_scan_count, size[0], context->spectrum_work,
         context->real_work, FFTW_ESTIMATE);
     if (context->forward_plan == NULL || context->backward_plan == NULL) {
         fprintf(stderr, "Unable to create UniChrom 2-D FFT plans\n");
@@ -78,9 +132,61 @@ static void destroy_fft_UniChrom(UniChromFFT *context)
 {
     if (context->forward_plan != NULL) { fftwf_destroy_plan(context->forward_plan); }
     if (context->backward_plan != NULL) { fftwf_destroy_plan(context->backward_plan); }
+    free(context->scan_source);
     fftwf_free(context->real_work);
+    fftwf_free(context->cropped_work);
     fftwf_free(context->spectrum_work);
     memset(context, 0, sizeof(*context));
+}
+
+
+static void extend_scans_UniChrom(UniChromFFT *context, const float *input)
+{
+    #pragma omp parallel for schedule(static) if(context->real_length >= UNICHROM_OMP_MIN_LENGTH)
+    for (int scan = 0; scan < context->padded_scan_count; scan++) {
+        float *output = context->real_work + (size_t)scan * context->mz_count;
+        const int source = context->scan_source[scan];
+        if (source >= 0) {
+            memcpy(output, input + (size_t)source * context->mz_count,
+                   (size_t)context->mz_count * sizeof(float));
+        } else {
+            memset(output, 0, (size_t)context->mz_count * sizeof(float));
+        }
+    }
+}
+
+
+static void center_scans_UniChrom(UniChromFFT *context, const float *input)
+{
+    memset(context->real_work, 0, (size_t)context->real_length * sizeof(float));
+    memcpy(context->real_work + (size_t)context->scan_padding * context->mz_count,
+           input, (size_t)context->scan_count * context->mz_count * sizeof(float));
+}
+
+
+static void crop_scans_UniChrom(UniChromFFT *context)
+{
+    memcpy(context->cropped_work,
+           context->real_work + (size_t)context->scan_padding * context->mz_count,
+           (size_t)context->scan_count * context->mz_count * sizeof(float));
+}
+
+
+static void fold_scans_UniChrom(UniChromFFT *context)
+{
+    #pragma omp parallel for schedule(static) if(context->real_length >= UNICHROM_OMP_MIN_LENGTH)
+    for (int mz = 0; mz < context->mz_count; mz++) {
+        for (int scan = 0; scan < context->scan_count; scan++) {
+            context->cropped_work[(size_t)scan * context->mz_count + mz] = 0;
+        }
+        for (int scan = 0; scan < context->padded_scan_count; scan++) {
+            const int source = context->scan_source[scan];
+            if (source >= 0) {
+                context->cropped_work[(size_t)source * context->mz_count + mz] +=
+                    context->real_work[(size_t)scan * context->mz_count + mz];
+            }
+        }
+    }
 }
 
 
@@ -103,6 +209,27 @@ static void execute_convolution_UniChrom(const fftwf_complex *kernel_fft,
 }
 
 
+static int make_sensitivity_UniChrom(float *sensitivity,
+                                     const fftwf_complex *kernel_fft,
+                                     UniChromFFT *context)
+{
+    const int cropped_length = context->scan_count * context->mz_count;
+    for (int i = 0; i < cropped_length; i++) { context->cropped_work[i] = 1; }
+    center_scans_UniChrom(context, context->cropped_work);
+    execute_convolution_UniChrom(kernel_fft, 1, context);
+    fold_scans_UniChrom(context);
+    const float scale = 1.0f / (float)context->normalization;
+    for (int i = 0; i < cropped_length; i++) {
+        sensitivity[i] = context->cropped_work[i] * scale;
+        if (!(sensitivity[i] > 0) || !isfinite(sensitivity[i])) {
+            fprintf(stderr, "Invalid UniChrom boundary sensitivity\n");
+            return 0;
+        }
+    }
+    return 1;
+}
+
+
 static int make_kernel_fft_UniChrom(fftwf_complex *kernel_fft,
                                     UniChromFFT *context, const int size[3],
                                     const float *mz_axis,
@@ -120,10 +247,11 @@ static int make_kernel_fft_UniChrom(fftwf_complex *kernel_fft,
             PeakDist(mz_end, mz_axis[mz], 0, 0, config.mzsig, 0,
                      config.psfun, config.zpsfun);
     }
-    for (int scan = size[2] - 1; scan >= 0; scan--) {
-        const float scan_peak = size[2] == 1 ? 1.0f :
+    for (int scan = context->padded_scan_count - 1; scan >= 0; scan--) {
+        const float scan_peak = context->padded_scan_count == 1 ? 1.0f :
             mzpeakshape(0, (float)scan, config.dtsig, config.psfun) +
-            mzpeakshape((float)size[2], (float)scan, config.dtsig, config.psfun);
+            mzpeakshape((float)context->padded_scan_count, (float)scan,
+                        config.dtsig, config.psfun);
         for (int mz = 0; mz < size[0]; mz++) {
             context->real_work[(size_t)scan * size[0] + mz] =
                 scan_peak * context->real_work[mz];
@@ -242,33 +370,59 @@ static void find_mass_axis_UniChrom(const Config config, const float *cube,
 }
 
 
-static void transform_mass_grid_UniChrom(const Config config, const float *cube,
-                                         const char *allowed, const int *mass_lower,
-                                         const float *mass_fraction,
-                                         const int size[3],
-                                         const int mass_count, float *mass_grid)
+void transform_mass_grid_UniChrom(Config config, const float *cube,
+                                  const float *mz_axis, const int scan_count,
+                                  const int mz_count, const int charge_count,
+                                  const float mass_min, const float mass_max,
+                                  float *mass_axis, const int mass_count,
+                                  float *mass_grid)
 {
-    const int scan_length = size[0] * size[1];
-    #pragma omp parallel for schedule(static) if(size[2] > 1)
-    for (int scan = 0; scan < size[2]; scan++) {
-        const float *scan_cube = cube + (size_t)scan * scan_length;
-        float *scan_mass = mass_grid + (size_t)scan * mass_count;
-        for (int mz = 0; mz < size[0]; mz++) {
-            for (int charge_index = 0; charge_index < size[1]; charge_index++) {
-                const int grid_index = index2D(size[1], mz, charge_index);
-                const float value = scan_cube[grid_index];
-                if (!allowed[grid_index] || value <= 0) { continue; }
-                const int lower = mass_lower[grid_index];
-                const float fraction = mass_fraction[grid_index];
-                if (lower >= 0 && lower < mass_count) {
-                    scan_mass[lower] += value * (1.0f - fraction);
-                }
-                if (lower + 1 >= 0 && lower + 1 < mass_count) {
-                    scan_mass[lower + 1] += value * fraction;
-                }
+    const int scan_length = mz_count * charge_count;
+    int *charges = malloc((size_t)charge_count * sizeof(int));
+    float *masses = config.poolflag == 0 ?
+        malloc((size_t)scan_length * sizeof(float)) : NULL;
+    if (charges == NULL || (config.poolflag == 0 && masses == NULL)) {
+        fprintf(stderr, "Unable to allocate UniChrom mass transform indexes\n");
+        exit(11);
+    }
+    for (int charge_index = 0; charge_index < charge_count; charge_index++) {
+        charges[charge_index] = config.startz + charge_index;
+    }
+    if (masses != NULL) {
+        for (int mz = 0; mz < mz_count; mz++) {
+            for (int charge_index = 0; charge_index < charge_count; charge_index++) {
+                masses[index2D(charge_count, mz, charge_index)] =
+                    calcmass(mz_axis[mz], charges[charge_index], config.adductmass);
             }
         }
     }
+    config.lengthmz = mz_count;
+    #pragma omp parallel for schedule(static) if(scan_count > 1)
+    for (int scan = 0; scan < scan_count; scan++) {
+        const float *scan_cube = cube + (size_t)scan * scan_length;
+        float *scan_mass = mass_grid + (size_t)scan * mass_count;
+        Decon decon = {0};
+        Input input = {0};
+        decon.blur = (float *)scan_cube;
+        decon.newblur = (float *)scan_cube;
+        decon.massaxis = mass_axis;
+        decon.massaxisval = scan_mass;
+        decon.mlen = mass_count;
+        input.dataMZ = (float *)mz_axis;
+        input.nztab = charges;
+        if (config.poolflag == 0) {
+            IntegrateTransform(config, &decon, masses, mass_max, mass_min);
+        } else if (config.poolflag == 1) {
+            InterpolateTransform(config, &decon, &input);
+        } else if (config.poolflag == 2) {
+            SmartTransform(config, &decon, &input);
+        } else {
+            fprintf(stderr, "Invalid UniChrom poolflag %d\n", config.poolflag);
+            exit(1987);
+        }
+    }
+    free(charges);
+    free(masses);
 }
 
 
@@ -277,6 +431,7 @@ static void write_outputs_UniChrom(const Config config, const float *cube,
                                    const int *allowed_charges, const float *mz_axis,
                                    const int size[3])
 {
+    UNICHROM_PROFILE_START(output_mz);
     const int scan_count = size[2];
     const int mz_count = size[0];
     const int charge_count = size[1];
@@ -312,7 +467,9 @@ static void write_outputs_UniChrom(const Config config, const float *cube,
     }
     scale_merged_sum_UniChrom(mz_sum, mz_count, mz_grid,
                               scan_count * mz_count, config.datanorm);
+    UNICHROM_PROFILE_END(output_mz);
 
+    UNICHROM_PROFILE_START(output_mass);
     float mass_min = 0;
     float mass_max = 0;
     find_mass_axis_UniChrom(config, cube, allowed, mz_axis, size,
@@ -321,29 +478,16 @@ static void write_outputs_UniChrom(const Config config, const float *cube,
     float *mass_axis = calloc((size_t)mass_count, sizeof(float));
     float *mass_grid = calloc((size_t)scan_count * mass_count, sizeof(float));
     float *mass_sum = calloc((size_t)mass_count, sizeof(float));
-    int *mass_lower = calloc((size_t)scan_length, sizeof(int));
-    float *mass_fraction = calloc((size_t)scan_length, sizeof(float));
-    if (mass_axis == NULL || mass_grid == NULL || mass_sum == NULL ||
-        mass_lower == NULL || mass_fraction == NULL) {
+    if (mass_axis == NULL || mass_grid == NULL || mass_sum == NULL) {
         fprintf(stderr, "Unable to allocate UniChrom mass outputs (%d bins)\n", mass_count);
         exit(11);
     }
     for (int mass = 0; mass < mass_count; mass++) {
         mass_axis[mass] = mass_min + (float)mass * config.massbins;
     }
-    for (int mz = 0; mz < mz_count; mz++) {
-        for (int charge_index = 0; charge_index < charge_count; charge_index++) {
-            const int grid_index = index2D(charge_count, mz, charge_index);
-            const int charge = config.startz + charge_index;
-            const float mass = calcmass(mz_axis[mz], charge, config.adductmass);
-            const float position = (mass - mass_min) / config.massbins;
-            const int lower = (int)floorf(position);
-            mass_lower[grid_index] = lower;
-            mass_fraction[grid_index] = position - (float)lower;
-        }
-    }
-    transform_mass_grid_UniChrom(config, cube, allowed, mass_lower,
-                                 mass_fraction, size, mass_count, mass_grid);
+    transform_mass_grid_UniChrom(config, cube, mz_axis, scan_count, mz_count,
+                                 charge_count, mass_min, mass_max, mass_axis,
+                                 mass_count, mass_grid);
     for (int scan = 0; scan < scan_count; scan++) {
         for (int mass = 0; mass < mass_count; mass++) {
             mass_sum[mass] += mass_grid[(size_t)scan * mass_count + mass];
@@ -351,7 +495,9 @@ static void write_outputs_UniChrom(const Config config, const float *cube,
     }
     scale_merged_sum_UniChrom(mass_sum, mass_count, mass_grid,
                               scan_count * mass_count, config.datanorm);
+    UNICHROM_PROFILE_END(output_mass);
 
+    UNICHROM_PROFILE_START(output_hdf5);
     mh5writefile1d(config.file_id, "/ms_dataset/mz_grid",
                    scan_count * mz_count, mz_grid);
     mh5writefile1d(config.file_id, "/ms_dataset/mz_axis", mz_count, mz_axis);
@@ -374,17 +520,29 @@ static void write_outputs_UniChrom(const Config config, const float *cube,
         write_attr_float(config.file_id, group, "dtsig", config.dtsig);
     }
     set_got_grids(config.file_id);
+    UNICHROM_PROFILE_END(output_hdf5);
     printf("UniChrom outputs: %d x %d m/z grid; %d x %d mass grid\n",
            scan_count, mz_count, scan_count, mass_count);
     free(mz_grid); free(mz_sum);
     free(mass_axis); free(mass_grid); free(mass_sum);
-    free(mass_lower); free(mass_fraction);
 }
 
 
 int run_chromatogram(int argc, char *argv[], Config config)
 {
+    if (config.UCtype != 0 && config.UCtype != 1) {
+        fprintf(stderr, "UCtype must be 0 (scans) or 1 (time)\n");
+        return 2;
+    }
+    if (config.UCtype == 1 || config.UClineardecon == 0) {
+        return run_chromatogram_nonlinear(argc, argv, config);
+    }
+    if (config.UClineardecon != 1) {
+        fprintf(stderr, "UClineardecon must be 0 or 1\n");
+        return 2;
+    }
     const clock_t starttime = clock();
+    UNICHROM_PROFILE_START(total);
     int result = 1;
     UniChromFFT fft_context;
     memset(&fft_context, 0, sizeof(fft_context));
@@ -400,8 +558,11 @@ int run_chromatogram(int argc, char *argv[], Config config)
         fprintf(stderr, "Unable to open UniChrom HDF5 file: %s\n", argv[1]);
         return 2;
     }
+    const int zero_padding = int_attr(config.file_id, "/config",
+                                      "unichromzeropad", 0);
     const int scan_count = int_attr(config.file_id, "/ms_dataset", "num", 0);
-    if (scan_count < 1 || config.numz < 1 || config.dtsig <= 0) {
+    if (scan_count < 1 || config.numz < 1 ||
+        !(config.dtsig > 0) || !isfinite(config.dtsig)) {
         fprintf(stderr, "Invalid UniChrom scan, charge, or dtsig configuration\n");
         H5Fclose(config.file_id);
         return 2;
@@ -427,6 +588,7 @@ int run_chromatogram(int argc, char *argv[], Config config)
     UNICHROM_PROFILE_START(grid_io);
     make_grid(argc, argv, config, "/processed_data", "/mz_grid", "/mz_axis", "/mz_sum");
     UNICHROM_PROFILE_END(grid_io);
+    UNICHROM_PROFILE_START(setup);
 
     const int mz_count = mh5getfilelength(config.file_id, "/ms_dataset/mz_axis");
     const int observed_length = mh5getfilelength(config.file_id, "/ms_dataset/mz_grid");
@@ -494,15 +656,20 @@ int run_chromatogram(int argc, char *argv[], Config config)
     float *blur = fftwf_malloc((size_t)cube_length * sizeof(float));
     float *scratch = fftwf_malloc((size_t)cube_length * sizeof(float));
     float *oldblur = fftwf_malloc((size_t)cube_length * sizeof(float));
-    int *zupind = calloc((size_t)scan_length, sizeof(int));
-    int *zloind = calloc((size_t)scan_length, sizeof(int));
-    int *mupind = calloc((size_t)scan_length, sizeof(int));
-    int *mloind = calloc((size_t)scan_length, sizeof(int));
-    int *nztab = calloc((size_t)config.numz, sizeof(int));
-    float *smoothing_sums = calloc((size_t)scan_count * config.numz, sizeof(float));
-    if (blur == NULL || scratch == NULL || oldblur == NULL ||
-        zupind == NULL || zloind == NULL || mupind == NULL || mloind == NULL ||
-        nztab == NULL || smoothing_sums == NULL) {
+    float *sensitivity = fftwf_malloc((size_t)observed_length * sizeof(float));
+    int *zupind = config.zsig != 0 ? calloc((size_t)scan_length, sizeof(int)) : NULL;
+    int *zloind = config.zsig != 0 ? calloc((size_t)scan_length, sizeof(int)) : NULL;
+    int *mupind = config.msig != 0 ? calloc((size_t)scan_length, sizeof(int)) : NULL;
+    int *mloind = config.msig != 0 ? calloc((size_t)scan_length, sizeof(int)) : NULL;
+    int *nztab = config.suppression_harmonic > 0 ?
+        calloc((size_t)config.numz, sizeof(int)) : NULL;
+    float *smoothing_sums = config.psig >= 1 ?
+        calloc((size_t)scan_count * config.numz, sizeof(float)) : NULL;
+    if (blur == NULL || scratch == NULL || oldblur == NULL || sensitivity == NULL ||
+        (config.zsig != 0 && (zupind == NULL || zloind == NULL)) ||
+        (config.msig != 0 && (mupind == NULL || mloind == NULL)) ||
+        (config.suppression_harmonic > 0 && nztab == NULL) ||
+        (config.psig >= 1 && smoothing_sums == NULL)) {
         fprintf(stderr, "Unable to allocate UniChrom iteration arrays\n");
         goto cleanup_processing_UniChrom;
     }
@@ -521,37 +688,46 @@ int run_chromatogram(int argc, char *argv[], Config config)
     }
     memcpy(oldblur, blur, (size_t)cube_length * sizeof(float));
 
-    const float mzranges[4] = {mz_axis[0], mz_axis[mz_count - 1],
-                               charge_axis[0], charge_axis[config.numz - 1]};
-    float *mz_coordinates = calloc((size_t)scan_length, sizeof(float));
-    float *z_coordinates = calloc((size_t)scan_length, sizeof(float));
-    if (mz_coordinates == NULL || z_coordinates == NULL) {
-        fprintf(stderr, "Unable to allocate UniChrom coordinate arrays\n");
-        free(mz_coordinates); free(z_coordinates);
-        goto cleanup_processing_UniChrom;
-    }
-    for (int mz = 0; mz < mz_count; mz++) {
+    if (nztab != NULL) {
         for (int charge = 0; charge < config.numz; charge++) {
-            const int index = index2D(config.numz, mz, charge);
-            mz_coordinates[index] = mz_axis[mz];
-            z_coordinates[index] = charge_axis[charge];
             nztab[charge] = config.startz + charge;
         }
     }
-    if (config.zsig != 0) {
-        setup_blur_z_UCCD(zupind, zloind, mz_coordinates, z_coordinates,
-                          scan_length, config.adductmass, mzranges, size);
+    if (config.zsig != 0 || config.msig != 0) {
+        const float mzranges[4] = {mz_axis[0], mz_axis[mz_count - 1],
+                                   charge_axis[0], charge_axis[config.numz - 1]};
+        float *mz_coordinates = calloc((size_t)scan_length, sizeof(float));
+        float *z_coordinates = calloc((size_t)scan_length, sizeof(float));
+        if (mz_coordinates == NULL || z_coordinates == NULL) {
+            fprintf(stderr, "Unable to allocate UniChrom coordinate arrays\n");
+            free(mz_coordinates); free(z_coordinates);
+            goto cleanup_processing_UniChrom;
+        }
+        for (int mz = 0; mz < mz_count; mz++) {
+            for (int charge = 0; charge < config.numz; charge++) {
+                const int index = index2D(config.numz, mz, charge);
+                mz_coordinates[index] = mz_axis[mz];
+                z_coordinates[index] = charge_axis[charge];
+            }
+        }
+        if (config.zsig != 0) {
+            setup_blur_z_UCCD(zupind, zloind, mz_coordinates, z_coordinates,
+                              scan_length, config.adductmass, mzranges, size);
+        }
+        if (config.msig != 0) {
+            setup_blur_m_UCCD(mupind, mloind, mz_coordinates, z_coordinates,
+                              scan_length, config.adductmass, mzranges, size, config.molig);
+        }
+        free(mz_coordinates); free(z_coordinates);
     }
-    if (config.msig != 0) {
-        setup_blur_m_UCCD(mupind, mloind, mz_coordinates, z_coordinates,
-                          scan_length, config.adductmass, mzranges, size, config.molig);
-    }
-    free(mz_coordinates); free(z_coordinates);
 
 #ifdef _OPENMP
     const int fft_thread_count = omp_get_max_threads();
 #else
     const int fft_thread_count = 1;
+#endif
+#ifdef UNICHROM_PROFILE
+    fprintf(stderr, "UniChrom profile workers             %d\n", fft_thread_count);
 #endif
 #ifdef UNIDEC_USE_MKL
     previous_mkl_threads = mkl_set_num_threads_local(fft_thread_count);
@@ -563,31 +739,42 @@ int run_chromatogram(int argc, char *argv[], Config config)
         fftwf_plan_with_nthreads(fft_thread_count);
     }
 #endif
-    if (!initialize_fft_UniChrom(&fft_context, size)) {
+    if (!initialize_fft_UniChrom(&fft_context, size, config.dtsig,
+                                 zero_padding)) {
         goto cleanup_processing_UniChrom;
     }
+    printf("UniChrom scan boundary: %s padding, %d scans per side\n",
+           fft_context.mirror_padding ? "mirrored" : "zero",
+           fft_context.scan_padding);
     fftwf_complex *kernel_fft = fftwf_malloc(
         (size_t)fft_context.spectrum_length * sizeof(fftwf_complex));
     if (kernel_fft == NULL ||
         !make_kernel_fft_UniChrom(kernel_fft, &fft_context, size,
-                                  mz_axis, config)) {
+                                  mz_axis, config) ||
+        !make_sensitivity_UniChrom(sensitivity, kernel_fft, &fft_context)) {
         fftwf_free(kernel_fft);
         goto cleanup_processing_UniChrom;
     }
+    UNICHROM_PROFILE_END(setup);
 
     const float data_max = Max(observed, observed_length);
     const float beta_factor = data_max > 1 ? data_max : 1;
     double convergence = 0;
     int convergence_seen = 0;
 #ifdef UNICHROM_PROFILE
-    clock_t profile_regularizers = 0, profile_projection = 0;
-    clock_t profile_fft = 0, profile_update = 0, profile_convergence = 0;
+    int iterations_executed = 0;
+    double profile_regularizers = 0, profile_projection = 0;
+    double profile_beta = 0, profile_point = 0, profile_suppression = 0;
+    double profile_charge = 0, profile_mass = 0;
+    double profile_forward = 0, profile_ratio = 0, profile_adjoint = 0;
+    double profile_update = 0, profile_convergence = 0;
 #endif
     UNICHROM_PROFILE_START(solve);
     printf("UniChrom: iterating with charge-summed 2-D FFTs.");
     for (int iteration = 0; iteration < abs(config.numit); iteration++) {
 #ifdef UNICHROM_PROFILE
-        clock_t profile_tick = clock();
+        double profile_tick = unichrom_profile_time();
+        iterations_executed = iteration + 1;
 #endif
         if (config.beta > 0 && iteration > 0) {
             #pragma omp parallel for schedule(static) if(scan_count > 1)
@@ -596,16 +783,27 @@ int run_chromatogram(int argc, char *argv[], Config config)
                            mz_count, config.numz, config.beta / beta_factor);
             }
         }
+#ifdef UNICHROM_PROFILE
+        profile_beta += unichrom_profile_time() - profile_tick;
+        double regularizer_tick = unichrom_profile_time();
+#endif
         if (config.psig >= 1 && iteration > 0) {
             #pragma omp parallel for schedule(static) if(scan_count > 1)
             for (int scan = 0; scan < scan_count; scan++) {
-                point_smoothing_serial(blur + (size_t)scan * scan_length,
+                point_smoothing_to_scratch(blur + (size_t)scan * scan_length,
                                 scratch + (size_t)scan * scan_length,
                                 smoothing_sums + (size_t)scan * config.numz,
                                 allowed, mz_count, config.numz,
                                 abs((int)config.psig));
             }
+            float *swap = blur;
+            blur = scratch;
+            scratch = swap;
         }
+#ifdef UNICHROM_PROFILE
+        profile_point += unichrom_profile_time() - regularizer_tick;
+        regularizer_tick = unichrom_profile_time();
+#endif
         if (iteration > config.suppression_startit &&
             (config.suppression_satellite > 0 || config.suppression_harmonic > 0 ||
              config.suppression_topn > 0 || config.suppression_topx > 0)) {
@@ -614,27 +812,46 @@ int run_chromatogram(int argc, char *argv[], Config config)
                                nztab, config.suppression_topn, config.suppression_topx,
                                config.suppression_percent);
         }
-        if (config.zsig != 0 || config.msig != 0) {
-            #pragma omp parallel for schedule(static) if(scan_count > 1)
-            for (int scan = 0; scan < scan_count; scan++) {
-                const size_t offset = (size_t)scan * scan_length;
-                if (config.zsig != 0) {
-                    blur_it_UCCD(scratch + offset, blur + offset, zupind, zloind,
-                                 scan_length, config.zsig * data_max);
-                    memcpy(blur + offset, scratch + offset,
-                           (size_t)scan_length * sizeof(float));
-                }
-                if (config.msig != 0) {
-                    blur_it_UCCD(scratch + offset, blur + offset, mupind, mloind,
-                                 scan_length, config.msig * data_max);
-                    memcpy(blur + offset, scratch + offset,
-                           (size_t)scan_length * sizeof(float));
+#ifdef UNICHROM_PROFILE
+        profile_suppression += unichrom_profile_time() - regularizer_tick;
+        regularizer_tick = unichrom_profile_time();
+#endif
+        if (config.zsig != 0) {
+            const float floor = config.zsig * data_max;
+            if (floor > 0) {
+                blur_positive_batches_UniChrom(blur, scratch, zupind, zloind,
+                                                scan_length, scan_count, floor);
+            } else {
+                #pragma omp parallel for schedule(static) if(scan_count > 1)
+                for (int scan = 0; scan < scan_count; scan++) {
+                    const size_t offset = (size_t)scan * scan_length;
+                    blur_it_UCCD(blur + offset, scratch + offset, zupind, zloind,
+                                 scan_length, floor);
                 }
             }
         }
 #ifdef UNICHROM_PROFILE
-        profile_regularizers += clock() - profile_tick;
-        profile_tick = clock();
+        profile_charge += unichrom_profile_time() - regularizer_tick;
+        regularizer_tick = unichrom_profile_time();
+#endif
+        if (config.msig != 0) {
+            const float floor = config.msig * data_max;
+            if (floor > 0) {
+                blur_positive_batches_UniChrom(blur, scratch, mupind, mloind,
+                                                scan_length, scan_count, floor);
+            } else {
+                #pragma omp parallel for schedule(static) if(scan_count > 1)
+                for (int scan = 0; scan < scan_count; scan++) {
+                    const size_t offset = (size_t)scan * scan_length;
+                    blur_it_UCCD(blur + offset, scratch + offset, mupind, mloind,
+                                 scan_length, floor);
+                }
+            }
+        }
+#ifdef UNICHROM_PROFILE
+        profile_mass += unichrom_profile_time() - regularizer_tick;
+        profile_regularizers += unichrom_profile_time() - profile_tick;
+        profile_tick = unichrom_profile_time();
 #endif
         clear_disallowed_UniChrom(blur, allowed, scan_count, scan_length);
 
@@ -654,27 +871,41 @@ int run_chromatogram(int argc, char *argv[], Config config)
                     value += row[charge];
                 }
             }
-            fft_context.real_work[index] = value;
+            fft_context.cropped_work[index] = value;
         }
+        extend_scans_UniChrom(&fft_context, fft_context.cropped_work);
 #ifdef UNICHROM_PROFILE
-        profile_projection += clock() - profile_tick;
-        profile_tick = clock();
+        profile_projection += unichrom_profile_time() - profile_tick;
+        profile_tick = unichrom_profile_time();
 #endif
         execute_convolution_UniChrom(kernel_fft, 0, &fft_context);
+        crop_scans_UniChrom(&fft_context);
+#ifdef UNICHROM_PROFILE
+        profile_forward += unichrom_profile_time() - profile_tick;
+        profile_tick = unichrom_profile_time();
+#endif
         #pragma omp parallel for schedule(static) if(observed_length >= UNICHROM_OMP_MIN_LENGTH)
         for (int index = 0; index < observed_length; index++) {
-            const float denominator = fft_context.real_work[index] * fft_scale;
-            fft_context.real_work[index] = denominator > 0 ? observed[index] / denominator : 0;
+            const float denominator = fft_context.cropped_work[index] * fft_scale;
+            fft_context.cropped_work[index] =
+                denominator > 0 ? observed[index] / denominator : 0;
         }
-        execute_convolution_UniChrom(kernel_fft, 1, &fft_context);
+        center_scans_UniChrom(&fft_context, fft_context.cropped_work);
 #ifdef UNICHROM_PROFILE
-        profile_fft += clock() - profile_tick;
-        profile_tick = clock();
+        profile_ratio += unichrom_profile_time() - profile_tick;
+        profile_tick = unichrom_profile_time();
+#endif
+        execute_convolution_UniChrom(kernel_fft, 1, &fft_context);
+        fold_scans_UniChrom(&fft_context);
+#ifdef UNICHROM_PROFILE
+        profile_adjoint += unichrom_profile_time() - profile_tick;
+        profile_tick = unichrom_profile_time();
 #endif
         /* H^T(B r) = B(H^T r): share one correction across the charge row. */
         #pragma omp parallel for schedule(static) if(cube_length >= UNICHROM_OMP_MIN_LENGTH)
         for (int index = 0; index < observed_length; index++) {
-            const float correction = fft_context.real_work[index] * fft_scale;
+            const float correction = fft_context.cropped_work[index] * fft_scale *
+                                     kernel_fft[0][0] / sensitivity[index];
             float *row = blur + (size_t)index * config.numz;
             if (allowed_offsets != NULL) {
                 const int mz = index % mz_count;
@@ -692,8 +923,8 @@ int run_chromatogram(int argc, char *argv[], Config config)
             }
         }
 #ifdef UNICHROM_PROFILE
-        profile_update += clock() - profile_tick;
-        profile_tick = clock();
+        profile_update += unichrom_profile_time() - profile_tick;
+        profile_tick = unichrom_profile_time();
 #endif
 
         if (abs(config.numit) < 10 || iteration == 1 || iteration % 10 == 0 ||
@@ -719,82 +950,146 @@ int run_chromatogram(int argc, char *argv[], Config config)
             memcpy(oldblur, blur, (size_t)cube_length * sizeof(float));
         }
 #ifdef UNICHROM_PROFILE
-        profile_convergence += clock() - profile_tick;
+        profile_convergence += unichrom_profile_time() - profile_tick;
 #endif
     }
     printf(" done (metric %.6g)\n", convergence);
 #ifdef UNICHROM_PROFILE
-    fprintf(stderr, "UniChrom profile solve.regularizers %.6f s\n", (double)profile_regularizers / CLOCKS_PER_SEC);
-    fprintf(stderr, "UniChrom profile solve.projection   %.6f s\n", (double)profile_projection / CLOCKS_PER_SEC);
-    fprintf(stderr, "UniChrom profile solve.fft          %.6f s\n", (double)profile_fft / CLOCKS_PER_SEC);
-    fprintf(stderr, "UniChrom profile solve.update       %.6f s\n", (double)profile_update / CLOCKS_PER_SEC);
-    fprintf(stderr, "UniChrom profile solve.convergence  %.6f s\n", (double)profile_convergence / CLOCKS_PER_SEC);
+    fprintf(stderr, "UniChrom profile iterations          %d\n", iterations_executed);
+    fprintf(stderr, "UniChrom profile solve.regularizers %.6f s\n", profile_regularizers);
+    fprintf(stderr, "UniChrom profile regularizer.beta   %.6f s\n", profile_beta);
+    fprintf(stderr, "UniChrom profile regularizer.point  %.6f s\n", profile_point);
+    fprintf(stderr, "UniChrom profile regularizer.suppress %.6f s\n", profile_suppression);
+    fprintf(stderr, "UniChrom profile regularizer.charge %.6f s\n", profile_charge);
+    fprintf(stderr, "UniChrom profile regularizer.mass   %.6f s\n", profile_mass);
+    fprintf(stderr, "UniChrom profile solve.projection   %.6f s\n", profile_projection);
+    fprintf(stderr, "UniChrom profile solve.forward      %.6f s\n", profile_forward);
+    fprintf(stderr, "UniChrom profile solve.ratio        %.6f s\n", profile_ratio);
+    fprintf(stderr, "UniChrom profile solve.adjoint      %.6f s\n", profile_adjoint);
+    fprintf(stderr, "UniChrom profile solve.update       %.6f s\n", profile_update);
+    fprintf(stderr, "UniChrom profile solve.convergence  %.6f s\n", profile_convergence);
 #endif
     UNICHROM_PROFILE_END(solve);
 
     const float *output_cube = blur;
     if (config.rawflag == 0 || config.rawflag == 2) {
         UNICHROM_PROFILE_START(output_fft);
+#ifdef UNICHROM_PROFILE
+        double profile_output_plan = 0, profile_output_gather = 0;
+        double profile_output_transform = 0, profile_output_scatter = 0;
+        double profile_output_tick = unichrom_profile_time();
+#endif
         normalize_kernel_fft_UniChrom(kernel_fft, fft_context.spectrum_length);
         const float scale = 1.0f / (float)fft_context.normalization;
         /* Mass output needs each charge plane, with the mask applied after
          * convolution. Batch contiguous planes so FFTW can transform them in
          * one plan without the cache-unfriendly interleaved stride. */
-        const int dimensions[2] = {scan_count, mz_count};
+        const int dimensions[2] = {fft_context.padded_scan_count, mz_count};
         const int spectrum_plane = fft_context.spectrum_length;
-        float *batch_real = fftwf_malloc((size_t)cube_length * sizeof(float));
+        const int real_plane = fft_context.real_length;
+        const int batch_size = config.numz < UNICHROM_OUTPUT_BATCH_SIZE ?
+            config.numz : UNICHROM_OUTPUT_BATCH_SIZE;
+        float *batch_real = fftwf_malloc(
+            (size_t)batch_size * real_plane * sizeof(float));
         fftwf_complex *batch_spectrum = fftwf_malloc(
-            (size_t)config.numz * spectrum_plane * sizeof(fftwf_complex));
+            (size_t)batch_size * spectrum_plane * sizeof(fftwf_complex));
         fftwf_plan batch_forward = NULL;
         fftwf_plan batch_backward = NULL;
         if (batch_real != NULL && batch_spectrum != NULL) {
             batch_forward = fftwf_plan_many_dft_r2c(
-                2, dimensions, config.numz, batch_real, NULL, 1, observed_length,
+                2, dimensions, batch_size, batch_real, NULL, 1, real_plane,
                 batch_spectrum, NULL, 1, spectrum_plane, FFTW_ESTIMATE);
             batch_backward = fftwf_plan_many_dft_c2r(
-                2, dimensions, config.numz, batch_spectrum, NULL, 1, spectrum_plane,
-                batch_real, NULL, 1, observed_length, FFTW_ESTIMATE);
+                2, dimensions, batch_size, batch_spectrum, NULL, 1, spectrum_plane,
+                batch_real, NULL, 1, real_plane, FFTW_ESTIMATE);
         }
+#ifdef UNICHROM_PROFILE
+        profile_output_plan += unichrom_profile_time() - profile_output_tick;
+#endif
         if (batch_forward != NULL && batch_backward != NULL) {
-            #pragma omp parallel for schedule(static) if(cube_length >= UNICHROM_OMP_MIN_LENGTH)
-            for (int charge = 0; charge < config.numz; charge++) {
-                float *plane = batch_real + (size_t)charge * observed_length;
-                for (int index = 0; index < observed_length; index++) {
-                    plane[index] = blur[(size_t)index * config.numz + charge];
+            for (int charge_start = 0; charge_start < config.numz; charge_start += batch_size) {
+                const int active_charges = config.numz - charge_start < batch_size ?
+                    config.numz - charge_start : batch_size;
+#ifdef UNICHROM_PROFILE
+                profile_output_tick = unichrom_profile_time();
+#endif
+                #pragma omp parallel for schedule(static) if((int64_t)batch_size * real_plane >= UNICHROM_OMP_MIN_LENGTH)
+                for (int slot = 0; slot < batch_size; slot++) {
+                    const int charge = charge_start + slot;
+                    float *plane = batch_real + (size_t)slot * real_plane;
+                    for (int scan = 0; scan < fft_context.padded_scan_count; scan++) {
+                        const int source = fft_context.scan_source[scan];
+                        for (int mz = 0; mz < mz_count; mz++) {
+                            plane[(size_t)scan * mz_count + mz] =
+                                charge < config.numz && source >= 0 ?
+                                blur[((size_t)source * mz_count + mz) * config.numz + charge] : 0;
+                        }
+                    }
                 }
-            }
-            fftwf_execute(batch_forward);
-            #pragma omp parallel for schedule(static) if(config.numz * spectrum_plane >= UNICHROM_OMP_MIN_LENGTH)
-            for (int charge = 0; charge < config.numz; charge++) {
-                fftwf_complex *plane = batch_spectrum + (size_t)charge * spectrum_plane;
-                for (int i = 0; i < spectrum_plane; i++) {
-                    const float a = plane[i][0];
-                    const float b = plane[i][1];
-                    const float c = kernel_fft[i][0];
-                    const float d = kernel_fft[i][1];
-                    plane[i][0] = a * c - b * d;
-                    plane[i][1] = b * c + a * d;
+#ifdef UNICHROM_PROFILE
+                profile_output_gather += unichrom_profile_time() - profile_output_tick;
+                profile_output_tick = unichrom_profile_time();
+#endif
+                fftwf_execute(batch_forward);
+                #pragma omp parallel for schedule(static) if((int64_t)batch_size * spectrum_plane >= UNICHROM_OMP_MIN_LENGTH)
+                for (int slot = 0; slot < batch_size; slot++) {
+                    fftwf_complex *plane = batch_spectrum + (size_t)slot * spectrum_plane;
+                    for (int i = 0; i < spectrum_plane; i++) {
+                        const float a = plane[i][0];
+                        const float b = plane[i][1];
+                        const float c = kernel_fft[i][0];
+                        const float d = kernel_fft[i][1];
+                        plane[i][0] = a * c - b * d;
+                        plane[i][1] = b * c + a * d;
+                    }
                 }
-            }
-            fftwf_execute(batch_backward);
-            #pragma omp parallel for schedule(static) if(cube_length >= UNICHROM_OMP_MIN_LENGTH)
-            for (int charge = 0; charge < config.numz; charge++) {
-                const float *plane = batch_real + (size_t)charge * observed_length;
-                for (int index = 0; index < observed_length; index++) {
-                    scratch[(size_t)index * config.numz + charge] = plane[index] * scale;
+                fftwf_execute(batch_backward);
+#ifdef UNICHROM_PROFILE
+                profile_output_transform += unichrom_profile_time() - profile_output_tick;
+                profile_output_tick = unichrom_profile_time();
+#endif
+                #pragma omp parallel for schedule(static) if((int64_t)active_charges * observed_length >= UNICHROM_OMP_MIN_LENGTH)
+                for (int slot = 0; slot < active_charges; slot++) {
+                    const int charge = charge_start + slot;
+                    const float *plane = batch_real + (size_t)slot * real_plane +
+                                         (size_t)fft_context.scan_padding * mz_count;
+                    for (int index = 0; index < observed_length; index++) {
+                        scratch[(size_t)index * config.numz + charge] = plane[index] * scale;
+                    }
                 }
+#ifdef UNICHROM_PROFILE
+                profile_output_scatter += unichrom_profile_time() - profile_output_tick;
+#endif
             }
         } else {
             for (int charge = 0; charge < config.numz; charge++) {
+#ifdef UNICHROM_PROFILE
+                profile_output_tick = unichrom_profile_time();
+#endif
                 #pragma omp parallel for schedule(static) if(observed_length >= UNICHROM_OMP_MIN_LENGTH)
                 for (int index = 0; index < observed_length; index++) {
-                    fft_context.real_work[index] = blur[(size_t)index * config.numz + charge];
+                    fft_context.cropped_work[index] =
+                        blur[(size_t)index * config.numz + charge];
                 }
+                extend_scans_UniChrom(&fft_context, fft_context.cropped_work);
+#ifdef UNICHROM_PROFILE
+                profile_output_gather += unichrom_profile_time() - profile_output_tick;
+                profile_output_tick = unichrom_profile_time();
+#endif
                 execute_convolution_UniChrom(kernel_fft, 0, &fft_context);
+                crop_scans_UniChrom(&fft_context);
+#ifdef UNICHROM_PROFILE
+                profile_output_transform += unichrom_profile_time() - profile_output_tick;
+                profile_output_tick = unichrom_profile_time();
+#endif
                 #pragma omp parallel for schedule(static) if(observed_length >= UNICHROM_OMP_MIN_LENGTH)
                 for (int index = 0; index < observed_length; index++) {
-                    scratch[(size_t)index * config.numz + charge] = fft_context.real_work[index] * scale;
+                    scratch[(size_t)index * config.numz + charge] =
+                        fft_context.cropped_work[index] * scale;
                 }
+#ifdef UNICHROM_PROFILE
+                profile_output_scatter += unichrom_profile_time() - profile_output_tick;
+#endif
             }
         }
         if (batch_forward != NULL) { fftwf_destroy_plan(batch_forward); }
@@ -803,8 +1098,15 @@ int run_chromatogram(int argc, char *argv[], Config config)
         fftwf_free(batch_spectrum);
         clear_disallowed_UniChrom(scratch, allowed, scan_count, scan_length);
         output_cube = scratch;
+#ifdef UNICHROM_PROFILE
+        fprintf(stderr, "UniChrom profile output.plan       %.6f s\n", profile_output_plan);
+        fprintf(stderr, "UniChrom profile output.gather     %.6f s\n", profile_output_gather);
+        fprintf(stderr, "UniChrom profile output.transform  %.6f s\n", profile_output_transform);
+        fprintf(stderr, "UniChrom profile output.scatter    %.6f s\n", profile_output_scatter);
+#endif
         UNICHROM_PROFILE_END(output_fft);
     }
+    UNICHROM_PROFILE_START(output_normalize);
     if (config.datanorm == 1) {
         const float output_max = Max(output_cube, cube_length);
         if (output_max > 0 && data_max > 0) {
@@ -812,20 +1114,22 @@ int run_chromatogram(int argc, char *argv[], Config config)
         }
     }
     ApplyCutoff((float *)output_cube, 0, cube_length);
+    UNICHROM_PROFILE_END(output_normalize);
     write_outputs_UniChrom(config, output_cube, allowed, allowed_offsets,
                            allowed_charges, mz_axis, size);
     result = 0;
 
     fftwf_free(kernel_fft);
 cleanup_processing_UniChrom:
+    destroy_fft_UniChrom(&fft_context);
 #ifdef UNIDEC_USE_FFTW_THREADS
     if (fftw_threads_initialized) { fftwf_cleanup_threads(); }
 #endif
 #ifdef UNIDEC_USE_MKL
     if (mkl_threads_configured) { mkl_set_num_threads_local(previous_mkl_threads); }
 #endif
-    destroy_fft_UniChrom(&fft_context);
     fftwf_free(blur); fftwf_free(scratch); fftwf_free(oldblur);
+    fftwf_free(sensitivity);
     free(zupind); free(zloind); free(mupind); free(mloind);
     free(nztab); free(smoothing_sums);
 cleanup_inputs_UniChrom:
@@ -836,5 +1140,65 @@ cleanup_file_UniChrom:
     H5Fclose(config.file_id);
     printf("UniChrom finished in %.3f s\n",
            (float)(clock() - starttime) / CLOCKS_PER_SEC);
+    UNICHROM_PROFILE_END(total);
     return result;
+}
+
+
+static void blur_positive_batches_UniChrom(float * restrict data,
+                                            float * restrict scratch,
+                                            const int * restrict upinds,
+                                            const int * restrict loinds,
+                                            const int length,
+                                            const int batch_count,
+                                            const float floor)
+{
+    if (batch_count == 1) {
+        blur_it_UCCD(data, scratch, upinds, loinds, length, floor);
+        return;
+    }
+    if (length <= UNICHROM_SMOOTH_TILE_SIZE) {
+#pragma omp parallel for schedule(static)
+        for (int batch = 0; batch < batch_count; batch++) {
+            const size_t base = (size_t)batch * length;
+            blur_it_UCCD(data + base, scratch + base, upinds, loinds,
+                         length, floor);
+        }
+        return;
+    }
+    const int tiles_per_batch = 1 + (length - 1) / UNICHROM_SMOOTH_TILE_SIZE;
+    const int tile_count = batch_count * tiles_per_batch;
+#pragma omp parallel
+    {
+#pragma omp for schedule(static)
+        for (int tile = 0; tile < tile_count; tile++) {
+            const int batch = tile / tiles_per_batch;
+            const int first = (tile % tiles_per_batch) * UNICHROM_SMOOTH_TILE_SIZE;
+            const int last = first + UNICHROM_SMOOTH_TILE_SIZE < length ?
+                first + UNICHROM_SMOOTH_TILE_SIZE : length;
+            const size_t base = (size_t)batch * length;
+#pragma omp simd
+            for (int i = first; i < last; i++) {
+                float value = logf(data[base + i] + floor);
+                if (isnan(value) || isinf(value)) { value = 0; }
+                scratch[base + i] = value;
+            }
+        }
+#pragma omp for schedule(static)
+        for (int tile = 0; tile < tile_count; tile++) {
+            const int batch = tile / tiles_per_batch;
+            const int first = (tile % tiles_per_batch) * UNICHROM_SMOOTH_TILE_SIZE;
+            const int last = first + UNICHROM_SMOOTH_TILE_SIZE < length ?
+                first + UNICHROM_SMOOTH_TILE_SIZE : length;
+            const size_t base = (size_t)batch * length;
+#pragma omp simd
+            for (int i = first; i < last; i++) {
+                const float i1 = scratch[base + i];
+                const float i2 = scratch[base + loinds[i]];
+                const float i3 = scratch[base + upinds[i]];
+                const float newval = expf((i1 + i2 + i3) / 3.0f) - floor;
+                data[base + i] = newval > 0 ? newval : 0;
+            }
+        }
+    }
 }

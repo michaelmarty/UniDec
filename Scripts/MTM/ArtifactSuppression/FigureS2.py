@@ -83,14 +83,17 @@ for column, mass in enumerate(masses):
     axes[0, column].plot(
         top_1_mass_datasets[column][:, 0] / 1000,
         normalize(top_1_mass_datasets[column]),
+        color="darkblue",
     )
     axes[1, column].plot(
         top_2_mass_datasets[column][:, 0] / 1000,
         normalize(top_2_mass_datasets[column]),
+        color="darkblue",
     )
     axes[2, column].plot(
         satellite_1_mass_datasets[column][:, 0] / 1000,
         normalize(satellite_1_mass_datasets[column]),
+        color="darkblue",
     )
 
     axes[0, column].set_title(f'{mass / 1000:g} kDa')

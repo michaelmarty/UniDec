@@ -329,7 +329,7 @@ class MyFileDropTarget(wx.FileDropTarget):
             if os.path.splitext(fname)[1] == ".raw" and os.path.isdir(path):
                 print("Opening .raw file:", fname)
                 self.window.pres.on_raw_open(0, path)
-            elif fname[-9:] == "_conf.dat":
+            elif fname == "conf.dat" or fname.endswith("_conf.dat"):
                 print("Importing Configuration File:", path)
                 self.window.pres.import_config(path)
             elif os.path.splitext(fname)[1] == ".zip":

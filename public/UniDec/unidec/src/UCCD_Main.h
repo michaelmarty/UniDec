@@ -30,7 +30,8 @@
  * charge contiguous.
  */
 
-void blur_it_UCCD(float *output, const float *input, const int *upinds,
+/* Updates data in place; scratch must be a distinct length-element buffer. */
+void blur_it_UCCD(float *data, float *scratch, const int *upinds,
                   const int *loinds, int length, float floor);
 
 void setup_blur_z_UCCD(int *zupind, int *zloind, const float *mzdat,

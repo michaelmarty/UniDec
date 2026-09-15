@@ -117,18 +117,18 @@ for column, datasets in enumerate(
         top_05_data,
         satellite_1_data,
     ) = datasets
-    axes[0, column].plot(spectrum[:, 0], normalize(spectrum))
+    axes[0, column].plot(spectrum[:, 0], normalize(spectrum), color="darkblue")
     axes[1, column].plot(
-        default_data[:, 0] / 1000, normalize(default_data)
+        default_data[:, 0] / 1000, normalize(default_data), color="darkblue"
     )
     axes[2, column].plot(
-        top_01_data[:, 0] / 1000, normalize(top_01_data)
+        top_01_data[:, 0] / 1000, normalize(top_01_data), color="darkblue"
     )
     axes[3, column].plot(
-        top_05_data[:, 0] / 1000, normalize(top_05_data)
+        top_05_data[:, 0] / 1000, normalize(top_05_data), color="darkblue"
     )
     axes[4, column].plot(
-        satellite_1_data[:, 0] / 1000, normalize(satellite_1_data)
+        satellite_1_data[:, 0] / 1000, normalize(satellite_1_data), color="darkblue"
     )
 
     axes[0, column].set_title(f'{mass / 1000:g} kDa')

@@ -192,6 +192,8 @@ struct Config {
     int imflag;
     //IM Parameters
     float dtsig;
+    int UClineardecon;
+    int UCtype;
     float csig;
     float ccsub;
     float ccslb;
@@ -292,6 +294,8 @@ class Config(ctypes.Structure):
         ("filetype", ctypes.c_int),
         ("imflag", ctypes.c_int),
         ("dtsig", ctypes.c_float),
+        ("UClineardecon", ctypes.c_int),
+        ("UCtype", ctypes.c_int),
         ("csig", ctypes.c_float),
         ("ccsub", ctypes.c_float),
         ("ccslb", ctypes.c_float),

@@ -1,6 +1,129 @@
 # UniChrom performance investigation and implementation handoff
 
-Updated 2026-09-08 after implementing and validating charge-summed 2-D FFTs.
+## Reassessment after charge-smoothing tiling (2026-09-11)
+
+Recommendation: retain the current solver and move from open-ended optimization
+to validation plus at most two bounded performance experiments. The current
+implementation is near a sensible stopping point for this SEC workload, but
+the evidence does not establish a hardware or algorithmic speed limit. The
+historical priorities below are an experiment archive; this assessment takes
+precedence when selecting new work.
+
+The latest unprofiled native-command medians are 1.305 s positive width and
+0.979 s zero width. Reaching 1.25 times that baseline would require about
+0.081 s more saving, or 6.2% of current positive time. Charge smoothing still
+takes about 0.612 s: reducing it another 13% could theoretically close that
+gap if other costs stayed constant. This is headroom arithmetic, not a forecast.
+The last exact change saved only about 0.047 s of process time. Large additional
+speedups have no demonstrated low-risk route under the existing numerical rules.
+
+### Work worth doing before declaring completion
+
+1. Preserve a small reproducible benchmark runner and measure the actual GUI
+   consumer workflow on current sources, including required grid generation and
+   import. The latest 1.33 ratio came from `-decon` alone; it is not the earlier
+   matched `-decon` plus `-grids` comparison. Record build identity, input and
+   settings, iteration counts, first-run latency and warmed distributions. Do
+   not compare different widths or historical machine-load conditions as if
+   they were one experiment. Add a second representative real chromatogram.
+2. Add durable coverage that actually enters the tiled smoother: multiple scans
+   with more than 65,536 cells per scan, a partial final tile and neighbor reads
+   across tiles, tested with positive charge and mass smoothing together and
+   more than one worker count. The current 39 oracle configurations use small
+   grids and exercise the per-scan fallback; the SEC comparison is currently
+   the main evidence for the tiled branch. Keep singleton and negative-floor
+   coverage as separate cases.
+3. Treat sparse-mask correctness as partially established. Sparse/dense native
+   equality rules out the static-list optimization as the cause of the observed
+   discrepancy. It does not prove independent correctness where whole m/z rows
+   have no allowed charge. Reconstructing observations from masked initialization
+   loses those rows; the attempted broad-mask reconstruction also failed.
+   Resolve that reference/numerical-conditioning case before claiming universal
+   sparse equivalence. No production change is justified by that discrepancy yet.
+
+### Remaining performance candidates, in order
+
+| Candidate | Why it remains useful | Limit / decision rule |
+| --- | --- | --- |
+| Sweep existing worker settings (1, 2, 4, 8 where supported) | Lowest implementation cost; current conclusions use four workers, while scan count, tiles and small FFTs may scale differently | Measure total latency and memory on both real workloads; do not infer a universal default from one machine |
+| Fuse pre-forward cleanup with charge projection | Removes a cube traversal and parallel-region boundary while retaining the exact cleanup point | The combined cleanup/projection/extension phase was about 0.119 s before tiling; only part is removable. Preserve stored zeros, finiteness checks, charge summation order and sparse/dense branches |
+| Further smoothing tuning | Largest remaining phase; bounded tile-size or scheduling tests may help a different scan/worker shape | Optional only after the worker sweep; retain SIMD loops and the log/gather barrier. Do not keep a tuning framework or another arithmetic implementation for noise-level gains |
+
+Do not prioritize an HDF5 handoff rewrite: preprocessing, merge and output
+writes together were roughly 0.013 s, and only a fraction is avoidable. Output
+reconvolution was about 0.100 s including about 0.064 s of transforms; even a
+large percentage improvement saves little absolute time. Iteration FFTs were
+about 0.128 s combined. Direct/hybrid convolution remains a conditional option
+for a demonstrably FFT-dominated workload, with the current padded forward and
+folded adjoint preserved. The earlier direct experiment failed scientific
+acceptance, so it should not be revived merely to reach a timing ratio.
+
+Compressed latent storage, GPU execution, reduced precision, relaxed log/exp
+math, fewer iterations and altered kernel tails are deferred. These require
+substantial complexity or a changed accuracy contract. Reconsider them only if
+larger real datasets expose unacceptable latency or memory use. UCCD remains a
+separate workload, not an automatic continuation of this HDF5 effort.
+
+Stop after the validation work and bounded experiments if no repeatable,
+practically useful gain remains. A reasonable proposed retention gate is at
+least 3% end-to-end improvement for an added mechanism, above run-to-run noise,
+with numerical equivalence and no material regression on the second workload.
+The 1.25 ratio is a planning target, not a reason to accumulate complexity:
+positive width performs a different coupled solve. If about 1.3 s and 129 MB
+are acceptable in the actual workflow, the present architecture is a good
+place to stop.
+
+### Validation and bounded experiments completed (2026-09-14)
+
+The completed benchmark used fresh temporary input copies and measured the
+full GUI consumer path: configuration export, coupled native solve, per-scan
+HDF5 import, grid refresh, peak picking/import and peak-object construction.
+It recorded first and warmed runs, iteration counts, phase distributions and
+peak native working set on Windows.
+
+The worker sweep used unprofiled executable SHA-256
+`0c43a9d7b5b18488f688514ab869834116a9b8a28b8ba87cac9afd49bf121a62`,
+50 iterations, one first run and five warmed runs per point. Times below are
+warmed medians in seconds; memory is the median peak native working set.
+
+| Input | Workers | Full GUI consumer path | Coupled native solve | Peak MiB |
+| --- | ---: | ---: | ---: | ---: |
+| Bispecific, 10 scans, 16,230 m/z, 50 charges | 1 | 3.631 | 3.351 | 128.9 |
+|  | 2 | 2.070 | 1.885 | 129.0 |
+|  | 4 | 1.468 | 1.291 | 129.3 |
+|  | 8 | **1.342** | **1.106** | 129.5 |
+| Herceptin, 21 scans, 6,760 m/z, 50 charges | 1 | 3.252 | 3.006 | 154.9 |
+|  | 2 | 1.938 | 1.714 | 155.0 |
+|  | 4 | 1.361 | 1.124 | 155.2 |
+|  | 8 | **1.147** | **0.897** | 155.4 |
+
+Eight workers was fastest for both fixtures on this machine. This is a local
+tuning result, so no application-wide default was changed. At eight workers,
+the warmed `-grids` refresh took about 0.049--0.083 s and the Python work around
+the solve and peak refresh added about 0.21--0.24 s. First full-path runs ranged
+from 1.29 to 4.18 s across the sweep and were retained separately rather than
+mixed into the warmed distributions.
+
+The native oracle now includes a dedicated two-scan case whose merged grid has
+65,540 m/z/charge cells per scan. It therefore enters the tiled positive-floor
+smoother, leaves a partial second tile, and makes mass-neighbor reads across the
+tile boundary. Positive charge and mass smoothing run together. Results match
+the independent full-cube reference at one and four workers, and the two native
+worker results are bit-for-bit identical. Existing singleton and negative-floor
+cases remain separate.
+
+The cleanup/projection fusion was implemented, built and tested, then rejected.
+All native oracle tests passed, but seven alternating fresh-copy runs at eight
+workers improved the full GUI path only 1.95% on Bispecific and 1.40% on
+Herceptin. Native solve medians improved 0.44% and 2.94%; peak memory was
+unchanged. This misses the 3% end-to-end gate on both workloads, so the fused
+implementation was removed. These results support stopping performance work on
+the current solver until a materially slower workload or changed accuracy
+contract justifies another experiment.
+
+## Implementation history
+
+Updated 2026-09-09 after implementing and validating charge-summed 2-D FFTs.
 This is the remaining-work handoff; the completed reduction is no longer an
 implementation task. The measurements below come from that implementation
 session. This document update runs no application code, builds or benchmarks.
@@ -51,9 +174,9 @@ without phase data and kernel-support measurements it would add a second
 numerical path prematurely; the reduced FFT remains the measured default.
 Enable the phase diagnostics in a configured build with
 `-DUNIDEC_PROFILE_UNICHROM=ON`; the option defines `UNICHROM_PROFILE` only for
-the native executable. The sparse list path still needs a dedicated fixture
-with valid positive mass bounds before it can be claimed by durable regression
-coverage; the existing broad-window suite exercises the dense fallback.
+the native executable. The sparse list path now has a dedicated positive-mass-
+window fixture in which every m/z row retains at least one valid charge; the
+existing broad-window suite continues to exercise the dense fallback.
 
 The profiled executable was rebuilt and exercised successfully. On a small
 64-scan/32-charge smoke workload, preprocessing and solve were each only a few
@@ -89,23 +212,255 @@ post-warmup runs versus 0.285 s for the SIMD-only build; that difference is
 within run-to-run noise, but the qualifiers are retained because they are
 semantically valid and cost-free. No further exact gain has yet been shown.
 
-The next exact change removed duplicate work in the positive-floor branch of
-`blur_it_UCCD`: it now computes one sanitized `log(input[i] + floor)` per cell
-into the existing output scratch buffer, then performs the neighbor average and
-exponential in a second SIMD pass. This is algebraically equivalent to the
-previous three-log form for the function's float intermediates and retains the
-same non-finite and nonnegative handling. The profiled `zsig` phase fell from
-about 0.136 s to 0.055 s, and solve time from 0.192 s to 0.110 s. Five fresh
-matched runs measured 0.199 s median end-to-end versus 0.350 s for the prior
-SIMD build (about 43% lower). The native equivalence suite still passes.
+The attempted two-pass positive-floor optimization in `blur_it_UCCD` was
+incorrect and has been reverted. It wrote logarithms into the output scratch
+buffer, then overwrote that buffer with exponentiated results while later cells
+still gathered neighboring values from it. The result mixed log-domain and
+intensity-domain values. The existing native oracle had `zzsig=0`, so it did
+not exercise this path. The initial repair restored the SIMD single-pass
+implementation. A `zzsig=1` native oracle case now covers this dependency.
 
-An attempted durable sparse-mask case using a narrow positive mass window did
-not match the existing oracle, so that fixture was removed pending diagnosis.
-The sparse implementation remains unclaimed by regression coverage; broad
-window cases continue to exercise the dense fallback. Sparse correctness is
-now a follow-up before further sparse tuning.
+On 2026-09-10, safe log caching replaced that repair: the first SIMD pass fills
+the existing scratch buffer with sanitized logarithms, and the second gathers
+from that immutable buffer while writing results directly into the data array.
+This removes two of three logarithm evaluations per cell and the positive-floor
+copy-back, without allocating another cube. Both UniChrom and UCCD callers now
+use this in-place-data contract. The nonpositive-floor branch retains its
+original arithmetic and copies its completed scratch result back internally.
+
+An alternating old/new Release comparison on fresh copies of
+`SEC_Native_Bispecific_Special.hdf5`, using four requested workers, one warmup
+and three measured `-decon` runs per executable, reduced median process time
+from 1.493 s to 1.105 s (26%). The final m/z and mass grids were bit-identical.
+Synthetic negative-charge-smoothing output was also identical; consecutive
+charge/mass smoothing and zero-padding comparisons had relative L2 errors
+below 9.1e-7. These are single-machine measurements. The native oracle now also
+covers negative charge smoothing on a wide m/z grid.
+
+The earlier sparse-mask oracle failure was traced to the fixture rather than
+the sparse implementation. Its wide m/z range contained rows with no valid
+charge, while the oracle reconstructed the observed signal from a masked zero-
+iteration output and therefore lost those rows. Forced sparse and dense native
+paths were bit-identical across the expanded workload matrix. A revised narrow
+positive-mass-window case keeps at least one valid charge in every m/z row and
+now gives durable 3-D oracle coverage of the sparse path.
+
+The mirrored direct-convolution experiment was fast on the synthetic timing
+case but produced unacceptable `dtsig=1` GUI results on representative data.
+It changed kernel truncation, m/z and scan boundary handling, iteration
+normalization, and adjoint edge weighting simultaneously. Attempts to correct
+the reflected-boundary sensitivity did not restore the expected result. The
+experiment, its CMake option, and its special regression were removed; the
+source and installed executable are back on the committed reduced-FFT solver.
+
+On the synthetic GUI command path, the restored FFT build gives a median
+normalized m/z-grid correlation of 0.994 between `dtsig=0` and `dtsig=1`
+(relative L2 about 10.7%). Treat this as a smoke comparison rather than a
+scientific acceptance result.
+
+The scan-boundary fix is now implemented around the validated FFT operator.
+Each side is padded by `ceil(3 * dtsig)` after `dtsig` is converted to internal
+sigma units. Mirrored padding is the default. The internal configuration/HDF5
+attribute `unichromzeropad=1` selects zero-filled padding instead. The forward
+operation
+extends and crops the scan axis; the adjoint center-pads and folds mirrored
+samples back onto their source scans. An `H^T 1` sensitivity correction keeps
+the Richardson-Lucy update normalized at the boundaries. Output reconvolution
+uses the same extension and crop. A first-scan-only regression verifies that
+the last scan remains below 1% of the first, and the numerical oracle covers
+both boundary modes.
+
+The exact reported `SEC_Native_Bispecific_Special.hdf5` file identified the
+charge-smoothing regression above. Its configuration uses `zzsig=1` for 50
+iterations. With the incorrect two-pass smoother, `dtsig=1` ended at a reported
+convergence metric of 8517.46 and its mass grid was effectively unrelated to
+the `dtsig=0` result (median normalized correlation -0.0025). With the restored
+single-pass smoother, convergence is 0.04596; the median normalized correlation
+between `dtsig=0` and `dtsig=1` is 0.993 for the m/z grid and 0.946 for the mass
+grid. These comparisons use copies of the same source file and the GUI's
+`-decon` then `-grids` command sequence.
+
+On the same file after boundary padding, `dtsig=1` uses two padded scans per
+side. Single runs measured 1.522 s for mirrored deconvolution and 1.527 s for
+zero-padded deconvolution, versus 1.101 s for the separate `dtsig=0` command.
+Mirrored and zero-padded outputs are nearly identical away from the boundaries:
+their median normalized correlations exceed 0.9999999 for both m/z and mass;
+the two edge scans have relative differences of about 0.18% in m/z and 1.28%
+in mass. Against `dtsig=0`, mirrored padding retains median correlations of
+0.993 for m/z and 0.944 for mass on this file.
+
+Direct convolution was reconsidered after the padding fix using a profiled
+Release build on `SEC_Native_Bispecific_Special.hdf5`. Three runs put the
+iteration FFT phase at 0.140–0.150 s and output FFT at 0.075–0.077 s, while
+all regularizers together took 0.959–0.964 s of the 1.232–1.245 s solve.
+That timer includes point smoothing and does not isolate charge smoothing.
+Thus, even removing every FFT operation would save at most about 0.22 s on this
+workload, and a real replacement would save less. At three internal sigma the
+Gaussian kernel would use five scan taps and seven m/z taps, but that compact
+stencil would also omit nonzero tails; a full-length exact direct convolution
+would not be competitive. No direct backend was added. Reconsider a separable
+direct-scan/batched-m/z-FFT hybrid only for a representative workload where
+profiling shows convolution, rather than regularization, dominates total time.
 
 ## Scope and objective
+
+### 2026-09-10 command-path audit and post-cache profiling
+
+The Python grid/peak importer calls `MetaUniDec.make_grids()`, which invokes
+`-grids`. Positive `dtsig` previously bypassed command dispatch and reran
+`run_chromatogram` for that request, doing another full solve and skipping the
+normal peak refresh. Native `-grids` dispatch now reuses valid coupled grids
+and executes MetaUniDec's grid/peak path. Missing grids are generated by
+UniChrom once first. Charge extraction modes 6/7 report unsupported coupled
+charge outputs instead of silently generating independent per-scan results.
+Regression coverage checks missing/existing grids, preserved grid values,
+peak generation, and the unsupported charge-extraction path.
+
+An alternating Release A/B on fresh SEC file copies, one warmup and three
+measured command sequences per executable, measured median `-decon` plus
+`-grids` latency of 2.264 s before and 1.326 s after (41% lower).
+Median individual deconvolution times were 1.114/1.111 s and grid-refresh times
+1.103/0.215 s. Medians of components need not sum to the median total.
+Both final grids were bit-identical. These timings use default worker settings
+and include process startup/I/O, but not Python GUI import or rendering.
+
+The profile build now reports point, charge, and mass smoothing separately.
+Three post-cache SEC runs measured charge smoothing at 0.354–0.402 s, point
+smoothing at 0.307–0.354 s, iteration convolution at 0.143–0.160 s, and output
+FFT at 0.082–0.086 s. Mass smoothing was disabled. The aggregate regularizer
+timer still includes softmax and suppression when enabled.
+
+A cell-scheduled two-pass charge smoother was prototyped with an explicit
+barrier between log-cache construction and neighbor reads. Four alternating
+measured runs after warmup changed median process time from 1.135 to 1.122 s
+(about 1%) and charge time from 0.346 to 0.322 s. It passed the small oracle,
+but the SEC comparison exceeded the existing elementwise tolerance (43 of
+162,300 m/z cells; overall relative L2 2.03e-5). This prototype was removed:
+the small timing gain did not justify accepting changed numerical behavior.
+The established scan-parallel log cache remains installed.
+
+Point smoothing now writes from the active cube directly into the existing
+scratch cube and swaps the two pointers. This removes its full-cube input copy
+without changing the rolling-sum order or mask behavior. Matched IntelLLVM/MKL
+Release builds produced bit-identical m/z and mass grids, axes and sums on the
+SEC workload. In five alternating post-warmup runs with default worker settings,
+median `-decon` process time fell from 1.001 s to 0.945 s (5.6%). Three profiled
+runs reduced median point-smoothing CPU time from 0.202 s to 0.161 s (20%) and
+solve time from 0.844 s to 0.798 s. The native 39-case numerical regression and
+focused routing tests pass with the isolated candidate executable.
+
+The positive-width command audit is now complete for the native commands.
+`-proc`, `-extract`, and `-peaks` use their MetaUniDec operations without
+running UniChrom. `-all` runs the coupled solve once and then refreshes merged
+peaks through the existing `-grids` path. `-newgrids` likewise rebuilds the
+coupled grids once before peak refresh. Commands that require unavailable
+charge-resolved per-scan outputs (`-ultraextract`, `-charges`, and `-scanpeaks`)
+return status 12 before doing a solve. The native regression covers processing,
+the single-solve `-all` path, generated grids/peaks, and unsupported commands.
+
+On the SEC workload with `OMP_NUM_THREADS=4`, five post-warmup command runs put
+the corrected `-proc` median at 0.040 s versus 1.340 s for the previous
+full-solve behavior. Corrected `-all` measured 1.583 s versus 1.605 s for
+separate `-decon` and `-grids` processes. The single-process and two-process
+outputs were bit-identical for both grids, both axes, both sums, peak data and
+extracts. Command-specific timings use `OMP_NUM_THREADS` because the native
+`-nthreads` option is accepted only as the primary command.
+
+A matched current-build comparison now measures the complete `-decon` plus
+`-grids` workflow for both widths. With four workers, five post-warmup runs gave
+a 2.032 s positive-width median and 1.728 s zero-width median, a ratio of 1.18.
+The ranges were 1.630-2.422 s and 1.633-1.850 s respectively, so machine load
+was material. Peak working set was stable near 207 MB for positive width and
+62 MB for zero width. The positive run reached its configured 50-iteration cap.
+This workload meets the proposed 1.25-times speed target, while memory remains
+the clearest gap.
+
+VTune on the four-worker positive run attributes 0.591 CPU-s to vectorized
+`logf`, 0.193 CPU-s to vectorized `expf`, and 0.722 CPU-s to OpenMP fork
+barriers across the process. Charge smoothing remains the largest isolated
+regularizer phase, but it already evaluates one log per cell and uses vector
+math. Do not trade exact output for relaxed transcendental math. A future exact
+candidate should target parallel-region overhead or memory only when a broader
+workload misses the accepted target.
+
+The next exact memory pass is complete. Charge, mass, harmonic-suppression and
+point-smoothing tables are now allocated only when their corresponding mode is
+active; the temporary coordinate grids are skipped when both charge and mass
+smoothing are disabled. On the SEC configuration this removes the two inactive
+mass-neighbor tables, about 6.5 MB during the solve and output phases.
+
+Output reconvolution now reuses one FFT plan for batches of at most four charge
+planes instead of allocating all 50 planes together. Relative to the matched
+full-charge batch, peak working set on the SEC workload fell from about 207 MB
+to 127 MB (39%). An eight-plane intermediate measured 134 MB. Five post-warmup
+runs put the isolated output phase at 0.095 s for the full batch, 0.098-0.112 s
+for the eight-plane batches, and 0.103-0.147 s for four planes; the overlapping
+ranges and bimodal process timings do not establish a total-time change. The
+four-plane outputs were bit-identical to the full and eight-plane results for
+both grids, both axes and both sums, including a partial final batch. The native
+expanded numerical and command regression passes. Retain four planes for the
+measured memory reduction; the established per-charge allocation/plan-failure
+fallback remains unchanged.
+
+An unprofiled IntelLLVM/MKL Release build was then measured on seven alternating
+post-warmup SEC runs with four workers. Positive `dtsig` had a 1.353 s median
+(1.333-1.951 s) and 132.8 MB median peak working set; zero width had a 0.988 s
+median (0.924-1.059 s) and 67.2 MB. The 1.37 timing ratio meets the 1.5 interim
+target but not the proposed 1.25 target on this run. Repeated outputs were
+bit-identical within each width, and the unprofiled executable emitted no phase
+diagnostics.
+
+The follow-up allocation and workload matrix also passes. None, charge, mass,
+point, harmonic, and all-regularizer allocation modes were bit-identical to the
+pre-memory-change executable across every output dataset. Narrow and broad
+Gaussian kernels, a broad Lorentzian kernel, dense and sparse masks, an empty
+scan gap, m/z-edge signals, and a scan-edge signal were likewise bit-identical.
+The independent 3-D oracle checked the gap and both boundary-signal cases with
+worst relative L2 error `7.41e-7`.
+
+The optional profile now uses monotonic wall time when OpenMP is available and
+separates setup, every regularizer, projection, forward/ratio/adjoint/update,
+output planning/gather/transform/scatter, mass mapping and HDF5 writes. On the
+SEC fixture's actual positive-width settings (`dtsig=1`, `zsig=1`, `psig=1`,
+10 scans, 50 charges, `rawflag=0`), five post-warmup fixed 50-iteration runs
+with four workers had a 1.296 s median profiled total and 1.327 s median process
+latency. Peak working set was 129.2 MB. Normal positive `numit=50` also executed
+all 50 iterations and measured 1.281 s, so early convergence provides no saving
+for this fixture. A separately rebuilt unprofiled executable measured a 1.314 s
+median (1.275-1.351 s); its outputs were bit-identical to the profiled build and
+it emitted no diagnostics.
+
+Charge smoothing is the next measured bottleneck: its 0.647 s median plus
+0.128 s point smoothing accounts for 0.775 s, or about 69% of the 1.116 s
+solve. Projection took 0.119 s, forward and adjoint transforms 0.065 s and
+0.063 s, and output reconvolution 0.100 s, of which the transforms took
+0.064 s. Setup was 0.039 s; preprocessing, merge, mass mapping and HDF5 output
+were each at or below 0.015 s. Isolated 50-iteration medians were 0.109 s for
+beta, 0.130 s for point smoothing, 0.638 s for charge smoothing, 0.575 s for
+mass smoothing, and 0.121 s for harmonic suppression. The next exact candidate
+should therefore reduce synchronization or cube traffic in the shared charge/
+mass smoothing path while preserving its cached-log arithmetic. Direct
+convolution, output changes and an in-memory HDF5 handoff are lower priorities
+on this workload.
+
+The first charge-smoothing parallel experiment collapsed every scan and cell
+into two whole-cube OpenMP loops. Although numerically exact, it disrupted the
+compiler's efficient per-scan vector-math loop and increased the charge phase
+to about 1.01 s, so it was reverted. The retained implementation instead splits
+each large scan into 65,536-cell tiles, distributes those tiles within one parallel
+region, and keeps the existing SIMD log and neighbor/exp loops inside each
+tile. Single-scan, small-scan and nonpositive-floor calls retain the established
+per-scan helper.
+
+Seven alternating profiled SEC comparisons reduced median charge smoothing
+from 0.667 s to 0.612 s (9%) and profiled process latency from 1.351 s to
+1.302 s (4%). Seven alternating unprofiled runs measured 1.352 s before and
+1.305 s after, a 3.6% end-to-end improvement; the matched zero-width median was
+0.979 s, giving a new positive/zero ratio of 1.33. All output datasets were
+bit-identical across the SEC comparison and the 14-case allocation/kernel/mask/
+gap/boundary matrix. Charge smoothing remains the largest measured phase, but
+future work must retain the vectorized tile loops and justify more complexity
+against this smaller remaining gap.
 
 Bring positive-`dtsig` processing close to the corresponding `dtsig=0` workflow,
 while retaining chromatographic coupling and current numerical/output behavior.
@@ -144,7 +499,7 @@ Validation already performed:
 - 55 old/new cases covering peak shapes, output/normalization modes,
   regularizers individually and together, convergence, and zero-width routing.
   Worst relative L2 difference across compared datasets: `7.15e-7`.
-- `tests/test_unichrom_native.py`: 29 configurations checked against the
+- `tests/test_unichrom_native.py`: 39 configurations checked against the
   original 3-D formulation, including singleton scan/charge dimensions,
   zero m/z width, narrow chromatography and masked mass outputs.
 - Existing UniChrom routing and UCCD binary tests passed. Packaged binaries
@@ -154,9 +509,10 @@ Validation already performed:
   pass. The native regression, UniChrom routing test and UCCD binary test pass
   after this change.
 - Point smoothing now allocates `scan_count * numz` scratch sums, runs scans in
-  one OpenMP region, and uses a serial charge-block loop per scan. This avoids
-  sharing `smoothing_sums` and avoids nested parallel regions in UniChrom;
-  other callers retain the original parallel wrapper.
+  one OpenMP region, and uses a serial charge-block loop per scan. It writes
+  directly into the existing scratch cube and swaps cube pointers, avoiding
+  both nested parallel regions and the former full-cube input copy. Other
+  callers retain the original parallel wrapper and in-place contract.
 - Mass output mapping now precomputes one lower-bin index and fraction for each
   m/z/charge cell, then reuses them for every scan. Native output equivalence
   remains within the existing tolerance. A repeat of the synthetic timing
@@ -179,8 +535,8 @@ rawflag=2, datanorm=0, four requested OpenMP workers, one warmup and five
 measured runs with alternating execution order. Each run used a fresh temporary
 HDF5 input. Timings include native process startup and I/O, exclude fixture
 creation and Python import, and are not phase profiles. Effective MKL thread
-count was not separately recorded. No real-data or peak-memory benchmark has
-been completed.
+count was not separately recorded. This synthetic baseline did not include a
+real-data or peak-memory measurement; the later SEC comparison above does.
 
 Compared with the pre-fusion 2-D run, the cleanup fusion and scan-parallel
 smoothing together reduced the latest medians by about 6% without regularizers
@@ -199,11 +555,10 @@ writes merged grids during its command. The observed current/zero ratios
 work; they do not establish the gap for the same user-visible workflow.
 The old/current speedups compare the same positive-width output contract.
 
-The temporary comparison harness and raw timing files were not added to the
-repository; their results are summarized above. Make representative benchmarks
-reproducible before building on these numbers. Reuse the regression source at
-`tests/test_unichrom_native.py`, currently present as a new working-tree file,
-and include it with the implementation when preparing the changes for review.
+The temporary comparison harness, profiler result and raw timing files were not
+added to the repository; their results are summarized above. Make representative
+benchmarks reproducible before building on these numbers. Extend the existing
+regression source at `tests/test_unichrom_native.py` when changing this path.
 
 ## What the source establishes
 
@@ -214,7 +569,7 @@ and include it with the implementation when preparing the changes for review.
 | Same file, `run_chromatogram` | Each iteration does four Q-cell FFT executions, plus dense charge projection and latent updates. There is no cube-sized ratio broadcast. |
 | Same file, FFT initialization | Plans and kernel spectrum are already reused. Real transforms already exist. Recommending either as a new optimization would miss the actual opportunity. Plans use `FFTW_ESTIMATE`; the execution path now applies the available MKL/FFTW thread configuration around the reduced plans. |
 | Same file, allocation/update loops | `blur`, `scratch`, `oldblur` still scale with the cube; FFT buffers scale with the measured grid. Pre-forward cleanup remains a full cube pass; post-adjoint correction now fuses cleanup into multiplication. Copies, smoothing and reductions still traverse the cube. |
-| Same file, output reconvolution | For rawflag 0/2, charge planes are copied into contiguous temporary batches and transformed with one `plan_many` pair, then scattered back and masked. Allocation/plan failure retains the per-charge fallback. |
+| Same file, output reconvolution | For rawflag 0/2, charge planes are copied into contiguous temporary batches of at most four and transformed with one reused `plan_many` pair, then scattered back and masked. Allocation/plan failure retains the per-charge fallback. |
 | Same file, preprocessing/output | Every call processes all spectra, merges through HDF5, reads the merged arrays back, and eventually writes merged and per-scan mass outputs. These costs can dominate after iteration acceleration. |
 | `unidec/src/MetaUniDec_Main.c` | The zero-width baseline has independent-scan parallel fast deconvolution, conditional on `rawflag > 1`, no manual assignments, no double deconvolution, and available workers. Benchmark the actual branch used. |
 | `unidec/src/UCCD_Main.c` | Sparse binary input is expanded to dense data. Sparse correction builds ratios only at observed nonzero indexes, then clears/scatters into a dense workspace and executes dense FFTs. Sparse I/O is not sparse convolution. |
@@ -256,17 +611,18 @@ Do this before choosing between direct convolution and sparse storage.
    measured zero-width command time. FFT replacement alone is unlikely to
    close this case's gap.
 4. Measure output reconvolution explicitly. For I iterations there are 4I
-   iteration FFT executions and another 2 output FFT executions for rawflag
-   0/2 in the retained batched path. The earlier per-charge path required 2Z;
+   iteration FFT executions and another `2*ceil(Z/min(Z,4))` batched output
+   FFT executions for rawflag 0/2. The earlier per-charge path required 2Z;
    counts alone are not a timing
    breakdown. The retained path uses bounded contiguous packing; compare it
    against separable direct passes if this phase remains significant. Keep the
    per-charge fallback for allocation/plan failure. Do not allocate a full
    cube FFT again by default or parallelize the fallback charge loop using its
    shared mutable FFT workspace.
-5. Two exact traffic/parallel candidates are complete: post-adjoint correction
-   and cleanup are fused, and point smoothing uses one scan-level parallel
-   region with private sums. Reprofile before attempting another pass fusion.
+5. Three exact traffic/parallel candidates are complete: post-adjoint correction
+   and cleanup are fused, point smoothing uses one scan-level parallel region
+   with private sums, and that smoother now writes to the alternate cube instead
+   of copying its input first. Reprofile before attempting another pass fusion.
    Next candidates are precomputing reused regularizer values or reducing
    measured output FFT/gather costs. Concrete correctness constraints are
    listed below. Reprofile after each one.
@@ -292,10 +648,11 @@ one-dimensional passes, not a product stencil with `Kt*Km` work. Width zero
 is an identity pass. Very small positive width is not automatically zero:
 omitting nonzero taps is an approximation even if their effect is tiny.
 
-First construct full-length axis arrays that reproduce `MakeKernel2D` and
-`periodic_scan_peak_UCCD`, including origin/end image contributions. Preserve
-the existing periodic boundaries. Do not substitute a minimum-distance
-Gaussian, zero padding, reflection, or per-edge renormalization. The split
+First construct full-length axis arrays that reproduce the current UniChrom
+sampled kernel, including origin/end image contributions. Preserve periodic
+m/z convolution and the configured mirrored or zero scan extension, crop,
+folded adjoint and sensitivity. Do not revert to the historical unpadded scan
+operator or substitute a minimum-distance Gaussian. The split
 Gaussian/Lorentzian shape is asymmetric; the adjoint uses reversed periodic
 offsets. Derive each axis from its actual helper: charge split-shape orientation
 differs from m/z. Keep normalization explicit and apply it once.
@@ -397,15 +754,18 @@ contexts across simultaneous workers.
   and post-update cleanup are already fused; preserve its allowed-mask,
   finiteness and nonnegative checks, plus the checkpoint schedule and meaning
   of `oldblur` (previous checkpoint, not necessarily previous iteration).
-- `blur_it_UCCD` repeats log evaluations for each neighbor in positive-floor
-  regularization. Consider one log/validity pass followed by neighbor gathers
-  and exp only if this is a measured hotspot; extra scratch traffic may lose.
+- Positive-floor smoothing already caches one sanitized log per cell, then
+  gathers immutable scratch values while writing results into data. UniChrom
+  uses tiles for large multi-scan grids. Preserve the barrier between log
+  generation and neighbor gathers; log caching is completed work.
 - `softargmax` has its own OpenMP loop inside HDF5's scan-parallel call; avoid
   introducing another nested level there. Point smoothing's UniChrom path is
-  now scan-parallel with private sums; keep its other callers unchanged and
-  never reintroduce shared scratch counters under an outer pragma.
-- Allocate inactive z/m regularizer tables only when used. Mass-bin lower
-  indexes and interpolation weights are now precomputed after mass-axis
+  scan-parallel with private sums and swaps its two cube buffers after writing
+  the result; keep its other callers unchanged and never reintroduce shared
+  scratch counters under an outer pragma.
+- Inactive z/m regularizer tables, harmonic charge tables and point-smoothing
+  sums are now allocated only when used. Mass-bin lower indexes and interpolation
+  weights are precomputed after mass-axis
   selection; preserve output summation order and non-finite handling under
   review. Further output work should target measured FFT/gather costs.
 - Measure preprocessing, merger I/O and output writes before changing them.
@@ -510,9 +870,9 @@ For an isolated executable, set `UNIDEC_TEST_EXECUTABLE` to its path and run
 `public/UniDec` using the configured interpreter. Discovery avoids a possible
 collision with an installed package named `tests`. Extend the existing test
 instead of writing a second copy of its 3-D oracle. Its current independent
-oracle disables regularizers; the broader 55-case regularizer comparisons
-were temporary old/new runs, so add durable coverage for regularizers actually
-changed next. The 29 cases are not comprehensive coverage of malformed inputs,
+oracle includes charge and point smoothing; the broader 55-case regularizer
+comparisons were temporary old/new runs, so add durable coverage for other
+regularizers actually changed next. The 39 oracle cases are not comprehensive coverage of malformed inputs,
 all empty/sparse patterns, all thread backends, or real chromatograms.
 
 The final retained source was rebuilt after reverting the `FFTW_MEASURE`
@@ -527,3 +887,46 @@ for each workload, alongside quality and memory. If the target remains out of
 reach, show the measured limiting phase and estimated remaining headroom.
 Stop adding mechanisms when the simplest validated implementation meets the
 target; retain broader-kernel fallback only where results justify it.
+
+## Nonlinear processed-axis mode
+
+Implemented after the FFT optimization work was closed. `UClineardecon=1`
+remains the default and selects the common-grid FFT solver. Setting it to `0`
+keeps each scan's regenerated `processed_data` axis and runs the coupled
+Richardson-Lucy update with an explicit sparse direct forward/adjoint operator.
+The GUI exposes this as **Linearize Before Coupled Deconvolution**, checked by
+default. Missing HDF5 attributes also select the linear path; other values are
+rejected.
+
+The direct operator combines the existing peak-shape function in m/z with the
+existing mirrored or zero-padded chromatographic response. It uses discrete
+processed points, matching nonlinear UniDec's weighting convention. Charge,
+mass, point and suppression regularizers reuse the established UCCD helpers or
+their existing indexing rules. Empty scans keep their positions in the scan
+kernel and produce zero output rows. Only completed results are interpolated to
+common m/z and mass axes for the established HDF5 and GUI import contract.
+
+`UCtype=0` keeps the default interpretation of `dtsig` in scans. `UCtype=1`
+interprets it in retention-time units, forces the nonlinear direct solver and
+builds the temporal response from the strictly increasing `retention_time`
+attribute stored on each spectrum group. The GUI disables linearization while
+time units are selected. Files without `UCtype` retain the scan-based default.
+
+Full 50-iteration comparisons on the two repository examples met the accepted
+0.98 normalized cosine threshold after interpolating results to the linear
+reference axes:
+
+| Example | m/z grid | mass grid | Dominant mass bin |
+| --- | ---: | ---: | --- |
+| SEC Native Herceptin | 0.99933 | 0.99975 | 148222 Da in both modes |
+| SEC Native Bispecific Special | 0.99970 | 0.99972 | 193550/195900 Da in both modes |
+
+These values use `dtsig=1` and Reconvolved/Profile output. Direct-to-linear
+total intensity ratios were 0.99693/0.99690 for Herceptin and 0.99679/0.99080
+(m/z/mass) for Bispecific. Against `dtsig=0`, the linear/direct m/z totals were
+0.99941/0.99634 for Herceptin and 0.99948/0.99627 for Bispecific. The configured
+Smart mass transform gave linear/direct mass totals of 0.99260/0.98952 and
+0.98958/0.98048 relative to `dtsig=0`, respectively. Regression coverage
+also checks unequal axes, output shape and finiteness, regularizers, a zero-width
+m/z response, an empty middle scan, singleton charge, zero padding, HDF5 config
+round trips, default and invalid dispatch, and the UniChrom GUI control.

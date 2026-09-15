@@ -10,7 +10,7 @@ PROTEOME_FASTAS = {
     "Mouse": FASTA_DIR / "mouse.fasta",
 }
 TARGET_MASS_KDA = 35
-MASS_TOLERANCE_KDA = 5
+MASS_TOLERANCE_KDA = 1
 TOP_N = 10
 
 
@@ -95,6 +95,15 @@ def average_olfactory_receptor_methionine(fasta_path):
     )
 
 
+def average_all_protein_methionine(fasta_path):
+    """Return the mean methionine percentage for all proteins."""
+    methionine_percentages = [
+        100 * sequence.count("M") / len(sequence)
+        for _, sequence in read_fasta_records(fasta_path)
+    ]
+    return sum(methionine_percentages) / len(methionine_percentages)
+
+
 def print_top_proteins(proteins, proteome):
     min_mass = TARGET_MASS_KDA - MASS_TOLERANCE_KDA
     max_mass = TARGET_MASS_KDA + MASS_TOLERANCE_KDA
@@ -121,6 +130,11 @@ if __name__ == "__main__":
         print_top_proteins(
             find_methionine_rich_proteins(fasta_path),
             proteome,
+        )
+        average_all_methionine = average_all_protein_methionine(fasta_path)
+        print(
+            f"\nAverage methionine content for all {proteome.lower()} "
+            f"proteins: {average_all_methionine:.2f}%"
         )
         average_methionine, receptor_count = (
             average_olfactory_receptor_methionine(fasta_path)

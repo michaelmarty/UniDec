@@ -205,11 +205,11 @@ panel_labels = [
 ]
 
 for column, (title, spectrum, mass_datasets) in enumerate(column_datasets):
-    axes[0, column].plot(spectrum[:, 0], normalize(spectrum))
+    axes[0, column].plot(spectrum[:, 0], normalize(spectrum), color="darkblue")
     axes[0, column].set_title(title)
     axes[0, column].set_xlabel(r'$\mathit{m/z}$')
     for row, mass_data in enumerate(mass_datasets, start=1):
-        axes[row, column].plot(mass_data[:, 0] / 1000, normalize(mass_data))
+        axes[row, column].plot(mass_data[:, 0] / 1000, normalize(mass_data), color="darkblue")
     axes[-1, column].set_xlabel('Mass (kDa)')
 
     # dominant_mass = mass_datasets[0][np.argmax(mass_datasets[0][:, 1]), 0]

@@ -53,7 +53,8 @@ class PlotBase(object):
             figsize = self.defaultfigsize
         self.figsize = figsize
 
-        if "axes" in kwargs:
+        self._axes_explicit = "axes" in kwargs
+        if self._axes_explicit:
             self._axes = kwargs["axes"]
             del kwargs["axes"]
         else:
