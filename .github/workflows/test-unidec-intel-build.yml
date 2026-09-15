@@ -1,0 +1,66 @@
+name: UniDec IntelLLVM native build
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  windows-intel-build:
+    name: Windows IntelLLVM x64 native build
+    runs-on: windows-latest
+    timeout-minutes: 90
+    env:
+      ONEAPI_WINDOWS_URL: https://registrationcenter-download.intel.com/akdlm/IRC_NAS/bae85ab1-cfcd-4251-8d42-a0c27949ea33/intel-oneapi-toolkit-2026.0.0.193_offline.exe
+      ONEAPI_WINDOWS_COMPONENTS: intel.oneapi.win.cpp-dpcpp-common
+
+    steps:
+      - name: Check out UniDecDev
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install native dependencies with vcpkg
+        shell: pwsh
+        run: |
+          $vcpkgRoot = (Resolve-Path -LiteralPath $env:VCPKG_INSTALLATION_ROOT).Path.Replace('\', '/')
+          & "$vcpkgRoot/vcpkg.exe" install "hdf5[hl]:x64-windows" "fftw3:x64-windows"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $hdf5Libraries = "$vcpkgRoot/installed/x64-windows/lib"
+          if (-not (Get-ChildItem -LiteralPath $hdf5Libraries -Filter '*hdf5*hl*.lib')) {
+            throw "vcpkg did not install the HDF5 high-level library in $hdf5Libraries"
+          }
+          "VCPKG_ROOT_PATH=$vcpkgRoot" >> $env:GITHUB_ENV
+
+      - name: Install Intel oneAPI C compiler
+        shell: cmd
+        run: |
+          curl.exe --fail --location --retry 5 --output "%RUNNER_TEMP%\oneapi.exe" "%ONEAPI_WINDOWS_URL%"
+          start /b /wait "" "%RUNNER_TEMP%\oneapi.exe" -s -x -f "%RUNNER_TEMP%\oneapi-extracted" --log extract.log
+          "%RUNNER_TEMP%\oneapi-extracted\bootstrapper.exe" -s --action install --components=%ONEAPI_WINDOWS_COMPONENTS% --eula=accept -p=NEED_VS2022_INTEGRATION=0 --log-dir=.
+
+      - name: Configure and build with IntelLLVM
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Intel\oneAPI\setvars-vcvarsall.bat" vs2022
+          call "C:\Program Files (x86)\Intel\oneAPI\compiler\latest\env\vars.bat"
+          set "CC=icx-cl"
+          set "CXX=icx-cl"
+          cmake -S public/UniDec/unidec/src -B build/unidec-windows-intel -G Ninja -DCMAKE_BUILD_TYPE=Release -DUNIDEC_REQUIRE_INTELLLVM=ON -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT_PATH%/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows -DHDF5_ROOT=%VCPKG_ROOT_PATH%/installed/x64-windows -DFFTW_ROOT=%VCPKG_ROOT_PATH%/installed/x64-windows
+          cmake --build build/unidec-windows-intel --parallel
+
+      - name: Smoke test IntelLLVM executable
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Intel\oneAPI\setvars-vcvarsall.bat" vs2022
+          call "C:\Program Files (x86)\Intel\oneAPI\compiler\latest\env\vars.bat"
+          set "PATH=%VCPKG_ROOT_PATH%\installed\x64-windows\bin;%PATH%"
+          public\UniDec\unidec\bin\unidec.exe > "%RUNNER_TEMP%\unidec-help.txt" 2>&1
+          if not "%ERRORLEVEL%"=="88" exit /b 1
+          findstr /c:"Universal Deconvolution" "%RUNNER_TEMP%\unidec-help.txt"
+          if not exist public\UniDec\unidec\bin\unideclib.dll exit /b 1

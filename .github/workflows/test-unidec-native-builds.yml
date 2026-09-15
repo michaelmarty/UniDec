@@ -1,0 +1,123 @@
+name: UniDec native builds
+
+on:
+  push:
+    paths:
+      - ".github/workflows/test-unidec-native-builds.yml"
+      - "public/UniDec/build_native.sh"
+      - "public/UniDec/tests/test_native_build.py"
+      - "public/UniDec/unidec/src/**"
+  pull_request:
+    paths:
+      - ".github/workflows/test-unidec-native-builds.yml"
+      - "public/UniDec/build_native.sh"
+      - "public/UniDec/tests/test_native_build.py"
+      - "public/UniDec/unidec/src/**"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  unix-native-builds:
+    name: ${{ matrix.name }} native build
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-latest
+          - name: macOS ARM64
+            os: macos-14
+
+    steps:
+      - name: Check out UniDecDev
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: public/UniDec/pyproject.toml
+
+      - name: Install Linux native dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install --yes libfftw3-dev libhdf5-dev pkg-config
+
+      - name: Install macOS native dependencies
+        if: runner.os == 'macOS'
+        run: |
+          brew untap aws/tap 2>/dev/null || true
+          brew install fftw hdf5 libomp pkg-config
+
+      - name: Build native UniDec
+        working-directory: public/UniDec
+        run: bash ./build_native.sh
+
+      - name: Install UniDec for native tests
+        working-directory: public/UniDec
+        run: python -m pip install -e .
+
+      - name: Run native tests
+        working-directory: public/UniDec
+        run: python -m unittest discover -s tests -p "test_native_build.py" -v
+
+  windows-arm64-build:
+    name: Windows ARM64 native build
+    runs-on: windows-11-arm
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out UniDecDev
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install native dependencies with vcpkg
+        shell: pwsh
+        run: |
+          $vcpkgRoot = (Resolve-Path -LiteralPath $env:VCPKG_INSTALLATION_ROOT).Path.Replace('\', '/')
+          & "$vcpkgRoot/vcpkg.exe" install "hdf5[hl]:arm64-windows" "fftw3:arm64-windows"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $hdf5Libraries = "$vcpkgRoot/installed/arm64-windows/lib"
+          if (-not (Get-ChildItem -LiteralPath $hdf5Libraries -Filter '*hdf5*hl*.lib')) {
+            throw "vcpkg did not install the HDF5 high-level library in $hdf5Libraries"
+          }
+          "VCPKG_ROOT_PATH=$vcpkgRoot" >> $env:GITHUB_ENV
+
+      - name: Configure and build Windows ARM64
+        shell: pwsh
+        run: |
+          cmake -S public/UniDec/unidec/src -B build/unidec-windows-arm64 -G "Visual Studio 17 2022" -A ARM64 `
+            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT_PATH/scripts/buildsystems/vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET=arm64-windows `
+            -DHDF5_ROOT="$env:VCPKG_ROOT_PATH/installed/arm64-windows" `
+            -DFFTW_ROOT="$env:VCPKG_ROOT_PATH/installed/arm64-windows" `
+            -DUNIDEC_ENABLE_OPENMP=OFF
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build build/unidec-windows-arm64 --config Release --parallel
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Smoke test ARM64 executable
+        shell: pwsh
+        run: |
+          $env:PATH = "$env:VCPKG_ROOT_PATH/installed/arm64-windows/bin;$env:PATH"
+          $PSNativeCommandUseErrorActionPreference = $false
+          $output = & public/UniDec/unidec/bin/unidec.exe 2>&1
+          $exitCode = $LASTEXITCODE
+          $text = $output -join "`n"
+          if ($exitCode -ne 88) { throw "UniDec exited with $exitCode instead of 88.`n$text" }
+          if ($text -notmatch 'Universal Deconvolution') { throw 'UniDec help output was not produced.' }
+          if (-not (Test-Path -LiteralPath public/UniDec/unidec/bin/unideclib.dll -PathType Leaf)) {
+            throw 'The ARM64 shared library was not deployed.'
+          }
+          exit 0

@@ -1,0 +1,72 @@
+name: UniDec macOS Intel tests
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  macos-intel-tests:
+    name: macOS Intel native and GUI tests
+    runs-on: macos-15-intel
+    timeout-minutes: 30
+    env:
+      UNIDEC_IMPORTER_TEST_DATA: ${{ github.workspace }}/UniDecImporter/TestData
+      UNIDEC_REQUIRE_IMPORTER_TEST_DATA: "1"
+
+    steps:
+      - name: Check out UniDecDev
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Check out UniDecImporter fixtures
+        uses: actions/checkout@v7
+        with:
+          repository: michaelmarty/UniDecImporter
+          ref: 7e2294d87a29f25c229742b95f39a8a269e556d9
+          path: UniDecImporter
+          lfs: false
+          sparse-checkout: |
+            TestData/IMMS/test_watersimms_txt.txt
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: public/UniDec/pyproject.toml
+
+      - name: Pull IM-MS fixture
+        run: git -C UniDecImporter lfs pull --include="TestData/IMMS/test_watersimms_txt.txt"
+
+      - name: Verify IM-MS fixture
+        run: >-
+          python -c "import os; from pathlib import Path;
+          p = Path(os.environ['UNIDEC_IMPORTER_TEST_DATA']) / 'IMMS' / 'test_watersimms_txt.txt';
+          assert p.is_file(), f'Missing fixture: {p}';
+          assert p.stat().st_size >= 1000000, f'Fixture is still a Git LFS pointer: {p}'"
+
+      - name: Install native dependencies
+        run: |
+          brew untap aws/tap 2>/dev/null || true
+          brew install fftw hdf5 libomp pkg-config
+
+      - name: Build native UniDec
+        working-directory: public/UniDec
+        run: bash ./build_native.sh
+
+      - name: Install UniDec and GUI test dependencies
+        working-directory: public/UniDec
+        run: python -m pip install -e ".[dev]"
+
+      - name: Run GUI and workflow tests
+        working-directory: public/UniDec
+        run: python -m unittest discover -s tests -p "test_*.py" -v
