@@ -152,7 +152,8 @@ class UniDecApp(UniDecPres):
         :return: None
         """
         # tstart =time.perf_counter()
-        self.export_config()
+        if not skipengine:
+            self.export_config()
         # Clear other plots and panels
         self.view.peakpanel.clear_list()
         self.view.clear_all_plots()

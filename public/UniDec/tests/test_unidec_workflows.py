@@ -51,11 +51,8 @@ class TestUniDecWorkflows(unittest.TestCase):
         self.app.on_open_file(spectrum.name, str(spectrum.parent), clean=True)
 
         config = self.app.eng.config
-        config.startz = 5
-        config.endz = 20
-        config.masslb = 10000
-        config.massub = 200000
-        config.mzbins = 1
+        settings = copy_unidec_example(self.tempdir.name, "ADH_unidecfiles", "ADH_conf.dat")
+        config.config_import(str(settings))
         self.app.import_config()
 
         self.app.on_dataprep_button(0)
@@ -68,11 +65,39 @@ class TestUniDecWorkflows(unittest.TestCase):
         self.assertGreater(len(self.app.eng.pks.peaks), 0)
         self.assertTrue(np.isfinite(self.app.eng.data.massdat).all())
 
+        dominant_peak = max(self.app.eng.pks.peaks, key=lambda peak: peak.height)
+        self.assertAlmostEqual(dominant_peak.mass, 148000, delta=250)
+        self.assertGreater(self.app.eng.config.error, 0.95)
+        self.assertEqual(len(self.app.eng.pks.peaks), 3)
+
+        expected_config = {
+            "startz": config.startz,
+            "endz": config.endz,
+            "masslb": config.masslb,
+            "massub": config.massub,
+            "mzbins": config.mzbins,
+        }
+        expected_data2 = self.app.eng.data.data2.copy()
+        expected_massdat = self.app.eng.data.massdat.copy()
+        expected_peak_masses = np.array([peak.mass for peak in self.app.eng.pks.peaks])
+
         state_path = os.path.join(self.tempdir.name, "adh_state.zip")
         self.app.on_save_state(0, state_path)
         self.assertTrue(os.path.isfile(state_path))
+
+        config.startz = 1
+        config.endz = 2
+        self.app.eng.data.data2 = np.array([])
+        self.app.eng.data.massdat = np.array([])
+        self.app.eng.pks.peaks = []
         self.app.on_load_state(0, state_path)
-        self.assertGreater(len(self.app.eng.data.massdat), 0)
+
+        for name, value in expected_config.items():
+            self.assertEqual(getattr(self.app.eng.config, name), value)
+        np.testing.assert_allclose(self.app.eng.data.data2, expected_data2, rtol=1e-6, atol=1e-6)
+        np.testing.assert_allclose(self.app.eng.data.massdat, expected_massdat, rtol=1e-6, atol=1e-6)
+        np.testing.assert_allclose(
+            [peak.mass for peak in self.app.eng.pks.peaks], expected_peak_masses, rtol=0, atol=1e-6)
 
 
 @unittest.skipUnless(has_gui_display(), "wxPython requires a graphical display")

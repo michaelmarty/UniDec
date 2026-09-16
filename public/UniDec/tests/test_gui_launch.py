@@ -53,7 +53,7 @@ class TestMajorWindowLaunches(unittest.TestCase):
         self._assert_window_launches("unidec.Launcher", "UniDecLauncher", launcher_layout=True)
 
     def test_unidec_launches(self):
-        self._assert_window_launches("unidec.GUniDec", "UniDecApp")
+        self._assert_window_launches("unidec.GUniDec", "UniDecApp", has_lazy_workflows=True)
 
     def test_unidec_im_launches(self):
         self._assert_window_launches("unidec.UniDecIM", "UniDecIMApp")
@@ -74,13 +74,16 @@ class TestMajorWindowLaunches(unittest.TestCase):
 
     def _assert_window_launches(self, module_name, class_name, has_full_stack_button=None,
                                 has_suppression_controls=False, launcher_layout=False,
-                                has_chrom_width=None, has_chrom_spectrum_menu=False):
+                                has_chrom_width=None, has_chrom_spectrum_menu=False,
+                                has_lazy_workflows=False):
         """Construct a window in an isolated process without entering its event loop."""
         script = f"""
 import importlib
 import numpy as np
 import os
+import sys
 import tempfile
+import types
 from unittest.mock import Mock, patch
 
 module = importlib.import_module({module_name!r})
@@ -129,6 +132,29 @@ try:
         assert all("UniDec API Shell" not in label for label in labels)
         im_button = next(button for button in buttons if button.GetLabel().startswith("UniDec IM"))
         assert im_button.GetParent().GetSizer().GetItemPosition(im_button) == (5, 1)
+    if {has_lazy_workflows!r}:
+        import unidec
+        import unidec.modules
+
+        assert "unidec.ImportWizard" not in sys.modules
+        wizard_dialog = Mock()
+        wizard_module = types.ModuleType("unidec.ImportWizard")
+        wizard_module.ImportWizard = Mock(return_value=wizard_dialog)
+        with patch.dict(sys.modules, {{"unidec.ImportWizard": wizard_module}}):
+            with patch.object(unidec, "ImportWizard", wizard_module, create=True):
+                app.on_import_wizard()
+        wizard_module.ImportWizard.assert_called_once_with(app.view, dir=app.eng.config.UniDecDir)
+        wizard_dialog.Show.assert_called_once_with()
+
+        assert "unidec.modules.GridDecon" not in sys.modules
+        grid_module = types.ModuleType("unidec.modules.GridDecon")
+        grid_module.GridDeconWindow = Mock()
+        app.eng.data.data2 = np.array([[100.0, 1.0], [101.0, 2.0]])
+        with patch.dict(sys.modules, {{"unidec.modules.GridDecon": grid_module}}):
+            with patch.object(unidec.modules, "GridDecon", grid_module, create=True):
+                app.on_grid_decon(None)
+        grid_module.GridDeconWindow.assert_called_once_with(
+            app.view, app.eng.data.data2, config=app.eng.config)
     if {has_chrom_spectrum_menu!r}:
         assert not hasattr(app.view, "open_ud_button")
         assert not hasattr(app.view, "run_ud_button")
