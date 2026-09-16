@@ -7,8 +7,6 @@ Improvements to IsoDec workflow and training
 
 Highest priority:
 
-Tim Bug Fixes and Feature Suggestions
-
 Profile-mode IsoDec
 
 
@@ -18,7 +16,7 @@ Importer testing for Sciex
 
 Fix Agilent Importer
 
-
+Integrate IsoDec into other GUI elements, like UPP
 
 Someday Maybe:
 

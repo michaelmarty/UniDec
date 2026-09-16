@@ -283,6 +283,10 @@ by comparable panels. If the script is intended for headless automation, set a
 noninteractive Matplotlib backend before importing `pyplot` or allow the runtime
 environment to select one.
 
+## Code Preferences
+
+Avoid using a main() function and parsing arguments. Instead, place the script in a single file and run it directly in an `if __name__ == "__main__":` construction. This makes it easier to inspect the script and run it. Make sure the input and output data are explicitly mapped. Use functions for repeated tasks. You can reuse existing UniDec plotting functions where possible. If it is often reused, consider a shared module.
+
 ## Final review checklist
 
 Before considering a figure complete, inspect both the PDF and PNG and confirm:
