@@ -1,10 +1,17 @@
-import unidec.engine as ud
-import unidec.modules.MassSpecBuilder as msb
+import os
+import sys
+from pathlib import Path
+
 import matplotlib
 import numpy as np
-import os
 
-matplotlib.use('WxAgg')
+UNIDEC_ROOT = Path(__file__).resolve().parents[3] / "public" / "UniDec"
+sys.path.insert(0, str(UNIDEC_ROOT))
+
+import unidec.engine as ud
+import unidec.modules.MassSpecBuilder as msb
+
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 matplotlib.rcParams.update({
@@ -133,7 +140,7 @@ for axis in (axes[0, 1], axes[1, 0], axes[1, 1]):
 
 plot_labels = [
     'Simulated Data',
-    'Default Settings',
+    'Normal Settings',
     'Satellite 1',
     'Satellite 2',
     'Harmonic',

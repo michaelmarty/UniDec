@@ -84,8 +84,8 @@ satellite_grid, satellite_mass_data = run_deconvolution(engine, beta=0, satellit
 # top_grid, top_mass_data = run_deconvolution(engine, beta=0, topn=1)
 
 rows = [
-    ('Raw Data', raw_grid, raw_mass_data),
-    ('Default', default_grid, default_mass_data),
+    ('Exp. Data', raw_grid, raw_mass_data),
+    ('Normal', default_grid, default_mass_data),
     ('Beta 1', beta_grid, beta_mass_data),
     ('Satellite 1', satellite_grid, satellite_mass_data),
     # ('Top 1', top_grid, top_mass_data),
@@ -145,6 +145,24 @@ for row, (label, grid, mass_data) in enumerate(rows):
             ha='right',
             color=label_color,
         )
+
+peak_mass = default_mass_data[np.argmax(default_mass_data[:, 1]), 0] / 1000
+bar_y = 80
+peak_gap = 5
+axes[0, 1].hlines(
+    [bar_y, bar_y],
+    [700, peak_mass + peak_gap],
+    [peak_mass - peak_gap, 875],
+    color='red',
+    linewidth=3,
+)
+axes[1, 1].hlines(
+    [bar_y, bar_y],
+    [peak_mass - 40, peak_mass + peak_gap],
+    [peak_mass - peak_gap, peak_mass + 40],
+    color='red',
+    linewidth=3,
+)
 
 for axis in axes[:-1].flat:
     axis.set_xlabel('')

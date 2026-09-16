@@ -1,11 +1,17 @@
 import os
+import sys
+from pathlib import Path
 
 import matplotlib
 import numpy as np
+
+UNIDEC_ROOT = Path(__file__).resolve().parents[3] / "public" / "UniDec"
+sys.path.insert(0, str(UNIDEC_ROOT))
+
 import unidec.engine as ud
 import unidec.modules.MassSpecBuilder as msb
 
-matplotlib.use('WxAgg')
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 matplotlib.rcParams.update({
@@ -137,7 +143,7 @@ for column, datasets in enumerate(
 
 row_labels = [
     'Data',
-    'Default',
+    'Normal',
     'Top 0.1',
     'Top 0.5',
     'Satellite 1',
