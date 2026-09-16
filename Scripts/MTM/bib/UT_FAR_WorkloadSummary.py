@@ -5,12 +5,11 @@ from pathlib import Path
 
 import pandas as pd
 from pybliometrics import scopus
-from pybliometrics.scopus.exception import Scopus401Error
 
 
 AUTHOR_ID = "9-s2.0-53984653400"
 SCOPUS_API_KEY = "07070f5eff2d979e7792ebcc2096daf6"
-# SCOPUS_API_KEY = "2e5e53fcc1fd031f5399bc9c57860d0a"
+SCOPUS_API_KEY = "2e5e53fcc1fd031f5399bc9c57860d0a"
 JOURNAL_EXPORT_PATH = Path(__file__).with_name("UT_FAR_Journals_for_JCR.xlsx")
 JIF_DATABASE_PATH = Path(__file__).with_name("JIF.xlsx")
 WORKLOAD_EXPORT_PATH = Path(__file__).with_name("UT_FAR_WorkloadSummary2.xlsx")
@@ -23,7 +22,7 @@ def get_publications(author_id: str, refresh: bool | int = True) -> pd.DataFrame
     author = scopus.AuthorRetrieval(scopus_author_id)
     try:
         documents = author.get_documents(refresh=refresh) or []
-    except Scopus401Error as error:
+    except Exception as error:
         raise RuntimeError(
             "Scopus rejected SCOPUS_API_KEY. Replace it with an active key from "
             "https://dev.elsevier.com/apikey/manage."
@@ -79,7 +78,7 @@ def export_workload_summary(
     journals: pd.DataFrame,
     output_path: Path = WORKLOAD_EXPORT_PATH,
 ) -> pd.DataFrame:
-    """Export publication details enriched with the available journal JIFs."""
+    """Export publication details, journal JIFs, and academic-year counts."""
     workload = publications.copy()
     journal_jifs = _build_jif_lookup_from_dataframe(journals)
     workload["2025 JIF"] = workload.apply(
@@ -90,11 +89,36 @@ def export_workload_summary(
     workload.insert(
         1, "Publication Year", publication_dates.dt.year.astype("Int64")
     )
+    academic_years = publication_dates.dt.year.where(
+        publication_dates.dt.month >= 8, publication_dates.dt.year - 1
+    )
+    summary_data = pd.DataFrame(
+        {
+            "Academic Year": academic_years,
+            "JIF": pd.to_numeric(workload["2025 JIF"], errors="coerce"),
+        }
+    ).dropna(subset=["Academic Year"])
+    summary_data["Academic Year"] = (
+        summary_data["Academic Year"].astype(int).astype(str)
+        + "-"
+        + (summary_data["Academic Year"].astype(int) + 1).astype(str)
+    )
+    academic_year_summary = summary_data.groupby("Academic Year", sort=True)[
+        "JIF"
+    ].agg(
+        **{
+            "Publications with JIF >= 10": lambda values: values.ge(10).sum(),
+            "Publications with JIF < 10": lambda values: values.lt(10).sum(),
+        }
+    ).reset_index()
 
     temporary_path = output_path.with_name(f"{output_path.stem}.tmp.xlsx")
     with pd.ExcelWriter(temporary_path, engine="openpyxl") as writer:
         workload.to_excel(writer, sheet_name="Publications", index=False)
         journals.to_excel(writer, sheet_name="Journals", index=False)
+        academic_year_summary.to_excel(
+            writer, sheet_name="Academic Year Summary", index=False
+        )
         for sheet in writer.book.worksheets:
             sheet.freeze_panes = "A2"
             sheet.auto_filter.ref = sheet.dimensions
