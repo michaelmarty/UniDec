@@ -715,9 +715,9 @@ class UniDecConfig(object):
         :param name: File name to write to.
         :return: None
         """
+        self.numz = self.endz - self.startz + 1
         self.get_dict()
 
-        self.numz = self.endz - self.startz + 1
         f = open(name, 'w+')
         ignorelist = ["mfile", "manualfile", "smashfile", "ofile", "matchfile", "peaksfile", "kernel"]
         for key in self.namedict.keys():
