@@ -8,7 +8,7 @@ import numpy as np
 UNIDEC_ROOT = Path(__file__).resolve().parents[3] / "public" / "UniDec"
 sys.path.insert(0, str(UNIDEC_ROOT))
 
-from unidec.modules import CDEng
+import unidec.engine as ud
 
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
@@ -18,158 +18,256 @@ matplotlib.rcParams.update({
     'font.size': 11,
 })
 
+POPC_DATA_FILE = (
+    r"POPC_Nanodiscs.txt"
+)
+GROEL_DATA_FILE = (
+    r"GroEL_SID1.RAW"
+)
 FIGURE_DIR = (
     r"C:\Users\mm96978\The University of Texas at Austin"
     r"\MartyLab - General\Papers\Artifact Suppression\Figures"
 )
-DATA_FILE = os.path.join(FIGURE_DIR, "GroEL_CDMS_1.RAW")
 
-# Analysis settings from GroEL_CDMS_1_unidecfiles/conf.dat.
-GROEL_CDMS_CONFIG = {
-    'startz': 50,
-    'endz': 85,
-    'mzsig': 5.0,
-    'psfun': 2,
-    'psfunz': 2,
-    'masslb': 600000.0,
-    'massub': 1000000.0,
-    'massbins': 10.0,
-    'minmz': 10000,
-    'maxmz': 12500,
-    'mzbins':10,
-    'psig':1,
+os.chdir(FIGURE_DIR)
+
+GROEL_CONFIG = {
+    'endz': 60,
+    'minmz': 990,
+    'maxmz': 35500,
+    'molig': 0,
+    'msig': 0,
+    'psig': 1,
+    'mzsig': 25,
+    'masslb': 1000,
+    'massub': 1000000,
+    'massbins': 10,
+    'subbuff': 0,
 }
 
+groel_monomer_mass = 57300.0
+groel_masses = groel_monomer_mass * np.arange(1, 15)
 
 def normalize(data):
-    maximum = np.max(data)
+    """Normalize the intensity column to a maximum of 100."""
+    maximum = np.max(data[:, 1])
     if maximum == 0:
-        return np.zeros_like(data)
-    return data / maximum * 100
+        return np.zeros_like(data[:, 1])
+    return data[:, 1] / maximum * 100
 
 
-def apply_config(engine):
-    for option, value in GROEL_CDMS_CONFIG.items():
-        setattr(engine.config, option, value)
+def clean_axes(axis):
+    axis.spines['top'].set_visible(False)
+    axis.spines['right'].set_visible(False)
+    axis.set_ylim(0, 100)
+    axis.set_yticks([0, 50, 100], labels=['0', '%', '100'])
 
 
-def run_deconvolution(engine, beta=0, topx=0, topn=0, satellite=0):
-    engine.config.beta = beta
-    engine.config.suppression_topx = topx
-    engine.config.suppression_topn = topn
-    engine.config.suppression_satellite = satellite
-    engine.run_deconvolution()
-    return engine.harray.copy(), engine.data.massdat.copy()
+def label_most_intense_charge(axis, spectrum, mass):
+    normalized_intensity = normalize(spectrum)
+    peak_index = np.argmax(spectrum[:, 1])
+    peak_mz = spectrum[peak_index, 0]
+    charge = int(round(mass / (peak_mz - 1.00727647)))
+    axis.annotate(
+        f'{charge}+',
+        (peak_mz, normalized_intensity[peak_index]),
+        xytext=(-5, -6),
+        textcoords='offset points',
+        ha='right',
+        va='top',
+    )
+
+def mark_groel_oligomers(axis, masses, label=True):
+    labelcolor='goldenrod'
+
+    # Put a label at the top of the axis for each mass
+    for i, mass in enumerate(masses):
+        axis.axvline(
+            x=mass / 1000,
+            color=labelcolor,
+            linestyle='--',
+            linewidth=1,
+            alpha=0.5,
+        )
+        if label:
+            axis.text(
+                mass / 1000,
+                95,
+                f'{i + 1}',
+                rotation=90,
+                verticalalignment='top',
+                horizontalalignment='right',
+                fontsize=8,
+                color=labelcolor,
+            )
+
+def run_deconvolution(file_path, sat=0, topx=0, topn=0):
+    eng = ud.UniDec()
+    eng.open_file(file_path, refresh=True)
+    eng.config.suppression_satellite = sat
+    eng.config.suppression_harmonic = 0
+    eng.config.suppression_topn = topn
+    eng.config.suppression_topx = topx
+    eng.config.beta = 0
+    eng.config.minmz = 8000
+    eng.config.maxmz = 13000
+    eng.config.molig = 760
+    eng.config.msig=1
+    eng.config.psig=1
+    eng.config.mzsig = 6
+    eng.config.masslb = 90000
+    eng.config.massub = 200000
+    eng.autorun(auto_peak_width=True)
+    return eng.data.data2.copy(), eng.data.massdat.copy()
 
 
-engine = CDEng.UniDecCD()
-engine.open_file(DATA_FILE)
+def run_deconvolution_with_config(file_path, config_options, sat=0, topx=0, topn=0, beta=0):
+    """Run deconvolution with file-specific UniDec configuration values."""
+    eng = ud.UniDec()
+    eng.open_file(file_path, refresh=True)
+    for option, value in config_options.items():
+        if not hasattr(eng.config, option):
+            raise ValueError(f"Unknown UniDec config option: {option}")
+        setattr(eng.config, option, value)
 
-# Keep generated files beside the selected RAW file with names understood by
-# both the installed UniDec 9.0 package and the current development version.
-output_prefix = os.path.splitext(os.path.basename(DATA_FILE))[0]
-engine.config.outfname = os.path.join(engine.config.udir, output_prefix)
-engine.config.default_file_names()
-apply_config(engine)
+    eng.config.suppression_satellite = sat
+    eng.config.suppression_harmonic = 0
+    eng.config.suppression_topn = topn
+    eng.config.suppression_topx = topx
+    eng.config.beta = beta
+    eng.autorun(auto_peak_width=True)
+    return eng.data.data2.copy(), eng.data.massdat.copy()
 
-engine.process_data()
-raw_grid = engine.harray.copy()
-raw_mass_data = engine.data.massdat.copy()
-raw_mz = engine.mz.copy()
-raw_charge = engine.ztab.copy()
 
-default_grid, default_mass_data = run_deconvolution(engine, beta=0)
-beta_grid, beta_mass_data = run_deconvolution(engine, beta=1)
-satellite_grid, satellite_mass_data = run_deconvolution(engine, beta=0, satellite=1)
-# top_grid, top_mass_data = run_deconvolution(engine, beta=0, topn=1)
+popc_spectrum, popc_default_mass_data = run_deconvolution(POPC_DATA_FILE)
+_, popc_top_01_mass_data = run_deconvolution(POPC_DATA_FILE, topx=0.1)
+_, popc_top_05_mass_data = run_deconvolution(POPC_DATA_FILE, topx=0.5)
+_, popc_top_2_mass_data = run_deconvolution(POPC_DATA_FILE, topn=2)
+_, popc_satellite_2_mass_data = run_deconvolution(POPC_DATA_FILE, sat=2)
 
-rows = [
-    ('Exp. Data', raw_grid, raw_mass_data),
-    ('Normal', default_grid, default_mass_data),
-    ('Beta 1', beta_grid, beta_mass_data),
-    ('Satellite 1', satellite_grid, satellite_mass_data),
-    # ('Top 1', top_grid, top_mass_data),
-]
-
-fig, axes = plt.subplots(
-    4,
-    2,
-    figsize=(7, 8),
-    gridspec_kw={'width_ratios': [1.6, 1], 'hspace': 0.3, 'wspace': 0.3},
+groel_spectrum, groel_default_mass_data = run_deconvolution_with_config(
+    GROEL_DATA_FILE, GROEL_CONFIG
+)
+_, groel_top_01_mass_data = run_deconvolution_with_config(
+    GROEL_DATA_FILE, GROEL_CONFIG, topx=0.1
+)
+_, groel_satellite_1_mass_data = run_deconvolution_with_config(
+    GROEL_DATA_FILE, GROEL_CONFIG, sat=1
+)
+_, groel_satellite_2_mass_data = run_deconvolution_with_config(
+    GROEL_DATA_FILE, GROEL_CONFIG, sat=2
+)
+_, groel_beta_50_mass_data = run_deconvolution_with_config(
+    GROEL_DATA_FILE, GROEL_CONFIG, beta=50
 )
 
-for row, (label, grid, mass_data) in enumerate(rows):
-    axis_2d = axes[row, 0]
-    axis_mass = axes[row, 1]
+column_datasets = [
+    (
+        'Nanodiscs',
+        popc_spectrum,
+        [
+            popc_default_mass_data,
+            popc_top_01_mass_data,
+            popc_top_05_mass_data,
+            popc_top_2_mass_data,
+            popc_satellite_2_mass_data,
+        ],
+    ),
+    (
+        'GroEL SID',
+        groel_spectrum,
+        [
+            groel_default_mass_data,
+            groel_top_01_mass_data,
+            groel_satellite_1_mass_data,
+            groel_satellite_2_mass_data,
+            groel_beta_50_mass_data,
+        ],
+    ),
+]
 
-    contour = axis_2d.contourf(
-        raw_mz,
-        raw_charge,
-        normalize(grid),
-        levels=np.linspace(0, 100, 101),
-        cmap=engine.config.cmap,
-    )
-    colorbar = fig.colorbar(contour, ax=axis_2d, ticks=[0, 50, 100])
-    colorbar.ax.set_yticklabels(['0', '%', '100'])
-    axis_2d.set_xlabel(r'$\mathit{m/z}$')
-    axis_2d.set_ylabel('Charge')
+fig = plt.figure(figsize=(6.5, 7))
+outer_grid = fig.add_gridspec(
+    2,
+    1,
+    height_ratios=[1, 5],
+    hspace=0.2,
+)
+spectrum_grid = outer_grid[0].subgridspec(1, 2, wspace=0.25)
+mass_grid = outer_grid[1].subgridspec(5, 2, hspace=0.18, wspace=0.25)
+axes = np.empty((6, 2), dtype=object)
+for column in range(2):
+    axes[0, column] = fig.add_subplot(spectrum_grid[0, column])
+    for row in range(1, 6):
+        axes[row, column] = fig.add_subplot(mass_grid[row - 1, column])
 
-    axis_mass.plot(
-        mass_data[:, 0] / 1000,
-        normalize(mass_data[:, 1]),
-        color="darkblue",
-    )
-    axis_mass.set_xlabel('Mass (kDa)')
-    axis_mass.set_ylim(0, 100)
-    axis_mass.set_yticks([0, 50, 100], labels=['0', '%', '100'])
+panel_labels = [
+    ['Data', 'Data'],
+    ['Normal', 'Normal'],
+    ['Top 0.1', 'Top 0.1'],
+    ['Top 0.5', 'Satellite 1'],
+    ['Top 2', 'Satellite 2'],
+    ['Satellite 2', 'SoftMax 50'],
+]
 
-    for column, axis in enumerate((axis_2d, axis_mass)):
-        label_color = 'white' if column == 0 else 'black'
-        axis.spines['top'].set_visible(False)
-        axis.spines['right'].set_visible(False)
+for column, (title, spectrum, mass_datasets) in enumerate(column_datasets):
+    axes[0, column].plot(spectrum[:, 0], normalize(spectrum), color="darkblue")
+    axes[0, column].set_title(title)
+    axes[0, column].set_xlabel(r'$\mathit{m/z}$')
+    for row, mass_data in enumerate(mass_datasets, start=1):
+        axes[row, column].plot(mass_data[:, 0] / 1000, normalize(mass_data), color="darkblue")
+    axes[-1, column].set_xlabel('Mass (kDa)')
+
+    # dominant_mass = mass_datasets[0][np.argmax(mass_datasets[0][:, 1]), 0]
+    # label_most_intense_charge(axes[0, column], spectrum, dominant_mass)
+
+for row, labels in enumerate(panel_labels):
+    for axis, label in zip(axes[row], labels):
         axis.text(
-            0.03,
             0.95,
-            chr(ord('A') + row * 2 + column),
-            transform=axis.transAxes,
-            va='top',
-            ha='left',
-            color=label_color,
-        )
-        axis.text(
-            0.97,
             0.95,
             label,
             transform=axis.transAxes,
             va='top',
             ha='right',
-            color=label_color,
         )
 
-peak_mass = default_mass_data[np.argmax(default_mass_data[:, 1]), 0] / 1000
-bar_y = 80
-peak_gap = 5
-axes[0, 1].hlines(
-    [bar_y, bar_y],
-    [700, peak_mass + peak_gap],
-    [peak_mass - peak_gap, 875],
-    color='red',
-    linewidth=3,
-)
-axes[1, 1].hlines(
-    [bar_y, bar_y],
-    [peak_mass - 40, peak_mass + peak_gap],
-    [peak_mass - peak_gap, peak_mass + 40],
-    color='red',
-    linewidth=3,
-)
+for panel_index, axis in enumerate(axes.flat):
+    axis.text(
+        0.03,
+        0.95,
+        chr(ord('A') + panel_index),
+        transform=axis.transAxes,
+        va='top',
+        ha='left',
+    )
+    clean_axes(axis)
 
-for axis in axes[:-1].flat:
-    axis.set_xlabel('')
+# Keep the intermediate x axes and tick marks, but show numeric tick labels
+# only on the bottom mass row.
+for axis in axes[1:-1].flat:
     axis.tick_params(axis='x', labelbottom=False)
+    axis.set_yticks([0, 50, 100], labels=['', '%', '100'])
 
-fig.subplots_adjust(left=0.09, right=0.98, bottom=0.07, top=0.98)
+ypos = 20
+for axis in (axes[1, 0], axes[5, 0]):
+    axis.hlines(
+        ypos, 187, 200,
+        color='orange', linewidth=3
+    )
 
-plt.savefig(os.path.join(FIGURE_DIR, 'Figure4.png'), dpi=300)
-plt.savefig(os.path.join(FIGURE_DIR, 'Figure4.pdf'))
+# GroEL mass panels D, F, H, J, and L.
+for axis in axes[1:, 1]:
+    labelflag = False
+    # Turn on label for panel D (row 1, column 1) and turn off for the rest.
+    if axis == axes[1, 1]:
+        labelflag = True
+    mark_groel_oligomers(axis, groel_masses, label=labelflag)
+
+fig.subplots_adjust(left=0.06, right=0.98, bottom=0.07, top=0.96)
+
+os.chdir(FIGURE_DIR)
+plt.savefig('Figure4.png', dpi=300)
+plt.savefig('Figure4.pdf')
+
 plt.show()

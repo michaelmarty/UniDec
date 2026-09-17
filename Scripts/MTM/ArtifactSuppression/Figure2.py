@@ -11,7 +11,7 @@ sys.path.insert(0, str(UNIDEC_ROOT))
 import unidec.engine as ud
 import unidec.modules.MassSpecBuilder as msb
 
-matplotlib.use('TkAgg')
+matplotlib.use('WxAgg')
 import matplotlib.pyplot as plt
 
 matplotlib.rcParams.update({
@@ -29,195 +29,157 @@ def normalize(data):
 
 
 def clean_axes(axis):
-    axis.spines['top'].set_visible(False)
-    axis.spines['right'].set_visible(False)
+    axis.spines["top"].set_visible(False)
+    axis.spines["right"].set_visible(False)
     axis.set_ylim(0, 100)
     axis.set_yticks([0, 50, 100], labels=['0', '%', '100'])
 
 
-def label_most_intense_charge(axis, spectrum, mass):
+def label_primary_charge_states(axis, spectrum, params, charge_states,
+                                relative_threshold=0.1):
     normalized_intensity = normalize(spectrum)
-    peak_index = np.argmax(spectrum[:, 1])
-    peak_mz = spectrum[peak_index, 0]
-    charge = int(round(mass / (peak_mz - 1.00727647)))
-    axis.annotate(
-        f'{charge}+',
-        (peak_mz, normalized_intensity[peak_index]),
-        xytext=(-5, -6),
-        textcoords='offset points',
-        ha='right',
-        va='top',
+    mass, _, charge_center, charge_width, _ = params[0]
+    charge_weights = np.exp(
+        -0.5 * ((charge_states - charge_center) / charge_width) ** 2
     )
+    primary_charges = charge_states[
+        charge_weights >= np.max(charge_weights) * relative_threshold
+    ]
+
+    for charge in primary_charges:
+        mz = (mass + 1.00727647 * charge) / charge
+        peak_index = np.argmin(np.abs(spectrum[:, 0] - mz))
+        axis.annotate(
+            f'{int(charge)}+',
+            (spectrum[peak_index, 0], normalized_intensity[peak_index]),
+            xytext=(0, 3),
+            textcoords='offset points',
+            ha='center',
+            va='bottom',
+        )
 
 
-def run_deconvolution(spectrum, massrange, sat=0, topx=0, psig=10):
+def run_deconvolution(spectrum, massrange=[5000, 50000], sat=0, harm=0, topn=0, topx=0,
+                      baseline_subtraction=0, beta=0, psig=10):
     eng = ud.UniDec()
-    print(massrange)
     eng.pass_data_in(spectrum)
-    eng.config.endz = 100
+    # eng.config.mzsig = 5
     eng.config.psig = psig
-    eng.config.subbuff = 0
+    eng.config.subbuff = baseline_subtraction
     eng.config.masslb = massrange[0]
     eng.config.massub = massrange[1]
     eng.config.suppression_satellite = sat
-    eng.config.suppression_harmonic = 0
-    eng.config.suppression_topn = 0
+    eng.config.suppression_harmonic = harm
+    eng.config.suppression_topn = topn
     eng.config.suppression_topx = topx
-    eng.config.beta = 0
+    eng.config.beta = beta
     eng.autorun(auto_peak_width=True)
 
     return eng.data.massdat
 
-
+# Set noise seed for reproducibility
 np.random.seed(42)
 
-masses = [150000, 600000]
-resolutions = [150, 250]
-spectra = []
-default_mass_datasets = []
-top_05_mass_datasets = []
-top_09_mass_datasets = []
-satellite_2_mass_datasets = []
+# Create a sipmle spectrum with a mass of 20000 and a resolution of 500 plot it
+spectrum, params = msb.simple_spectrum2([20000], resolution=50, psfun=0, baseline=0.03, noise=0.01, zwidth=0.75)
 
-for i, mass in enumerate(masses):
-    spectrum, params = msb.simple_spectrum2(
-        [mass],
-        resolution=resolutions[i],
-        psfun=0,
-        baseline=0.03,
-        noise=0.01,
-        zwidth=1,
-    )
-    spectrum, ztab = spectrum
-    massrange = [mass * 0.25, mass * 2.5]
+spectrum, ztab = spectrum
 
-    spectra.append(spectrum)
-    default_mass_datasets.append(run_deconvolution(spectrum, massrange))
-    top_05_mass_datasets.append(
-        run_deconvolution(spectrum, massrange, topx=0.5)
-    )
-    top_09_mass_datasets.append(
-        run_deconvolution(spectrum, massrange, topx=0.9)
-    )
-    satellite_2_mass_datasets.append(
-        run_deconvolution(spectrum, massrange, sat=2)
-    )
+massdat = run_deconvolution(spectrum)
+massdat_sat = run_deconvolution(spectrum, sat=1)
+massdat_sat2 = run_deconvolution(spectrum, sat=2)
+massdat_harm = run_deconvolution(spectrum, harm=1)
+massdat_harm_sat = run_deconvolution(spectrum, harm=1, sat=1)
+massdat_topn = run_deconvolution(spectrum, topn=1)
+massdat_topn2 = run_deconvolution(spectrum, topn=2)
+massdat_topx005 = run_deconvolution(spectrum, topx=0.05)
+massdat_topx001 = run_deconvolution(spectrum, topx=0.01)
 
-fig = plt.figure(figsize=(6.5, 8))
+fig = plt.figure(figsize=(6.5, 6.5))
+fig.canvas.manager.resize(*map(round, fig.bbox.size))
 outer_grid = fig.add_gridspec(
     2,
     1,
     height_ratios=[1, 4],
-    hspace=0.15,
+    hspace=0.2,
 )
-spectrum_grid = outer_grid[0].subgridspec(1, 2, wspace=0.25)
+top_grid = outer_grid[0].subgridspec(1, 2, wspace=0.25)
 mass_grid = outer_grid[1].subgridspec(4, 2, hspace=0.08, wspace=0.25)
 axes = np.empty((5, 2), dtype=object)
 for column in range(2):
-    axes[0, column] = fig.add_subplot(spectrum_grid[0, column])
+    axes[0, column] = fig.add_subplot(top_grid[0, column])
     for row in range(1, 5):
         axes[row, column] = fig.add_subplot(mass_grid[row - 1, column])
+flat_axes = axes.flat
 
-for column, datasets in enumerate(
-        zip(
-            masses,
-            spectra,
-            default_mass_datasets,
-            top_05_mass_datasets,
-            top_09_mass_datasets,
-            satellite_2_mass_datasets,
-        )
-):
-    (
-        mass,
-        spectrum,
-        default_data,
-        top_05_data,
-        top_09_data,
-        satellite_2_data,
-    ) = datasets
-    axes[0, column].plot(spectrum[:, 0], normalize(spectrum), color="darkblue")
-    axes[1, column].plot(
-        default_data[:, 0] / 1000, normalize(default_data), color="darkblue"
-    )
-    axes[2, column].plot(
-        top_05_data[:, 0] / 1000, normalize(top_05_data), color="darkblue"
-    )
-    axes[3, column].plot(
-        top_09_data[:, 0] / 1000, normalize(top_09_data), color="darkblue"
-    )
-    axes[4, column].plot(
-        satellite_2_data[:, 0] / 1000, normalize(satellite_2_data), color="darkblue"
-    )
+axes[0, 0].plot(spectrum[:, 0], normalize(spectrum), color="darkblue")
+axes[0, 0].set_xlabel(r'$\mathit{m/z}$')
 
-    axes[0, column].set_title(f'{mass / 1000:g} kDa')
 
-    axes[0, column].set_xlabel(r'$\mathit{m/z}$')
-    axes[-1, column].set_xlabel('Mass (kDa)')
-
-row_labels = [
-    'Data',
-    'Normal',
-    'Top 0.5',
-    'Top 0.9',
-    'Satellite 2',
+mass_datasets = [
+    massdat,
+    massdat_sat,
+    massdat_sat2,
+    massdat_harm,
+    massdat_harm_sat,
+    massdat_topn2,
+    massdat_topn,
+    massdat_topx001,
+    massdat_topx005,
 ]
-for row, label in enumerate(row_labels):
-    for axis in axes[row]:
-        axis.text(
-            0.95,
-            0.95,
-            label,
-            transform=axis.transAxes,
-            va='top',
-            ha='right',
-        )
+for axis, data in zip(list(flat_axes)[1:], mass_datasets):
+    axis.plot(data[:, 0] / 1000, normalize(data), color="darkblue")
+    axis.set_ylim(0, 1)
 
-for panel_index, axis in enumerate(axes.flat):
-    axis.text(
-        0.03,
-        0.95,
-        chr(ord('A') + panel_index),
-        transform=axis.transAxes,
-        va='top',
-        ha='left',
-    )
+ypos = 15
+for axis in (axes[0, 1], axes[2, 0], axes[3, 0], axes[4, 0]):
+    axis.hlines(ypos, 16, 19, color='red', linewidth=3)
+    axis.hlines(ypos, 21, 24, color='red', linewidth=3)
+
+for axis in (axes[0, 1], axes[1, 0], axes[1, 1]):
+    axis.hlines(ypos, 38.5, 41.5, color='magenta', linewidth=3)
+
+plot_labels = [
+    'Simulated Data',
+    'Normal Settings',
+    'Satellite 1',
+    'Satellite 2',
+    'Harmonic',
+    'Harmonic + Satellite 1',
+    'Top 2',
+    'Top 1',
+    'Top 0.01',
+    'Top 0.05',
+]
+for panel_index, (axis, label) in enumerate(zip(axes.flat, plot_labels)):
+    axis.text(0.03, 0.95, chr(ord('A') + panel_index),
+              transform=axis.transAxes, va='top', ha='left')
+    axis.text(0.95, 0.95, label, transform=axis.transAxes, va='top', ha='right')
+
+axes[-1, 0].set_xlabel('Mass (kDa)')
+axes[-1, 1].set_xlabel('Mass (kDa)')
+
+for axis in axes.flat:
     clean_axes(axis)
 
 for axis in axes[:, 1:].flat:
     axis.tick_params(axis='y', labelleft=False)
 
+# Panel A retains its m/z tick labels. Hide numeric x labels on the other
+# intermediate mass panels, while preserving their axes and tick marks.
+axes[0, 1].tick_params(axis='x', labelbottom=False)
 for axis in axes[1:-1].flat:
     axis.tick_params(axis='x', labelbottom=False)
     axis.set_yticks([0, 50, 100], labels=['', '%', '100'])
 
-for column, (mass, spectrum) in enumerate(zip(masses, spectra)):
-    label_most_intense_charge(axes[0, column], spectrum, mass)
-
-ypos = 90
-red_bar_panels = [
-    (1, 0),
-    (1, 1),
-    (2, 1),
-]
-for row, column in red_bar_panels:
-    central_mass = masses[column] / 1000
-    axes[row, column].hlines(
-        ypos, central_mass * 0.80, central_mass * 0.98,
-        color='red', linewidth=3
-    )
-    axes[row, column].hlines(
-        ypos, central_mass * 1.02, central_mass * 1.20,
-        color='red', linewidth=3
-    )
+axes[0, 0].set_ylim(0, 100)
+label_primary_charge_states(axes[0, 0], spectrum, params, ztab)
 
 fig.subplots_adjust(left=0.1, right=0.98, bottom=0.08, top=0.96)
 
-os.chdir(
-    r"C:\Users\mm96978\The University of Texas at Austin"
-    r"\MartyLab - General\Papers\Artifact Suppression\Figures"
-)
-plt.savefig('Figure2.png', dpi=300)
-plt.savefig('Figure2.pdf')
+os.chdir(r"C:\Users\mm96978\The University of Texas at Austin\MartyLab - General\Papers\Artifact Suppression\Figures")
+plt.savefig("Figure2.png", dpi=300)
+plt.savefig("Figure2.pdf")
+
 
 plt.show()
