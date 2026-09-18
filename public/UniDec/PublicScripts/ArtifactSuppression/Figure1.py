@@ -152,10 +152,12 @@ def make_figure():
 
     settings = [
         ("Normal", {}),
+        ("Satellite 1", {"satellite": 1}),
+        ("Harmonic", {"harmonic": 1}),
         ("Top 1", {"topn": 1}),
         ("Top 0.05", None),
-        ("Harmonic", {"harmonic": 1}),
-        ("Satellite 1", {"satellite": 1}),
+
+
     ]
     results = [
         run_deconvolution(spectrum, **options) if options is not None else None
@@ -280,7 +282,7 @@ def make_figure():
             result_cmap,
             charge_limits,
         )
-        if index == 1:
+        if index == 3:
             axis.axhspan(
                 9.5,
                 charge_limits[1],
@@ -299,7 +301,7 @@ def make_figure():
                 zorder=1,
             )
 
-        if index == 2:
+        if index == 4:
             axis.axhspan(
                 10.5,
                 charge_limits[1],
@@ -318,7 +320,7 @@ def make_figure():
                 zorder=1,
             )
 
-        if index == 3:
+        if index == 2:
             axis.axhspan(
                 17.5,
                 18.5,
@@ -346,7 +348,7 @@ def make_figure():
                 zorder=1,
             )
 
-        if index == 4:
+        if index == 1:
             axis.axhspan(
                 17.5,
                 16.5,
