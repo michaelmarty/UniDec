@@ -51,7 +51,7 @@ if ($UncommittedChanges) {
 }
 
 if ($PSCmdlet.ShouldProcess("$SubtreePrefix from $Remote/$Branch", "merge remote subtree changes")) {
-    & git subtree merge "--prefix=$SubtreePrefix" $Remote $Branch --rebase
+    & git subtree pull "--prefix=$SubtreePrefix" $Remote $Branch
     if ($LASTEXITCODE -ne 0) {
         throw "Unable to merge $Remote/$Branch into $SubtreePrefix. Resolve any conflicts, commit the merge, and run the script again."
     }
