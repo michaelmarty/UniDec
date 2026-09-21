@@ -10,6 +10,10 @@ on:
       - "unidec/**"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -45,17 +49,16 @@ jobs:
 
     env:
       UNIDEC_IMPORTER_TEST_DATA: ${{ github.workspace }}/UniDecImporter/TestData
-      UNIDEC_REQUIRE_IMPORTER_TEST_DATA: "1"
+      UNIDEC_REQUIRE_IMPORTER_TEST_DATA: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}
 
     steps:
       - name: Check out UniDec
         uses: actions/checkout@v7
         with:
-          lfs: true
           persist-credentials: false
 
       - name: Check out UniDecImporter fixtures
-        if: matrix.gui_tests
+        if: matrix.gui_tests && github.event_name == 'workflow_dispatch'
         uses: actions/checkout@v7
         with:
           repository: michaelmarty/UniDecImporter
@@ -75,11 +78,11 @@ jobs:
           cache-dependency-path: pyproject.toml
 
       - name: Pull IM-MS fixture
-        if: matrix.gui_tests
+        if: matrix.gui_tests && github.event_name == 'workflow_dispatch'
         run: git -C UniDecImporter lfs pull --include="TestData/IMMS/test_watersimms_txt.txt"
 
       - name: Verify IM-MS fixture
-        if: matrix.gui_tests
+        if: matrix.gui_tests && github.event_name == 'workflow_dispatch'
         run: >-
           python -c "import os; from pathlib import Path;
           p = Path(os.environ['UNIDEC_IMPORTER_TEST_DATA']) / 'IMMS' / 'test_watersimms_txt.txt';

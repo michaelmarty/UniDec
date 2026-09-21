@@ -2,6 +2,7 @@ name: UniDec GUI and Python workflow tests
 
 on:
   push:
+    branches: [main]
     paths:
       - ".github/workflows/test-unidec-gui-workflows.yml"
       - "public/UniDec/pyproject.toml"
@@ -35,7 +36,7 @@ jobs:
     timeout-minutes: 30
     env:
       UNIDEC_IMPORTER_TEST_DATA: ${{ github.workspace }}/UniDecImporter/TestData
-      UNIDEC_REQUIRE_IMPORTER_TEST_DATA: "1"
+      UNIDEC_REQUIRE_IMPORTER_TEST_DATA: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}
 
     steps:
       - name: Check out UniDecDev
@@ -44,6 +45,7 @@ jobs:
           persist-credentials: false
 
       - name: Check out UniDecImporter fixtures
+        if: github.event_name == 'workflow_dispatch'
         uses: actions/checkout@v7
         with:
           repository: michaelmarty/UniDecImporter
@@ -63,9 +65,11 @@ jobs:
           cache-dependency-path: public/UniDec/pyproject.toml
 
       - name: Pull IM-MS fixture
+        if: github.event_name == 'workflow_dispatch'
         run: git -C UniDecImporter lfs pull --include="TestData/IMMS/test_watersimms_txt.txt"
 
       - name: Verify IM-MS fixture
+        if: github.event_name == 'workflow_dispatch'
         run: >-
           python -c "import os; from pathlib import Path;
           p = Path(os.environ['UNIDEC_IMPORTER_TEST_DATA']) / 'IMMS' / 'test_watersimms_txt.txt';
