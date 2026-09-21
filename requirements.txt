@@ -24,7 +24,7 @@ pubsub
 pymzml
 isodec>=2.0.1
 pyisogen>=1.0.8
-UniDecImporter>=0.1.0
+UniDecImporter>=1.0.2
 pyparsing
 Pypubsub
 pyteomics
