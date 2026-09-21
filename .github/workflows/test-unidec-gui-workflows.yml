@@ -36,7 +36,7 @@ jobs:
     timeout-minutes: 30
     env:
       UNIDEC_IMPORTER_TEST_DATA: ${{ github.workspace }}/UniDecImporter/TestData
-      UNIDEC_REQUIRE_IMPORTER_TEST_DATA: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}
+      UNIDEC_REQUIRE_IMPORTER_TEST_DATA: "1"
 
     steps:
       - name: Check out UniDecDev
@@ -45,13 +45,11 @@ jobs:
           persist-credentials: false
 
       - name: Check out UniDecImporter fixtures
-        if: github.event_name == 'workflow_dispatch'
         uses: actions/checkout@v7
         with:
           repository: michaelmarty/UniDecImporter
-          ref: 7e2294d87a29f25c229742b95f39a8a269e556d9
+          ref: 5f9be263edb0d148751c2b3916bf4efaffe17fbd
           path: UniDecImporter
-          lfs: false
           sparse-checkout: |
             TestData/IMMS/test_watersimms_txt.txt
           sparse-checkout-cone-mode: false
@@ -64,17 +62,12 @@ jobs:
           cache: pip
           cache-dependency-path: public/UniDec/pyproject.toml
 
-      - name: Pull IM-MS fixture
-        if: github.event_name == 'workflow_dispatch'
-        run: git -C UniDecImporter lfs pull --include="TestData/IMMS/test_watersimms_txt.txt"
-
       - name: Verify IM-MS fixture
-        if: github.event_name == 'workflow_dispatch'
         run: >-
           python -c "import os; from pathlib import Path;
           p = Path(os.environ['UNIDEC_IMPORTER_TEST_DATA']) / 'IMMS' / 'test_watersimms_txt.txt';
           assert p.is_file(), f'Missing fixture: {p}';
-          assert p.stat().st_size >= 1000000, f'Fixture is still a Git LFS pointer: {p}'"
+          assert p.stat().st_size > 0, f'Fixture is empty: {p}'"
 
       - name: Install UniDec and GUI test dependencies
         working-directory: public/UniDec

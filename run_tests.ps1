@@ -33,10 +33,9 @@ Clone it into 'C:\Python\UniDecImporter' or pass -ImporterTestData <TestData pat
 }
 
 $fixture = Join-Path $ImporterTestData "IMMS\test_watersimms_txt.txt"
-if (-not (Test-Path -LiteralPath $fixture -PathType Leaf) -or (Get-Item -LiteralPath $fixture).Length -le 1000000) {
+if (-not (Test-Path -LiteralPath $fixture -PathType Leaf) -or (Get-Item -LiteralPath $fixture).Length -eq 0) {
     throw @"
-The required IM-MS fixture is missing or is still a Git LFS pointer: '$fixture'.
-Run: git -C <UniDecImporter checkout> lfs pull --include="TestData/IMMS/test_watersimms_txt.txt"
+The required IM-MS fixture is missing or empty: '$fixture'.
 "@
 }
 

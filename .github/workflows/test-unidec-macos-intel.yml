@@ -29,9 +29,8 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: michaelmarty/UniDecImporter
-          ref: 7e2294d87a29f25c229742b95f39a8a269e556d9
+          ref: 5f9be263edb0d148751c2b3916bf4efaffe17fbd
           path: UniDecImporter
-          lfs: false
           sparse-checkout: |
             TestData/IMMS/test_watersimms_txt.txt
           sparse-checkout-cone-mode: false
@@ -44,15 +43,12 @@ jobs:
           cache: pip
           cache-dependency-path: public/UniDec/pyproject.toml
 
-      - name: Pull IM-MS fixture
-        run: git -C UniDecImporter lfs pull --include="TestData/IMMS/test_watersimms_txt.txt"
-
       - name: Verify IM-MS fixture
         run: >-
           python -c "import os; from pathlib import Path;
           p = Path(os.environ['UNIDEC_IMPORTER_TEST_DATA']) / 'IMMS' / 'test_watersimms_txt.txt';
           assert p.is_file(), f'Missing fixture: {p}';
-          assert p.stat().st_size >= 1000000, f'Fixture is still a Git LFS pointer: {p}'"
+          assert p.stat().st_size > 0, f'Fixture is empty: {p}'"
 
       - name: Install native dependencies
         run: |
