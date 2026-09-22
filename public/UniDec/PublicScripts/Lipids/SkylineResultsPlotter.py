@@ -42,7 +42,7 @@ DG,17:0-18:1 DG-d5,IS DG(+[2]H5) 17:0_18:1,75,614.57,612.57,11,800824,OC([C@]([2
 DG,17:0-20:3 DG-d5,IS DG(+[2]H5) 17:0_20:3,50,638.57,636.57,10.7,800825,OC([C@]([2H])(OC(CCCCCC/C=C\C/C=C\C/C=C\CCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H]
 DG,17:0-16:1 DG-d5,IS DG(+[2]H5) 16:1_17:0,50,586.54,584.54,10.2,800826,OC([C@]([2H])(OC(CCCCCCC/C=C\CCCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H]
 DG,17:0-14:1 DG-d5,IS DG(+[2]H5) 14:1_17:0,25,558.51,556.51,9,800827,OC([C@]([2H])(OC(CCCCCCC/C=C\CCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H]
-LPA,17:0 Lyso PA-d5, IS LPA 18:1(+[2]H9), 446.3, 444.3, 1.75, 793074, [2H]C([2H])([2H])C([2H])([2H])C([2H])([2H])CCCC/C=C\CCCCCCC(=O)OC[C@H](O)COP([O-])([O-])=O.[Na+]
+LPA,17:0 Lyso PA-d5, IS LPA 18:1(+[2]H9),25,446.3, 444.3, 1.75, 793074, [2H]C([2H])([2H])C([2H])([2H])C([2H])([2H])CCCC/C=C\CCCCCCC(=O)OC[C@H](O)COP([O-])([O-])=O.[Na+]
 LPC,17:0 Lyso PC-d5,IS LPC 17:0(+[2]H5),50,492.38,490.38,3,855679,[O-]P(OCC[N+](C)(C)C)(OC([C@]([2H])(O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
 LPC,19:0 Lyso PC-d5,IS LPC 19:0(+[2]H5),25,520.41,518.41,4,855778,[O-]P(OCC[N+](C)(C)C)(OC([C@]([2H])(O)C(OC(CCCCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
 LPC,15:0 Lyso PC-d5,IS LPC 15:0(+[2]H5),25,464.35,462.35,2,870309,[O-]P(OCC[N+](C)(C)C)(OC([C@]([2H])(O)C(OC(CCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
@@ -58,7 +58,7 @@ LPI,17:0 Lyso PI-d5,IS LPI(+[2]H5) 17:0,50,592.4,590.4,2.3,850108,[2H][C@](O)(C(
 LPS,15:0 Lyso PS-d5,IS LPS(+[2]H5) 15:0,25,489.3,487.3,1.9,858146,[O-]P(OC[C@](C([O-])=O)([H])[NH3+])(OC([C@]([2H])(O)C(OC(CCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
 LPS,19:0 Lyso PS-d5,IS LPS(+[2]H5) 19:0,25,545.4,543.4,3,858147,[O-]P(OC[C@](C([O-])=O)([H])[NH3+])(OC([C@]([2H])(O)C(OC(CCCCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
 LPS,17:0 Lyso PS-d5,IS LPS(+[2]H5) 17:0,50,517.3,515.3,2.3,858148,[O-]P(OC[C@](C([O-])=O)([H])[NH3+])(OC([C@]([2H])(O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
-PA,15:0-18:1 PA-d7,IS PA 15:0_18:1(+[2]H7), 668.5, 666.5, 5.6, 791642, CCCCCCCCCCCCCCC(=O)OC[C@H](COP([O-])([O-])=O)OC(=O)CCCCCCC/C=C\CCCCCC([2H])([2H])C([2H])([2H])C([2H])([2H])[2H]
+PA,15:0-18:1 PA-d7,IS PA 15:0_18:1(+[2]H7),50,668.5, 666.5, 5.6, 791642, CCCCCCCCCCCCCCC(=O)OC[C@H](COP([O-])([O-])=O)OC(=O)CCCCCCC/C=C\CCCCCC([2H])([2H])C([2H])([2H])C([2H])([2H])[2H]
 PC,17:0-22:4 PC-d5,IS PC(+[2]H5) 17:0_22:4,50,829.64,827.64,9.1,855678,[2H][C@](OC(CCCCC/C=C\C/C=C\C/C=C\C/C=C\CCCCC)=O)(C(OP(OCC[N+](C)(C)C)([O-])=O)([2H])[2H])C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H]
 PC,17:0-20:3 PC-d5,IS PC(+[2]H5) 17:0_20:3,100,803.62,801.62,8.9,855680,[O-]P(OCC[N+](C)(C)C)(OC([C@]([2H])(OC(CCCCCC/C=C\C/C=C\C/C=C\CCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
 PC,17:0-18:1 PC-d5,IS PC(+[2]H5) 17:0_18:1,150,779.62,777.62,9.2,855681,[O-]P(OCC[N+](C)(C)C)(OC([C@]([2H])(OC(CCCCCCC/C=C\CCCCCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
@@ -232,6 +232,22 @@ def split_names(df, mol_col="Molecule"):
     df["Second Name"] = secondnames
     return df
 
+
+def filter_transition_mode(df, mode):
+    """Return the transitions used by the requested quantification mode."""
+    if mode == "Products":
+        return df[~df["Fragment Ion"].str.contains("precursor", case=False, na=False)]
+    if mode == "Precursors":
+        return df[df["Fragment Ion"].str.contains("precursor", case=False, na=False)]
+    if mode == "Tails":
+        return df[df["Fragment Ion"].str.startswith("T", na=False)]
+    if mode == "Heads":
+        return df[df["Fragment Ion"].str.startswith("H", na=False)]
+    if mode == "All":
+        return df
+    raise ValueError(f"Unknown transition mode: {mode}")
+
+
 def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=True,
                     conc_col="Concentration (uM)", customisdf="Default"):
     adduct_col="Precursor Adduct" if "Precursor Adduct" in df.columns else "Adduct"
@@ -276,20 +292,7 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
             for r in replicates:
                 mask = (df[mol_col] == m) & (df[rep_col] == r) & (df[adduct_col] == a)
                 subset = df[mask]
-                if mode == "Products":
-                    # Drop any with "precursor" in "Fragment Ion"
-                    subset = subset[~subset["Fragment Ion"].str.contains("precursor", case=False, na=False)]
-                elif mode == "Precursors":
-                    # Keep only those with "precursor" in "Fragment Ion"
-                    subset = subset[subset["Fragment Ion"].str.contains("precursor", case=False, na=False)]
-                elif mode == "Tails":
-                    # Keep only those with "T" at the start of "Fragment Ion"
-                    subset = subset[subset["Fragment Ion"].str.startswith("T", na=False)]
-                elif mode == "Heads":
-                    # Keep only those with "H" at the start of "Fragment Ion"
-                    subset = subset[subset["Fragment Ion"].str.startswith("H", na=False)]
-                elif mode == "All":
-                    pass
+                subset = filter_transition_mode(subset, mode)
 
                 # if m == "IS LPE(+[2]H5) 17:0":
                 #     print(f"DEBUG: Subset for {m} {a} {r}:")
@@ -1044,14 +1047,20 @@ def compare_pipeline(files, set1, set2, mode="Products", drop_IS=True, normalize
                   normalize_TIC=True, norm_tmm=False,
                      paired=True, bh_correction=True, plot_results=True, heatplots=True,
                   piecharts=True, figsavepath=None, heatmap_cutoffs=True, write_output=True, fold_range=1.5,
-                     otherthresh=0.035, set1_name="Set 1", set2_name="Set 2", drop_lipids=[], drop_class=[]):
+                     otherthresh=0.035, set1_name="Set 1", set2_name="Set 2", drop_lipids=[], drop_class=[],
+                     file_modes=None):
+
+    if file_modes is not None and len(file_modes) != len(files):
+        raise ValueError("file_modes must contain one transition mode for each input file")
 
     dfs = []
-    for filepath in files:
+    for i, filepath in enumerate(files):
         df = pd.read_csv(filepath)
         os.chdir(os.path.dirname(filepath))
+        if file_modes is not None:
+            df = filter_transition_mode(df, file_modes[i])
         dfs.append(df)
-    df = pd.concat(dfs)
+    df = pd.concat(dfs, ignore_index=True)
 
 
     if len(drop_lipids) > 0:
@@ -1066,7 +1075,8 @@ def compare_pipeline(files, set1, set2, mode="Products", drop_IS=True, normalize
             df = df[df["Molecule List Name"] != cls]
             print(f"Dropped {len(drop_class)} class from the dataset: {cls}")
 
-    normdf, replicates = sum_transitions(df, mode=mode, drop_IS=drop_IS, normalize_IS=normalize_IS,
+    combined_mode = "All" if file_modes is not None else mode
+    normdf, replicates = sum_transitions(df, mode=combined_mode, drop_IS=drop_IS, normalize_IS=normalize_IS,
                                          normalize_TIC=normalize_TIC)
     if norm_tmm:
         print("TMM Normalization")
@@ -1082,7 +1092,7 @@ def compare_pipeline(files, set1, set2, mode="Products", drop_IS=True, normalize
     if write_output:
         try:
             # Write to two sheets in an Excel file
-            with pd.ExcelWriter(os.path.splitext(filepath)[0] + "_stats.xlsx") as writer:
+            with pd.ExcelWriter(os.path.splitext(files[0])[0] + "_stats.xlsx") as writer:
                 classdf.to_excel(writer, sheet_name="Class Stats", index=False)
                 normdf.to_excel(writer, sheet_name="Molecule Stats", index=False)
                 df.to_excel(writer, sheet_name="Raw Data", index=False)
@@ -1242,13 +1252,13 @@ def lipid_bar_chart_compare(df, classes=["PC"], ax=None, fontsize=8, s1name="Set
 
 
 if __name__ == "__main__":
-    file = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\BB vs DC\Molecule Transition Results3.csv"
-    # file2 = r"Z:\Group Share\Annika\Stellar\FAM\CB2 Discs\Molecule Transition Results Chol.csv"
+    file = r"Z:\Group Share\Annika\Stellar\FAM\B2 Discs\Molecule Transition Results.csv"
+    cholesterol_file = r"Z:\Group Share\Annika\Stellar\FAM\B2 Discs\Cholesterol\Molecule Transition Results_cholesterol.csv"
     # file = r"C:\Users\marty\Downloads\Extr_US_MoleculeTransResults.csv"
 
-    set1 = ["FT DC 1", "FT DC 2", "FT DC 3"]
-    set2 = ["E DC 1", "E DC 2", "E DC 3"]
-    set1 = ["Memb Extr 1", "Memb Extr 2", "Memb Extr 3"]
+    set1 = ["R1 FT2", "R2 FT2", "R3 FT2"]
+    set2 = ["R1 E", "R2 E", "R3 E"]
+
 
     # set1 = ["Memb Extr 1", "Memb Extr 2", "Memb Extr 3"]
     # is_analysis(file)
@@ -1259,7 +1269,8 @@ if __name__ == "__main__":
     #
     # exit()
 
-    normdf, classdf = compare_pipeline([file], set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
+    normdf, classdf = compare_pipeline([file, cholesterol_file], set1, set2, mode="Products",
+                                       file_modes=["Products", "Precursors"], drop_IS=True, normalize_IS=True,
                                        norm_tmm=False,
                   normalize_TIC=True, paired=True, bh_correction=True, plot_results=True, write_output=True,
                      fold_range=np.log2(2), otherthresh=0.03, set1_name="FT", set2_name="E", drop_lipids=[],

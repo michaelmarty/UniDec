@@ -7,10 +7,12 @@ from PublicScripts.Lipids.Lipid_DDA_Dataset_Compare import *
 plt.rcParams.update(
     {
         "font.family": "Arial",
-        "axes.titlesize": 16,
-        "axes.labelsize": 16,
-        "xtick.labelsize": 14,
-        "ytick.labelsize": 14,
+        "font.size": 8,
+        "axes.titlesize": 10,
+        "axes.labelsize": 9,
+        "xtick.labelsize": 8,
+        "ytick.labelsize": 8,
+        "legend.fontsize": 8,
     }
 )
 
@@ -18,7 +20,9 @@ plt.rcParams.update(
 topdir = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\Final Results\DDA Pipeline"
 os.chdir(topdir)
 
-df = pd.read_excel("Combined_DDA_OutlierAnalysis.xlsx", sheet_name="Sheet1")
+# Use the final comparison workbook so accepted IDs are defined directly by
+# Overall Match Status rather than inferred from a prefiltered export.
+df = pd.read_excel("Combined_Fragment_Assignment_Colored.xlsx", sheet_name="Sheet1")
 
 stellar_sm = df[
     (df["Dataset"] == "Stellar")
@@ -103,7 +107,12 @@ overlap_df = overlap_df.drop_duplicates(
     ]
 ).copy()
 
-dataset_display_names = {"Stellarboth": "Stellar (+/-)"}
+dataset_display_names = {
+    "OTOT": "OT/OT",
+    "OTIT": "OT/IT",
+    "ITIT": "IT/IT",
+    "Stellarboth": "Stellar (+/-)",
+}
 overlap_df["Dataset"] = overlap_df["Dataset"].replace(dataset_display_names)
 plot_datasets = [dataset_display_names.get(name, name) for name in datasets]
 
@@ -112,12 +121,20 @@ compare_classes_plot(
     datasets=plot_datasets,
     use_simple_names=False,
     drop_low_quality=False,
-    output_basename="Figure2",
+    output_basename="Figure 2",
+    figure_size=(6.5, 3.61),
+    save_bbox_inches=None,
     overlap_style="venn",
-    class_legend_fontsize=14,
-    class_legend_bbox_to_anchor=(0.98, 0.98),
-    class_legend_loc="upper right",
-    hide_class_top_and_right=True
+    class_legend_fontsize=8,
+    class_legend_bbox_to_anchor=(1.02, 1.0),
+    class_legend_loc="upper left",
+    hide_class_top_and_right=True,
+    rounded_six_set_venn=True,
+    venn_number_fontsize=9,
+    venn_legend_fontsize=8,
+    venn_legend_loc="upper center",
+    venn_legend_bbox_to_anchor=(0.5, -0.03),
+    venn_legend_ncol=2
 )
 
 
