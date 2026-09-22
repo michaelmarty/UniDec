@@ -62,6 +62,23 @@ python -m pytest
 Documentation sources live in `docs/` and are built with MkDocs. Release and
 wheel-building details are in [PUBLISHING.md](PUBLISHING.md).
 
+## Fragment matching
+
+Match deconvolved neutral masses to theoretical protein fragments with a 5 ppm
+default tolerance:
+
+```python
+from isodec import match_fragments
+
+match_fragments(pks, "PEPTIDE", ion_types="by", monoisotopic=True)
+print(pks.fragment_match_percent, pks.sequence_coverage)
+print(pks.fragment_matches)
+```
+
+Each matched peak receives a `sequence_match` annotation such as `"b6"`.
+Pass `allow_duplicate_assignments=True` to retain every valid annotation as a
+list instead of selecting the assignment with the smallest ppm error.
+
 ## License and citation
 
 IsoDec is released under the BSD 3-Clause License. See
@@ -73,7 +90,12 @@ provided in [CITATION.cff](CITATION.cff).
 
 ## Changelog
 
-### 2.0.1 (2026-08-18)
+### 2.0.2
+
+- Added fragmentation matching options.
+- Updated to IsoGen 1.1.1 for ProForma fragment masses and corrected z-ion annotations.
+
+### 2.0.1
 
 - Improved native processing performance with optimized AVX matrix operations,
   linear-time peak detection, faster isotope matching, and reusable work
@@ -83,7 +105,7 @@ provided in [CITATION.cff](CITATION.cff).
 - Added processing-time and matched-peak reporting for native spectrum runs.
 - Added automated MSVC-versus-IntelLLVM performance benchmarking.
 
-### 2.0.0 (2026-08-17)
+### 2.0.0
 
 - Split IsoDec from UniDec into the standalone `isodec` package, with IsoGen as
   a submodule and an independent version and release cycle.

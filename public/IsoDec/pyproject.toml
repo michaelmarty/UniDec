@@ -38,7 +38,7 @@ dependencies = [
     "numba>=0.57; sys_platform != 'darwin' or platform_machine != 'x86_64'",
     "numpy>=1.23",
     "pandas>=2.0",
-    "pyisogen>=1.0.9",
+    "pyisogen>=1.1.1",
     "scipy>=1.9",
 ]
 
@@ -71,6 +71,7 @@ sdist.include = [
     ".gitmodules",
     "extern/IsoGen/LICENSE",
     "extern/IsoGen/src/**",
+    "extern/IsoGen/tests/data/ca_etd_masses.txt",
     "isodec/**",
     "tests/**",
     "docs/**",
