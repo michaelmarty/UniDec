@@ -79,6 +79,12 @@ Each matched peak receives a `sequence_match` annotation such as `"b6"`.
 Pass `allow_duplicate_assignments=True` to retain every valid annotation as a
 list instead of selecting the assignment with the smallest ppm error.
 
+To view matches along a wrapped sequence, run `python tests/show_fragment_matches.py`
+from the IsoDec directory. The demo uses IsoGen's carbonic anhydrase ETD masses.
+For an embedded view, call `plot_fragment_matches(ax, sequence, pks)` from
+`isodec.fragment_view` with an existing Matplotlib axis. Modified residues are
+shown in red.
+
 ## License and citation
 
 IsoDec is released under the BSD 3-Clause License. See
