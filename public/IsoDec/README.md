@@ -83,7 +83,8 @@ To view matches along a wrapped sequence, run `python tests/show_fragment_matche
 from the IsoDec directory. The demo uses IsoGen's carbonic anhydrase ETD masses.
 For an embedded view, call `plot_fragment_matches(ax, sequence, pks)` from
 `isodec.fragment_view` with an existing Matplotlib axis. Modified residues are
-shown in red.
+shown in red. The standalone view is sized for a two-column figure; save the
+returned Matplotlib figure as SVG or PDF for publication.
 
 ## License and citation
 

@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 from matplotlib.figure import Figure
 import isogen
+import pandas as pd
 
 from isodec import match_fragments
 from isodec.fragment_view import plot_fragment_matches
@@ -35,3 +36,18 @@ def test_fragment_view_colors_modified_residue_red():
     assert [(text.get_text(), text.get_color()) for text in letters] == [
         ("S", "#dc2626"), ("H", "black"), ("H", "black"), ("S", "black")
     ]
+
+
+def test_wrapped_z_mark_moves_left_while_c_mark_stays_right():
+    table = pd.DataFrame(index=range(1, 8), columns=["c_match", "z'_match"])
+    table.loc[4] = [1.0, 1.0]
+    pks = SimpleNamespace(fragment_matches=table, sequence_coverage=1 / 7,
+                          fragment_match_percent=100)
+    ax = Figure().subplots()
+
+    plot_fragment_matches(ax, "PEPTIDEK", pks, residues_per_line=4)
+
+    c_line, _, z_line, _ = ax.lines
+    assert tuple(c_line.get_xdata()) == (3.3, 4)
+    assert tuple(z_line.get_xdata()) == (0, 0.7)
+    assert z_line.get_ydata()[0] > c_line.get_ydata()[0]
