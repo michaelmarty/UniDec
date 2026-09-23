@@ -26,9 +26,9 @@ def _fragment_parts(label, sequence_length):
     return ion_type, row
 
 
-def _peak_masses(peak):
+def _peak_masses(peak, match_multiple_monoisotopics=True):
     """Return the usable monoisotopic mass candidates for one peak."""
-    masses = getattr(peak, "monoisos", None)
+    masses = getattr(peak, "monoisos", None) if match_multiple_monoisotopics else None
     if masses is None or len(masses) == 0:
         masses = [getattr(peak, "monoiso", np.nan)]
     return [float(mass) for mass in masses if np.isfinite(mass) and mass > 0]
@@ -41,6 +41,7 @@ def match_fragments(
     monoisotopic=True,
     ppm_tolerance=5,
     allow_duplicate_assignments=False,
+    match_multiple_monoisotopics=True,
     **isogen_kwargs,
 ):
     """Match a sequence's theoretical fragments to an IsoDec peak collection.
@@ -57,6 +58,8 @@ def match_fragments(
         monoisotopic: Use monoisotopic rather than average fragment masses.
         ppm_tolerance: Maximum absolute mass error in ppm.
         allow_duplicate_assignments: Retain every valid label for each peak.
+        match_multiple_monoisotopics: Match against all ``monoisos`` candidates;
+            when false, use only each peak's ``monoiso`` mass.
         **isogen_kwargs: Additional ``calc_pep_fragments`` options, including
             ``fragmentation_type`` and ``ambiguous_rule``.
 
@@ -97,7 +100,7 @@ def match_fragments(
 
     candidates = []
     for peak_index, peak in enumerate(pks.peaks):
-        for observed_mass in _peak_masses(peak):
+        for observed_mass in _peak_masses(peak, match_multiple_monoisotopics):
             for label, theoretical_mass in theoretical.items():
                 ppm_error = abs(observed_mass - theoretical_mass) / theoretical_mass * 1e6
                 if ppm_error <= ppm_tolerance:

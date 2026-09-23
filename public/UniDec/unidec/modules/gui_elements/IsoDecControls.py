@@ -28,7 +28,7 @@ class MainControls(wx.Panel):  # scrolled.ScrolledPanel):
 
         self.runallbutton = wx.Button(self, -1, "Run All", size=wx.Size(250, 25))
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_run_all, self.runallbutton)
-        self.runallbutton.SetToolTip(wx.ToolTip("Run all steps in the deconvolution process."))
+        self.runallbutton.SetToolTip(wx.ToolTip("Run all steps and match the sequence when provided."))
         sizercontrol.Add(self.runallbutton, 0, wx.ALIGN_LEFT | wx.ALL, 5)
 
         size1 = wx.Size(75, -1)
@@ -393,6 +393,32 @@ class MainControls(wx.Panel):  # scrolled.ScrolledPanel):
         self.foldpanels.AddFoldPanelWindow(foldpanel3b, panel3b, fpb.FPB_ALIGN_WIDTH)
         self.foldpanels.AddFoldPanelWindow(foldpanel3b, wx.StaticText(foldpanel3b, -1, " "), fpb.FPB_ALIGN_WIDTH)
 
+        foldpanel4 = self.foldpanels.AddFoldPanel(caption="Sequence Matching", collapsed=True, cbstyle=style1c)
+        panel4 = wx.Panel(foldpanel4, -1)
+        sequence_sizer = wx.BoxSizer(wx.VERTICAL)
+        sequence_sizer.Add(wx.StaticText(panel4, label="Sequence (ProForma):"), 0, wx.BOTTOM, 3)
+        self.ctlsequence = wx.TextCtrl(panel4, style=wx.TE_MULTILINE, size=(235, 85))
+        sequence_sizer.Add(self.ctlsequence, 0, wx.EXPAND | wx.BOTTOM, 6)
+        settings = wx.FlexGridSizer(2, 2, 4, 5)
+        settings.Add(wx.StaticText(panel4, label="Fragmentation:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.ctlfragmentation = wx.ComboBox(
+            panel4, choices=["ETD", "ECD", "HCD", "CID", "EThcD", "SID", "IRMPD",
+                             "BYCZ*", "UVPD", "UVPD4", "UVPD6", "UVPD9"], style=wx.CB_READONLY)
+        self.ctlfragmentation.SetValue("ETD")
+        settings.Add(self.ctlfragmentation, 0, wx.EXPAND)
+        settings.Add(wx.StaticText(panel4, label="Tolerance (ppm):"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.ctlfragmentppm = wx.TextCtrl(panel4, value="5", size=(65, -1))
+        settings.Add(self.ctlfragmentppm)
+        sequence_sizer.Add(settings, 0, wx.BOTTOM, 6)
+        self.ctlmultiplemonoisotopics = wx.CheckBox(panel4, label="Match Multiple Monoisotopics")
+        self.ctlmultiplemonoisotopics.SetValue(True)
+        sequence_sizer.Add(self.ctlmultiplemonoisotopics, 0, wx.BOTTOM, 6)
+        self.matchsequencebutton = wx.Button(panel4, label="Match to Sequence")
+        self.parent.Bind(wx.EVT_BUTTON, self.pres.on_match_sequence, self.matchsequencebutton)
+        sequence_sizer.Add(self.matchsequencebutton, 0, wx.EXPAND)
+        panel4.SetSizerAndFit(sequence_sizer)
+        self.foldpanels.AddFoldPanelWindow(foldpanel4, panel4, fpb.FPB_ALIGN_WIDTH)
+
         bright = 250
         foldpanel1.SetBackgroundColour(wx.Colour(bright, bright, 255))
         foldpanel1b.SetBackgroundColour(wx.Colour(bright, bright, 255))
@@ -401,6 +427,7 @@ class MainControls(wx.Panel):  # scrolled.ScrolledPanel):
 
         foldpanel3.SetBackgroundColour(wx.Colour(255, bright, bright))
         foldpanel3b.SetBackgroundColour(wx.Colour(255, bright, bright))
+        foldpanel4.SetBackgroundColour(wx.Colour(bright, bright, 255))
 
         sizercontrol.SetMinSize(wx.Size(250, 0))
 

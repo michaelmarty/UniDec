@@ -78,6 +78,8 @@ print(pks.fragment_matches)
 Each matched peak receives a `sequence_match` annotation such as `"b6"`.
 Pass `allow_duplicate_assignments=True` to retain every valid annotation as a
 list instead of selecting the assignment with the smallest ppm error.
+Pass `match_multiple_monoisotopics=False` to match only each peak's `monoiso`
+mass instead of all masses in `monoisos`.
 
 To view matches along a wrapped sequence, run `python tests/show_fragment_matches.py`
 from the IsoDec directory. The demo uses IsoGen's carbonic anhydrase ETD masses.

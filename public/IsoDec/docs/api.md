@@ -33,6 +33,7 @@ match_fragments(
     monoisotopic=True,
     ppm_tolerance=5,
     allow_duplicate_assignments=False,
+    match_multiple_monoisotopics=True,
     **isogen_kwargs,
 )
 ```

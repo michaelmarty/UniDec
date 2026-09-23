@@ -83,6 +83,15 @@ def test_uses_all_peak_monoisotopic_candidates():
     assert peak.sequence_match == "b3"
     assert pks.fragment_matches.loc[3, "b_match"] == pytest.approx(b3)
 
+    match_fragments(pks, sequence, match_multiple_monoisotopics=False)
+
+    assert peak.sequence_match is None
+    assert np.isnan(pks.fragment_matches.loc[3, "b_match"])
+
+    peak.monoiso = b3
+    match_fragments(pks, sequence, match_multiple_monoisotopics=False)
+    assert peak.sequence_match == "b3"
+
 
 def test_same_fragment_can_annotate_peaks_from_multiple_scans():
     sequence = "PEPTIDE"

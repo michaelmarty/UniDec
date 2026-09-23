@@ -1,6 +1,14 @@
+from pathlib import Path
+import sys
+
+_local_isodec = Path(__file__).resolve().parents[2] / "IsoDec"
+if (_local_isodec / "isodec" / "__init__.py").is_file():
+    sys.path.insert(0, str(_local_isodec))
+
 import unidec.tools as ud
 from unidec.modules.unidec_presbase import UniDecPres
 from isodec.runtime import IsoDecRuntime
+from isodec import match_fragments
 from unidec.modules.gui_elements.IsoDecView import IsoDecView
 from unidec.engine import UniDec
 import os
@@ -19,6 +27,8 @@ class IsoDecPres(UniDecPres):
         super().__init__()
         self.isodeceng = IsoDecRuntime()
         self.eng = UniDec()
+        self.match_source_ready = False
+        self.sequence_path = None
 
         self.view = IsoDecView(self, "IsoDec", self.eng.config, iconfile=None)
         try:
@@ -68,10 +78,12 @@ class IsoDecPres(UniDecPres):
         :return: None
         """
         # tstart =time.perf_counter()
+        self._save_sequence()
         self.export_config()
         # Clear other plots and panels
         self.view.peakpanel.clear_list()
         self.view.clear_all_plots()
+        self.match_source_ready = False
         if directory is None:
             directory = os.path.dirname(os.path.abspath(filename))
             filename = os.path.basename(filename)
@@ -80,6 +92,9 @@ class IsoDecPres(UniDecPres):
             # Open File in Engine
             self.top_path = os.path.join(directory, filename)
             self.eng.open_file(filename, directory, refresh=refresh, isodeceng=self.isodeceng, **kwargs)
+
+        self.sequence_path = Path(self.eng.config.udir) / "seq.fasta" if self.eng.config.udir else None
+        self._load_sequence()
 
         # Set Status Bar Text Values
         self.view.SetStatusText("File: " + filename, number=1)
@@ -158,6 +173,8 @@ class IsoDecPres(UniDecPres):
         :return: None
         """
         self.view.SetStatusText("Data Prep", number=5)
+        self.match_source_ready = False
+        self._save_sequence()
         self.fix_parameters()
         self.translate_config()
         self.export_config(self.eng.config.confname)
@@ -205,6 +222,9 @@ class IsoDecPres(UniDecPres):
         :return: None
         """
         self.view.export_gui_to_config()
+        self.match_source_ready = False
+        self.view.clear_fragment_plot()
+        self._save_sequence()
 
         tstart = time.perf_counter()
         self.view.SetStatusText("Running IsoDec...", number=5)
@@ -226,6 +246,8 @@ class IsoDecPres(UniDecPres):
             print("No Peaks Found")
             self.view.SetStatusText("No Peaks Found", number=5)
             return
+
+        self.match_source_ready = True
         # Translate Pks
         self.translate_pks()
 
@@ -238,6 +260,58 @@ class IsoDecPres(UniDecPres):
         print("IsoDec Done. Time: %.2gs" % (tend - tstart))
         self.export_results()
         pass
+
+    def on_match_sequence(self, e=None):
+        if not self.match_source_ready:
+            wx.MessageBox("Run IsoDec before matching a sequence.", "Sequence Matching",
+                          wx.OK | wx.ICON_INFORMATION)
+            return
+
+        controls = self.view.controls
+        sequence = self._sequence_text()
+        if not sequence:
+            wx.MessageBox("Enter a sequence to match.", "Sequence Matching", wx.OK | wx.ICON_ERROR)
+            return
+        try:
+            ppm_tolerance = float(controls.ctlfragmentppm.GetValue())
+            if not np.isfinite(ppm_tolerance) or ppm_tolerance < 0:
+                raise ValueError("Tolerance must be a non-negative number.")
+            pks = match_fragments(
+                self.isodeceng.pks, sequence, fragmentation_type=controls.ctlfragmentation.GetValue(),
+                monoisotopic=not controls.ctlavgpeakmasses.GetValue(), ppm_tolerance=ppm_tolerance,
+                match_multiple_monoisotopics=controls.ctlmultiplemonoisotopics.GetValue())
+        except (ValueError, TypeError, KeyError) as error:
+            wx.MessageBox(str(error), "Sequence Matching", wx.OK | wx.ICON_ERROR)
+            return
+
+        self.view.show_fragment_matches(sequence, pks)
+        self._save_sequence()
+        self.view.SetStatusText("Sequence coverage: {:.1%}".format(pks.sequence_coverage), number=5)
+
+    def _sequence_text(self):
+        return "".join(line.strip() for line in self.view.controls.ctlsequence.GetValue().splitlines()
+                       if line.strip() and not line.lstrip().startswith(">"))
+
+    def _save_sequence(self, path=None):
+        path = path or self.sequence_path
+        if path is None:
+            return
+        sequence = self._sequence_text()
+        if sequence or path.exists():
+            try:
+                path.write_text(f">IsoDec sequence\n{sequence}\n", encoding="utf-8")
+            except OSError as error:
+                wx.MessageBox(str(error), "Unable to save seq.fasta", wx.OK | wx.ICON_ERROR)
+
+    def _load_sequence(self):
+        sequence = ""
+        if self.sequence_path is not None and self.sequence_path.is_file():
+            try:
+                sequence = "".join(line.strip() for line in self.sequence_path.read_text(
+                    encoding="utf-8").splitlines() if line.strip() and not line.lstrip().startswith(">"))
+            except (OSError, UnicodeError) as error:
+                wx.MessageBox(str(error), "Unable to load seq.fasta", wx.OK | wx.ICON_ERROR)
+        self.view.controls.ctlsequence.SetValue(sequence)
 
     def translate_pks(self):
         idpks = self.isodeceng.pks
@@ -445,6 +519,8 @@ class IsoDecPres(UniDecPres):
         self.on_pick_peaks(e)
         self.on_plot_peaks(e)
         self.on_plot_dists(e)
+        if self._sequence_text() and self.match_source_ready:
+            self.on_match_sequence(e)
 
     def batch_process(self, path):
         """
@@ -461,6 +537,7 @@ class IsoDecPres(UniDecPres):
         # Check of the outdirectory exists
         if not os.path.exists(outdir):
             os.makedirs(outdir)
+        self._save_sequence(Path(outdir) / "seq.fasta")
 
         # Get the filename wihtout the path or extension
         filename = os.path.splitext(os.path.basename(path))[0]
