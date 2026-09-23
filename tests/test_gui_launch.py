@@ -56,7 +56,7 @@ class TestMajorWindowLaunches(unittest.TestCase):
         self._assert_window_launches("unidec.GUniDec", "UniDecApp", has_lazy_workflows=True)
 
     def test_unidec_im_launches(self):
-        self._assert_window_launches("unidec.UniDecIM", "UniDecIMApp")
+        self._assert_window_launches("unidec.UniDecIM", "UniDecIMApp", has_suppression_controls=True)
 
     def test_metaunidec_launches(self):
         self._assert_window_launches("unidec.MetaUniDec", "UniDecApp", has_suppression_controls=True,

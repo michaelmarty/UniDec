@@ -120,6 +120,35 @@ class TestUniDecIMWorkflows(unittest.TestCase):
         self.assertEqual(self.app.eng.config.imflag, 1)
         self.assertTrue(hasattr(self.app.view, "plot1im"))
 
+    def test_suppression_controls_round_trip(self):
+        config = self.app.eng.config
+        config.suppression_topn = 3
+        config.suppression_topx = 0.2
+        config.suppression_satellite = 1
+        config.suppression_harmonic = 1
+        config.suppression_startit = 6
+        self.app.import_config()
+
+        controls = self.app.view.controls
+        self.assertEqual(controls.ctlsuppressiontopn.GetValue(), "3")
+        self.assertEqual(controls.ctlsuppressiontopx.GetValue(), "0.2")
+        self.assertEqual(controls.ctlsuppressionsatellite.GetValue(), "1")
+        self.assertTrue(controls.ctlsuppressionharmonic.GetValue())
+        self.assertEqual(controls.ctlsuppressionstartit.GetValue(), "6")
+
+        controls.ctlsuppressiontopn.SetValue("4")
+        controls.ctlsuppressiontopx.SetValue("0.15")
+        controls.ctlsuppressionsatellite.SetValue("2")
+        controls.ctlsuppressionharmonic.SetValue(False)
+        controls.ctlsuppressionstartit.SetValue("7")
+        self.app.export_config()
+
+        self.assertEqual(config.suppression_topn, 4)
+        self.assertEqual(config.suppression_topx, 0.15)
+        self.assertEqual(config.suppression_satellite, 2)
+        self.assertEqual(config.suppression_harmonic, 0)
+        self.assertEqual(config.suppression_startit, 7)
+
     def test_imms_process_deconvolve_and_pick(self):
         importer_data = find_importer_test_data()
         if importer_data is None:
@@ -142,6 +171,8 @@ class TestUniDecIMWorkflows(unittest.TestCase):
         config.startz = 10
         config.endz = 18
         config.mzbins = 4
+        config.suppression_topn = 3
+        config.suppression_startit = 3
         self.app.import_config()
 
         self.app.on_dataprep_button(0)
