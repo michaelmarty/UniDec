@@ -1,8 +1,8 @@
-version 8.2.1
+version 9.0.0b1
 imflag 0
 cdmsflag 0
-input C:\Python\UniDecDev\unidec\bin\Example Data\ADHclean_unidecfiles\ADHclean_input.dat
-output C:\Python\UniDecDev\unidec\bin\Example Data\ADHclean_unidecfiles\ADHclean
+input C:\Python\UniDecDev\public\UniDec\unidec\bin\Example Data\ADHclean_unidecfiles\ADHclean_input.dat
+output C:\Python\UniDecDev\public\UniDec\unidec\bin\Example Data\ADHclean_unidecfiles\ADHclean
 numit 100
 numz 50
 endz 50
@@ -11,11 +11,11 @@ zzsig 1.0
 psig 10.0
 beta 0.0
 suppression_topn 0
-suppression_topx 0.1
+suppression_topx 0.0
 suppression_percent 0.0
 suppression_startit 3
-suppression_harmonic 1
-suppression_satellite 1
+suppression_harmonic 0
+suppression_satellite 0
 mzsig 5.21999
 psfun 0
 zpsfn 0
@@ -30,7 +30,7 @@ mtabsig 0.0
 isomode 0
 minmz 4912.324806268431
 maxmz 7256.344506785037
-subbuff 0.0
+subbuff 100.0
 subtype 2
 smooth 0.0
 mzbins 0.0

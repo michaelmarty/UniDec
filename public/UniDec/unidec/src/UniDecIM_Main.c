@@ -3,6 +3,7 @@
 //
 
 #include "UniDecIM_Main.h"
+#include "udcore.h"
 
 int run_unidec_IM(int argc, char *argv[], Config config) {
     time_t starttime, endtime;
@@ -302,6 +303,14 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 
     //Iterating
     for (int m = 0; m < config.numit; m++) {
+        if (m > config.suppression_startit &&
+            (config.suppression_satellite > 0 || config.suppression_harmonic > 0 ||
+             config.suppression_topn > 0 || config.suppression_topx > 0)) {
+            apply_suppressions(blur, newblur, size[0] * size[1], size[2],
+                               config.suppression_satellite, config.suppression_harmonic, ztab,
+                               config.suppression_topn, config.suppression_topx,
+                               config.suppression_percent);
+        }
         blur_it_IM(size, blur, newblur, closetab, barr, config.csig);
 
         sumdeltas(size, deltas, newblur);
