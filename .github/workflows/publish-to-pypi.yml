@@ -19,15 +19,186 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build and test distributions
-    runs-on: windows-latest
+  native-unix:
+    name: Build native UniDec on ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x64
+            os: ubuntu-latest
+            artifact: native-linux
+            executable: unideclinux
+            library: libunideclib.so
+          - name: macOS Intel
+            os: macos-15-intel
+            artifact: native-macos-intel
+            executable: unidecmac
+            library: libunideclib.dylib
 
     steps:
       - name: Check out the tagged source
         uses: actions/checkout@v6
         with:
           persist-credentials: false
+
+      - name: Remove tracked native outputs
+        run: rm -f "unidec/bin/${{ matrix.executable }}" "unidec/bin/${{ matrix.library }}"
+
+      - name: Install Linux native dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install --yes libfftw3-dev libhdf5-dev pkg-config
+
+      - name: Install macOS native dependencies
+        if: runner.os == 'macOS'
+        run: |
+          brew untap aws/tap 2>/dev/null || true
+          brew install fftw hdf5 libomp pkg-config
+
+      - name: Build native UniDec
+        run: bash ./build_native.sh
+
+      - name: Verify native outputs
+        shell: bash
+        run: |
+          test -s "unidec/bin/${{ matrix.executable }}"
+          test -s "unidec/bin/${{ matrix.library }}"
+          test -x "unidec/bin/${{ matrix.executable }}"
+          set +e
+          output=$("unidec/bin/${{ matrix.executable }}" 2>&1)
+          status=$?
+          set -e
+          test "$status" -eq 88
+          grep -q 'Universal Deconvolution' <<< "$output"
+
+      - name: Store native outputs
+        uses: actions/upload-artifact@v5
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            unidec/bin/${{ matrix.executable }}
+            unidec/bin/${{ matrix.library }}
+          if-no-files-found: error
+
+  native-windows:
+    name: Build native UniDec on Windows IntelLLVM x64
+    runs-on: windows-latest
+    timeout-minutes: 90
+    env:
+      ONEAPI_WINDOWS_URL: https://registrationcenter-download.intel.com/akdlm/IRC_NAS/bae85ab1-cfcd-4251-8d42-a0c27949ea33/intel-oneapi-toolkit-2026.0.0.193_offline.exe
+      ONEAPI_WINDOWS_COMPONENTS: intel.oneapi.win.cpp-dpcpp-common
+
+    steps:
+      - name: Check out the tagged source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Remove tracked native outputs
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath 'unidec/bin/UniDec.exe', 'unidec/bin/unideclib.dll' -ErrorAction Stop
+
+      - name: Install native dependencies with vcpkg
+        shell: pwsh
+        run: |
+          $vcpkgRoot = (Resolve-Path -LiteralPath $env:VCPKG_INSTALLATION_ROOT).Path.Replace('\', '/')
+          & "$vcpkgRoot/vcpkg.exe" install "hdf5[hl]:x64-windows" "fftw3:x64-windows"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "VCPKG_ROOT_PATH=$vcpkgRoot" >> $env:GITHUB_ENV
+
+      - name: Install Intel oneAPI C compiler
+        shell: cmd
+        run: |
+          curl.exe --fail --location --retry 5 --output "%RUNNER_TEMP%\oneapi.exe" "%ONEAPI_WINDOWS_URL%"
+          if errorlevel 1 exit /b 1
+          start /b /wait "" "%RUNNER_TEMP%\oneapi.exe" -s -x -f "%RUNNER_TEMP%\oneapi-extracted" --log extract.log
+          if errorlevel 1 exit /b 1
+          "%RUNNER_TEMP%\oneapi-extracted\bootstrapper.exe" -s --action install --components=%ONEAPI_WINDOWS_COMPONENTS% --eula=accept -p=NEED_VS2022_INTEGRATION=0 --log-dir=.
+          if errorlevel 1 exit /b 1
+
+      - name: Configure and build with IntelLLVM
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Intel\oneAPI\setvars-vcvarsall.bat" vs2022
+          if errorlevel 1 exit /b 1
+          call "C:\Program Files (x86)\Intel\oneAPI\compiler\latest\env\vars.bat"
+          if errorlevel 1 exit /b 1
+          set "CC=icx-cl"
+          set "CXX=icx-cl"
+          cmake -S unidec/src -B build/unidec-release-intel -G Ninja -DCMAKE_BUILD_TYPE=Release -DUNIDEC_REQUIRE_INTELLLVM=ON -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT_PATH%/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows -DHDF5_ROOT=%VCPKG_ROOT_PATH%/installed/x64-windows -DFFTW_ROOT=%VCPKG_ROOT_PATH%/installed/x64-windows
+          if errorlevel 1 exit /b 1
+          cmake --build build/unidec-release-intel --parallel
+          if errorlevel 1 exit /b 1
+
+      - name: Bundle matching vcpkg runtime DLLs
+        shell: pwsh
+        run: |
+          $libraries = Get-ChildItem -LiteralPath "$env:VCPKG_ROOT_PATH/installed/x64-windows/bin" -Filter '*.dll' -File
+          if (-not $libraries) { throw 'vcpkg did not provide runtime DLLs.' }
+          Copy-Item -LiteralPath $libraries.FullName -Destination unidec/bin -Force
+          New-Item -ItemType Directory -Path build/release-native -Force | Out-Null
+          Copy-Item -LiteralPath 'unidec/bin/unidec.exe', 'unidec/bin/unideclib.dll' -Destination build/release-native -Force
+          Copy-Item -LiteralPath $libraries.FullName -Destination build/release-native -Force
+
+      - name: Verify native outputs
+        shell: pwsh
+        run: |
+          foreach ($name in @('unidec.exe', 'unideclib.dll')) {
+            $file = Get-Item -LiteralPath "unidec/bin/$name" -ErrorAction Stop
+            if ($file.Length -eq 0) { throw "Empty native output: $name" }
+          }
+
+      - name: Store native outputs
+        uses: actions/upload-artifact@v5
+        with:
+          name: native-windows-intel
+          path: build/release-native/
+          if-no-files-found: error
+
+  build:
+    name: Build and test distributions
+    needs: [native-unix, native-windows]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the tagged source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Remove tracked native binaries before assembly
+        run: |
+          rm -f unidec/bin/UniDec.exe unidec/bin/unidec.exe unidec/bin/unideclib.dll \
+            unidec/bin/unideclinux unidec/bin/libunideclib.so \
+            unidec/bin/unidecmac unidec/bin/libunideclib.dylib
+
+      - name: Restore current Windows native binaries
+        uses: actions/download-artifact@v6
+        with:
+          name: native-windows-intel
+          path: unidec/bin
+
+      - name: Restore current Linux native binaries
+        uses: actions/download-artifact@v6
+        with:
+          name: native-linux
+          path: unidec/bin
+
+      - name: Restore current macOS native binaries
+        uses: actions/download-artifact@v6
+        with:
+          name: native-macos-intel
+          path: unidec/bin
+
+      - name: Verify assembled native binaries
+        run: |
+          for name in unidec.exe unideclib.dll unideclinux libunideclib.so unidecmac libunideclib.dylib; do
+            test -s "unidec/bin/$name"
+          done
+          chmod +x unidec/bin/unideclinux unidec/bin/unidecmac
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -40,8 +211,63 @@ jobs:
       - name: Build wheel and source distribution
         run: python -m build --outdir distpypi
 
+      - name: Verify built distributions contain current native binaries
+        run: |
+          python -I - <<'PY'
+          from pathlib import Path
+          import tarfile
+          import zipfile
+
+          names = {'unidec.exe', 'unideclib.dll', 'unideclinux',
+                   'libunideclib.so', 'unidecmac', 'libunideclib.dylib'}
+          names.update(path.name for path in Path('unidec/bin').glob('*.dll'))
+          binaries = {name: (Path('unidec/bin') / name).read_bytes() for name in names}
+          wheel, = Path('distpypi').glob('*.whl')
+          sdist, = Path('distpypi').glob('*.tar.gz')
+          with zipfile.ZipFile(wheel) as archive:
+              for name, source in binaries.items():
+                  packaged = archive.read(f'unidec/bin/{name}')
+                  if packaged != source:
+                      raise RuntimeError(f'Wheel has a stale native binary: {name}')
+              for name in ('unideclinux', 'unidecmac'):
+                  mode = archive.getinfo(f'unidec/bin/{name}').external_attr >> 16
+                  if not mode & 0o111:
+                      raise RuntimeError(f'Wheel executable bit is missing: {name}')
+          with tarfile.open(sdist, 'r:gz') as archive:
+              for name, source in binaries.items():
+                  member, = (item for item in archive if item.name.endswith(f'/unidec/bin/{name}'))
+                  if archive.extractfile(member).read() != source:
+                      raise RuntimeError(f'Source distribution has a stale native binary: {name}')
+          print('Wheel and source distribution contain current native binaries and runtime DLLs.')
+          PY
+
       - name: Check distribution metadata
         run: python -m twine check distpypi/*
+
+      - name: Store distributions
+        uses: actions/upload-artifact@v5
+        with:
+          name: python-package-distributions
+          path: distpypi/
+          if-no-files-found: error
+          retention-days: 7
+
+  smoke-windows:
+    name: Smoke-test the wheel on Windows
+    needs: build
+    runs-on: windows-latest
+
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v6
+        with:
+          name: python-package-distributions
+          path: distpypi/
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
 
       - name: Install and smoke-test the wheel
         shell: pwsh
@@ -91,17 +317,9 @@ jobs:
           '@ | .venv\Scripts\python -I -
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Store distributions
-        uses: actions/upload-artifact@v5
-        with:
-          name: python-package-distributions
-          path: distpypi/
-          if-no-files-found: error
-          retention-days: 7
-
   publish:
     name: Publish distributions
-    needs: build
+    needs: [build, smoke-windows]
     runs-on: ubuntu-latest
     environment:
       name: ${{ github.event_name == 'workflow_dispatch' && inputs.repository || 'pypi' }}
