@@ -91,6 +91,9 @@ jobs:
   windows-arm64:
     name: windows-11-arm / Python 3.14
     runs-on: windows-11-arm
+    env:
+      # Let scikit-build-core remove temporary build directories after MSBuild exits.
+      MSBUILDDISABLENODEREUSE: "1"
     steps:
       - uses: actions/checkout@v6
         with:
