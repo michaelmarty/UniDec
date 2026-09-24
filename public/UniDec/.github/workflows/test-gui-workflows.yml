@@ -133,7 +133,7 @@ jobs:
             triplet: x64-windows
             compiler: IntelLLVM
           - name: Windows ARM64
-            os: windows-11-arm
+            os: windows-11-vs2026-arm
             triplet: arm64-windows
             compiler: MSVC
 
@@ -182,7 +182,7 @@ jobs:
         if: matrix.compiler == 'MSVC'
         shell: pwsh
         run: |
-          cmake -S unidec/src -B build/unidec-windows-arm64 -G "Visual Studio 17 2022" -A ARM64 `
+          cmake -S unidec/src -B build/unidec-windows-arm64 -G "Visual Studio 18 2026" -A ARM64 `
             -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT_PATH/scripts/buildsystems/vcpkg.cmake" `
             -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }} `
             -DHDF5_ROOT="$env:VCPKG_ROOT_PATH/installed/${{ matrix.triplet }}" `
