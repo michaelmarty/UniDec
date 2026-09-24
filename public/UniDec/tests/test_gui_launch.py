@@ -14,16 +14,49 @@ def _has_gui_display():
     return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
 
 
+class TestUniDecStartupImports(unittest.TestCase):
+    def test_unidec_import_defers_optional_workflows(self):
+        script = """
+import sys
+import unidec.GUniDec
+
+deferred_modules = (
+    "UniDecImporter.ImporterFactory",
+    "unidec.DataCollector",
+    "unidec.ImportWizard",
+    "unidec.metaunidec.mudstruct",
+    "unidec.modules.Extract2D",
+    "unidec.modules.GridDecon",
+    "unidec.modules.MassDefects",
+    "unidec.modules.fft_window",
+    "unidec.modules.masstools",
+    "unidec.modules.nativez",
+    "unidec.modules.isolated_packages.score_window",
+    "unidec.modules.isolated_packages.texmaker",
+)
+loaded_modules = [name for name in deferred_modules if name in sys.modules]
+assert not loaded_modules, loaded_modules
+"""
+        result = subprocess.run(
+            [sys.executable, "-c", script],
+            cwd=UNIDEC_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+
 @unittest.skipUnless(_has_gui_display(), "wxPython requires a graphical display")
 class TestMajorWindowLaunches(unittest.TestCase):
     def test_launcher_launches(self):
         self._assert_window_launches("unidec.Launcher", "UniDecLauncher", launcher_layout=True)
 
     def test_unidec_launches(self):
-        self._assert_window_launches("unidec.GUniDec", "UniDecApp")
+        self._assert_window_launches("unidec.GUniDec", "UniDecApp", has_lazy_workflows=True)
 
     def test_unidec_im_launches(self):
-        self._assert_window_launches("unidec.UniDecIM", "UniDecIMApp")
+        self._assert_window_launches("unidec.UniDecIM", "UniDecIMApp", has_suppression_controls=True)
 
     def test_metaunidec_launches(self):
         self._assert_window_launches("unidec.MetaUniDec", "UniDecApp", has_suppression_controls=True,
@@ -41,11 +74,16 @@ class TestMajorWindowLaunches(unittest.TestCase):
 
     def _assert_window_launches(self, module_name, class_name, has_full_stack_button=None,
                                 has_suppression_controls=False, launcher_layout=False,
-                                has_chrom_width=None, has_chrom_spectrum_menu=False):
+                                has_chrom_width=None, has_chrom_spectrum_menu=False,
+                                has_lazy_workflows=False):
         """Construct a window in an isolated process without entering its event loop."""
         script = f"""
 import importlib
 import numpy as np
+import os
+import sys
+import tempfile
+import types
 from unittest.mock import Mock, patch
 
 module = importlib.import_module({module_name!r})
@@ -94,6 +132,29 @@ try:
         assert all("UniDec API Shell" not in label for label in labels)
         im_button = next(button for button in buttons if button.GetLabel().startswith("UniDec IM"))
         assert im_button.GetParent().GetSizer().GetItemPosition(im_button) == (5, 1)
+    if {has_lazy_workflows!r}:
+        import unidec
+        import unidec.modules
+
+        assert "unidec.ImportWizard" not in sys.modules
+        wizard_dialog = Mock()
+        wizard_module = types.ModuleType("unidec.ImportWizard")
+        wizard_module.ImportWizard = Mock(return_value=wizard_dialog)
+        with patch.dict(sys.modules, {{"unidec.ImportWizard": wizard_module}}):
+            with patch.object(unidec, "ImportWizard", wizard_module, create=True):
+                app.on_import_wizard()
+        wizard_module.ImportWizard.assert_called_once_with(app.view, dir=app.eng.config.UniDecDir)
+        wizard_dialog.Show.assert_called_once_with()
+
+        assert "unidec.modules.GridDecon" not in sys.modules
+        grid_module = types.ModuleType("unidec.modules.GridDecon")
+        grid_module.GridDeconWindow = Mock()
+        app.eng.data.data2 = np.array([[100.0, 1.0], [101.0, 2.0]])
+        with patch.dict(sys.modules, {{"unidec.modules.GridDecon": grid_module}}):
+            with patch.object(unidec.modules, "GridDecon", grid_module, create=True):
+                app.on_grid_decon(None)
+        grid_module.GridDeconWindow.assert_called_once_with(
+            app.view, app.eng.data.data2, config=app.eng.config)
     if {has_chrom_spectrum_menu!r}:
         assert not hasattr(app.view, "open_ud_button")
         assert not hasattr(app.view, "run_ud_button")
@@ -107,19 +168,27 @@ try:
         assert plot_sizer.GetItemPosition(app.view.plotm) == (2, 0)
         app.view.plot2.plotrefreshtop(np.array([1.0, 2.0]), np.array([1.0, 2.0]), config=app.eng.config)
         assert np.allclose(app.view.plot2.subplot1.get_position().bounds, [0.11, 0.11, 0.86, 0.8])
-        raw_data = object()
+        assert not hasattr(app.eng, "unidec_eng")
+        raw_data = np.array([[100.0, 1.0], [101.0, 2.0]])
         spectrum = Mock(rawdata=raw_data)
         app.eng.data.spectra = [spectrum]
         app.eng.filename = "sample.raw"
-        app.eng.config.udir = "test-output"
-        app.eng.unidec_eng.pass_data_in = Mock()
-        launched = Mock()
-        with patch("unidec.GUniDec.UniDecApp", return_value=launched) as launch:
-            app.on_open_ud(0)
-        app.eng.unidec_eng.pass_data_in.assert_called_once_with(
-            raw_data, dirname="test-output", fname="sample_spectrum_1.txt")
-        launch.assert_called_once()
-        launched.start.assert_called_once_with()
+        app.eng.config.rawflag = 3
+        with tempfile.TemporaryDirectory() as directory:
+            app.eng.config.udir = directory
+            from unidec import GUniDec
+            with patch.object(GUniDec.UniDecApp, "start") as start:
+                launched = app.on_open_ud(0)
+            spectrum_path = os.path.join(directory, "sample_spectrum_1.txt")
+            config_path = os.path.join(
+                directory, "sample_spectrum_1_unidecfiles", "sample_spectrum_1_conf.dat")
+            assert np.allclose(np.loadtxt(spectrum_path), raw_data)
+            assert os.path.isfile(config_path)
+            assert launched.eng.config.rawflag == 1
+            assert app.eng.config.rawflag == 3
+            start.assert_called_once_with()
+            launched.view.Destroy()
+            launched.wx_app.Yield()
 finally:
     app.view.Destroy()
     app.wx_app.Yield()

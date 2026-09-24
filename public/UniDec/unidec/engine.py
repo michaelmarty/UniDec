@@ -14,7 +14,6 @@ import unidec.tools as ud
 import unidec.modules.MassSpecBuilder as MSBuild
 from unidec.modules.unidec_enginebase import UniDecEngine
 from unidec.modules.plotting import plot1d
-from UniDecImporter.ImporterFactory import ImporterFactory
 
 # import modules.DoubleDec as dd
 
@@ -181,6 +180,10 @@ class UniDec(UniDecEngine):
         self.config.outfname = os.path.join(self.config.udir, basename)
         self.config.extension = os.path.splitext(self.config.filename)[1]
         self.config.default_file_names()
+
+        # Import vendor readers only when a data file is opened. Their optional
+        # dependencies add noticeable overhead to GUI startup.
+        from UniDecImporter.ImporterFactory import ImporterFactory
 
         #All the magic happens here
         curr_importer = ImporterFactory.create_importer(self.config.filename)

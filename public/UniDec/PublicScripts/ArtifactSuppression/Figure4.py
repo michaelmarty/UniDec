@@ -1,10 +1,16 @@
 import os
+import sys
+from pathlib import Path
 
 import matplotlib
 import numpy as np
+
+UNIDEC_ROOT = Path(__file__).resolve().parents[3] / "public" / "UniDec"
+sys.path.insert(0, str(UNIDEC_ROOT))
+
 import unidec.engine as ud
 
-matplotlib.use('WxAgg')
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 matplotlib.rcParams.update({
@@ -197,7 +203,7 @@ for column in range(2):
 
 panel_labels = [
     ['Data', 'Data'],
-    ['Default', 'Default'],
+    ['Normal', 'Normal'],
     ['Top 0.1', 'Top 0.1'],
     ['Top 0.5', 'Satellite 1'],
     ['Top 2', 'Satellite 2'],
@@ -261,7 +267,7 @@ for axis in axes[1:, 1]:
 fig.subplots_adjust(left=0.06, right=0.98, bottom=0.07, top=0.96)
 
 os.chdir(FIGURE_DIR)
-plt.savefig('Figure3.png', dpi=300)
-plt.savefig('Figure3.pdf')
+plt.savefig('Figure4.png', dpi=300)
+plt.savefig('Figure4.pdf')
 
 plt.show()

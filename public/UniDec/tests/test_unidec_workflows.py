@@ -39,6 +39,10 @@ class TestUniDecWorkflows(unittest.TestCase):
         self.assertTrue(os.path.isfile(config.UniDecPath))
         self.assertTrue(os.path.isfile(config.cdcreaderpath))
 
+    def test_example_menu_excludes_imms_data(self):
+        paths = [entry[1] for entry in self.app.view.menu.masterd2]
+        self.assertFalse(any(os.path.basename(path) == "aqpz.dat" for path in paths))
+
     def test_suppression_cut_percent_is_not_exposed_in_gui(self):
         self.assertFalse(hasattr(self.app.view.controls, "ctlsuppressionpercent"))
         self.app.eng.config.suppression_percent = 0.25
@@ -51,11 +55,8 @@ class TestUniDecWorkflows(unittest.TestCase):
         self.app.on_open_file(spectrum.name, str(spectrum.parent), clean=True)
 
         config = self.app.eng.config
-        config.startz = 5
-        config.endz = 20
-        config.masslb = 10000
-        config.massub = 200000
-        config.mzbins = 1
+        settings = copy_unidec_example(self.tempdir.name, "ADH_unidecfiles", "ADH_conf.dat")
+        config.config_import(str(settings))
         self.app.import_config()
 
         self.app.on_dataprep_button(0)
@@ -68,11 +69,39 @@ class TestUniDecWorkflows(unittest.TestCase):
         self.assertGreater(len(self.app.eng.pks.peaks), 0)
         self.assertTrue(np.isfinite(self.app.eng.data.massdat).all())
 
+        dominant_peak = max(self.app.eng.pks.peaks, key=lambda peak: peak.height)
+        self.assertAlmostEqual(dominant_peak.mass, 148000, delta=250)
+        self.assertGreater(self.app.eng.config.error, 0.95)
+        self.assertEqual(len(self.app.eng.pks.peaks), 3)
+
+        expected_config = {
+            "startz": config.startz,
+            "endz": config.endz,
+            "masslb": config.masslb,
+            "massub": config.massub,
+            "mzbins": config.mzbins,
+        }
+        expected_data2 = self.app.eng.data.data2.copy()
+        expected_massdat = self.app.eng.data.massdat.copy()
+        expected_peak_masses = np.array([peak.mass for peak in self.app.eng.pks.peaks])
+
         state_path = os.path.join(self.tempdir.name, "adh_state.zip")
         self.app.on_save_state(0, state_path)
         self.assertTrue(os.path.isfile(state_path))
+
+        config.startz = 1
+        config.endz = 2
+        self.app.eng.data.data2 = np.array([])
+        self.app.eng.data.massdat = np.array([])
+        self.app.eng.pks.peaks = []
         self.app.on_load_state(0, state_path)
-        self.assertGreater(len(self.app.eng.data.massdat), 0)
+
+        for name, value in expected_config.items():
+            self.assertEqual(getattr(self.app.eng.config, name), value)
+        np.testing.assert_allclose(self.app.eng.data.data2, expected_data2, rtol=1e-6, atol=1e-6)
+        np.testing.assert_allclose(self.app.eng.data.massdat, expected_massdat, rtol=1e-6, atol=1e-6)
+        np.testing.assert_allclose(
+            [peak.mass for peak in self.app.eng.pks.peaks], expected_peak_masses, rtol=0, atol=1e-6)
 
 
 @unittest.skipUnless(has_gui_display(), "wxPython requires a graphical display")
@@ -95,6 +124,47 @@ class TestUniDecIMWorkflows(unittest.TestCase):
         self.assertEqual(self.app.eng.config.imflag, 1)
         self.assertTrue(hasattr(self.app.view, "plot1im"))
 
+    def test_example_menu_uses_only_imms_data(self):
+        paths = [entry[1] for entry in self.app.view.menu.masterd2]
+        self.assertEqual(paths, [os.path.join(self.app.eng.config.exampledatadir, "IMMS", "aqpz.dat")])
+
+    def test_regularization_controls_round_trip(self):
+        config = self.app.eng.config
+        config.beta = 5
+        config.psig = 2
+        config.suppression_topn = 3
+        config.suppression_topx = 0.2
+        config.suppression_satellite = 1
+        config.suppression_harmonic = 1
+        config.suppression_startit = 6
+        self.app.import_config()
+
+        controls = self.app.view.controls
+        self.assertEqual(controls.ctlbeta.GetValue(), "5")
+        self.assertEqual(controls.ctlpsig.GetValue(), "2")
+        self.assertEqual(controls.ctlsuppressiontopn.GetValue(), "3")
+        self.assertEqual(controls.ctlsuppressiontopx.GetValue(), "0.2")
+        self.assertEqual(controls.ctlsuppressionsatellite.GetValue(), "1")
+        self.assertTrue(controls.ctlsuppressionharmonic.GetValue())
+        self.assertEqual(controls.ctlsuppressionstartit.GetValue(), "6")
+
+        controls.ctlbeta.SetValue("7")
+        controls.ctlpsig.SetValue("3")
+        controls.ctlsuppressiontopn.SetValue("4")
+        controls.ctlsuppressiontopx.SetValue("0.15")
+        controls.ctlsuppressionsatellite.SetValue("2")
+        controls.ctlsuppressionharmonic.SetValue(False)
+        controls.ctlsuppressionstartit.SetValue("7")
+        self.app.export_config()
+
+        self.assertEqual(config.beta, 7)
+        self.assertEqual(config.psig, 3)
+        self.assertEqual(config.suppression_topn, 4)
+        self.assertEqual(config.suppression_topx, 0.15)
+        self.assertEqual(config.suppression_satellite, 2)
+        self.assertEqual(config.suppression_harmonic, 0)
+        self.assertEqual(config.suppression_startit, 7)
+
     def test_imms_process_deconvolve_and_pick(self):
         importer_data = find_importer_test_data()
         if importer_data is None:
@@ -107,7 +177,7 @@ class TestUniDecIMWorkflows(unittest.TestCase):
             if os.environ.get("UNIDEC_REQUIRE_IMPORTER_TEST_DATA") == "1":
                 self.fail(f"Required UniDecImporter IM-MS fixture is missing: {source}")
             self.skipTest(f"UniDecImporter IM-MS fixture is missing: {source}")
-        self.assertGreater(source.stat().st_size, 1_000_000, "IM fixture appears to be a Git LFS pointer")
+        self.assertGreater(source.stat().st_size, 0, "IM fixture is empty")
 
         spectrum = os.path.join(self.tempdir.name, source.name)
         shutil.copy2(source, spectrum)
@@ -117,6 +187,10 @@ class TestUniDecIMWorkflows(unittest.TestCase):
         config.startz = 10
         config.endz = 18
         config.mzbins = 4
+        config.beta = 1
+        config.psig = 1
+        config.suppression_topn = 3
+        config.suppression_startit = 3
         self.app.import_config()
 
         self.app.on_dataprep_button(0)

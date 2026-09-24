@@ -179,6 +179,13 @@ use the same mapping in every panel.
 - Rasterize dense heatmap or contour artists inside a vector PDF when needed to
   keep file size manageable; keep text and axes as vectors.
 - Prefer viridis color map. Other colormaps to use are ocean_r and nipy_spectral.
+- For extracted single-column heatmaps, use the same charge limits, colormap, and
+explicit color limits as the source heatmap. A shared colorbar is sufficient
+when every strip uses the same scale.
+
+Colorbar width and label clearance should be controlled separately. Use one
+width parameter for the colorbar plotting rectangle and a separate spacer for
+tick labels on its right or left side.
 
 ## Data integrity and reproducibility
 
@@ -211,7 +218,17 @@ text. Give files stable, descriptive names such as `Figure2.pdf` and
 `Figure2.png`. Do not encode a developer name or local path in the filename.
 
 Call `savefig` before `show`, because some backends clear or close a figure after
-display. Prefer `WxAgg` or `TkAgg` interactive window for standalone figures.
+display. Use `WxAgg` with `TkAgg` as backup for interactive window for standalone figures.
+
+Select the Matplotlib backend exactly once, before importing `pyplot`. Standalone
+scripts that should normally open a wx window can use:
+
+    matplotlib.use(os.environ.get("MPLBACKEND", "WxAgg"))
+    import matplotlib.pyplot as plt
+
+Automated rendering can then set `MPLBACKEND=Agg`. Do not call
+`matplotlib.use(...)` again after importing `pyplot`; switching backends at that
+point can hang or substantially delay figure generation.
 
 ## Matplotlib starting point
 
@@ -282,6 +299,28 @@ Replace the placeholder data and descriptions, then set explicit limits shared
 by comparable panels. If the script is intended for headless automation, set a
 noninteractive Matplotlib backend before importing `pyplot` or allow the runtime
 environment to select one.
+
+### Mixed-width and narrow-panel layouts
+`GridSpec.width_ratios` controls the plotting rectangles only. It does not
+reserve space for tick labels, axis labels, or colorbar tick labels. When a
+figure combines full plots with narrow heatmap strips:
+
+- Use an outer `GridSpec` for the main plots, colorbar, and strip group.
+- Use explicit spacer columns where external axis or colorbar labels need room.
+- Put repeated narrow strips in a nested `subgridspec` with a small `wspace`.
+- Inspect boundary tick labels between adjacent plots; endpoint labels commonly
+  collide even when the axes themselves do not.
+- Center panel letters horizontally when a panel is too narrow for normal
+  upper-left placement.
+- Place long strip descriptions below the plots. Angle and right-align them when
+  necessary, and confirm that the final label is not clipped.
+`layout="constrained"` may become slow with large contour plots. If that occurs,
+use explicit spacer columns and `subplots_adjust` rather than accepting slow or
+unstable exports.
+
+## Code Preferences
+
+Avoid using a main() function and parsing arguments. Instead, place the script in a single file and run it directly in an `if __name__ == "__main__":` construction. This makes it easier to inspect the script and run it. Make sure the input and output data are explicitly mapped. Use functions for repeated tasks. You can reuse existing UniDec plotting functions where possible. If it is often reused, consider a shared module.
 
 ## Final review checklist
 

@@ -1,7 +1,13 @@
 import os
+import sys
+from pathlib import Path
 
 import matplotlib
 import numpy as np
+
+UNIDEC_ROOT = Path(__file__).resolve().parents[3] / "public" / "UniDec"
+sys.path.insert(0, str(UNIDEC_ROOT))
+
 import unidec.engine as ud
 import unidec.modules.MassSpecBuilder as msb
 

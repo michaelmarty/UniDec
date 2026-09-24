@@ -1,11 +1,17 @@
 import os
+import sys
+from pathlib import Path
 
 import matplotlib
 import numpy as np
+
+UNIDEC_ROOT = Path(__file__).resolve().parents[3] / "public" / "UniDec"
+sys.path.insert(0, str(UNIDEC_ROOT))
+
 import unidec.engine as ud
 import unidec.modules.MassSpecBuilder as msb
 
-matplotlib.use('WxAgg')
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 matplotlib.rcParams.update({
@@ -66,12 +72,12 @@ def run_deconvolution(spectrum, massrange, sat=0, topx=0, psig=10):
 np.random.seed(42)
 
 masses = [150000, 600000]
-resolutions = [300, 1000]
+resolutions = [150, 250]
 spectra = []
 default_mass_datasets = []
-top_01_mass_datasets = []
 top_05_mass_datasets = []
-satellite_1_mass_datasets = []
+top_09_mass_datasets = []
+satellite_2_mass_datasets = []
 
 for i, mass in enumerate(masses):
     spectrum, params = msb.simple_spectrum2(
@@ -87,60 +93,74 @@ for i, mass in enumerate(masses):
 
     spectra.append(spectrum)
     default_mass_datasets.append(run_deconvolution(spectrum, massrange))
-    top_01_mass_datasets.append(
-        run_deconvolution(spectrum, massrange, topx=0.1)
-    )
     top_05_mass_datasets.append(
         run_deconvolution(spectrum, massrange, topx=0.5)
     )
-    satellite_1_mass_datasets.append(
-        run_deconvolution(spectrum, massrange, sat=1)
+    top_09_mass_datasets.append(
+        run_deconvolution(spectrum, massrange, topx=0.9)
+    )
+    satellite_2_mass_datasets.append(
+        run_deconvolution(spectrum, massrange, sat=2)
     )
 
-fig, axes = plt.subplots(5, 2, figsize=(6.5, 8))
+fig = plt.figure(figsize=(6.5, 8))
+outer_grid = fig.add_gridspec(
+    2,
+    1,
+    height_ratios=[1, 4],
+    hspace=0.15,
+)
+spectrum_grid = outer_grid[0].subgridspec(1, 2, wspace=0.25)
+mass_grid = outer_grid[1].subgridspec(4, 2, hspace=0.08, wspace=0.25)
+axes = np.empty((5, 2), dtype=object)
+for column in range(2):
+    axes[0, column] = fig.add_subplot(spectrum_grid[0, column])
+    for row in range(1, 5):
+        axes[row, column] = fig.add_subplot(mass_grid[row - 1, column])
 
 for column, datasets in enumerate(
         zip(
             masses,
             spectra,
             default_mass_datasets,
-            top_01_mass_datasets,
             top_05_mass_datasets,
-            satellite_1_mass_datasets,
+            top_09_mass_datasets,
+            satellite_2_mass_datasets,
         )
 ):
     (
         mass,
         spectrum,
         default_data,
-        top_01_data,
         top_05_data,
-        satellite_1_data,
+        top_09_data,
+        satellite_2_data,
     ) = datasets
     axes[0, column].plot(spectrum[:, 0], normalize(spectrum), color="darkblue")
     axes[1, column].plot(
         default_data[:, 0] / 1000, normalize(default_data), color="darkblue"
     )
     axes[2, column].plot(
-        top_01_data[:, 0] / 1000, normalize(top_01_data), color="darkblue"
-    )
-    axes[3, column].plot(
         top_05_data[:, 0] / 1000, normalize(top_05_data), color="darkblue"
     )
+    axes[3, column].plot(
+        top_09_data[:, 0] / 1000, normalize(top_09_data), color="darkblue"
+    )
     axes[4, column].plot(
-        satellite_1_data[:, 0] / 1000, normalize(satellite_1_data), color="darkblue"
+        satellite_2_data[:, 0] / 1000, normalize(satellite_2_data), color="darkblue"
     )
 
     axes[0, column].set_title(f'{mass / 1000:g} kDa')
+
     axes[0, column].set_xlabel(r'$\mathit{m/z}$')
     axes[-1, column].set_xlabel('Mass (kDa)')
 
 row_labels = [
     'Data',
-    'Default',
-    'Top 0.1',
+    'Normal',
     'Top 0.5',
-    'Satellite 1',
+    'Top 0.9',
+    'Satellite 2',
 ]
 for row, label in enumerate(row_labels):
     for axis in axes[row]:
@@ -167,6 +187,10 @@ for panel_index, axis in enumerate(axes.flat):
 for axis in axes[:, 1:].flat:
     axis.tick_params(axis='y', labelleft=False)
 
+for axis in axes[1:-1].flat:
+    axis.tick_params(axis='x', labelbottom=False)
+    axis.set_yticks([0, 50, 100], labels=['', '%', '100'])
+
 for column, (mass, spectrum) in enumerate(zip(masses, spectra)):
     label_most_intense_charge(axes[0, column], spectrum, mass)
 
@@ -187,13 +211,13 @@ for row, column in red_bar_panels:
         color='red', linewidth=3
     )
 
-plt.tight_layout()
+fig.subplots_adjust(left=0.1, right=0.98, bottom=0.08, top=0.96)
 
 os.chdir(
     r"C:\Users\mm96978\The University of Texas at Austin"
     r"\MartyLab - General\Papers\Artifact Suppression\Figures"
 )
-plt.savefig('FigureS3.png', dpi=300)
-plt.savefig('FigureS3.pdf')
+plt.savefig('Figure3.png', dpi=300)
+plt.savefig('Figure3.pdf')
 
 plt.show()

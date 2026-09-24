@@ -1,0 +1,72 @@
+name: UniDec native builds
+
+on:
+  push:
+    paths:
+      - ".github/workflows/test-unidec-native-builds.yml"
+      - "public/UniDec/build_native.sh"
+      - "public/UniDec/tests/test_native_build.py"
+      - "public/UniDec/unidec/src/**"
+  pull_request:
+    paths:
+      - ".github/workflows/test-unidec-native-builds.yml"
+      - "public/UniDec/build_native.sh"
+      - "public/UniDec/tests/test_native_build.py"
+      - "public/UniDec/unidec/src/**"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  unix-native-builds:
+    name: ${{ matrix.name }} native build
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-latest
+          - name: macOS ARM64
+            os: macos-14
+
+    steps:
+      - name: Check out UniDecDev
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: public/UniDec/pyproject.toml
+
+      - name: Install Linux native dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install --yes libfftw3-dev libhdf5-dev pkg-config
+
+      - name: Install macOS native dependencies
+        if: runner.os == 'macOS'
+        run: |
+          brew untap aws/tap 2>/dev/null || true
+          brew install fftw hdf5 libomp pkg-config
+
+      - name: Build native UniDec
+        working-directory: public/UniDec
+        run: bash ./build_native.sh
+
+      - name: Install UniDec for native tests
+        working-directory: public/UniDec
+        run: python -m pip install -e .
+
+      - name: Run native tests
+        working-directory: public/UniDec
+        run: python -m unittest discover -s tests -p "test_native_build.py" -v

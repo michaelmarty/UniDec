@@ -3,6 +3,13 @@
 from ._version import __version__
 from .config import IsoDecConfig
 from .c_interface import IsoDecWrapper
+from .fragment_matching import match_fragments
 from .runtime import IsoDecRuntime
 
-__all__ = ["IsoDecConfig", "IsoDecRuntime", "IsoDecWrapper", "__version__"]
+__all__ = [
+    "IsoDecConfig",
+    "IsoDecRuntime",
+    "IsoDecWrapper",
+    "match_fragments",
+    "__version__",
+]

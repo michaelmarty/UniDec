@@ -1,8 +1,15 @@
-import unidec.engine as ud
-import unidec.modules.MassSpecBuilder as msb
+import os
+import sys
+from pathlib import Path
+
 import matplotlib
 import numpy as np
-import os
+
+UNIDEC_ROOT = Path(__file__).resolve().parents[3] / "public" / "UniDec"
+sys.path.insert(0, str(UNIDEC_ROOT))
+
+import unidec.engine as ud
+import unidec.modules.MassSpecBuilder as msb
 
 matplotlib.use('WxAgg')
 import matplotlib.pyplot as plt
@@ -89,6 +96,7 @@ massdat_topx005 = run_deconvolution(spectrum, topx=0.05)
 massdat_topx001 = run_deconvolution(spectrum, topx=0.01)
 
 fig = plt.figure(figsize=(6.5, 6.5))
+fig.canvas.manager.resize(*map(round, fig.bbox.size))
 outer_grid = fig.add_gridspec(
     2,
     1,
@@ -133,7 +141,7 @@ for axis in (axes[0, 1], axes[1, 0], axes[1, 1]):
 
 plot_labels = [
     'Simulated Data',
-    'Default Settings',
+    'Normal Settings',
     'Satellite 1',
     'Satellite 2',
     'Harmonic',
@@ -170,8 +178,8 @@ label_primary_charge_states(axes[0, 0], spectrum, params, ztab)
 fig.subplots_adjust(left=0.1, right=0.98, bottom=0.08, top=0.96)
 
 os.chdir(r"C:\Users\mm96978\The University of Texas at Austin\MartyLab - General\Papers\Artifact Suppression\Figures")
-plt.savefig("Figure1.png", dpi=300)
-plt.savefig("Figure1.pdf")
+plt.savefig("Figure2.png", dpi=300)
+plt.savefig("Figure2.pdf")
 
 
 plt.show()
