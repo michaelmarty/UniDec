@@ -474,11 +474,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox2b.Add(self.ctlzzsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
-        if self.config.imflag == 0:
-            self.ctlpsig = wx.TextCtrl(panel2b, value="", size=size1)
-            gbox2b.Add(wx.StaticText(panel2b, label="Point Smooth Width: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-            gbox2b.Add(self.ctlpsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
+        self.ctlpsig = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Point Smooth Width: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlpsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
         self.ctlmsig = wx.TextCtrl(panel2b, value="", size=size1)
         gbox2b.Add(wx.StaticText(panel2b, label="Mass Smooth Width: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -491,12 +490,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             gbox2b.Add(self.ctlcsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
-        if self.config.imflag == 0:
-
-            self.ctlbeta = wx.TextCtrl(panel2b, value="", size=size1)
-            gbox2b.Add(wx.StaticText(panel2b, label="Beta: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-            gbox2b.Add(self.ctlbeta, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
+        self.ctlbeta = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Beta: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlbeta, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
         self.ctlsuppressiontopn = wx.TextCtrl(panel2b, value="", size=size1)
         gbox2b.Add(wx.StaticText(panel2b, label="Suppression Top N Charges: "), (i, 0),
@@ -847,9 +844,9 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 self.ctlorbimode.SetValue(bool(self.config.orbimode))
                 self.ctldatanorm.SetValue(bool(self.config.datanorm))
                 self.ctlbintype.SetSelection(int(self.config.linflag))
-                self.ctlpsig.SetValue(str(self.config.psig))
-                self.ctlbeta.SetValue(str(self.config.beta))
 
+            self.ctlbeta.SetValue(str(self.config.beta))
+            self.ctlpsig.SetValue(str(self.config.psig))
             self.ctlsuppressiontopn.SetValue(str(self.config.suppression_topn))
             self.ctlsuppressionstartit.SetValue(str(self.config.suppression_startit))
             self.ctlsuppressiontopx.SetValue(str(self.config.suppression_topx))
@@ -996,13 +993,13 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             # self.config.isotopemode = int(self.ctlisotopemode.GetSelection())
             self.config.orbimode = int(self.ctlorbimode.GetValue())
             self.config.datanorm = int(self.ctldatanorm.GetValue())
-            self.config.psig = ud.string_to_value(self.ctlpsig.GetValue())
-            self.config.beta = ud.string_to_value(self.ctlbeta.GetValue())
             self.config.manualfileflag = int(self.ctlmanualassign.GetValue())
             self.config.linflag = self.ctlbintype.GetSelection()
             if self.config.mzbins == 0:
                 self.config.linflag = 2
                 self.ctlbintype.SetSelection(int(self.config.linflag))
+        self.config.beta = ud.string_to_value(self.ctlbeta.GetValue())
+        self.config.psig = ud.string_to_value(self.ctlpsig.GetValue())
         self.config.suppression_topn = ud.string_to_int(self.ctlsuppressiontopn.GetValue())
         self.config.suppression_startit = ud.string_to_int(self.ctlsuppressionstartit.GetValue())
         self.config.suppression_topx = ud.string_to_value(self.ctlsuppressiontopx.GetValue())
@@ -1157,16 +1154,16 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 "\nLinear Resolution bins with m/z axis that has a constant resolution"
                 "\nNonlinear merges adjacent data points"
                 "\nInterpolation uses the same axes but with interpolation instead of integration"))
-            self.ctlpsig.SetToolTip(wx.ToolTip(
-                "Parameter for defining the width of the data point smooth."
-                "\nUniDec will weight +/- n data points to have the same charge state."))
-            self.ctlbeta.SetToolTip(wx.ToolTip(
-                "Parameter for defining the degree of Softmax distribution applied to the charge state vectors."
-                "\n0 will shut it off."))
             self.ctlpselect.SetToolTip(wx.ToolTip(
                 "Select whether to smooth nearby data points to have similar charge assignments"))
             self.ctlbselect.SetToolTip(wx.ToolTip(
                 "Select whether to suppress deconvolution artifacts"))
+        self.ctlbeta.SetToolTip(wx.ToolTip(
+            "Parameter for defining the degree of Softmax distribution applied to the charge state vectors."
+            "\n0 will shut it off."))
+        self.ctlpsig.SetToolTip(wx.ToolTip(
+            "Parameter for defining the width of the data point smooth."
+            "\nUniDec will weight +/- n data points to have the same charge state."))
         self.ctlsuppressiontopn.SetToolTip(wx.ToolTip("Keep only the top N charge states during suppression."))
         self.ctlsuppressiontopx.SetToolTip(wx.ToolTip("Suppress charge states below this fraction of the local maximum."))
         self.ctlsuppressionstartit.SetToolTip(wx.ToolTip("Iteration number after which suppression starts."))

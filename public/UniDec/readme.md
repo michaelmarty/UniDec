@@ -320,6 +320,8 @@ Split IsoDec, IsoGen, and UniDecImporter into separate Python packages. This all
 
 Split UniDecIM into a separate window and engine to simplify the code. It had been a weird window switch of the main UniDec. Should be easier now. Split UCD and UCCD windows in the same way.
 
+UniDecIM now supports Artifact Suppression and Point Smoothing like the main window.
+
 Removed the UniDec API button and features. If you want to run UniDec via Python, just install it like a normal person.
 
 Added in Artifact Suppression settings introduced in version 8.2 to other windows.
@@ -334,7 +336,7 @@ Added in full stack deconvolution on UniChromCD. This will deconvolve each frame
 
 Added in automated testing, document building, and publishing with the help of Codex. 
 
-As part of the automated builds, there should be an actual up-to-date Mac version! Thanks to Xavier who kept building it for me over the years. 
+As part of the automated builds, there should be an actual up-to-date Mac version! Thanks to Xavier who kept building it for me over the years.
 
 CD-MS modes will now use truncated file names. Too many people were hitting path length issues with the full file names. So, it will now be just conf.dat rather than [filename]_conf.dat. May decide to migrate the other windows to this. Let me know what you think.
 

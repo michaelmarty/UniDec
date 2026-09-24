@@ -72,3 +72,5 @@ Scripts/Importers/reader_tester.py
 /Scripts/MTM/bib/UT_FAR_WorkloadSummary.xlsx
 /Scripts/MTM/bib/UT_FAR_WorkloadSummary2.xlsx
 /public/UniDec/.eggs/
+/public/UniDec/unidec/bin/Example Data/IMMS/aqpz_unidecfiles/aqpz_ccs.txt
+/public/UniDec/unidec/bin/Example Data/IMMS/aqpz_unidecfiles/aqpz_ccsz.bin
