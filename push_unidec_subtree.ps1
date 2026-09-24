@@ -58,7 +58,7 @@ if ($PSCmdlet.ShouldProcess("$SubtreePrefix from $Remote/$Branch", "merge remote
 }
 
 if ($PSCmdlet.ShouldProcess("$Remote/$Branch", "push subtree $SubtreePrefix")) {
-    & git subtree push "--prefix=$SubtreePrefix" $Remote $Branch
+    & git subtree push --rejoin "--prefix=$SubtreePrefix" $Remote $Branch
     if ($LASTEXITCODE -ne 0) {
         throw "Unable to push $SubtreePrefix to $Remote/$Branch."
     }
