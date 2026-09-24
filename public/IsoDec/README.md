@@ -99,6 +99,10 @@ provided in [CITATION.cff](CITATION.cff).
 
 ## Changelog
 
+### 2.0.3
+
+- Added fragment matching viewer.
+
 ### 2.0.2
 
 - Added fragmentation matching options.
