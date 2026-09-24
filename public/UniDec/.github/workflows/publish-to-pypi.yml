@@ -47,11 +47,49 @@ jobs:
         shell: pwsh
         run: |
           python -m venv .venv
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           .venv\Scripts\python -m pip install --upgrade pip
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $wheel = (Get-ChildItem -LiteralPath distpypi -Filter *.whl).FullName
           .venv\Scripts\python -m pip install $wheel
-          .venv\Scripts\python -m unidec.IsoDec .\unidec\bin\TestSpectra\test_2.txt -precentroided
-          .venv\Scripts\python -m unidec .\unidec\bin\TestSpectra\test_1.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          @'
+          from importlib.resources import files
+          from pathlib import Path
+          import subprocess
+          import sys
+          import tempfile
+
+          import isodec
+          import unidec
+          # Required by the GUI; verify the published dependency provides these APIs.
+          from isodec import match_fragments
+          from isodec.fragment_view import plot_fragment_matches
+
+          for package in (unidec, isodec):
+              location = Path(package.__file__).resolve()
+              if not location.is_relative_to(Path(sys.prefix).resolve()):
+                  raise RuntimeError(f"Expected an installed wheel, found {location}")
+
+          with tempfile.TemporaryDirectory(prefix="unidec-wheel-") as directory:
+              workdir = Path(directory)
+              spectra = files("unidec").joinpath("bin", "TestSpectra")
+              for name in ("test_1.txt", "test_2.txt"):
+                  (workdir / name).write_bytes(spectra.joinpath(name).read_bytes())
+              subprocess.run(
+                  [sys.executable, "-I", "-m", "isodec", "test_2.txt", "--centroided",
+                   "-o", "isodec.tsv"], cwd=workdir, check=True, timeout=180,
+              )
+              subprocess.run(
+                  [sys.executable, "-I", "-m", "unidec", "test_1.txt"],
+                  cwd=workdir, check=True, timeout=180,
+              )
+              for output in (workdir / "isodec.tsv",
+                             workdir / "test_1_unidecfiles" / "test_1_mass.txt"):
+                  if not output.is_file() or output.stat().st_size == 0:
+                      raise RuntimeError(f"CLI did not produce output: {output}")
+          '@ | .venv\Scripts\python -I -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Store distributions
         uses: actions/upload-artifact@v5

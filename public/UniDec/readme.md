@@ -28,23 +28,23 @@ To use the PDF report generator, install [MikTex](https://miktex.org) and select
 
 ### Pip install
 
-Unidec can also be installed via the pip package manager.
-Start by `cd`ing to the directory where you want UniDec to be stored,
-and making a virtual environment: 
+UniDec requires Python 3.10 or newer. Create a virtual environment:
 
     python -m venv venv
 	
-Then clone this repo with `git clone https://github.com/michaelmarty/UniDec.git`
+Activate it with `venv\Scripts\Activate.ps1` in Windows PowerShell, or
+`source venv/bin/activate` on Linux/macOS. Then install UniDec with GUI support:
 
-This will result in a directory (visible with `ls`) looking like:
+    python -m pip install "UniDec[gui]"
 
-	./
-    venv/
-	UniDec/
+The `gui` extra installs wxPython, which is required by `gunidec` and `unidecim`.
+For command-line and Python API use without the GUI, install `UniDec` without
+the extra. The portable Windows download already includes wxPython.
 
-Then install the package:
+To install from a source checkout instead:
 
-    pip install ./UniDec/
+    git clone https://github.com/michaelmarty/UniDec.git
+    python -m pip install "./UniDec[gui]"
 
 Then you can run the launcher:
 
@@ -70,8 +70,11 @@ or, after installation:
 
 ### Linux install
 
-On linux, you need to deal with getting `wxPython` installed and available to UniDec
-before installing UniDec.
+For the GUI on Linux, wxPython must be available in the environment. If pip
+cannot find a compatible wxPython wheel, it attempts a source build; see the
+[wxPython downloads and installation guidance](https://wxpython.org/pages/downloads/)
+for platform-specific options. If you install wxPython through your system
+package manager, use a virtual environment with `--system-site-packages` as below.
 
 1. `cd UniDec/unidec/src` to get to the source directory of the UniDec engine.
 2. Follow the instructions at the top of `./linux_<package manager>_deps.txt` to
@@ -80,7 +83,7 @@ listed, you'll need to figure out which packages provide these libraries.
 3.  Make a virtual envionment which passes this installation through:
 
 ```
-pip -m venv venv --system-site-packages
+python -m venv venv --system-site-packages
 ```
 
 If you're on an x86_64 machine and step 1 did not throw any errors, then you
@@ -336,7 +339,7 @@ Added in full stack deconvolution on UniChromCD. This will deconvolve each frame
 
 Added in automated testing, document building, and publishing with the help of Codex. 
 
-As part of the automated builds, there should be an actual up-to-date Mac version! Thanks to Xavier who kept building it for me over the years.
+As part of the automated builds, there should be an actual up-to-date Mac version for people willing to install it on Python! Thanks to Xavier who kept building it for me over the years.
 
 CD-MS modes will now use truncated file names. Too many people were hitting path length issues with the full file names. So, it will now be just conf.dat rather than [filename]_conf.dat. May decide to migrate the other windows to this. Let me know what you think.
 
