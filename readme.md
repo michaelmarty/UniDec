@@ -28,23 +28,23 @@ To use the PDF report generator, install [MikTex](https://miktex.org) and select
 
 ### Pip install
 
-Unidec can also be installed via the pip package manager.
-Start by `cd`ing to the directory where you want UniDec to be stored,
-and making a virtual environment: 
+UniDec requires Python 3.10 or newer. Create a virtual environment:
 
     python -m venv venv
 	
-Then clone this repo with `git clone https://github.com/michaelmarty/UniDec.git`
+Activate it with `venv\Scripts\Activate.ps1` in Windows PowerShell, or
+`source venv/bin/activate` on Linux/macOS. Then install UniDec with GUI support:
 
-This will result in a directory (visible with `ls`) looking like:
+    python -m pip install "UniDec[gui]"
 
-	./
-    venv/
-	UniDec/
+The `gui` extra installs wxPython, which is required by `gunidec` and `unidecim`.
+For command-line and Python API use without the GUI, install `UniDec` without
+the extra. The portable Windows download already includes wxPython.
 
-Then install the package:
+To install from a source checkout instead:
 
-    pip install ./UniDec/
+    git clone https://github.com/michaelmarty/UniDec.git
+    python -m pip install "./UniDec[gui]"
 
 Then you can run the launcher:
 
@@ -70,8 +70,11 @@ or, after installation:
 
 ### Linux install
 
-On linux, you need to deal with getting `wxPython` installed and available to UniDec
-before installing UniDec.
+For the GUI on Linux, wxPython must be available in the environment. If pip
+cannot find a compatible wxPython wheel, it attempts a source build; see the
+[wxPython downloads and installation guidance](https://wxpython.org/pages/downloads/)
+for platform-specific options. If you install wxPython through your system
+package manager, use a virtual environment with `--system-site-packages` as below.
 
 1. `cd UniDec/unidec/src` to get to the source directory of the UniDec engine.
 2. Follow the instructions at the top of `./linux_<package manager>_deps.txt` to
@@ -80,7 +83,7 @@ listed, you'll need to figure out which packages provide these libraries.
 3.  Make a virtual envionment which passes this installation through:
 
 ```
-pip -m venv venv --system-site-packages
+python -m venv venv --system-site-packages
 ```
 
 If you're on an x86_64 machine and step 1 did not throw any errors, then you
@@ -320,17 +323,23 @@ Split IsoDec, IsoGen, and UniDecImporter into separate Python packages. This all
 
 Split UniDecIM into a separate window and engine to simplify the code. It had been a weird window switch of the main UniDec. Should be easier now. Split UCD and UCCD windows in the same way.
 
+UniDecIM now supports Artifact Suppression and Point Smoothing like the main window.
+
 Removed the UniDec API button and features. If you want to run UniDec via Python, just install it like a normal person.
 
 Added in Artifact Suppression settings introduced in version 8.2 to other windows.
 
 Had Codex help make some speed improvements to UniDec and other core workflows. 
 
+Several major improvements to UniChrom, especially including both linear and nonlinear chromatographic deconvolution. This takes into account neighboring scans when deconvolving. It takes a new parameter, the chromatographic peak width, which can be defined either in scans or in retention time. If specified in scans, you can use a linearized mode to speed up deconvolution. Otherwise, it will use nonlinear deconvolution.
+
+Removed the option to use UniDec on selected spectra in UniChrom. This is still indirectly possible by selecting a set of scans, clicking "Add From Manual Selection" and then right clicking on that scan and selecting the "Open Spectrum in UniDec" option.
+
 Added in full stack deconvolution on UniChromCD. This will deconvolve each frame in the chromatogram. It also includes the first use of chromatographic deconvolution, meaning that it can take info from adjacent scans and use that to help in deconvolution. That also means you can do chromatographic peak sharpening if you would like. To turn this on, switch to Centroid mode for the deconvolution output. 
 
 Added in automated testing, document building, and publishing with the help of Codex. 
 
-As part of the automated builds, there should be an actual up-to-date Mac version! Thanks to Xavier who kept building it for me over the years. 
+As part of the automated builds, there should be an actual up-to-date Mac version for people willing to install it on Python! Thanks to Xavier who kept building it for me over the years.
 
 CD-MS modes will now use truncated file names. Too many people were hitting path length issues with the full file names. So, it will now be just conf.dat rather than [filename]_conf.dat. May decide to migrate the other windows to this. Let me know what you think.
 
@@ -1405,8 +1414,6 @@ DAMAGE.
 
 For portions of this code, copyright and license information differs from
 the above. In these cases, copyright and/or license information is inline.
-
-
 
 
 

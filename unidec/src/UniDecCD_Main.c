@@ -304,7 +304,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 		exit(1);
 	}
 	if (config.zsig != 0) { setup_blur_z(zupind, zloind, mzdat, zdat, lines, config.adductmass, mzranges, size);
-	printf("Charge Blur Set\n");
+	printf("Charge Blur Set. Suppression: %d %f %d %d\n", config.suppression_topn, config.suppression_topx, config.suppression_satellite, config.suppression_harmonic);
 	}
 
 	//Set up mass blur
@@ -335,11 +335,12 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	memcpy(blur, dataInt, matsize);
 	memcpy(oldblur, blur, matsize);
 
-	printf("Iterating.");
+	printf("Iterating...");
 	//Iterating
 	float conv=0;
 	int off = 0;
-	for (int m = 0; m < config.numit; m++) {
+	int m;
+	for (m = 0; m < config.numit; m++) {
 		// Apply softmax
 		if (config.beta > 0) {
 			softargmax(blur, size[0], size[1], config.beta/betafactor);
@@ -385,7 +386,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 		}
 
 		//Determine the metrics for conversion. Only do this every 10% to speed up. Stop loop if converged
-		if ((config.numit < 10 || m % 10 == 0 || m % 10 == 1 || m>0.9 * config.numit)) {
+		if (config.numit < 10 || m % 10 == 0 || m % 10 == 1 || m>0.9 * config.numit) {
 			float diff = 0;
 			float tot = 0;
 			for (int i = 0; i < lines; i++)
@@ -411,7 +412,7 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 
 	}
 
-	printf("Completed Iterations");
+	printf("Completed %d iterations.\n", m);
 	//Writing outputs
 
 	//Outputting Fit Reconvolved Data as newblur2

@@ -22,7 +22,7 @@ def copy_unidec_example(destination, *relative_parts):
 
 
 def find_importer_test_data():
-    """Locate the separately distributed UniDecImporter Git-LFS fixtures."""
+    """Locate the separately distributed UniDecImporter fixtures."""
     configured = os.environ.get("UNIDEC_IMPORTER_TEST_DATA")
     candidates = []
     if configured:

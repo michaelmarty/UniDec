@@ -1,26 +1,16 @@
 import atexit
 import wx.html
 import numpy as np
-from unidec.metaunidec import mudview
-from unidec.metaunidec import mudeng, metafft
 import time
 import os
 #
 from pubsub import pub
 
 import unidec.tools as ud
-from unidec.modules import Extract2D, masstools, IM_functions, fft_window, AutocorrWindow
-from unidec.modules.plotting import PlotAnimations
-from unidec.modules import MassDefects, miscwindows
+from unidec.modules import miscwindows
 from unidec.modules.isolated_packages import FileDialogs
-from unidec import DataCollector as datacollector
 import multiprocessing
 from unidec.modules.unidec_presbase import UniDecPres
-from unidec.metaunidec import image_plotter
-from unidec.metaunidec import ultrameta
-from unidec.metaunidec.meta_import_wizard.meta_import_wizard import ImportWizard
-from unidec.modules.plotting.plot_waterfall import WaterfallFrame
-from unidec.modules.plotting.plateplot import PlateFrame
 from unidec.metaunidec.mudhelp import HelpDlg
 
 # import FileDialog  # Needed for pyinstaller
@@ -148,6 +138,8 @@ class MetaUniDecBase(UniDecPres):
             print(e)
 
     def make_waterfall_plots(self, e=None):
+        from unidec.modules.plotting.plot_waterfall import WaterfallFrame
+
         print("Making Waterfall Plots")
         wt = WaterfallFrame(None)
         wt.make_plot(self.eng.data)
@@ -390,14 +382,17 @@ class MetaUniDecBase(UniDecPres):
         tstart = time.perf_counter()
         self.export_config()
         self.check_badness()
-        self.eng.run_unidec()
+        result = self.eng.run_unidec()
+        if result not in (None, 0):
+            self.view.SetStatusText("UniDec failed (exit code %s)" % result, number=5)
+            return result
         tend = time.perf_counter()
         self.eng.config.runtime = (tend - tstart)
         self.makeplot1()
         self.makeplot2_mud()
         print("Run Time:", self.eng.config.runtime)
         self.view.SetStatusText("UniDec Done %.2gs" % self.eng.config.runtime, number=5)
-        pass
+        return result
 
     def on_pick_peaks(self, e=None):
         """
@@ -500,6 +495,8 @@ class MetaUniDecBase(UniDecPres):
         :param show: Whether to thow the window (True) or simply match and return (False)
         :return: None
         """
+        from unidec.modules import masstools
+
         dlg = masstools.MassSelection(self.view)
         dlg.init_dialog(self.eng.config, self.eng.pks, massdat=self.eng.data.massdat)
         if show:
@@ -533,6 +530,8 @@ class MetaUniDecBase(UniDecPres):
         :param index:
         :return:
         """
+        from unidec.modules import AutocorrWindow
+
         spectra = self.eng.data.get_spectra()
         data = spectra[index].massdat
         dlg = AutocorrWindow.AutocorrWindow(self.view)
@@ -550,6 +549,8 @@ class MetaUniDecBase(UniDecPres):
         :param index:
         :return:
         """
+        from unidec.modules import fft_window
+
         try:
             spectra = self.eng.data.get_spectra()
         except:
@@ -563,6 +564,8 @@ class MetaUniDecBase(UniDecPres):
         :param e:
         :return:
         """
+        from unidec.modules import MassDefects
+
         self.eng.data.import_grids_and_peaks()
         MassDefects.MassDefectWindow(self.view, self.eng.data.massgrid, self.eng.config, yvals=self.eng.data.var1,
                                      directory=self.eng.config.udir,
@@ -575,6 +578,8 @@ class MetaUniDecBase(UniDecPres):
         :param e:
         :return:
         """
+        from unidec.modules import Extract2D
+
         self.eng.data.import_grids_and_peaks()
         exwindow = Extract2D.Extract2DPlot(self.view, self.eng.data.massgrid, self.eng.config, yvals=self.eng.data.var1,
                                            params=self.eng.config.gridparams,
@@ -587,6 +592,8 @@ class MetaUniDecBase(UniDecPres):
         :param e:
         :return:
         """
+        from unidec.metaunidec import metafft
+
         rawdatalist = [s.rawdata for s in self.eng.data.spectra]
         metafft.FFTWindow(self.view, rawdatalist, self.eng.data.var1, self.eng.config)
         pass
@@ -597,6 +604,8 @@ class MetaUniDecBase(UniDecPres):
         :param e:
         :return:
         """
+        from unidec.modules.plotting import PlotAnimations
+
         self.eng.sum_masses()
         PlotAnimations.AnimationWindow(self.view, self.eng.data.massgrid, self.eng.config, yvals=self.eng.data.var1,
                                        pksmode="mass")
@@ -607,6 +616,8 @@ class MetaUniDecBase(UniDecPres):
         :param e:
         :return:
         """
+        from unidec.modules.plotting import PlotAnimations
+
         self.eng.sum_masses()
         PlotAnimations.AnimationWindow(self.view, self.eng.data.massgrid, self.eng.config, pks=self.eng.pks,
                                        pksmode="mass", yvals=self.eng.data.var1)
@@ -617,6 +628,8 @@ class MetaUniDecBase(UniDecPres):
         :param e:
         :return:
         """
+        from unidec.modules.plotting import PlotAnimations
+
         # self.eng.sum_masses()
         newgrid = []
         for s in self.eng.data.spectra:
@@ -640,6 +653,8 @@ class MetaUniDecBase(UniDecPres):
         """
         :return:
         """
+        from unidec.modules.plotting import PlotAnimations
+
         if not self.ensure_full_outputs_for_visualization():
             return
 
@@ -657,6 +672,9 @@ class MetaUniDecBase(UniDecPres):
         :param type:
         :return:
         """
+        from unidec.modules import IM_functions
+        from unidec.modules.plotting import PlotAnimations
+
         if not self.ensure_full_outputs_for_visualization():
             return
 
@@ -838,6 +856,8 @@ class UniDecApp(MetaUniDecBase):
         :param kwargs:
         :return:
         """
+        from unidec.metaunidec import mudeng, mudview
+
         pub.subscribe(self.on_get_mzlimits, 'mzlimits')
         pub.subscribe(self.on_left_click, 'left_click')
 
@@ -897,6 +917,8 @@ class UniDecApp(MetaUniDecBase):
         pass
 
     def on_plate_viewer(self, e=None):
+        from unidec.modules.plotting.plateplot import PlateFrame
+
         print("Opening Plate Viewer Window")
         pt = PlateFrame(None)
         pt.load_eng(self.eng)
@@ -1264,6 +1286,8 @@ class UniDecApp(MetaUniDecBase):
             self.open_file(self.eng.outpath)
 
     def on_wizard(self, e=None):
+        from unidec.metaunidec.meta_import_wizard.meta_import_wizard import ImportWizard
+
         print("Launching Waters Converter Wizard")
         app = wx.App(False)
         frame = ImportWizard(None)
@@ -1378,6 +1402,8 @@ class UniDecApp(MetaUniDecBase):
         :param e: unused event
         :return: None
         """
+        from unidec import DataCollector as datacollector
+
         dc = datacollector.DataCollector(None, "Data Collector", config=self.eng.config, pks=self.eng.pks,
                                          directory=self.eng.config.dirname, hdf_file=self.eng.config.hdf_file)
 
@@ -1401,6 +1427,8 @@ class UniDecApp(MetaUniDecBase):
         :param e: unused event
         :return: None
         """
+        from unidec.metaunidec import ultrameta
+
         dc = ultrameta.DataCollector(None, "Ultra Meta Data Collector", config=self.eng.config,
                                      directory=self.eng.config.dirname)
 
@@ -1466,6 +1494,8 @@ class UniDecApp(MetaUniDecBase):
         :param tabbed:
         :return:
         """
+        from unidec.metaunidec import mudview
+
         iconfile = self.view.icon_path
         wx.GetApp().Yield()
         self.view.on_exit()
@@ -1616,6 +1646,8 @@ class UniDecApp(MetaUniDecBase):
                                     xlab="x", ylab="y", discrete=1, )
 
     def on_imaging_viewer(self, e=None):
+        from unidec.metaunidec import image_plotter
+
         print("Launching Imaging Viewer")
         dlg = image_plotter.ImagingWindow(self.view)
         dlg.init(self.eng.data, self.eng.config)

@@ -1,4 +1,4 @@
-version 9.0.0
+version 9.0.0b1
 imflag 0
 cdmsflag 0
 input C:\Python\UniDecDev\public\UniDec\unidec\bin\Example Data\ADH_unidecfiles\ADH_input.dat
@@ -9,13 +9,13 @@ endz 70
 startz 1
 zzsig 1.0
 psig 10.0
-beta 50.0
-suppression_topn 2
-suppression_topx 0.1
+beta 0.0
+suppression_topn 1
+suppression_topx 0.0
 suppression_percent 0.0
 suppression_startit 3
 suppression_harmonic 0
-suppression_satellite 2
+suppression_satellite 0
 mzsig 16.73188
 psfun 2
 zpsfn 0

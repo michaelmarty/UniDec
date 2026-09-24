@@ -334,7 +334,10 @@ Config mh5LoadConfig(Config config, hid_t file_id)
 	config.peakshapeinflate=float_attr(file_id, "/config", "peakshapeinflate", config.peakshapeinflate);
 	//IM Parameters
 	config.csig =float_attr(file_id, "/config", "csig", config.csig);
+	// Shared chromatography peak width used by UCCD and HDF5 UniChrom.
 	config.dtsig = float_attr(file_id, "/config", "dtsig", config.dtsig);
+	config.UClineardecon = int_attr(file_id, "/config", "UClineardecon", 1);
+	config.UCtype = int_attr(file_id, "/config", "UCtype", 0);
 	config.ccsub = float_attr(file_id, "/config", "ccsub", config.ccsub);
 	config.ccslb = float_attr(file_id, "/config", "ccslb", config.ccslb);
 	config.ccsbins = float_attr(file_id, "/config", "ccsbins", config.ccsbins);

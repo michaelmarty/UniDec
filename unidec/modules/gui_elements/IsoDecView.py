@@ -6,6 +6,10 @@ from unidec.modules.plotting import PlottingWindow
 from unidec.modules.gui_elements import peaklistsort
 from unidec.modules.gui_elements import IsoDecControls
 from unidec.modules.gui_elements import IsoDecMenu
+from isodec.fragment_view import plot_fragment_matches
+from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
+from matplotlib.figure import Figure
+import math
 
 class IsoDecView(MainwindowBase):
     def __init__(self, parent, title, config, iconfile=None, tabbed=None):
@@ -64,9 +68,20 @@ class IsoDecView(MainwindowBase):
         figsize = self.config.figsize
         self.plot1 = PlottingWindow.Plot1d(plotwindow, smash=1, figsize=figsize, parent=plotwindow)
         self.plot2 = PlottingWindow.Plot1d(plotwindow, integrate=1, figsize=figsize, parent=plotwindow)
+        self.fragment_panel = wx.Panel(plotwindow)
+        self.fragment_figure = Figure(figsize=(12, 3))
+        self.fragment_ax = self.fragment_figure.add_subplot(111)
+        self.fragment_canvas = FigureCanvasWxAgg(self.fragment_panel, -1, self.fragment_figure)
+        self.fragment_has_matches = False
+        fragment_sizer = wx.BoxSizer(wx.VERTICAL)
+        fragment_sizer.Add(self.fragment_canvas, 1, wx.EXPAND)
+        self.fragment_panel.SetSizer(fragment_sizer)
+        self.fragment_panel.SetMinSize((1200, 250))
+        self.clear_fragment_plot()
 
         self.sizerplot.Add(self.plot1, (0, 0), span=(1, 1), flag=wx.EXPAND)
         self.sizerplot.Add(self.plot2, (0, 1), span=(1, 1), flag=wx.EXPAND)
+        self.sizerplot.Add(self.fragment_panel, (1, 0), span=(1, 2), flag=wx.EXPAND)
 
         # plotwindow.SetScrollbars(1, 1,1,1)
         if self.system == "Linux":
@@ -120,6 +135,7 @@ class IsoDecView(MainwindowBase):
         # Set everything up
         self.SetSizer(sizer)
         sizer.Fit(self)
+        self.SetSize((self.GetSize().width, self.GetSize().height + 100))
 
         self.Layout()
 
@@ -131,6 +147,40 @@ class IsoDecView(MainwindowBase):
 
         splitterwindow2.SetMinimumPaneSize(20)
         splitterwindow2.SetSashGravity(0.5)
+
+    def clear_fragment_plot(self):
+        self.fragment_has_matches = False
+        self.fragment_ax.clear()
+        self.fragment_ax.set_axis_off()
+        self.fragment_canvas.draw_idle()
+
+    def show_fragment_matches(self, sequence, pks):
+        residues_per_line = 70
+        lines = math.ceil((len(pks.fragment_matches.index) + 1) / residues_per_line)
+        ion_count = sum(column.endswith("_match") and pks.fragment_matches[column].notna().any()
+                        for column in pks.fragment_matches)
+        height = max(2.5, 0.35 + lines * (0.22 + 0.07 * ion_count))
+        self.fragment_figure.set_size_inches(12, height)
+        self.fragment_panel.SetMinSize((1200, int(height * self.fragment_figure.dpi)))
+        plot_fragment_matches(self.fragment_ax, sequence, pks, residues_per_line=residues_per_line)
+        self.fragment_has_matches = True
+        self.fragment_figure.tight_layout(pad=0.3)
+        self.fragment_canvas.draw_idle()
+        self.sizerplot.Layout()
+        self.plotpanel.SetupScrolling()
+
+    def clear_all_plots(self, flag=0):
+        super().clear_all_plots(flag)
+        self.clear_fragment_plot()
+
+    def save_all_figures(self, extension, extension2='', e=0, header=None, **kwargs):
+        flags, files = super().save_all_figures(extension, extension2, e, header, **kwargs)
+        if self.fragment_has_matches:
+            path = f"{header or self.config.outfname}{extension2}_Figure3.{extension}"
+            self.fragment_figure.savefig(path, **kwargs)
+            flags.append(3)
+            files.append([3, path])
+        return flags, files
 
 
 class MyFileDropTarget(wx.FileDropTarget):

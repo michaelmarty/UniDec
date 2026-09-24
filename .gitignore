@@ -91,3 +91,7 @@ unidec/src/CMakeFiles/
 /unidec/bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/mass.txt
 /unidec/bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/rawdata.npz
 /unidec/bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/input.dat
+/unidec/bin/Example Data/CDMS/GroEL_CDMS_1_unidecfiles/peaks.dat
+/unidec/bin/Example Data/IMMS/aqpz_unidecfiles/aqpz_imraw.txt
+/unidec/bin/Example Data/IMMS/aqpz_unidecfiles/aqpz_massccs.bin
+/unidec/bin/Example Data/IMMS/aqpz_unidecfiles/aqpz_mzgrid.bin

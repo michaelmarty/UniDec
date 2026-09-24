@@ -8,12 +8,8 @@ import unidec.engine as unidec
 from pubsub import pub
 
 import unidec.tools as ud
-from unidec.modules import Extract2D, masstools, mainwindow, nativez, fft_window, GridDecon, isotopetools
-from unidec.modules import MassDefects, miscwindows
+from unidec.modules import mainwindow
 from unidec.modules.isolated_packages import FileDialogs
-from unidec.modules.isolated_packages import score_window, texmaker
-import unidec.DataCollector as datacollector
-import unidec.ImportWizard as import_wizard
 import platform
 import multiprocessing
 from unidec.modules.unidec_presbase import UniDecPres
@@ -156,7 +152,8 @@ class UniDecApp(UniDecPres):
         :return: None
         """
         # tstart =time.perf_counter()
-        self.export_config()
+        if not skipengine:
+            self.export_config()
         # Clear other plots and panels
         self.view.peakpanel.clear_list()
         self.view.clear_all_plots()
@@ -746,6 +743,8 @@ class UniDecApp(UniDecPres):
         :param show: Whether to thow the window (True) or simply match and return (False)
         :return: None
         """
+        from unidec.modules import masstools
+
         dlg = masstools.MassSelection(self.view)
         dlg.init_dialog(self.eng.config, self.eng.pks, massdat=self.eng.data.massdat)
         if show:
@@ -787,6 +786,8 @@ class UniDecApp(UniDecPres):
         :param e: unused event
         :return: None
         """
+        from unidec.modules import miscwindows
+
         dlg = miscwindows.AdditionalParameters(self.view)
         dlg.initialize_interface(self.eng.config)
         dlg.ShowModal()
@@ -815,6 +816,8 @@ class UniDecApp(UniDecPres):
         :param e: unused event
         :return: None
         """
+        from unidec.modules import miscwindows
+
         dlg = miscwindows.FileNameDialog(self.view)
         dlg.initialize_interface(self.eng.config)
         dlg.ShowModal()
@@ -826,6 +829,8 @@ class UniDecApp(UniDecPres):
         :param e: unused event
         :return: None
         """
+        import unidec.DataCollector as datacollector
+
         datacollector.DataCollector(None, "Data Collector", config=self.eng.config, pks=self.eng.pks,
                                     directory=self.eng.config.dirname)
 
@@ -835,6 +840,8 @@ class UniDecApp(UniDecPres):
         :param e: unused event
         :return: None
         """
+        import unidec.ImportWizard as import_wizard
+
         dlg = import_wizard.ImportWizard(self.view, dir=self.eng.config.UniDecDir)
         dlg.Show()
 
@@ -844,6 +851,8 @@ class UniDecApp(UniDecPres):
         :param e: unused event
         :return: None
         """
+        from unidec.modules import MassDefects
+
         MassDefects.MassDefectWindow(self.view, [self.eng.data.massdat], config=self.eng.config,
                                      pks=self.eng.pks, value=self.eng.config.molig, directory=self.eng.config.udir)
 
@@ -854,6 +863,8 @@ class UniDecApp(UniDecPres):
         :param e: unused event
         :return: None
         """
+        from unidec.modules import Extract2D
+
         extract2d = Extract2D.Extract2DPlot(self.view, [self.eng.data.massdat], config=self.eng.config,
                                             params=self.eng.config.gridparams)
         self.eng.config.gridparams = extract2d.params
@@ -865,6 +876,8 @@ class UniDecApp(UniDecPres):
         :param e: unused event
         :return: None
         """
+        from unidec.modules import nativez
+
         dlg = nativez.NativeZ(self.view)
         dlg.initialize_interface(self.eng.data.massdat[:, 0], np.unique(self.eng.data.mzgrid[:, 1]),
                                  self.eng.data.massgrid,
@@ -1085,6 +1098,8 @@ class UniDecApp(UniDecPres):
         :param e: event passed to self.view.on_save_figur_pdf
         :return: None
         """
+        from unidec.modules.isolated_packages import texmaker
+
         figureflags, files = self.view.on_save_figure_pdf(e)
         textmarkertab = [p.textmarker for p in self.eng.pks.peaks]
         peaklabels = [p.label for p in self.eng.pks.peaks]
@@ -1102,6 +1117,8 @@ class UniDecApp(UniDecPres):
         pass
 
     def on_fft_window(self, e):
+        from unidec.modules import fft_window
+
         print("FFT window...")
         fft_window.FFTWindow(self.view, self.eng.data.rawdata, self.eng.config)
         pass
@@ -1179,6 +1196,8 @@ class UniDecApp(UniDecPres):
         # pass
 
     def on_grid_decon(self, e):
+        from unidec.modules import GridDecon
+
         GridDecon.GridDeconWindow(self.view, self.eng.data.data2, config=self.eng.config)
 
     def on_label_max_charge_states(self, e):
@@ -1229,6 +1248,8 @@ class UniDecApp(UniDecPres):
         self.view.peakpanel.add_data(self.eng.pks, show="avgcharge")
 
     def on_plot_isotope_distribution(self, e=0):
+        from unidec.modules import isotopetools
+
         for i in range(0, self.eng.pks.plen):
             p = self.eng.pks.peaks[i]
             if p.ignore == 0:
@@ -1256,6 +1277,8 @@ class UniDecApp(UniDecPres):
         self.on_score_window()
 
     def on_score_window(self, e=0):
+        from unidec.modules.isolated_packages import score_window
+
         self.on_score()
         sw = score_window.ScoreFrame(self.view)
         sw.populate(self.eng.pks)

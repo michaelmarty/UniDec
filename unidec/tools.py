@@ -11,7 +11,7 @@ import zipfile
 import fnmatch
 
 import scipy.fft
-import scipy.ndimage.filters as filt
+from scipy.ndimage import gaussian_filter
 from numba import njit
 from scipy.interpolate import interp1d
 from scipy.interpolate import griddata
@@ -1115,7 +1115,7 @@ def datacompsub(datatop, buff):
     indexes = list(range(0, length))
     for i in indexes:
         mins[i] = np.amin(datatop[int(max([0, i - abs(buff)])):int(min([i + abs(buff), length])), 1])
-    background = filt.gaussian_filter(mins, abs(buff) * 2)
+    background = gaussian_filter(mins, abs(buff) * 2)
     datatop[:, 1] = datatop[:, 1] - background
     return datatop
 
@@ -1303,7 +1303,7 @@ def gsmooth(datatop, sig):
     :return: Smoothed Data
     """
     print(len(datatop), sig)
-    datatop[:, 1] = filt.gaussian_filter(datatop[:, 1], sig)
+    datatop[:, 1] = gaussian_filter(datatop[:, 1], sig)
     return datatop
 
 

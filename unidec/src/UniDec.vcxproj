@@ -254,6 +254,7 @@
   <ItemGroup>
     <ClCompile Include="UniDec.c" />
     <ClCompile Include="UCCD_Main.c" />
+    <ClCompile Include="UniChrom_Main.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MetaUniDec_Main.h" />
@@ -270,6 +271,7 @@
     <ClInclude Include="UniDec.h" />
     <ClInclude Include="UniDecCD_Main.h" />
     <ClInclude Include="UCCD_Main.h" />
+    <ClInclude Include="UniChrom_Main.h" />
     <ClInclude Include="UniDecIM.h" />
     <ClInclude Include="UniDecIM_Main.h" />
     <ClInclude Include="UniDecLC_Main.h" />

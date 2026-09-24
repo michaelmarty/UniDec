@@ -474,11 +474,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         gbox2b.Add(self.ctlzzsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         i += 1
 
-        if self.config.imflag == 0:
-            self.ctlpsig = wx.TextCtrl(panel2b, value="", size=size1)
-            gbox2b.Add(wx.StaticText(panel2b, label="Point Smooth Width: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-            gbox2b.Add(self.ctlpsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
+        self.ctlpsig = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Point Smooth Width: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlpsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
         self.ctlmsig = wx.TextCtrl(panel2b, value="", size=size1)
         gbox2b.Add(wx.StaticText(panel2b, label="Mass Smooth Width: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -491,42 +490,40 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             gbox2b.Add(self.ctlcsig, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
-        if self.config.imflag == 0:
+        self.ctlbeta = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Beta: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlbeta, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
-            self.ctlbeta = wx.TextCtrl(panel2b, value="", size=size1)
-            gbox2b.Add(wx.StaticText(panel2b, label="Beta: "), (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-            gbox2b.Add(self.ctlbeta, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
+        self.ctlsuppressiontopn = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Suppression Top N Charges: "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlsuppressiontopn, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
-            self.ctlsuppressiontopn = wx.TextCtrl(panel2b, value="", size=size1)
-            gbox2b.Add(wx.StaticText(panel2b, label="Suppression Top N Charges: "), (i, 0),
-                       flag=wx.ALIGN_CENTER_VERTICAL)
-            gbox2b.Add(self.ctlsuppressiontopn, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
+        self.ctlsuppressiontopx = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Suppression Top X %: "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlsuppressiontopx, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
-            self.ctlsuppressiontopx = wx.TextCtrl(panel2b, value="", size=size1)
-            gbox2b.Add(wx.StaticText(panel2b, label="Suppression Top X %: "), (i, 0),
-                       flag=wx.ALIGN_CENTER_VERTICAL)
-            gbox2b.Add(self.ctlsuppressiontopx, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
+        self.ctlsuppressionsatellite = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Suppression Satellites: "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlsuppressionsatellite, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
-            self.ctlsuppressionsatellite = wx.TextCtrl(panel2b, value="", size=size1)
-            gbox2b.Add(wx.StaticText(panel2b, label="Suppression Satellites: "), (i, 0),
-                       flag=wx.ALIGN_CENTER_VERTICAL)
-            gbox2b.Add(self.ctlsuppressionsatellite, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
+        gbox2b.Add(wx.StaticText(panel2b, label="Suppression Harmonics: "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        self.ctlsuppressionharmonic = wx.CheckBox(panel2b, label="")
+        gbox2b.Add(self.ctlsuppressionharmonic, (i, 1), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
-            gbox2b.Add(wx.StaticText(panel2b, label="Suppression Harmonics: "), (i, 0),
-                       flag=wx.ALIGN_CENTER_VERTICAL)
-            self.ctlsuppressionharmonic = wx.CheckBox(panel2b, label="")
-            gbox2b.Add(self.ctlsuppressionharmonic, (i, 1), span=(1, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
-
-            self.ctlsuppressionstartit = wx.TextCtrl(panel2b, value="", size=size1)
-            gbox2b.Add(wx.StaticText(panel2b, label="Suppression Start Iteration: "), (i, 0),
-                       flag=wx.ALIGN_CENTER_VERTICAL)
-            gbox2b.Add(self.ctlsuppressionstartit, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-            i += 1
+        self.ctlsuppressionstartit = wx.TextCtrl(panel2b, value="", size=size1)
+        gbox2b.Add(wx.StaticText(panel2b, label="Suppression Start Iteration: "), (i, 0),
+                   flag=wx.ALIGN_CENTER_VERTICAL)
+        gbox2b.Add(self.ctlsuppressionstartit, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
 
 
 
@@ -539,6 +536,11 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.ctlpoolflag = wx.RadioBox(panel2b, label="m/z to Mass Transformation",
                                        choices=["Integrate", "Interpolate", "Smart"])
         gbox2b.Add(self.ctlpoolflag, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
+        i += 1
+
+        self.ctlrawflag = wx.RadioBox(panel2b, label="Output Type",
+                                      choices=["Reconvolved/Profile", "Raw/Centroid"])
+        gbox2b.Add(self.ctlrawflag, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 
         self.ctladductmass = wx.TextCtrl(panel2b, value='', size=size1)
@@ -676,10 +678,6 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         self.ctlpublicationmode = wx.CheckBox(panel3b, label="Publication Mode")
         gbox3b.Add(self.ctlpublicationmode, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-        i += 1
-
-        self.ctlrawflag = wx.RadioBox(panel3b, label="", choices=["Reconvolved/Profile", "Raw/Centroid"])
-        gbox3b.Add(self.ctlrawflag, (i, 0), span=(1, 2), flag=wx.EXPAND)
         i += 1
 
         self.ctlnorm = wx.RadioBox(panel3b, label="Peak Normalization", choices=["None", "Max", "Total"])
@@ -846,13 +844,14 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 self.ctlorbimode.SetValue(bool(self.config.orbimode))
                 self.ctldatanorm.SetValue(bool(self.config.datanorm))
                 self.ctlbintype.SetSelection(int(self.config.linflag))
-                self.ctlpsig.SetValue(str(self.config.psig))
-                self.ctlbeta.SetValue(str(self.config.beta))
-                self.ctlsuppressiontopn.SetValue(str(self.config.suppression_topn))
-                self.ctlsuppressionstartit.SetValue(str(self.config.suppression_startit))
-                self.ctlsuppressiontopx.SetValue(str(self.config.suppression_topx))
-                self.ctlsuppressionsatellite.SetValue(str(self.config.suppression_satellite))
-                self.ctlsuppressionharmonic.SetValue(bool(self.config.suppression_harmonic))
+
+            self.ctlbeta.SetValue(str(self.config.beta))
+            self.ctlpsig.SetValue(str(self.config.psig))
+            self.ctlsuppressiontopn.SetValue(str(self.config.suppression_topn))
+            self.ctlsuppressionstartit.SetValue(str(self.config.suppression_startit))
+            self.ctlsuppressiontopx.SetValue(str(self.config.suppression_topx))
+            self.ctlsuppressionsatellite.SetValue(str(self.config.suppression_satellite))
+            self.ctlsuppressionharmonic.SetValue(bool(self.config.suppression_harmonic))
 
             self.ctlsmashflag.SetValue(self.config.smashflag)
             self.ctldiscrete.SetValue(self.config.discreteplot)
@@ -994,18 +993,18 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             # self.config.isotopemode = int(self.ctlisotopemode.GetSelection())
             self.config.orbimode = int(self.ctlorbimode.GetValue())
             self.config.datanorm = int(self.ctldatanorm.GetValue())
-            self.config.psig = ud.string_to_value(self.ctlpsig.GetValue())
-            self.config.beta = ud.string_to_value(self.ctlbeta.GetValue())
-            self.config.suppression_topn = ud.string_to_int(self.ctlsuppressiontopn.GetValue())
-            self.config.suppression_startit = ud.string_to_int(self.ctlsuppressionstartit.GetValue())
-            self.config.suppression_topx = ud.string_to_value(self.ctlsuppressiontopx.GetValue())
-            self.config.suppression_satellite = ud.string_to_int(self.ctlsuppressionsatellite.GetValue())
-            self.config.suppression_harmonic = int(self.ctlsuppressionharmonic.GetValue())
             self.config.manualfileflag = int(self.ctlmanualassign.GetValue())
             self.config.linflag = self.ctlbintype.GetSelection()
             if self.config.mzbins == 0:
                 self.config.linflag = 2
                 self.ctlbintype.SetSelection(int(self.config.linflag))
+        self.config.beta = ud.string_to_value(self.ctlbeta.GetValue())
+        self.config.psig = ud.string_to_value(self.ctlpsig.GetValue())
+        self.config.suppression_topn = ud.string_to_int(self.ctlsuppressiontopn.GetValue())
+        self.config.suppression_startit = ud.string_to_int(self.ctlsuppressionstartit.GetValue())
+        self.config.suppression_topx = ud.string_to_value(self.ctlsuppressiontopx.GetValue())
+        self.config.suppression_satellite = ud.string_to_int(self.ctlsuppressionsatellite.GetValue())
+        self.config.suppression_harmonic = int(self.ctlsuppressionharmonic.GetValue())
         self.config.smashflag = int(self.ctlsmashflag.GetValue())
         self.config.discreteplot = int(self.ctldiscrete.GetValue())
         self.config.publicationmode = int(self.ctlpublicationmode.GetValue())
@@ -1155,21 +1154,21 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 "\nLinear Resolution bins with m/z axis that has a constant resolution"
                 "\nNonlinear merges adjacent data points"
                 "\nInterpolation uses the same axes but with interpolation instead of integration"))
-            self.ctlpsig.SetToolTip(wx.ToolTip(
-                "Parameter for defining the width of the data point smooth."
-                "\nUniDec will weight +/- n data points to have the same charge state."))
-            self.ctlbeta.SetToolTip(wx.ToolTip(
-                "Parameter for defining the degree of Softmax distribution applied to the charge state vectors."
-                "\n0 will shut it off."))
-            self.ctlsuppressiontopn.SetToolTip(wx.ToolTip("Keep only the top N charge states during suppression."))
-            self.ctlsuppressiontopx.SetToolTip(wx.ToolTip("Suppress charge states below this fraction of the local maximum."))
-            self.ctlsuppressionstartit.SetToolTip(wx.ToolTip("Iteration number after which suppression starts."))
-            self.ctlsuppressionsatellite.SetToolTip(wx.ToolTip("Integer setting for satellite peak suppression."))
-            self.ctlsuppressionharmonic.SetToolTip(wx.ToolTip("Enable harmonic suppression."))
             self.ctlpselect.SetToolTip(wx.ToolTip(
                 "Select whether to smooth nearby data points to have similar charge assignments"))
             self.ctlbselect.SetToolTip(wx.ToolTip(
                 "Select whether to suppress deconvolution artifacts"))
+        self.ctlbeta.SetToolTip(wx.ToolTip(
+            "Parameter for defining the degree of Softmax distribution applied to the charge state vectors."
+            "\n0 will shut it off."))
+        self.ctlpsig.SetToolTip(wx.ToolTip(
+            "Parameter for defining the width of the data point smooth."
+            "\nUniDec will weight +/- n data points to have the same charge state."))
+        self.ctlsuppressiontopn.SetToolTip(wx.ToolTip("Keep only the top N charge states during suppression."))
+        self.ctlsuppressiontopx.SetToolTip(wx.ToolTip("Suppress charge states below this fraction of the local maximum."))
+        self.ctlsuppressionstartit.SetToolTip(wx.ToolTip("Iteration number after which suppression starts."))
+        self.ctlsuppressionsatellite.SetToolTip(wx.ToolTip("Integer setting for satellite peak suppression."))
+        self.ctlsuppressionharmonic.SetToolTip(wx.ToolTip("Enable harmonic suppression."))
         self.ctlnumit.SetToolTip(wx.ToolTip(
             "Maximum number of iterations. Note: Deconvolution will stop automically before this if it converges."))
         self.ctldiscrete.SetToolTip(wx.ToolTip("Set 2D plots to discrete rather than continuous"))

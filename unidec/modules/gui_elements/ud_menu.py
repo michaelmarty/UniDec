@@ -95,8 +95,10 @@ class main_menu(wx.Menu):
         self.filemenu.AppendSeparator()
 
         # Example Data
-        self.examplemenu, self.masterd2 = pm.make_preset_menu(self.config.exampledatadir, exclude_dir="_unidecfiles",
-                                                              topi=2500, exclude_ext="hdf5", exclude_dir_list=["CDMS", "UniChrom", "IsoDec"])
+        example_dir = os.path.join(self.config.exampledatadir, "IMMS") if self.config.imflag else self.config.exampledatadir
+        self.examplemenu, self.masterd2 = pm.make_preset_menu(example_dir, exclude_dir="_unidecfiles",
+                                                              topi=2500, exclude_ext="hdf5",
+                                                              exclude_dir_list=["CDMS", "UniChrom", "IsoDec", "IMMS"])
 
         keys = []
         for i, d in enumerate(self.masterd2):

@@ -246,9 +246,8 @@ static int collect_nonzero_indices_UCCD(const float *intensity, const int length
 }
 
 
-static float periodic_axis_peak_UCCD(const float *axis, const int length,
-                                     const int index, const float sig,
-                                     const int psfun)
+static float periodic_scan_peak_UCCD(const int length, const int index,
+                                     const float sig, const int psfun)
 {
     if (sig == 0) {
         return index == 0 ? 1.0f : 0.0f;
@@ -257,34 +256,41 @@ static float periodic_axis_peak_UCCD(const float *axis, const int length,
         return 1.0f;
     }
 
-    const float low = axis[0];
-    const float high = 2.0f * axis[length - 1] - axis[length - 2];
-    return mzpeakshape(low, axis[index], sig, psfun)
-           + mzpeakshape(high, axis[index], sig, psfun);
+    const float scan = (float)index;
+    return mzpeakshape(0, scan, sig, psfun)
+           + mzpeakshape((float)length, scan, sig, psfun);
 }
 
 
-void blur_it_UCCD(float *output, const float *input, const int *upinds,
-                  const int *loinds, const int length, const float floor)
+void blur_it_UCCD(float * restrict data, float * restrict scratch,
+                  const int * restrict upinds, const int * restrict loinds,
+                  const int length, const float floor)
 {
-    for (int i = 0; i < length; i++) {
-        float i1 = input[i];
-        float i2 = input[loinds[i]];
-        float i3 = input[upinds[i]];
-        if (floor > 0) {
-            i1 = logf(i1 + floor);
-            i2 = logf(i2 + floor);
-            i3 = logf(i3 + floor);
-            if (isnan(i1) || isinf(i1)) { i1 = 0; }
-            if (isnan(i2) || isinf(i2)) { i2 = 0; }
-            if (isnan(i3) || isinf(i3)) { i3 = 0; }
-
-            float newval = expf((i1 + i2 + i3) / 3.0f) - floor;
-            output[i] = newval > 0 ? newval : 0;
-        } else {
-            const float ratio = fabsf(floor);
-            output[i] = (i1 + i2 * ratio + i3 * ratio) / 3.0f;
+    if (floor > 0) {
+#pragma omp simd
+        for (int i = 0; i < length; i++) {
+            float value = logf(data[i] + floor);
+            if (isnan(value) || isinf(value)) { value = 0; }
+            scratch[i] = value;
         }
+        /* All logs are complete. Keep scratch immutable while gathering
+         * neighbors; writing results into it would corrupt later reads. */
+#pragma omp simd
+        for (int i = 0; i < length; i++) {
+            const float i1 = scratch[i];
+            const float i2 = scratch[loinds[i]];
+            const float i3 = scratch[upinds[i]];
+            const float newval = expf((i1 + i2 + i3) / 3.0f) - floor;
+            data[i] = newval > 0 ? newval : 0;
+        }
+    } else {
+        const float ratio = fabsf(floor);
+#pragma omp simd
+        for (int i = 0; i < length; i++) {
+            scratch[i] = (data[i] + data[loinds[i]] * ratio +
+                          data[upinds[i]] * ratio) / 3.0f;
+        }
+        memcpy(data, scratch, (size_t)length * sizeof(float));
     }
 }
 
@@ -420,8 +426,8 @@ void setup_blur_m_UCCD(int *mupind, int *mloind, const float *mzdat,
 }
 
 
-void make_kernel3D_UCCD(float *peak, const int size[3], const float *chromext,
-                        const float *mzext, const float *zext,
+void make_kernel3D_UCCD(float *peak, const int size[3], const float *mzext,
+                        const float *zext,
                         const float chromsig, const float mzsig,
                         const float zsig, const int psfun, const int zpsfun)
 {
@@ -435,7 +441,7 @@ void make_kernel3D_UCCD(float *peak, const int size[3], const float *chromext,
     MakeKernel2D(scan_kernel, size, mzext, zext, mzsig, zsig, psfun, zpsfun);
     #pragma omp parallel for schedule(static) if(size[2] > 1 && scan_length * size[2] >= UCCD_OMP_MIN_LENGTH)
     for (int scan = 0; scan < size[2]; scan++) {
-        const float chrom_value = periodic_axis_peak_UCCD(chromext, size[2], scan,
+        const float chrom_value = periodic_scan_peak_UCCD(size[2], scan,
                                                           chromsig, psfun);
         const int offset = scan * scan_length;
         for (int i = 0; i < scan_length; i++) {
@@ -509,8 +515,8 @@ static void destroy_fft_UCCD(UCCDFFTContext *context)
 
 static void make_kernel_fft_UCCD(fftwf_complex *kernel_fft,
                                  UCCDFFTContext *context, const int size[3],
-                                 const float *chromext, const float *mzext,
-                                 const float *zext, const float chromsig,
+                                 const float *mzext, const float *zext,
+                                 const float chromsig,
                                  const float mzsig, const float zsig,
                                  const int psfun, const int zpsfun)
 {
@@ -524,7 +530,7 @@ static void make_kernel_fft_UCCD(fftwf_complex *kernel_fft,
                    context->real_work, (size_t)scan_length * sizeof(float));
         }
     } else {
-        make_kernel3D_UCCD(context->real_work, size, chromext, mzext, zext,
+        make_kernel3D_UCCD(context->real_work, size, mzext, zext,
                            chromsig, mzsig, zsig, psfun, zpsfun);
     }
     fftwf_execute(context->forward_plan);
@@ -851,11 +857,11 @@ int run_unidec_UCCD(int argc, char *argv[], Config config)
         return 1;
     }
 
-    printf("Peak widths: chromatography %f, m/z %f, charge %f\n",
+    printf("Peak widths: chromatography %f scans, m/z %f, charge %f\n",
            config.dtsig, config.mzsig, config.csig);
     printf("FFT mode: %s real transforms\n",
            batched_2d ? "batched 2-D" : "coupled 3-D");
-    make_kernel_fft_UCCD(kernel_fft, &fft_context, size, chromext, mzext, zext,
+    make_kernel_fft_UCCD(kernel_fft, &fft_context, size, mzext, zext,
                          config.dtsig, config.mzsig, config.csig,
                          config.psfun, config.zpsfun);
 
@@ -898,16 +904,12 @@ int run_unidec_UCCD(int argc, char *argv[], Config config)
                 const int offset = scan * scan_length;
                 float *const scratch = newblur + offset;
                 if (config.zsig != 0) {
-                    blur_it_UCCD(scratch, blur + offset, zupind, zloind,
+                    blur_it_UCCD(blur + offset, scratch, zupind, zloind,
                                  scan_length, config.zsig * dmax);
-                    memcpy(blur + offset, scratch,
-                           (size_t)scan_length * sizeof(float));
                 }
                 if (config.msig != 0) {
-                    blur_it_UCCD(scratch, blur + offset, mupind, mloind,
+                    blur_it_UCCD(blur + offset, scratch, mupind, mloind,
                                  scan_length, config.msig * dmax);
-                    memcpy(blur + offset, scratch,
-                           (size_t)scan_length * sizeof(float));
                 }
             }
         }
@@ -969,7 +971,7 @@ int run_unidec_UCCD(int argc, char *argv[], Config config)
     */
 
     if (config.rawflag == 0) {
-        make_kernel_fft_UCCD(kernel_fft, &fft_context, size, chromext, mzext, zext,
+        make_kernel_fft_UCCD(kernel_fft, &fft_context, size, mzext, zext,
                              config.dtsig, config.mzsig, 0,
                              config.psfun, config.zpsfun);
         if (!normalize_kernel_fft_UCCD(kernel_fft, fft_context.kernel_length)) {

@@ -207,6 +207,7 @@ class ListCtrlPanel(wx.Panel):
         self.popupID8 = wx.NewIdRef()
         self.popupID10 = wx.NewIdRef()
         self.popupID11 = wx.NewIdRef()
+        self.popupID12 = wx.NewIdRef()
 
         self.Bind(wx.EVT_MENU, self.on_popup_one, id=self.popupID1)
         self.Bind(wx.EVT_MENU, self.on_popup_two, id=self.popupID2)
@@ -218,6 +219,7 @@ class ListCtrlPanel(wx.Panel):
         self.Bind(wx.EVT_MENU, self.on_popup_eight, id=self.popupID8)
         self.Bind(wx.EVT_MENU, self.on_popup_ten, id=self.popupID10)
         self.Bind(wx.EVT_MENU, self.on_popup_eleven, id=self.popupID11)
+        self.Bind(wx.EVT_MENU, self.on_popup_twelve, id=self.popupID12)
 
     def on_right_click(self, event):
         if hasattr(self, "popupID1"):
@@ -236,8 +238,12 @@ class ListCtrlPanel(wx.Panel):
             menu.Append(self.popupID2, "Make Top")
             if self.pres.chrommode:
                 menu.Append(self.popupID8, "Make Selection")
+
             menu.Append(self.popupID3, "Fill Down Variable 2")
             menu.AppendSeparator()
+            if self.pres.chrommode:
+                menu.Append(self.popupID12, "Open Spectrum in UniDec")
+                menu.AppendSeparator()
             menu.Append(self.popupID1, "Delete")
 
             self.PopupMenu(menu)
@@ -348,3 +354,7 @@ class ListCtrlPanel(wx.Panel):
     def on_popup_eleven(self, event=None):
         item = self.list.GetFirstSelected()
         self.pres.on_fft_window2(item)
+
+    def on_popup_twelve(self, event=None):
+        item = self.list.GetFirstSelected()
+        self.pres.on_open_ud(item)

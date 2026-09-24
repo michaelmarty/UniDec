@@ -6,12 +6,13 @@ import platform
 # import matplotlib.cm as cm
 import matplotlib as mpl
 import h5py
+from unidec._version import __version__
 from unidec.modules.hdf5_tools import replace_dataset, get_dataset
 import io
 
 __author__ = 'Michael.Marty'
 
-version = "9.0.0"
+version = __version__
 
 
 def ofile_reader(path):
@@ -275,6 +276,9 @@ class UniDecConfig(object):
         self.nativeccsub = 20000
         self.nativeccslb = -20000
         self.dtsig = 0.2
+        self.UClineardecon = 1
+        self.UCtype = 0
+        self.unichromzeropad = 0
         self.ccsbins = 100
         self.compressflag = 1
 
@@ -666,6 +670,9 @@ class UniDecConfig(object):
         self.nativeccsub = 20000
         self.nativeccslb = -20000
         self.dtsig = 0.2
+        self.UClineardecon = 1
+        self.UCtype = 0
+        self.unichromzeropad = 0
         self.ccsbins = 100
         self.compressflag = 1
 
@@ -708,9 +715,9 @@ class UniDecConfig(object):
         :param name: File name to write to.
         :return: None
         """
+        self.numz = self.endz - self.startz + 1
         self.get_dict()
 
-        self.numz = self.endz - self.startz + 1
         f = open(name, 'w+')
         ignorelist = ["mfile", "manualfile", "smashfile", "ofile", "matchfile", "peaksfile", "kernel"]
         for key in self.namedict.keys():
@@ -1158,7 +1165,10 @@ class UniDecConfig(object):
             "publicationmode": self.publicationmode, "isotopemode": self.isotopemode, "peaknorm": self.peaknorm,
             "baselineflag": self.baselineflag, "orbimode": self.orbimode, "zout": self.zout, "pusher": self.pusher,
             "mindt": self.mindt,
-            "maxdt": self.maxdt, "ccsub": self.ccsub, "ccslb": self.ccslb, "dtsig": self.dtsig, "csig": self.csig,
+            "maxdt": self.maxdt, "ccsub": self.ccsub, "ccslb": self.ccslb, "dtsig": self.dtsig,
+            "UClineardecon": self.UClineardecon,
+            "UCtype": self.UCtype,
+            "unichromzeropad": self.unichromzeropad, "csig": self.csig,
             "ccsbins": self.ccsbins, "subbufdt": self.subbufdt, "smoothdt": self.smoothdt,
             "ubnativeccs": self.nativeccsub, "lbnativeccs": self.nativeccslb, "twaveflag": self.twaveflag,
             "temp": self.temp, "pressure": self.pressure, "volt": self.volt,
@@ -1279,6 +1289,9 @@ class UniDecConfig(object):
         self.ccsub = read_attr(self.ccsub, "ccsub", config_group)
         self.ccslb = read_attr(self.ccslb, "ccslb", config_group)
         self.dtsig = read_attr(self.dtsig, "dtsig", config_group)
+        self.UClineardecon = read_attr(self.UClineardecon, "UClineardecon", config_group)
+        self.UCtype = read_attr(self.UCtype, "UCtype", config_group)
+        self.unichromzeropad = read_attr(self.unichromzeropad, "unichromzeropad", config_group)
         self.csig = read_attr(self.csig, "csig", config_group)
         self.ccsbins = read_attr(self.ccsbins, "ccsbins", config_group)
         self.subbufdt = read_attr(self.subbufdt, "subbufdt", config_group)
