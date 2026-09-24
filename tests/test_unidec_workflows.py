@@ -39,6 +39,10 @@ class TestUniDecWorkflows(unittest.TestCase):
         self.assertTrue(os.path.isfile(config.UniDecPath))
         self.assertTrue(os.path.isfile(config.cdcreaderpath))
 
+    def test_example_menu_excludes_imms_data(self):
+        paths = [entry[1] for entry in self.app.view.menu.masterd2]
+        self.assertFalse(any(os.path.basename(path) == "aqpz.dat" for path in paths))
+
     def test_suppression_cut_percent_is_not_exposed_in_gui(self):
         self.assertFalse(hasattr(self.app.view.controls, "ctlsuppressionpercent"))
         self.app.eng.config.suppression_percent = 0.25
@@ -120,8 +124,14 @@ class TestUniDecIMWorkflows(unittest.TestCase):
         self.assertEqual(self.app.eng.config.imflag, 1)
         self.assertTrue(hasattr(self.app.view, "plot1im"))
 
-    def test_suppression_controls_round_trip(self):
+    def test_example_menu_uses_only_imms_data(self):
+        paths = [entry[1] for entry in self.app.view.menu.masterd2]
+        self.assertEqual(paths, [os.path.join(self.app.eng.config.exampledatadir, "IMMS", "aqpz.dat")])
+
+    def test_regularization_controls_round_trip(self):
         config = self.app.eng.config
+        config.beta = 5
+        config.psig = 2
         config.suppression_topn = 3
         config.suppression_topx = 0.2
         config.suppression_satellite = 1
@@ -130,12 +140,16 @@ class TestUniDecIMWorkflows(unittest.TestCase):
         self.app.import_config()
 
         controls = self.app.view.controls
+        self.assertEqual(controls.ctlbeta.GetValue(), "5")
+        self.assertEqual(controls.ctlpsig.GetValue(), "2")
         self.assertEqual(controls.ctlsuppressiontopn.GetValue(), "3")
         self.assertEqual(controls.ctlsuppressiontopx.GetValue(), "0.2")
         self.assertEqual(controls.ctlsuppressionsatellite.GetValue(), "1")
         self.assertTrue(controls.ctlsuppressionharmonic.GetValue())
         self.assertEqual(controls.ctlsuppressionstartit.GetValue(), "6")
 
+        controls.ctlbeta.SetValue("7")
+        controls.ctlpsig.SetValue("3")
         controls.ctlsuppressiontopn.SetValue("4")
         controls.ctlsuppressiontopx.SetValue("0.15")
         controls.ctlsuppressionsatellite.SetValue("2")
@@ -143,6 +157,8 @@ class TestUniDecIMWorkflows(unittest.TestCase):
         controls.ctlsuppressionstartit.SetValue("7")
         self.app.export_config()
 
+        self.assertEqual(config.beta, 7)
+        self.assertEqual(config.psig, 3)
         self.assertEqual(config.suppression_topn, 4)
         self.assertEqual(config.suppression_topx, 0.15)
         self.assertEqual(config.suppression_satellite, 2)
@@ -171,6 +187,8 @@ class TestUniDecIMWorkflows(unittest.TestCase):
         config.startz = 10
         config.endz = 18
         config.mzbins = 4
+        config.beta = 1
+        config.psig = 1
         config.suppression_topn = 3
         config.suppression_startit = 3
         self.app.import_config()

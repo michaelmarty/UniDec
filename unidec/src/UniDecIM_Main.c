@@ -5,6 +5,38 @@
 #include "UniDecIM_Main.h"
 #include "udcore.h"
 
+static void point_smoothing_IM(const int *size, const float *blur, float *scratch,
+                               const int *barr, const int width) {
+    const int lengthmz = size[0];
+    const int numdt = size[1];
+    const int numz = size[2];
+    const int initial_high = width + 1 < lengthmz ? width + 1 : lengthmz;
+    const float denominator = 1.0f + 2.0f * (float)width;
+
+    #pragma omp parallel for collapse(2) schedule(static)
+    for (int dt = 0; dt < numdt; dt++) {
+        for (int z = 0; z < numz; z++) {
+            float sum = 0;
+            for (int mz = 0; mz < initial_high; mz++) {
+                sum += blur[index3D(numdt, numz, mz, dt, z)];
+            }
+            for (int mz = 0; mz < lengthmz; mz++) {
+                const int index = index3D(numdt, numz, mz, dt, z);
+                scratch[index] = barr[index] == 1 ? sum / denominator : blur[index];
+
+                const int remove_index = mz - width;
+                if (remove_index >= 0) {
+                    sum -= blur[index3D(numdt, numz, remove_index, dt, z)];
+                }
+                const int add_index = mz + width + 1;
+                if (add_index < lengthmz) {
+                    sum += blur[index3D(numdt, numz, add_index, dt, z)];
+                }
+            }
+        }
+    }
+}
+
 int run_unidec_IM(int argc, char *argv[], Config config) {
     time_t starttime, endtime;
     starttime = time(NULL);
@@ -90,6 +122,8 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
     dtdat = calloc(lines, sizeof(float));
     dataInt = calloc(lines, sizeof(float));
     readfile3bin(config.infile, lines, mzdat, dtdat, dataInt);
+    const float data_max = Max(dataInt, lines);
+    const float beta_factor = data_max > 1 ? data_max : 1;
 
     //Charge States
     int numz = config.endz - config.startz + 1;
@@ -303,6 +337,15 @@ int run_unidec_IM(int argc, char *argv[], Config config) {
 
     //Iterating
     for (int m = 0; m < config.numit; m++) {
+        if (config.beta > 0 && m > 0) {
+            softargmax(blur, size[0] * size[1], size[2], config.beta / beta_factor);
+        }
+        if (config.psig >= 1 && m > 0) {
+            point_smoothing_IM(size, blur, newblur, barr, abs((int)config.psig));
+            float *swap = blur;
+            blur = newblur;
+            newblur = swap;
+        }
         if (m > config.suppression_startit &&
             (config.suppression_satellite > 0 || config.suppression_harmonic > 0 ||
              config.suppression_topn > 0 || config.suppression_topx > 0)) {
