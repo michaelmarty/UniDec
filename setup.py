@@ -8,7 +8,7 @@ setup(
     keywords="UniDec Mass Spectrometry Deconvolution Ion Mobility",
     description='Universal Deconvolution of Electrospray Mass Spectrometry Data',
     url="https://github.com/michaelmarty/UniDec",
-    python_requires='>=3.7',
+    python_requires='>=3.10',
     packages=find_packages(
                            exclude=["Scripts", "Scripts.*", "*.Scripts", "*.Scripts.*", "test_GUI.py"]
         ),
