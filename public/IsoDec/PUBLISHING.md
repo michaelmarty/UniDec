@@ -12,9 +12,9 @@ IsoGen submodule, then installs both native libraries beside one another in
 4. Review `THIRD_PARTY_NOTICES.md` and the bundled license files.
 5. Push the release commit and run the **Build and publish** workflow.
 
-The workflow builds Windows, Linux, macOS Intel, and macOS Apple Silicon
-wheels plus a source distribution. A manual run creates the matching GitHub
-release and can publish through PyPI trusted publishing.
+The workflow builds Windows x64 and ARM64, Linux x64 and ARM64, macOS Intel,
+and macOS Apple Silicon wheels plus a source distribution. A manual run creates
+the matching GitHub release and can publish through PyPI trusted publishing.
 
 ## Publishing an IsoGen change
 

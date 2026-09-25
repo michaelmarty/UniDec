@@ -2,7 +2,9 @@
 param(
     [string]$Python,
     [string]$ImporterTestData,
-    [switch]$SkipInstall
+    [string]$VcpkgRoot = $env:VCPKG_INSTALLATION_ROOT,
+    [switch]$SkipInstall,
+    [switch]$SkipNativeBuild
 )
 
 $ErrorActionPreference = "Stop"
@@ -44,6 +46,81 @@ $env:UNIDEC_REQUIRE_IMPORTER_TEST_DATA = "1"
 
 Push-Location $unidecRoot
 try {
+    if (-not $SkipNativeBuild) {
+        if ([string]::IsNullOrWhiteSpace($VcpkgRoot)) {
+            throw "Set VCPKG_INSTALLATION_ROOT or pass -VcpkgRoot <path> to build Windows native binaries."
+        }
+
+        $vcpkgRootPath = (Resolve-Path -LiteralPath $VcpkgRoot -ErrorAction Stop).Path
+        $vcpkgExe = Join-Path $vcpkgRootPath "vcpkg.exe"
+        $intelSetup = "C:\Program Files (x86)\Intel\oneAPI\setvars-vcvarsall.bat"
+        $intelCompilerSetup = "C:\Program Files (x86)\Intel\oneAPI\compiler\latest\env\vars.bat"
+        foreach ($file in @($vcpkgExe, $intelSetup, $intelCompilerSetup)) {
+            if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
+                throw "Native build prerequisite was not found: '$file'."
+            }
+        }
+        foreach ($command in @("cmake.exe", "ninja.exe", "wsl.exe")) {
+            if (-not (Get-Command $command -ErrorAction SilentlyContinue)) {
+                throw "Native build prerequisite was not found on PATH: $command."
+            }
+        }
+
+        $runId = [guid]::NewGuid().ToString("N").Substring(0, 8)
+        $windowsBuild = Join-Path $unidecRoot "build\local-intel-$runId"
+        New-Item -ItemType Directory -Path $windowsBuild -Force | Out-Null
+        $vcpkgPath = $vcpkgRootPath.Replace('\', '/')
+        $sourcePath = (Join-Path $unidecRoot "unidec\src").Replace('\', '/')
+        $buildPath = $windowsBuild.Replace('\', '/')
+
+        & $vcpkgExe install "hdf5[hl]:x64-windows" "fftw3:x64-windows"
+        if ($LASTEXITCODE -ne 0) { throw "vcpkg could not install Windows native dependencies." }
+
+        $buildCommand = Join-Path $windowsBuild "build-intel.cmd"
+        @"
+@echo off
+call "$intelSetup" vs2022
+if errorlevel 1 exit /b 1
+call "$intelCompilerSetup"
+if errorlevel 1 exit /b 1
+set "CC=icx-cl"
+set "CXX=icx-cl"
+cmake -S "$sourcePath" -B "$buildPath" -G Ninja -DCMAKE_BUILD_TYPE=Release -DUNIDEC_REQUIRE_INTELLLVM=ON -DCMAKE_TOOLCHAIN_FILE="$vcpkgPath/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows -DHDF5_ROOT="$vcpkgPath/installed/x64-windows" -DFFTW_ROOT="$vcpkgPath/installed/x64-windows"
+if errorlevel 1 exit /b 1
+cmake --build "$buildPath" --parallel
+if errorlevel 1 exit /b 1
+"@ | Set-Content -LiteralPath $buildCommand -Encoding Ascii
+        & $env:ComSpec /d /c $buildCommand
+        if ($LASTEXITCODE -ne 0) { throw "The IntelLLVM Windows build failed." }
+
+        $nativeBin = Join-Path $unidecRoot "unidec\bin"
+        foreach ($name in @("unidec.exe", "unideclib.dll")) {
+            $built = Join-Path $windowsBuild $name
+            $deployed = Join-Path $nativeBin $name
+            if (-not (Test-Path -LiteralPath $built -PathType Leaf) -or
+                -not (Test-Path -LiteralPath $deployed -PathType Leaf) -or
+                (Get-FileHash -LiteralPath $built).Hash -ne (Get-FileHash -LiteralPath $deployed).Hash) {
+                throw "The current Windows build was not deployed to '$deployed'."
+            }
+        }
+
+        $runtimeDlls = Get-ChildItem -LiteralPath (Join-Path $vcpkgRootPath "installed\x64-windows\bin") -Filter "*.dll" -File
+        if (-not $runtimeDlls) { throw "vcpkg did not provide Windows runtime DLLs." }
+        Copy-Item -LiteralPath $runtimeDlls.FullName -Destination $nativeBin -Force
+
+        $wslRoot = & wsl.exe --exec wslpath -a $unidecRoot
+        if ($LASTEXITCODE -ne 0 -or -not $wslRoot) { throw "WSL could not locate the UniDec checkout." }
+        $wslRoot = $wslRoot.Trim()
+        $linuxBuild = "$wslRoot/build/local-wsl-$runId"
+        & wsl.exe --exec env "UNIDEC_BUILD_DIR=$linuxBuild" bash "$wslRoot/build_native.sh"
+        if ($LASTEXITCODE -ne 0) { throw "The WSL Linux native build failed." }
+        foreach ($name in @("unideclinux", "libunideclib.so")) {
+            & wsl.exe --exec cmp "$linuxBuild/$name" "$wslRoot/unidec/bin/$name"
+            if ($LASTEXITCODE -ne 0) { throw "The current WSL build was not deployed: $name." }
+        }
+        Write-Host "Current Windows and Linux native binaries are bundled in unidec/bin."
+    }
+
     if (-not $SkipInstall) {
         & $Python -m pip install --upgrade pip
         if ($LASTEXITCODE -ne 0) {
