@@ -33,6 +33,12 @@ jobs:
             executable: unideclinux
             library: libunideclib.so
             deployment_target: ""
+          - name: Linux ARM64
+            os: ubuntu-24.04-arm
+            artifact: native-linux-arm64
+            executable: unideclinux
+            library: libunideclib.so
+            deployment_target: ""
           - name: macOS Intel
             os: macos-15-intel
             artifact: native-macos-intel
@@ -234,11 +240,20 @@ jobs:
       - name: Restore current Windows x64 native binaries
         run: cp native-artifacts/windows-x64/* unidec/bin/
 
-      - name: Restore current Linux native binaries
+      - name: Download Linux x64 native binaries
         uses: actions/download-artifact@v6
         with:
           name: native-linux
-          path: unidec/bin
+          path: native-artifacts/linux-x64
+
+      - name: Download Linux ARM64 native binaries
+        uses: actions/download-artifact@v6
+        with:
+          name: native-linux-arm64
+          path: native-artifacts/linux-arm64
+
+      - name: Restore current Linux x64 native binaries
+        run: cp native-artifacts/linux-x64/* unidec/bin/
 
       - name: Download macOS Intel native binaries
         uses: actions/download-artifact@v6
@@ -291,6 +306,16 @@ jobs:
           python -m wheel tags --platform-tag macosx_11_0_arm64 --remove dist-macos-arm64/*.whl
           mv dist-macos-arm64/*.whl distpypi/
 
+      - name: Build Linux ARM64 wheel
+        run: |
+          rm -rf build
+          cp native-artifacts/macos-intel/* unidec/bin/
+          cp native-artifacts/linux-arm64/* unidec/bin/
+          chmod +x unidec/bin/unideclinux unidec/bin/unidecmac
+          python -m build --wheel --outdir dist-linux-arm64
+          python -m wheel tags --platform-tag linux_aarch64 --remove dist-linux-arm64/*.whl
+          mv dist-linux-arm64/*.whl distpypi/
+
       - name: Verify built distributions contain current native binaries
         run: |
           python -I - <<'PY'
@@ -304,7 +329,12 @@ jobs:
           x64_names.update(path.name for path in Path('native-artifacts/windows-x64').glob('*.dll'))
           arm_names = {'unidec.exe', 'unideclib.dll'}
           arm_names.update(path.name for path in Path('native-artifacts/windows-arm64').glob('*.dll'))
-          linux_binaries = {name: (Path('unidec/bin') / name).read_bytes() for name in linux_names}
+          linux_x64_binaries = {
+              name: (Path('native-artifacts/linux-x64') / name).read_bytes() for name in linux_names
+          }
+          linux_arm_binaries = {
+              name: (Path('native-artifacts/linux-arm64') / name).read_bytes() for name in linux_names
+          }
           macos_intel_binaries = {
               name: (Path('native-artifacts/macos-intel') / name).read_bytes() for name in macos_names
           }
@@ -316,9 +346,10 @@ jobs:
           universal_wheel, = Path('distpypi').glob('*-none-any.whl')
           windows_arm_wheel, = Path('distpypi').glob('*-none-win_arm64.whl')
           macos_arm_wheel, = Path('distpypi').glob('*-none-macosx_11_0_arm64.whl')
+          linux_arm_wheel, = Path('distpypi').glob('*-none-linux_aarch64.whl')
           sdist, = Path('distpypi').glob('*.tar.gz')
           with zipfile.ZipFile(universal_wheel) as archive:
-              for name, source in (linux_binaries | macos_intel_binaries | x64_binaries).items():
+              for name, source in (linux_x64_binaries | macos_intel_binaries | x64_binaries).items():
                   packaged = archive.read(f'unidec/bin/{name}')
                   if packaged != source:
                       raise RuntimeError(f'Universal wheel has a stale native binary: {name}')
@@ -327,12 +358,12 @@ jobs:
                   if not mode & 0o111:
                       raise RuntimeError(f'Wheel executable bit is missing: {name}')
           with zipfile.ZipFile(windows_arm_wheel) as archive:
-              for name, source in (linux_binaries | macos_intel_binaries | arm_binaries).items():
+              for name, source in (linux_x64_binaries | macos_intel_binaries | arm_binaries).items():
                   packaged = archive.read(f'unidec/bin/{name}')
                   if packaged != source:
                       raise RuntimeError(f'Windows ARM64 wheel has a stale native binary: {name}')
           with zipfile.ZipFile(macos_arm_wheel) as archive:
-              for name, source in (linux_binaries | macos_arm_binaries | x64_binaries).items():
+              for name, source in (linux_x64_binaries | macos_arm_binaries | x64_binaries).items():
                   packaged = archive.read(f'unidec/bin/{name}')
                   if packaged != source:
                       raise RuntimeError(f'macOS ARM64 wheel has a stale native binary: {name}')
@@ -340,8 +371,17 @@ jobs:
                   mode = archive.getinfo(f'unidec/bin/{name}').external_attr >> 16
                   if not mode & 0o111:
                       raise RuntimeError(f'Wheel executable bit is missing: {name}')
+          with zipfile.ZipFile(linux_arm_wheel) as archive:
+              for name, source in (linux_arm_binaries | macos_intel_binaries | x64_binaries).items():
+                  packaged = archive.read(f'unidec/bin/{name}')
+                  if packaged != source:
+                      raise RuntimeError(f'Linux ARM64 wheel has a stale native binary: {name}')
+              for name in ('unideclinux', 'unidecmac'):
+                  mode = archive.getinfo(f'unidec/bin/{name}').external_attr >> 16
+                  if not mode & 0o111:
+                      raise RuntimeError(f'Wheel executable bit is missing: {name}')
           with tarfile.open(sdist, 'r:gz') as archive:
-              for name, source in (linux_binaries | macos_intel_binaries | x64_binaries).items():
+              for name, source in (linux_x64_binaries | macos_intel_binaries | x64_binaries).items():
                   member, = (item for item in archive if item.name.endswith(f'/unidec/bin/{name}'))
                   if archive.extractfile(member).read() != source:
                       raise RuntimeError(f'Source distribution has a stale native binary: {name}')
@@ -436,6 +476,12 @@ jobs:
           name: python-package-distributions
           path: distpypi/
 
+      - name: Set up native ARM64 Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          architecture: arm64
+
       - name: Extract and smoke-test the Windows ARM64 wheel
         shell: pwsh
         run: |
@@ -454,6 +500,49 @@ jobs:
             throw 'The ARM64 shared library was not packaged.'
           }
           exit 0
+
+      - name: Install and smoke-test the Windows ARM64 wheel
+        shell: pwsh
+        run: |
+          $wheel = @(Get-ChildItem -LiteralPath distpypi -Filter '*-none-win_arm64.whl')
+          if ($wheel.Count -ne 1) { throw "Expected one Windows ARM64 wheel, found $($wheel.Count)." }
+          python -m venv .venv-arm64
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $testPython = '.venv-arm64\Scripts\python.exe'
+          & $testPython -m pip install --only-binary=:all: "$($wheel[0].FullName)[gui]"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          @'
+          from importlib.resources import files
+          from pathlib import Path
+          import subprocess
+          import sys
+          import tempfile
+
+          import isogen
+          import isodec
+          import unidec
+          import wx
+          from isodec.c_interface import IsoDecWrapper, example
+
+          app = wx.App(False)
+          frame = wx.Frame(None)
+          frame.Destroy()
+          app.Destroy()
+          assert IsoDecWrapper().predict_charge(example) == 11
+          assert isogen.isodist(1000, isolen=8).shape == (8, 2)
+          with tempfile.TemporaryDirectory(prefix="unidec-arm64-") as directory:
+              workdir = Path(directory)
+              spectrum = files("unidec").joinpath("bin", "TestSpectra", "test_1.txt")
+              (workdir / "test_1.txt").write_bytes(spectrum.read_bytes())
+              subprocess.run(
+                  [sys.executable, "-I", "-m", "unidec", "test_1.txt"],
+                  cwd=workdir, check=True, timeout=180,
+              )
+              output = workdir / "test_1_unidecfiles" / "test_1_mass.txt"
+              if not output.is_file() or output.stat().st_size == 0:
+                  raise RuntimeError(f"UniDec did not produce output: {output}")
+          '@ | & $testPython -I -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   smoke-macos-arm64:
     name: Smoke-test the wheel on macOS ARM64
@@ -481,9 +570,65 @@ jobs:
           test "$(lipo -archs "$binary_directory/unidecmac")" = arm64
           test "$(lipo -archs "$binary_directory/libunideclib.dylib")" = arm64
 
+  smoke-linux-arm64:
+    name: Smoke-test the wheel on Linux ARM64
+    needs: build
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v6
+        with:
+          name: python-package-distributions
+          path: distpypi/
+
+      - name: Set up native ARM64 Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          architecture: arm64
+
+      - name: Install native runtime dependencies
+        run: sudo apt-get update && sudo apt-get install --yes libfftw3-dev libhdf5-dev
+
+      - name: Install and smoke-test the Linux ARM64 wheel
+        shell: bash
+        run: |
+          shopt -s nullglob
+          wheels=(distpypi/*-none-linux_aarch64.whl)
+          test "${#wheels[@]}" -eq 1
+          python -m venv .venv-arm64
+          test_python=.venv-arm64/bin/python
+          "$test_python" -m pip install --only-binary=:all: "${wheels[0]}"
+          "$test_python" -I - <<'PY'
+          from importlib.resources import files
+          from pathlib import Path
+          import subprocess
+          import sys
+          import tempfile
+
+          import isogen
+          import unidec
+          from isodec.c_interface import IsoDecWrapper, example
+
+          assert IsoDecWrapper().predict_charge(example) == 11
+          assert isogen.isodist(1000, isolen=8).shape == (8, 2)
+          with tempfile.TemporaryDirectory(prefix="unidec-linux-arm64-") as directory:
+              workdir = Path(directory)
+              spectrum = files("unidec").joinpath("bin", "TestSpectra", "test_1.txt")
+              (workdir / "test_1.txt").write_bytes(spectrum.read_bytes())
+              subprocess.run(
+                  [sys.executable, "-I", "-m", "unidec", "test_1.txt"],
+                  cwd=workdir, check=True, timeout=180,
+              )
+              output = workdir / "test_1_unidecfiles" / "test_1_mass.txt"
+              if not output.is_file() or output.stat().st_size == 0:
+                  raise RuntimeError(f"UniDec did not produce output: {output}")
+          PY
+
   publish:
     name: Publish distributions
-    needs: [build, smoke-windows, smoke-windows-arm64, smoke-macos-arm64]
+    needs: [build, smoke-windows, smoke-windows-arm64, smoke-macos-arm64, smoke-linux-arm64]
     runs-on: ubuntu-latest
     environment:
       name: ${{ github.event_name == 'workflow_dispatch' && inputs.repository || 'pypi' }}
