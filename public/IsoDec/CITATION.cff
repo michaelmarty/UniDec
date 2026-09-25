@@ -7,7 +7,7 @@ authors:
     given-names: Michael T.
     email: mtmarty@utexas.edu
 abstract: Charge-state assignment and deconvolution of isotopically resolved mass spectra.
-version: "2.0.0"
+version: "2.0.4"
 repository-code: "https://github.com/michaelmarty/IsoDec"
 url: "https://michaelmarty.github.io/IsoDec/"
 license: BSD-3-Clause

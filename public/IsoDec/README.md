@@ -13,10 +13,11 @@ python -m pip install isodec
 ```
 
 IsoDec supports Python 3.9 and newer on 64-bit Windows, Linux, and macOS,
-including Apple silicon. Native builds are also tested on ARM64 Windows and
-Linux. Compatible wheels include the native IsoDec and IsoGen libraries. A
-source build requires CMake 3.22.1 or newer, a C/C++ compiler, FFTW, and an
-initialized IsoGen submodule:
+including Windows ARM64 and Apple silicon. Native builds are also tested on
+ARM64 Linux; the Windows ARM64 wheel is tested with Python 3.14. Compatible
+wheels include the native IsoDec and IsoGen libraries. A source build requires
+CMake 3.22.1 or newer, a C/C++ compiler, FFTW, and an initialized IsoGen
+submodule:
 
 ```shell
 git clone --recurse-submodules https://github.com/michaelmarty/IsoDec.git
@@ -98,6 +99,10 @@ runtime notices. When using IsoDec, please cite Pavek et al.,
 provided in [CITATION.cff](CITATION.cff).
 
 ## Changelog
+
+### 2.0.4
+
+- Added Windows and Linux ARM64 wheels built and tested on native ARM hardware.
 
 ### 2.0.3
 

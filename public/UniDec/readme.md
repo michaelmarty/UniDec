@@ -39,7 +39,8 @@ Activate it with `venv\Scripts\Activate.ps1` in Windows PowerShell, or
 
 The `gui` extra installs wxPython, which is required by `gunidec` and `unidecim`.
 For command-line and Python API use without the GUI, install `UniDec` without
-the extra. The portable Windows download already includes wxPython.
+the extra. Windows ARM64 wheel installation is tested with Python 3.14. The
+portable Windows download already includes wxPython.
 
 To install from a source checkout instead:
 
@@ -86,12 +87,9 @@ listed, you'll need to figure out which packages provide these libraries.
 python -m venv venv --system-site-packages
 ```
 
-If you're on an x86_64 machine and step 1 did not throw any errors, then you
-will likely be able to proceed with the Pip install as shown above, as there
-is a compiled version of the UniDec engine binary in `unidec/bin/unideclinux`.
-If you are on an Arm or other non-x86_64 system, or if running UniDec from
-within the GUI throws errors (in the terminal window), you may need to recompile
-the UniDec engine:
+Published wheels include the UniDec engine for x86_64 and ARM64 Linux; ARM64
+installation is tested with Python 3.13. On another architecture, or if running
+UniDec from the GUI reports a native engine error, recompile the engine:
 
     ./unidec/src/compilelinux.sh
 
