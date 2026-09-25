@@ -223,7 +223,10 @@ jobs:
         run: |
           rm -f unidec/bin/UniDec.exe unidec/bin/unidec.exe unidec/bin/unideclib.dll \
             unidec/bin/unideclinux unidec/bin/libunideclib.so \
-            unidec/bin/unidecmac unidec/bin/libunideclib.dylib
+            unidec/bin/unidecmac unidec/bin/libunideclib.dylib \
+            unidec/bin/hdf5*.dll unidec/bin/mkl_*.dll unidec/bin/libiomp5md.dll \
+            unidec/bin/libmmd.dll unidec/bin/svml_dispmd.dll \
+            unidec/bin/fftw*.dll unidec/bin/libfftw*.dll
 
       - name: Download Windows x64 native binaries
         uses: actions/download-artifact@v6

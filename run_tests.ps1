@@ -2,7 +2,8 @@
 param(
     [string]$Python,
     [string]$ImporterTestData,
-    [string]$VcpkgRoot = $env:VCPKG_INSTALLATION_ROOT,
+    [string]$Hdf5Root = "C:\Program Files\HDF_Group\HDF5\2.1.1",
+    [string]$MklRoot = "C:\Program Files (x86)\Intel\oneAPI\mkl\latest",
     [switch]$SkipInstall,
     [switch]$SkipNativeBuild
 )
@@ -47,15 +48,12 @@ $env:UNIDEC_REQUIRE_IMPORTER_TEST_DATA = "1"
 Push-Location $unidecRoot
 try {
     if (-not $SkipNativeBuild) {
-        if ([string]::IsNullOrWhiteSpace($VcpkgRoot)) {
-            throw "Set VCPKG_INSTALLATION_ROOT or pass -VcpkgRoot <path> to build Windows native binaries."
-        }
-
-        $vcpkgRootPath = (Resolve-Path -LiteralPath $VcpkgRoot -ErrorAction Stop).Path
-        $vcpkgExe = Join-Path $vcpkgRootPath "vcpkg.exe"
+        $hdf5RootPath = (Resolve-Path -LiteralPath $Hdf5Root -ErrorAction Stop).Path
+        $mklRootPath = (Resolve-Path -LiteralPath $MklRoot -ErrorAction Stop).Path
         $intelSetup = "C:\Program Files (x86)\Intel\oneAPI\setvars-vcvarsall.bat"
         $intelCompilerSetup = "C:\Program Files (x86)\Intel\oneAPI\compiler\latest\env\vars.bat"
-        foreach ($file in @($vcpkgExe, $intelSetup, $intelCompilerSetup)) {
+        $mklConfig = Join-Path $mklRootPath "lib\cmake\mkl\MKLConfig.cmake"
+        foreach ($file in @($intelSetup, $intelCompilerSetup, $mklConfig)) {
             if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
                 throw "Native build prerequisite was not found: '$file'."
             }
@@ -69,12 +67,10 @@ try {
         $runId = [guid]::NewGuid().ToString("N").Substring(0, 8)
         $windowsBuild = Join-Path $unidecRoot "build\local-intel-$runId"
         New-Item -ItemType Directory -Path $windowsBuild -Force | Out-Null
-        $vcpkgPath = $vcpkgRootPath.Replace('\', '/')
+        $hdf5Path = $hdf5RootPath.Replace('\', '/')
+        $mklPath = $mklRootPath.Replace('\', '/')
         $sourcePath = (Join-Path $unidecRoot "unidec\src").Replace('\', '/')
         $buildPath = $windowsBuild.Replace('\', '/')
-
-        & $vcpkgExe install "hdf5[hl]:x64-windows" "fftw3:x64-windows"
-        if ($LASTEXITCODE -ne 0) { throw "vcpkg could not install Windows native dependencies." }
 
         $buildCommand = Join-Path $windowsBuild "build-intel.cmd"
         @"
@@ -85,7 +81,7 @@ call "$intelCompilerSetup"
 if errorlevel 1 exit /b 1
 set "CC=icx-cl"
 set "CXX=icx-cl"
-cmake -S "$sourcePath" -B "$buildPath" -G Ninja -DCMAKE_BUILD_TYPE=Release -DUNIDEC_REQUIRE_INTELLLVM=ON -DCMAKE_TOOLCHAIN_FILE="$vcpkgPath/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows -DHDF5_ROOT="$vcpkgPath/installed/x64-windows" -DFFTW_ROOT="$vcpkgPath/installed/x64-windows"
+cmake -S "$sourcePath" -B "$buildPath" -G Ninja -DCMAKE_BUILD_TYPE=Release -DUNIDEC_REQUIRE_INTELLLVM=ON -DHDF5_ROOT="$hdf5Path" -DMKL_ROOT="$mklPath" -DMKL_DIR="$mklPath/lib/cmake/mkl"
 if errorlevel 1 exit /b 1
 cmake --build "$buildPath" --parallel
 if errorlevel 1 exit /b 1
@@ -104,9 +100,34 @@ if errorlevel 1 exit /b 1
             }
         }
 
-        $runtimeDlls = Get-ChildItem -LiteralPath (Join-Path $vcpkgRootPath "installed\x64-windows\bin") -Filter "*.dll" -File
-        if (-not $runtimeDlls) { throw "vcpkg did not provide Windows runtime DLLs." }
+        $runtimeDlls = foreach ($source in @(
+            (Join-Path $hdf5RootPath "bin\hdf5.dll")
+            (Join-Path $hdf5RootPath "bin\hdf5_hl.dll")
+            (Join-Path $hdf5RootPath "bin\vcruntime140.dll")
+            (Join-Path $mklRootPath "bin\mkl_rt.2.dll")
+            (Join-Path $mklRootPath "bin\mkl_core.2.dll")
+            (Join-Path $mklRootPath "bin\mkl_intel_thread.2.dll")
+            (Join-Path $mklRootPath "bin\mkl_def.2.dll")
+            (Join-Path $mklRootPath "bin\mkl_avx2.2.dll")
+            "C:\Program Files (x86)\Intel\oneAPI\compiler\latest\bin\libiomp5md.dll"
+            "C:\Program Files (x86)\Intel\oneAPI\compiler\latest\bin\libmmd.dll"
+            "C:\Program Files (x86)\Intel\oneAPI\compiler\latest\bin\svml_dispmd.dll"
+        )) {
+            Get-Item -LiteralPath $source -ErrorAction Stop
+        }
         Copy-Item -LiteralPath $runtimeDlls.FullName -Destination $nativeBin -Force
+
+        $savedPath = $env:PATH
+        try {
+            $env:PATH = "$nativeBin;$env:SystemRoot\System32;$env:SystemRoot"
+            $nativeHelp = & (Join-Path $nativeBin "unidec.exe") 2>&1
+            if ($LASTEXITCODE -ne 88 -or ($nativeHelp -join "`n") -notmatch "Universal Deconvolution") {
+                throw "The Windows native executable could not load using only its bundled runtime DLLs."
+            }
+        }
+        finally {
+            $env:PATH = $savedPath
+        }
 
         $wslRoot = & wsl.exe --exec wslpath -a $unidecRoot
         if ($LASTEXITCODE -ne 0 -or -not $wslRoot) { throw "WSL could not locate the UniDec checkout." }
@@ -117,6 +138,10 @@ if errorlevel 1 exit /b 1
         foreach ($name in @("unideclinux", "libunideclib.so")) {
             & wsl.exe --exec cmp "$linuxBuild/$name" "$wslRoot/unidec/bin/$name"
             if ($LASTEXITCODE -ne 0) { throw "The current WSL build was not deployed: $name." }
+            $linuxDependencies = & wsl.exe --exec ldd "$linuxBuild/$name" 2>&1
+            if ($LASTEXITCODE -ne 0 -or ($linuxDependencies -join "`n") -match "not found") {
+                throw "The WSL native output has an unresolved shared library: $name.`n$($linuxDependencies -join "`n")"
+            }
         }
         Write-Host "Current Windows and Linux native binaries are bundled in unidec/bin."
     }
