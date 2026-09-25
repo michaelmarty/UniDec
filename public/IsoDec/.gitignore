@@ -11,3 +11,4 @@
 /**/__pycache__/
 /*.egg-info/
 /wheelhouse/
+/tests/test_spectrum_unidecfiles/
