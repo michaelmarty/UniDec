@@ -288,6 +288,60 @@ class IsoDecPres(UniDecPres):
         self._save_sequence()
         self.view.SetStatusText("Sequence coverage: {:.1%}".format(pks.sequence_coverage), number=5)
 
+    def on_brute_force_match(self, e=None):
+        controls = self.view.controls
+        sequence = self._sequence_text()
+        if not sequence:
+            wx.MessageBox("Enter a sequence to match.", "Brute Force Match", wx.OK | wx.ICON_ERROR)
+            return
+        if controls.ctlavgpeakmasses.GetValue():
+            wx.MessageBox("Brute Force Match requires monoisotopic masses. Turn off Average Mass.",
+                          "Brute Force Match", wx.OK | wx.ICON_ERROR)
+            return
+
+        try:
+            ppm_tolerance = float(controls.ctlfragmentppm.GetValue())
+            if not np.isfinite(ppm_tolerance) or ppm_tolerance < 0:
+                raise ValueError("Tolerance must be a non-negative number.")
+            self.view.export_gui_to_config()
+            self.translate_config()
+            config = deepcopy(self.isodeceng.config)
+            config.matchtol = ppm_tolerance
+            data = np.asarray(self.eng.data.rawdata)
+            if data.ndim != 2 or data.shape[1] != 2 or len(data) == 0:
+                raise ValueError("Open a spectrum before running Brute Force Match.")
+            data = data[(data[:, 0] >= self.eng.config.minmz) &
+                        (data[:, 0] <= self.eng.config.maxmz)]
+            if len(data) == 0:
+                raise ValueError("No spectrum data fall within the selected m/z range.")
+            self.view.SetStatusText("Running Brute Force Match...", number=5)
+            pks = self.isodeceng.brute_force_pep_match(
+                sequence, data, fragmentation_type=controls.ctlfragmentation.GetValue(),
+                centroided=bool(self.eng.config.centroided), config=config)
+            match_fragments(pks, sequence, fragmentation_type=controls.ctlfragmentation.GetValue(),
+                            ppm_tolerance=ppm_tolerance, match_multiple_monoisotopics=False)
+        except (ValueError, TypeError, KeyError) as error:
+            wx.MessageBox(str(error), "Brute Force Match", wx.OK | wx.ICON_ERROR)
+            self.view.SetStatusText("Brute Force Match failed", number=5)
+            return
+
+        self._save_sequence()
+        self.match_source_ready = bool(pks.peaks)
+        self.view.peakpanel.clear_list()
+        self.view.clear_all_plots()
+        self.makeplot1(imfit=False)
+        if pks.peaks:
+            self.eng.data.massdat = self.isodeceng.pks_to_mass(self.eng.config.massbins)
+            self.translate_pks()
+            self.makeplot2()
+            self.view.show_fragment_matches(sequence, pks)
+            self.view.SetStatusText("Brute Force Match: {} peaks, {:.1%} coverage".format(
+                len(pks.peaks), pks.sequence_coverage), number=5)
+        else:
+            self.eng.pks = Peaks()
+            self.eng.data.massdat = np.empty((0, 2))
+            self.view.SetStatusText("Brute Force Match: no peaks found", number=5)
+
     def _sequence_text(self):
         return "".join(line.strip() for line in self.view.controls.ctlsequence.GetValue().splitlines()
                        if line.strip() and not line.lstrip().startswith(">"))

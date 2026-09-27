@@ -19,6 +19,7 @@ from .config import IsoDecConfig
 from .datatools import check_spacings, datacompsub, get_all_centroids, remove_noise_cdata
 from .io import ImporterFactory
 from .match import MatchedCollection
+from .brute_force_seq_match import brute_force_pep_match
 from .plots import plot_pks
 
 class IsoDecRuntime:
@@ -107,6 +108,12 @@ class IsoDecRuntime:
         :return: None
         """
         return self.pks.to_mass_spectrum(binsize)
+
+    def brute_force_pep_match(self, sequence, spectrum, **kwargs):
+        """Match theoretical sequence fragments against one spectrum."""
+        config = kwargs.pop("config", self.config)
+        self.pks = brute_force_pep_match(sequence, spectrum, config=config, **kwargs)
+        return self.pks
 
     def process_file(self, file, scans=None, check_centroided=True, assume_centroided=False, save=False,
                      mz_range=None, verbose=True):
