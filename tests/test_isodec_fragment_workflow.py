@@ -25,6 +25,7 @@ from unittest.mock import patch
 
 sys.argv = ['isodec']
 import isogen
+import numpy as np
 import pandas as pd
 from matplotlib.figure import Figure
 from unidec.IsoDecGUI import IsoDecPres
@@ -155,11 +156,12 @@ try:
     controls.ctlfragmentppm.SetValue('5')
     controls.ctlsequence.SetValue('PEPTIDE')
     controls.ctlcentroided.SetValue(True)
-    mass = isogen.calc_pep_fragments('PEPTIDE', fragmentation_type='HCD')['b6']
-    _, distribution = calc_isotope_dist_dual(mass)
-    spectrum = distribution.copy()
-    spectrum[:, 0] = spectrum[:, 0] / 2 + 1.007276467
-    spectrum[:, 1] *= 100
+    batch = isogen.calc_pep_fragment_isodists('PEPTIDE', fragmentation_type='HCD')
+    index = batch.labels.index('b6')
+    values = batch.intensities[index]
+    positions = np.flatnonzero(values > values.max() * 0.01)
+    spectrum = np.column_stack((batch.masses[index] / 2 + positions * 1.0033 / 2 + 1.007276467,
+                                values[positions] * 100))
     app.eng.data.rawdata = spectrum
     app.eng.data.data2 = spectrum
     app.sequence_path = None
