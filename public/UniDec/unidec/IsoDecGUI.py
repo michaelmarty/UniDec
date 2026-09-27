@@ -15,7 +15,7 @@ import os
 import wx
 import time
 from unidec.modules.peakstructure import Peaks
-from isodec.datatools import get_all_centroids
+from isodec.datatools import check_spacings, get_all_centroids
 import numpy as np
 from unidec.modules.isolated_packages import FileDialogs
 import platform
@@ -307,19 +307,22 @@ class IsoDecPres(UniDecPres):
             self.translate_config()
             config = deepcopy(self.isodeceng.config)
             config.matchtol = ppm_tolerance
-            data = np.asarray(self.eng.data.rawdata)
+            tstart = time.perf_counter()
+            data = np.asarray(self.eng.data.data2)
             if data.ndim != 2 or data.shape[1] != 2 or len(data) == 0:
-                raise ValueError("Open a spectrum before running Brute Force Match.")
-            data = data[(data[:, 0] >= self.eng.config.minmz) &
-                        (data[:, 0] <= self.eng.config.maxmz)]
-            if len(data) == 0:
-                raise ValueError("No spectrum data fall within the selected m/z range.")
+                raise ValueError("Run Data Prep before running Brute Force Match.")
+            if len(data) > 2 and check_spacings(data) <= config.meanpeakspacing_thresh:
+                # Some saved configurations mark profile data as centroided.
+                # IsoDec's normal run accepts data2 as-is, but this search
+                # needs one centroid per isotope peak for envelope scoring.
+                data = get_all_centroids(data)
             self.view.SetStatusText("Running Brute Force Match...", number=5)
             pks = self.isodeceng.brute_force_pep_match(
                 sequence, data, fragmentation_type=controls.ctlfragmentation.GetValue(),
-                centroided=bool(self.eng.config.centroided), config=config)
+                centroided=True, config=config)
             match_fragments(pks, sequence, fragmentation_type=controls.ctlfragmentation.GetValue(),
                             ppm_tolerance=ppm_tolerance, match_multiple_monoisotopics=False)
+            print("Brute Force Match Done. Time: %.2fs" % (time.perf_counter() - tstart))
         except (ValueError, TypeError, KeyError) as error:
             wx.MessageBox(str(error), "Brute Force Match", wx.OK | wx.ICON_ERROR)
             self.view.SetStatusText("Brute Force Match failed", number=5)
