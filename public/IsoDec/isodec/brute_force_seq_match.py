@@ -5,8 +5,33 @@ import isogen
 
 from .config import IsoDecConfig
 from .datatools import datacompsub, get_all_centroids
-from .isotope import calc_isotope_dist_dual
 from .match import MatchedCollection, MatchedPeak, calculate_cosinesimilarity, find_matches
+
+
+def _add_fragment_peak(pks, label, mass, massdist, spectrum, left, right, z,
+                       matched, isotopes, score, scale, config):
+    local = spectrum[left:right]
+    isodist = massdist.copy()
+    isodist[:, 0] = massdist[:, 0] / z + config.adductmass
+    isodist[:, 1] *= scale
+    matched_massdist = massdist.copy()
+    matched_massdist[:, 1] *= scale
+    peak = MatchedPeak(z, float(isodist[np.argmax(isodist[:, 1]), 0]),
+                       centroids=local, isodist=isodist,
+                       matchedindexes=matched, isomatches=isotopes, config=config)
+    peak.monoiso = mass
+    peak.monoisos = [mass]
+    peak.peakint = float(np.max(local[np.asarray(matched, dtype=int), 1]))
+    peak.massdist = matched_massdist
+    peak.peakmass = float(np.average(massdist[:, 0], weights=massdist[:, 1]))
+    peak.avgmass = peak.peakmass
+    peak.sequence_match = label
+    peak.match_score = float(score)
+    peak.scan = config.activescan
+    peak.rt = config.activescanrt
+    peak.ms_order = config.activescanorder
+    pks.add_peak(peak)
+    pks.add_pk_to_masses(peak, config)
 
 
 def brute_force_pep_match(
@@ -19,13 +44,15 @@ def brute_force_pep_match(
     config=None,
     max_charge=None,
     monoisotopic=True,
+    native=True,
+    native_wrapper=None,
     **isogen_kwargs,
 ):
     """Find theoretical sequence fragments directly in an m/z spectrum.
 
     ``spectrum`` has m/z and intensity columns. Profile data are centroided
     using IsoDec's peak detector unless ``centroided`` is true. IsoGen's
-    ``calc_pep_fragments`` accepts the fragmentation options and any additional
+    fragment batch accepts the fragmentation options and any additional
     keyword arguments. One peak is returned per matched fragment and charge.
     Charge states are bounded by the observed m/z range; ``max_charge`` can
     impose a further bound.
@@ -59,20 +86,42 @@ def brute_force_pep_match(
     if len(spectrum) == 0:
         return pks
 
-    fragments = isogen.calc_pep_fragments(
-        sequence, fragmentation_type=fragmentation_type, ion_types=ion_types,
-        monoisotopic=monoisotopic, **isogen_kwargs,
-    )
+    if not hasattr(isogen, "calc_pep_fragment_isodists"):
+        raise ValueError("IsoGen must be updated to a build with fragment batch support")
+    try:
+        fragments = isogen.calc_pep_fragment_isodists(
+            sequence, fragmentation_type=fragmentation_type, ion_types=ion_types,
+            monoisotopic=monoisotopic, **isogen_kwargs,
+        )
+    except ImportError as error:
+        raise ValueError("IsoGen's native library needs the fragment batch API") from error
     min_mz, max_mz = spectrum[0, 0], spectrum[-1, 0]
     adduct = config.adductmass
-    for label, mass in fragments.items():
+
+    if native:
+        from .c_interface import IsoDecWrapper
+        wrapper = native_wrapper if native_wrapper is not None else IsoDecWrapper()
+        hits = wrapper.match_fragment_batch(
+            spectrum, fragments.masses, fragments.intensities, config, max_charge,
+        )
+        if hits is not None:
+            for index, z, left, right, score, scale, matched, isotopes in hits:
+                mass = float(fragments.masses[index])
+                values = fragments.intensities[index]
+                active = values > np.max(values) * config.isotopethreshold
+                positions = np.flatnonzero(active)
+                massdist = np.column_stack((mass + positions * 1.0033, values[active]))
+                _add_fragment_peak(pks, fragments.labels[index], mass, massdist,
+                                   spectrum, left, right, z, matched, isotopes,
+                                   score, scale, config)
+            return pks
+    for label, mass, values in zip(fragments.labels, fragments.masses, fragments.intensities):
         mass = float(mass)
         if not np.isfinite(mass) or mass <= 0:
             continue
-        # Generate the neutral isotope axis once, then convert it for each z.
-        _, massdist = calc_isotope_dist_dual(
-            mass, isotopethresh=config.isotopethreshold,
-        )
+        active = values > np.max(values) * config.isotopethreshold
+        positions = np.flatnonzero(active)
+        massdist = np.column_stack((mass + positions * 1.0033, values[active]))
         if len(massdist) == 0 or not np.any(massdist[:, 1] > 0):
             continue
         first_mass, last_mass = massdist[0, 0], massdist[-1, 0]
@@ -116,23 +165,6 @@ def brute_force_pep_match(
             if area_covered <= config.minareacovered and not np.array_equal(top_matched, top_local):
                 continue
 
-            isodist[:, 1] *= scale
-            matched_massdist = massdist.copy()
-            matched_massdist[:, 1] *= scale
-            peak = MatchedPeak(z, float(isodist[np.argmax(isodist[:, 1]), 0]),
-                               centroids=local, isodist=isodist,
-                               matchedindexes=matched, isomatches=isotopes, config=config)
-            peak.monoiso = mass
-            peak.monoisos = [mass]
-            peak.peakint = float(np.max(local[np.asarray(matched, dtype=int), 1]))
-            peak.massdist = matched_massdist
-            peak.peakmass = float(np.average(massdist[:, 0], weights=massdist[:, 1]))
-            peak.avgmass = peak.peakmass
-            peak.sequence_match = label
-            peak.match_score = float(score)
-            peak.scan = config.activescan
-            peak.rt = config.activescanrt
-            peak.ms_order = config.activescanorder
-            pks.add_peak(peak)
-            pks.add_pk_to_masses(peak, config)
+            _add_fragment_peak(pks, label, mass, massdist, spectrum, left, right,
+                               z, matched, isotopes, score, scale, config)
     return pks

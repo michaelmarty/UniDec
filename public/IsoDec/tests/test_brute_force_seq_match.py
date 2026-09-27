@@ -3,15 +3,16 @@ import numpy as np
 import pytest
 
 from isodec import IsoDecRuntime, brute_force_pep_match
-from isodec.isotope import calc_isotope_dist_dual
 
 
 def _fragment_spectrum(sequence="PEPTIDE", label="b6", charge=2):
-    mass = isogen.calc_pep_fragments(sequence)[label]
-    _, distribution = calc_isotope_dist_dual(mass)
-    spectrum = distribution.copy()
-    spectrum[:, 0] = spectrum[:, 0] / charge + 1.007276467
-    spectrum[:, 1] *= 100
+    fragments = isogen.calc_pep_fragment_isodists(sequence)
+    index = fragments.labels.index(label)
+    mass = fragments.masses[index]
+    values = fragments.intensities[index]
+    positions = np.flatnonzero(values > values.max() * 0.01)
+    spectrum = np.column_stack((mass / charge + positions * 1.0033 / charge + 1.007276467,
+                                values[positions] * 100))
     return mass, spectrum
 
 
@@ -56,3 +57,34 @@ def test_rejects_mismatched_pattern_and_invalid_spectrum():
         brute_force_pep_match("PEPTIDE", spectrum, max_charge=0)
     with pytest.raises(ValueError, match="monoisotopic"):
         brute_force_pep_match("PEPTIDE", spectrum, monoisotopic=False)
+
+
+def test_native_and_python_sequence_match_agree_for_modified_fragments():
+    sequence = "S[Acetylation]HHS"
+    _, spectrum = _fragment_spectrum(sequence, label="b3", charge=2)
+    python = brute_force_pep_match(sequence, spectrum, centroided=True, native=False)
+    native = brute_force_pep_match(sequence, spectrum, centroided=True, native=True)
+    assert [(p.sequence_match, p.z) for p in native] == [
+        (p.sequence_match, p.z) for p in python
+    ]
+    for first, second in zip(native, python):
+        assert first.match_score == pytest.approx(second.match_score, abs=1e-9)
+        np.testing.assert_allclose(first.isodist, second.isodist, rtol=1e-9)
+        np.testing.assert_allclose(first.massdist, second.massdist, rtol=1e-9)
+        assert first.matchedintensity == pytest.approx(second.matchedintensity)
+
+
+def test_native_and_python_choose_same_centroids_with_nearby_peaks():
+    _, spectrum = _fragment_spectrum()
+    interferer = spectrum[1].copy()
+    interferer[0] += interferer[0] * 2e-6
+    interferer[1] *= 0.5
+    spectrum = np.vstack((spectrum, interferer, [spectrum[-1, 0] + 0.2, 2.0]))
+    native = brute_force_pep_match("PEPTIDE", spectrum, centroided=True)
+    python = brute_force_pep_match("PEPTIDE", spectrum, centroided=True, native=False)
+    assert [(p.sequence_match, p.z) for p in native] == [
+        (p.sequence_match, p.z) for p in python
+    ]
+    for first, second in zip(native, python):
+        assert first.matchedindexes == second.matchedindexes
+        assert first.isomatches == second.isomatches

@@ -43,6 +43,29 @@ struct MatchedPeak
 	int realisolength;
 };
 
+#define ISODEC_FRAGMENT_ISOTOPES 128
+struct FragmentHit {
+    int fragment_index;
+    int charge;
+    int left;
+    int right;
+    int isotope_count;
+    int match_count;
+    double score;
+    double scale;
+    int isotope_indexes[ISODEC_FRAGMENT_ISOTOPES];
+    int centroid_indexes[ISODEC_FRAGMENT_ISOTOPES];
+};
+
+// The caller owns the output through free_fragment_hits(). Returns 0 on success.
+ISODECLIB_EXPORTS int match_fragment_batch(
+    const double* mz, const double* intensity, int spectrum_count,
+    const double* masses, const float* envelopes, int fragment_count, int isolen,
+    int max_charge, double adduct, double isotope_threshold, double ppm_tolerance,
+    int min_peaks, double cosine_threshold, double min_area, int minus_one_as_zero,
+    struct FragmentHit** output, int* output_count);
+ISODECLIB_EXPORTS void free_fragment_hits(struct FragmentHit* hits);
+
 // Structure for the config object. Mostly neural net parameters. The settings structure has the parameters for the peak detection and isotope distribution.
 struct IsoConfig
 {

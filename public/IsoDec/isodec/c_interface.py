@@ -108,6 +108,21 @@ class MPStruct(ctypes.Structure):
     ]
 
 
+class FragmentHitStruct(ctypes.Structure):
+    _fields_ = [
+        ("fragment_index", ctypes.c_int),
+        ("charge", ctypes.c_int),
+        ("left", ctypes.c_int),
+        ("right", ctypes.c_int),
+        ("isotope_count", ctypes.c_int),
+        ("match_count", ctypes.c_int),
+        ("score", ctypes.c_double),
+        ("scale", ctypes.c_double),
+        ("isotope_indexes", ctypes.c_int * 128),
+        ("centroid_indexes", ctypes.c_int * 128),
+    ]
+
+
 class IDSettings(ctypes.Structure):
     _fields_ = [
         ("phaseres", ctypes.c_int),
@@ -230,6 +245,20 @@ class IsoDecWrapper:
         self.c_lib.DefaultSettings.argtypes = []
         self.c_lib.DefaultSettings.restype = IDSettings
 
+        self._fragment_match = getattr(self.c_lib, "match_fragment_batch", None)
+        if self._fragment_match is not None:
+            self._fragment_match.argtypes = [
+                ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.c_int,
+                ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_float),
+                ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                ctypes.c_double, ctypes.c_double, ctypes.c_double, ctypes.c_int,
+                ctypes.c_double, ctypes.c_double, ctypes.c_int,
+                ctypes.POINTER(ctypes.POINTER(FragmentHitStruct)), ctypes.POINTER(ctypes.c_int),
+            ]
+            self._fragment_match.restype = ctypes.c_int
+            self.c_lib.free_fragment_hits.argtypes = [ctypes.POINTER(FragmentHitStruct)]
+            self.c_lib.free_fragment_hits.restype = None
+
         self.modeldir = str(modelpath)
         # self.modelpath = ctypes.c_char_p(
         #     os.path.join(self.modeldir, "phase_model_8.bin").encode()
@@ -238,6 +267,40 @@ class IsoDecWrapper:
         self.modelpath = None
         self.config = IsoDecConfig()
         # self.determine_model()
+
+    def match_fragment_batch(self, spectrum, masses, intensities, config, max_charge=None):
+        """Return native fragment hit metadata, or None for an older library."""
+        if self._fragment_match is None:
+            return None
+        mz = np.ascontiguousarray(spectrum[:, 0], dtype=np.float64)
+        observed = np.ascontiguousarray(spectrum[:, 1], dtype=np.float64)
+        masses = np.ascontiguousarray(masses, dtype=np.float64)
+        intensities = np.ascontiguousarray(intensities, dtype=np.float32)
+        if intensities.ndim != 2 or intensities.shape[0] != len(masses):
+            raise ValueError("fragment masses and intensities must be aligned")
+        pointer = ctypes.POINTER(FragmentHitStruct)()
+        count = ctypes.c_int()
+        result = self._fragment_match(
+            mz.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+            observed.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), len(mz),
+            masses.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+            intensities.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+            len(masses), intensities.shape[1], max_charge or 0,
+            config.adductmass, config.isotopethreshold, config.matchtol,
+            config.minpeaks, config.css_thresh, config.minareacovered,
+            int(config.minusoneaszero), ctypes.byref(pointer), ctypes.byref(count),
+        )
+        if result != 0:
+            raise ValueError("native fragment matching failed")
+        try:
+            return [(
+                pointer[i].fragment_index, pointer[i].charge, pointer[i].left,
+                pointer[i].right, pointer[i].score, pointer[i].scale,
+                list(pointer[i].centroid_indexes[:pointer[i].match_count]),
+                list(pointer[i].isotope_indexes[:pointer[i].match_count]),
+            ) for i in range(count.value)]
+        finally:
+            self.c_lib.free_fragment_hits(pointer)
 
     def encode(self, centroids, maxz=50, phaseres=8, config=None):
         cmz = centroids[:, 0].astype(np.double)

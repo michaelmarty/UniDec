@@ -112,7 +112,8 @@ class IsoDecRuntime:
     def brute_force_pep_match(self, sequence, spectrum, **kwargs):
         """Match theoretical sequence fragments against one spectrum."""
         config = kwargs.pop("config", self.config)
-        self.pks = brute_force_pep_match(sequence, spectrum, config=config, **kwargs)
+        self.pks = brute_force_pep_match(sequence, spectrum, config=config,
+                                         native_wrapper=self.wrapper, **kwargs)
         return self.pks
 
     def process_file(self, file, scans=None, check_centroided=True, assume_centroided=False, save=False,
