@@ -416,6 +416,9 @@ class MainControls(wx.Panel):  # scrolled.ScrolledPanel):
         self.matchsequencebutton = wx.Button(panel4, label="Match to Sequence")
         self.parent.Bind(wx.EVT_BUTTON, self.pres.on_match_sequence, self.matchsequencebutton)
         sequence_sizer.Add(self.matchsequencebutton, 0, wx.EXPAND)
+        self.bruteforcebutton = wx.Button(panel4, label="Brute Force Match")
+        self.parent.Bind(wx.EVT_BUTTON, self.pres.on_brute_force_match, self.bruteforcebutton)
+        sequence_sizer.Add(self.bruteforcebutton, 0, wx.EXPAND | wx.TOP, 4)
         panel4.SetSizerAndFit(sequence_sizer)
         self.foldpanels.AddFoldPanelWindow(foldpanel4, panel4, fpb.FPB_ALIGN_WIDTH)
 

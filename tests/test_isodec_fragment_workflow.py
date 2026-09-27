@@ -30,6 +30,7 @@ from matplotlib.figure import Figure
 from unidec.IsoDecGUI import IsoDecPres
 import isodec
 from isodec.match import MatchedCollection
+from isodec.isotope import calc_isotope_dist_dual
 from isodec.fragment_view import plot_fragment_matches
 
 local_isodec = Path.cwd().parent / 'IsoDec' / 'isodec'
@@ -148,6 +149,35 @@ try:
 
     view.clear_all_plots()
     assert not view.fragment_ax.lines
+
+    assert controls.bruteforcebutton.GetLabel() == 'Brute Force Match'
+    controls.ctlfragmentation.SetValue('HCD')
+    controls.ctlfragmentppm.SetValue('5')
+    controls.ctlsequence.SetValue('PEPTIDE')
+    controls.ctlcentroided.SetValue(True)
+    mass = isogen.calc_pep_fragments('PEPTIDE', fragmentation_type='HCD')['b6']
+    _, distribution = calc_isotope_dist_dual(mass)
+    spectrum = distribution.copy()
+    spectrum[:, 0] = spectrum[:, 0] / 2 + 1.007276467
+    spectrum[:, 1] *= 100
+    app.eng.data.rawdata = spectrum
+    app.eng.data.data2 = spectrum
+    app.sequence_path = None
+    controls.ctlminmz.SetValue(str(spectrum[0, 0] - 1))
+    controls.ctlmaxmz.SetValue(str(spectrum[-1, 0] + 1))
+    with patch('wx.MessageBox') as brute_message, patch.object(app, 'makeplot1'), patch.object(
+        app, 'makeplot2'
+    ), patch.object(view, 'show_fragment_matches') as show_matches:
+        app.on_brute_force_match()
+    assert brute_message.call_args is None
+    assert any(peak.sequence_match == 'b6' and peak.z == 2 for peak in app.isodeceng.pks)
+    assert app.isodeceng.pks.masses
+    show_matches.assert_called_once()
+    assert 'Brute Force Match:' in view.GetStatusBar().GetStatusText(5)
+    controls.ctlavgpeakmasses.SetValue(True)
+    with patch('wx.MessageBox') as message:
+        app.on_brute_force_match()
+    assert 'Turn off Average Mass' in message.call_args.args[0]
 finally:
     app.view.Destroy()
     app.wx_app.Yield()
