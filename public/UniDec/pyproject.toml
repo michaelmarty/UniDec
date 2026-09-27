@@ -19,7 +19,7 @@ classifiers = [
 keywords = ["Mass Spectrometry", "Ion Mobility", "Deconvolution"]
 dependencies = ["numpy>=2.0.0", "scipy>=1.2", "matplotlib>=3.7", 'pandas',
                       "pymzml", "natsort", "networkx", "h5py", "pypubsub", "numba",
-                      "pyimzml", "isodec>=2.0.3", "pyisogen>=1.0.8", "pythonnet; platform_system == 'Windows'", "pyteomics",
+                      "pyimzml", "isodec>=2.0.4", "pyisogen>=1.1.2", "pythonnet; platform_system == 'Windows'", "pyteomics",
                       "UniDecImporter>=1.0.2", "lxml", "lxml_html_clean", "pywin32; platform_system == 'Windows'"]
 requires-python = ">=3.10"
 

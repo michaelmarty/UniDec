@@ -9,6 +9,8 @@ Highest priority:
 
 Profile-mode IsoDec
 
+Update Score Calculations in Different Modes
+
 
 Lower Priority:
 

@@ -86,8 +86,59 @@ jobs:
           path: dist/*.whl
           if-no-files-found: error
 
+  windows-arm64:
+    runs-on: windows-11-vs2026-arm
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          architecture: arm64
+      - name: Install ARM64 FFTW with vcpkg
+        shell: pwsh
+        run: |
+          $vcpkgRoot = (Resolve-Path -LiteralPath $env:VCPKG_INSTALLATION_ROOT).Path.Replace('\', '/')
+          & "$vcpkgRoot/vcpkg.exe" install fftw3:arm64-windows
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "CMAKE_GENERATOR=Visual Studio 18 2026" >> $env:GITHUB_ENV
+          "CMAKE_GENERATOR_PLATFORM=ARM64" >> $env:GITHUB_ENV
+          "CMAKE_ARGS=-DCMAKE_TOOLCHAIN_FILE=$vcpkgRoot/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=arm64-windows -DFFTW3_ROOT=$vcpkgRoot/installed/arm64-windows" >> $env:GITHUB_ENV
+      - run: python -m pip install --upgrade build
+      - run: python -m build --wheel --outdir dist
+      - name: Install and test ARM64 wheel
+        shell: pwsh
+        run: |
+          $wheel = @(Get-ChildItem -LiteralPath dist -Filter '*-win_arm64.whl')
+          if ($wheel.Count -ne 1) { throw "Expected one Windows ARM64 wheel, found $($wheel.Count)." }
+          python -m venv "${{ runner.temp }}\arm64-test"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $testPython = "${{ runner.temp }}\arm64-test\Scripts\python.exe"
+          & $testPython -m pip install --only-binary=:all: $wheel[0].FullName pytest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Push-Location "${{ runner.temp }}"
+          try {
+            & $testPython -m pytest "${{ github.workspace }}\tests" --import-mode=importlib
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          finally { Pop-Location }
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wheel-Windows-ARM64
+          path: dist/*-win_arm64.whl
+          if-no-files-found: error
+
   linux:
-    runs-on: ubuntu-latest
+    name: Build Linux wheel (${{ matrix.arch }})
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            arch: x86_64
+          - runner: ubuntu-24.04-arm
+            arch: aarch64
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -100,9 +151,15 @@ jobs:
       - run: python -m build --wheel
       - run: mkdir wheelhouse && auditwheel repair dist/*.whl --wheel-dir wheelhouse
       - run: rm dist/*.whl && mv wheelhouse/*.whl dist/
+      - name: Install and test wheel
+        working-directory: ${{ runner.temp }}
+        run: |
+          python -m venv wheel-test
+          wheel-test/bin/python -m pip install "${{ github.workspace }}"/dist/*.whl pytest
+          wheel-test/bin/python -m pytest "${{ github.workspace }}/tests" --import-mode=importlib
       - uses: actions/upload-artifact@v7
         with:
-          name: wheel-Linux
+          name: wheel-Linux-${{ matrix.arch }}
           path: dist/*.whl
           if-no-files-found: error
 
@@ -156,7 +213,7 @@ jobs:
 
   github-release:
     if: github.event_name == 'workflow_dispatch'
-    needs: [metadata, windows, linux, macos, sdist]
+    needs: [metadata, windows, windows-arm64, linux, macos, sdist]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -181,9 +238,10 @@ jobs:
       (github.event_name == 'release' || github.event.inputs.publish_to_pypi == 'true') &&
       (github.event_name == 'release' || needs.github-release.result == 'success') &&
       needs.metadata.result == 'success' && needs.windows.result == 'success' &&
-      needs.linux.result == 'success' && needs.macos.result == 'success' &&
+      needs.windows-arm64.result == 'success' && needs.linux.result == 'success' &&
+      needs.macos.result == 'success' &&
       needs.sdist.result == 'success'
-    needs: [metadata, windows, linux, macos, sdist, github-release]
+    needs: [metadata, windows, windows-arm64, linux, macos, sdist, github-release]
     runs-on: ubuntu-latest
     environment:
       name: pypi
