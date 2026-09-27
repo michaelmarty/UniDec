@@ -193,6 +193,58 @@ finally:
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_brute_force_uses_prepared_centroids(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+
+        import numpy as np
+        from unidec.IsoDecGUI import IsoDecPres
+        from isodec.config import IsoDecConfig
+
+        value = lambda item: SimpleNamespace(GetValue=lambda: item)
+        spectrum = np.array([[300.0, 2.0], [300.5, 5.0], [301.0, 3.0]])
+        controls = SimpleNamespace(
+            ctlavgpeakmasses=value(False), ctlfragmentppm=value("5"),
+            ctlfragmentation=value("ETD"),
+        )
+        view = SimpleNamespace(
+            controls=controls, export_gui_to_config=Mock(), SetStatusText=Mock(),
+            peakpanel=SimpleNamespace(clear_list=Mock()), clear_all_plots=Mock(),
+        )
+        collection = SimpleNamespace(peaks=[])
+        matcher = Mock(return_value=collection)
+        pres = IsoDecPres.__new__(IsoDecPres)
+        pres.view = view
+        pres.eng = SimpleNamespace(
+            data=SimpleNamespace(data2=spectrum, rawdata=spectrum + [100, 0]),
+        )
+        pres.isodeceng = SimpleNamespace(config=IsoDecConfig(), brute_force_pep_match=matcher)
+        pres._sequence_text = Mock(return_value="PEPTIDE")
+        pres._save_sequence = Mock()
+        pres.translate_config = Mock()
+        pres.makeplot1 = Mock()
+
+        output = StringIO()
+        with patch("unidec.IsoDecGUI.match_fragments"), redirect_stdout(output):
+            pres.on_brute_force_match()
+
+        self.assertIs(matcher.call_args.args[1], spectrum)
+        self.assertTrue(matcher.call_args.kwargs["centroided"])
+        self.assertIn("Brute Force Match Done. Time:", output.getvalue())
+
+        mz = np.arange(300.0, 302.0, 0.001)
+        intensity = sum(np.exp(-((mz - center) / 0.01) ** 2)
+                        for center in (300.3, 300.9, 301.5))
+        dense_data = np.column_stack((mz, intensity))
+        pres.eng.data.data2 = dense_data
+        with patch("unidec.IsoDecGUI.match_fragments"):
+            pres.on_brute_force_match()
+
+        self.assertLess(len(matcher.call_args.args[1]), len(dense_data))
+        self.assertTrue(matcher.call_args.kwargs["centroided"])
+
 
 if __name__ == "__main__":
     unittest.main()
