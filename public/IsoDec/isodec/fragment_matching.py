@@ -34,6 +34,54 @@ def _peak_masses(peak, match_multiple_monoisotopics=True):
     return [float(mass) for mass in masses if np.isfinite(mass) and mass > 0]
 
 
+def _fragment_table(sequence, theoretical):
+    plain_sequence = isogen.strip_proforma(sequence)
+    fragment_parts = {
+        label: _fragment_parts(label, len(plain_sequence))
+        for label in theoretical
+    }
+    table_ion_types = dict.fromkeys(
+        (*ION_TYPES, *(ion_type for ion_type, _ in fragment_parts.values()))
+    )
+    table = pd.DataFrame(index=pd.RangeIndex(1, len(plain_sequence), name="residue"))
+    for ion_type in table_ion_types:
+        table[f"{ion_type}_mass"] = np.nan
+        table[f"{ion_type}_match"] = np.nan
+    for label, mass in theoretical.items():
+        ion_type, row = fragment_parts[label]
+        table.loc[row, f"{ion_type}_mass"] = mass
+    return table, fragment_parts, table_ion_types
+
+
+def _finish_fragment_summary(pks, table, table_ion_types):
+    match_columns = [f"{ion_type}_match" for ion_type in table_ion_types]
+    table["match_count"] = table[match_columns].notna().sum(axis=1)
+    assigned_peaks = sum(bool(peak.sequence_match) for peak in pks.peaks)
+    pks.fragment_match_percent = (
+        100.0 * assigned_peaks / len(pks.peaks) if pks.peaks else 0.0
+    )
+    pks.sequence_coverage = (
+        float((table["match_count"] > 0).mean()) if len(table) else 0.0
+    )
+    pks.fragment_matches = table
+    return pks
+
+
+def summarize_assigned_fragments(pks, sequence):
+    """Build coverage from brute-force labels and its saved theoretical masses."""
+    theoretical = pks.fragment_theoretical
+    table, fragment_parts, table_ion_types = _fragment_table(sequence, theoretical)
+    for peak in pks.peaks:
+        label = peak.sequence_match
+        if label not in fragment_parts:
+            raise ValueError(f"Unknown matched fragment label: {label}")
+        ion_type, row = fragment_parts[label]
+        column = f"{ion_type}_match"
+        if pd.isna(table.loc[row, column]):
+            table.loc[row, column] = peak.monoiso
+    return _finish_fragment_summary(pks, table, table_ion_types)
+
+
 def match_fragments(
     pks,
     sequence,
@@ -69,7 +117,6 @@ def match_fragments(
     if ppm_tolerance < 0:
         raise ValueError("ppm_tolerance must be non-negative")
 
-    plain_sequence = isogen.strip_proforma(sequence)
     theoretical = isogen.calc_pep_fragments(
         sequence,
         ion_types=ion_types,
@@ -77,23 +124,7 @@ def match_fragments(
         **isogen_kwargs,
     )
 
-    fragment_parts = {
-        label: _fragment_parts(label, len(plain_sequence))
-        for label in theoretical
-    }
-    table_ion_types = dict.fromkeys(
-        (*ION_TYPES, *(ion_type for ion_type, _ in fragment_parts.values()))
-    )
-
-    table = pd.DataFrame(
-        index=pd.RangeIndex(1, len(plain_sequence), name="residue")
-    )
-    for ion_type in table_ion_types:
-        table[f"{ion_type}_mass"] = np.nan
-        table[f"{ion_type}_match"] = np.nan
-    for label, mass in theoretical.items():
-        ion_type, row = fragment_parts[label]
-        table.loc[row, f"{ion_type}_mass"] = mass
+    table, fragment_parts, table_ion_types = _fragment_table(sequence, theoretical)
 
     for peak in pks.peaks:
         peak.sequence_match = [] if allow_duplicate_assignments else None
@@ -125,15 +156,4 @@ def match_fragments(
         if pd.isna(table.loc[row, column]):
             table.loc[row, column] = observed_mass
 
-    match_columns = [f"{ion_type}_match" for ion_type in table_ion_types]
-    table["match_count"] = table[match_columns].notna().sum(axis=1)
-
-    assigned_peaks = sum(bool(peak.sequence_match) for peak in pks.peaks)
-    pks.fragment_match_percent = (
-        100.0 * assigned_peaks / len(pks.peaks) if pks.peaks else 0.0
-    )
-    pks.sequence_coverage = (
-        float((table["match_count"] > 0).mean()) if len(table) else 0.0
-    )
-    pks.fragment_matches = table
-    return pks
+    return _finish_fragment_summary(pks, table, table_ion_types)

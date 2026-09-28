@@ -95,6 +95,7 @@ def brute_force_pep_match(
         )
     except ImportError as error:
         raise ValueError("IsoGen's native library needs the fragment batch API") from error
+    pks.fragment_theoretical = dict(zip(fragments.labels, map(float, fragments.masses)))
     min_mz, max_mz = spectrum[0, 0], spectrum[-1, 0]
     adduct = config.adductmass
 

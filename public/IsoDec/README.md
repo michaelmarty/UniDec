@@ -100,6 +100,15 @@ provided in [CITATION.cff](CITATION.cff).
 
 ## Changelog
 
+### 2.0.5
+
+- Fixed the intensity-weighted average of monoisotopic mass candidates during
+  mass grouping and prevented merges from modifying the first peak's candidates.
+- Fixed isotope-distribution mass-axis fitting to shift toward observed
+  centroids in either direction, preventing accumulated positive mass drift.
+- Use matched centroids when merging neutral-mass groups, so unrelated peaks
+  in a local isotope window do not distort the fitted distribution.
+
 ### 2.0.4
 
 - Added Windows and Linux ARM64 wheels built and tested on native ARM hardware.

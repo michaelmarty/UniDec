@@ -1,8 +1,11 @@
 import isogen
 import numpy as np
 import pytest
+from copy import deepcopy
+from unittest.mock import patch
 
 from isodec import IsoDecRuntime, brute_force_pep_match
+from isodec.fragment_matching import match_fragments, summarize_assigned_fragments
 
 
 def _fragment_spectrum(sequence="PEPTIDE", label="b6", charge=2):
@@ -88,3 +91,18 @@ def test_native_and_python_choose_same_centroids_with_nearby_peaks():
     for first, second in zip(native, python):
         assert first.matchedindexes == second.matchedindexes
         assert first.isomatches == second.isomatches
+
+
+def test_preassigned_fragment_summary_matches_mass_rematch_without_repredicting():
+    sequence = "PEPTIDE"
+    _, spectrum = _fragment_spectrum(sequence)
+    pks = brute_force_pep_match(sequence, spectrum, centroided=True)
+    baseline = match_fragments(deepcopy(pks), sequence, match_multiple_monoisotopics=False)
+
+    with patch.object(isogen, "calc_pep_fragments", side_effect=AssertionError("rematched")):
+        summarize_assigned_fragments(pks, sequence)
+
+    assert [peak.sequence_match for peak in pks] == [peak.sequence_match for peak in baseline]
+    assert pks.fragment_match_percent == baseline.fragment_match_percent
+    assert pks.sequence_coverage == baseline.sequence_coverage
+    assert pks.fragment_matches.equals(baseline.fragment_matches)

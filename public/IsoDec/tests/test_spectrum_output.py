@@ -18,7 +18,7 @@ def test_supplied_spectrum_has_expected_shape_and_range(spectrum):
 def test_deconvolution_output_regression(processed_spectrum):
     peaks = processed_spectrum.peaks
     assert len(peaks) == 277
-    assert len(processed_spectrum.masses) == 195
+    assert len(processed_spectrum.masses) == 197
     assert all(1 <= peak.z <= 50 for peak in peaks)
     assert all(np.isfinite(peak.monoiso) for peak in peaks)
     assert all(peak.matchedintensity > 0 for peak in peaks)
