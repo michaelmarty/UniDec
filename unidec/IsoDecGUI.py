@@ -9,6 +9,7 @@ import unidec.tools as ud
 from unidec.modules.unidec_presbase import UniDecPres
 from isodec.runtime import IsoDecRuntime
 from isodec import match_fragments
+from isodec.fragment_matching import summarize_assigned_fragments
 from unidec.modules.gui_elements.IsoDecView import IsoDecView
 from unidec.engine import UniDec
 import os
@@ -31,6 +32,8 @@ class IsoDecPres(UniDecPres):
         self.sequence_path = None
 
         self.view = IsoDecView(self, "IsoDec", self.eng.config, iconfile=None)
+        self.recent_files = self.read_recent()
+        self.view.menu.update_recent()
         try:
             if (platform.node() == 'CHEM-A90237' or platform.node() == 'Aurora25') and True:
                 # self.on_ex()
@@ -156,6 +159,9 @@ class IsoDecPres(UniDecPres):
         :return: None
         """
         self.view.plot1.centroid_plot(self.eng.data.data2, xlabel="m/z", ylabel="Intensity", color="k")
+        axes = self.view.plot1.subplot1
+        self._spectrum_plot_artists = tuple(len(artists) for artists in
+                                            (axes.lines, axes.texts, axes.collections, axes.patches))
         # self.eng.makeplot1(plot=self.view.plot1, intthresh=intthresh, imfit=imfit)
 
     def makeplot2(self, e=None):
@@ -320,8 +326,8 @@ class IsoDecPres(UniDecPres):
             pks = self.isodeceng.brute_force_pep_match(
                 sequence, data, fragmentation_type=controls.ctlfragmentation.GetValue(),
                 centroided=True, config=config)
-            match_fragments(pks, sequence, fragmentation_type=controls.ctlfragmentation.GetValue(),
-                            ppm_tolerance=ppm_tolerance, match_multiple_monoisotopics=False)
+            if pks.peaks:
+                summarize_assigned_fragments(pks, sequence)
             print("Brute Force Match Done. Time: %.2fs" % (time.perf_counter() - tstart))
         except (ValueError, TypeError, KeyError) as error:
             wx.MessageBox(str(error), "Brute Force Match", wx.OK | wx.ICON_ERROR)
@@ -331,8 +337,19 @@ class IsoDecPres(UniDecPres):
         self._save_sequence()
         self.match_source_ready = bool(pks.peaks)
         self.view.peakpanel.clear_list()
-        self.view.clear_all_plots()
-        self.makeplot1(imfit=False)
+        spectrum_plot = self.view.plot1
+        axes = getattr(spectrum_plot, "subplot1", None)
+        artist_counts = (tuple(len(artists) for artists in
+                               (axes.lines, axes.texts, axes.collections, axes.patches))
+                         if axes is not None else None)
+        clean_spectrum_plot = (
+            getattr(spectrum_plot, "flag", False)
+            and getattr(spectrum_plot, "data", None) is self.eng.data.data2
+            and axes is not None
+            and artist_counts == getattr(self, "_spectrum_plot_artists", None)
+        )
+        if not clean_spectrum_plot:
+            self.makeplot1(imfit=False)
         if pks.peaks:
             self.eng.data.massdat = self.isodeceng.pks_to_mass(self.eng.config.massbins)
             self.translate_pks()
@@ -343,6 +360,8 @@ class IsoDecPres(UniDecPres):
         else:
             self.eng.pks = Peaks()
             self.eng.data.massdat = np.empty((0, 2))
+            self.view.plot2.clear_plot()
+            self.view.clear_fragment_plot()
             self.view.SetStatusText("Brute Force Match: no peaks found", number=5)
 
     def _sequence_text(self):

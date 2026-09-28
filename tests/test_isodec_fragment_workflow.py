@@ -29,6 +29,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.figure import Figure
 from unidec.IsoDecGUI import IsoDecPres
+import wx
 import isodec
 from isodec.match import MatchedCollection
 from isodec.isotope import calc_isotope_dist_dual
@@ -47,9 +48,16 @@ plot_fragment_matches(ax, 'PEPTIDEK', SimpleNamespace(
 assert tuple(ax.lines[0].get_xdata()) == (3.3, 4)
 assert tuple(ax.lines[2].get_xdata()) == (0, 0.7)
 
-app = IsoDecPres()
+recent_path = os.path.join(tempfile.gettempdir(), 'isodec-recent-test.txt')
+with patch.object(IsoDecPres, 'read_recent', return_value=[recent_path]):
+    app = IsoDecPres()
 try:
     view = app.view
+    recent_item = view.menu.menuOpenRecent.GetMenuItems()[0]
+    assert recent_item.GetItemLabelText() == os.path.basename(recent_path)
+    with patch.object(app, 'on_open_file') as open_recent:
+        view.ProcessEvent(wx.CommandEvent(wx.EVT_MENU.typeId, recent_item.GetId()))
+    open_recent.assert_called_once_with(os.path.basename(recent_path), os.path.dirname(recent_path))
     controls = view.controls
     assert view.sizerplot.GetItemSpan(view.fragment_panel) == (1, 2)
     assert controls.ctlfragmentation.GetValue() == 'ETD'
@@ -214,6 +222,9 @@ finally:
         view = SimpleNamespace(
             controls=controls, export_gui_to_config=Mock(), SetStatusText=Mock(),
             peakpanel=SimpleNamespace(clear_list=Mock()), clear_all_plots=Mock(),
+            plot1=SimpleNamespace(flag=True, data=spectrum, subplot1=SimpleNamespace(
+                lines=[object()], texts=[], collections=[], patches=[])),
+            plot2=SimpleNamespace(clear_plot=Mock()), clear_fragment_plot=Mock(),
         )
         collection = SimpleNamespace(peaks=[])
         matcher = Mock(return_value=collection)
@@ -223,6 +234,7 @@ finally:
             data=SimpleNamespace(data2=spectrum, rawdata=spectrum + [100, 0]),
         )
         pres.isodeceng = SimpleNamespace(config=IsoDecConfig(), brute_force_pep_match=matcher)
+        pres._spectrum_plot_artists = (1, 0, 0, 0)
         pres._sequence_text = Mock(return_value="PEPTIDE")
         pres._save_sequence = Mock()
         pres.translate_config = Mock()
@@ -235,6 +247,8 @@ finally:
         self.assertIs(matcher.call_args.args[1], spectrum)
         self.assertTrue(matcher.call_args.kwargs["centroided"])
         self.assertIn("Brute Force Match Done. Time:", output.getvalue())
+        pres.makeplot1.assert_not_called()
+        view.clear_all_plots.assert_not_called()
 
         mz = np.arange(300.0, 302.0, 0.001)
         intensity = sum(np.exp(-((mz - center) / 0.01) ** 2)
@@ -246,6 +260,13 @@ finally:
 
         self.assertLess(len(matcher.call_args.args[1]), len(dense_data))
         self.assertTrue(matcher.call_args.kwargs["centroided"])
+        pres.makeplot1.assert_called_once()
+
+        pres.eng.data.data2 = spectrum
+        view.plot1.subplot1.lines.append(object())
+        with patch("unidec.IsoDecGUI.match_fragments"):
+            pres.on_brute_force_match()
+        self.assertEqual(pres.makeplot1.call_count, 2)
 
 
 if __name__ == "__main__":
