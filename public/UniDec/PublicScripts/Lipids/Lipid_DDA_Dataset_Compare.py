@@ -136,7 +136,68 @@ def outlier_setup_dda(df, mztol=0.3, write_output=True, do_heads=True, do_tails=
     return outdf
 
 
-def venn_diagram(df, sets, namecol="Metabolite name", title="", ax=None):
+def round_six_set_venn(ax, corner_fraction=0.18):
+    """Round the corners of the triangular patches used for six-set Venns."""
+    for patch in list(ax.patches):
+        if not isinstance(patch, mpl.patches.Polygon):
+            continue
+
+        vertices = np.asarray(patch.get_xy(), dtype=float)
+        if len(vertices) > 1 and np.allclose(vertices[0], vertices[-1]):
+            vertices = vertices[:-1]
+        if len(vertices) != 3:
+            continue
+
+        path_vertices = []
+        path_codes = []
+        for index, vertex in enumerate(vertices):
+            previous_vertex = vertices[index - 1]
+            next_vertex = vertices[(index + 1) % len(vertices)]
+            corner_entry = vertex + corner_fraction * (
+                previous_vertex - vertex
+            )
+            corner_exit = vertex + corner_fraction * (
+                next_vertex - vertex
+            )
+
+            if index == 0:
+                path_vertices.append(corner_entry)
+                path_codes.append(mpl.path.Path.MOVETO)
+            else:
+                path_vertices.append(corner_entry)
+                path_codes.append(mpl.path.Path.LINETO)
+
+            path_vertices.extend([vertex, corner_exit])
+            path_codes.extend(
+                [mpl.path.Path.CURVE3, mpl.path.Path.CURVE3]
+            )
+
+        path_vertices.append(path_vertices[0])
+        path_codes.append(mpl.path.Path.CLOSEPOLY)
+        rounded_patch = mpl.patches.PathPatch(
+            mpl.path.Path(path_vertices, path_codes),
+            facecolor=patch.get_facecolor(),
+            edgecolor=patch.get_edgecolor(),
+            linewidth=patch.get_linewidth(),
+            zorder=patch.get_zorder(),
+        )
+        patch.remove()
+        ax.add_patch(rounded_patch)
+
+
+def venn_diagram(
+        df,
+        sets,
+        namecol="Metabolite name",
+        title="",
+        ax=None,
+        rounded_six_set=False,
+        number_fontsize=13,
+        legend_fontsize=None,
+        legend_loc="upper right",
+        legend_bbox_to_anchor=None,
+        legend_ncol=1
+):
     vdata = {}
     for s in sets:
         subdf = df[df["Dataset"] == s]
@@ -147,8 +208,25 @@ def venn_diagram(df, sets, namecol="Metabolite name", title="", ax=None):
     if ax is None:
         plt.figure(figsize=(8, 8))
         ax = plt.gca()
-    venn(vdata, ax=ax)
-    plt.title(title)
+    use_custom_legend = legend_bbox_to_anchor is not None
+    venn(
+        vdata,
+        ax=ax,
+        fontsize=number_fontsize,
+        legend_loc=None if use_custom_legend else legend_loc
+    )
+    if use_custom_legend:
+        ax.legend(
+            list(vdata.keys()),
+            loc=legend_loc,
+            bbox_to_anchor=legend_bbox_to_anchor,
+            fontsize=legend_fontsize or number_fontsize,
+            ncol=legend_ncol,
+            frameon=False
+        )
+    if rounded_six_set and len(sets) == 6:
+        round_six_set_venn(ax)
+    ax.set_title(title)
 
 def count_number_of_datasets(df, namecol="Metabolite name", dataset_col="Dataset", class_col="Ontology"):
     # If Dataset Count column already exists, drop it to avoid confusion
@@ -243,7 +321,14 @@ def bar_chart_of_classes(
         plot_ax.spines["right"].set_visible(False)
 
 
-def shared_unique_plot(df, sets, namecol="Metabolite name", title="", ax=None):
+def shared_unique_plot(
+        df,
+        sets,
+        namecol="Metabolite name",
+        title="",
+        ax=None,
+        id_status_label="Confirmed"
+):
     """Plot each dataset total as unique-only plus shared confirmed IDs."""
     if ax is None:
         _, ax = plt.subplots(figsize=(9, 7))
@@ -311,7 +396,7 @@ def shared_unique_plot(df, sets, namecol="Metabolite name", title="", ax=None):
 
     ax.set_xticks(x_positions, labels=sets, rotation=45, ha="right")
     ax.set_xlabel("Dataset")
-    ax.set_ylabel("Confirmed Lipid IDs")
+    ax.set_ylabel(f"{id_status_label} Lipid IDs")
     ax.set_title(title)
     ax.legend(frameon=False, loc="upper left")
     ax.spines["top"].set_visible(False)
@@ -443,11 +528,20 @@ def compare_classes_plot(
         use_simple_classes=True,
         drop_low_quality=True,
         output_basename="DDA_Overlap_and_Class_Distribution",
+        figure_size=None,
+        save_bbox_inches="tight",
         overlap_style="venn",
         class_legend_fontsize=8,
         class_legend_bbox_to_anchor=(1.05, 1),
         class_legend_loc="upper left",
-        hide_class_top_and_right=False
+        hide_class_top_and_right=False,
+        rounded_six_set_venn=False,
+        venn_number_fontsize=13,
+        venn_legend_fontsize=None,
+        venn_legend_loc="upper right",
+        venn_legend_bbox_to_anchor=None,
+        venn_legend_ncol=1,
+        id_status_label="Confirmed"
 ):
     df = df.copy()
     if datasets is None:
@@ -483,15 +577,16 @@ def compare_classes_plot(
     if overlap_style == "shared_unique":
         fig, axes = plt.subplots(
             ncols=2,
-            figsize=(18, 8),
+            figsize=figure_size or (18, 8),
             layout="constrained"
         )
         shared_unique_plot(
             df,
             datasets,
             namecol=namecol,
-            title="Confirmed Lipid IDs: Unique vs Shared",
-            ax=axes[0]
+            title=f"{id_status_label} Lipid IDs: Unique vs Shared",
+            ax=axes[0],
+            id_status_label=id_status_label
         )
         bar_chart_of_classes(
             df,
@@ -507,7 +602,7 @@ def compare_classes_plot(
             hide_top_and_right=hide_class_top_and_right
         )
     elif overlap_style == "upset":
-        fig = plt.figure(figsize=(22, 10), layout="constrained")
+        fig = plt.figure(figsize=figure_size or (22, 10), layout="constrained")
         outer_grid = fig.add_gridspec(
             1,
             2,
@@ -518,7 +613,7 @@ def compare_classes_plot(
             df,
             datasets,
             namecol=namecol,
-            title="Overlap of Confirmed Lipid IDs",
+            title=f"Overlap of {id_status_label} Lipid IDs",
             subplot_spec=outer_grid[0]
         )
         class_ax = fig.add_subplot(outer_grid[1])
@@ -536,9 +631,21 @@ def compare_classes_plot(
             hide_top_and_right=hide_class_top_and_right
         )
     elif overlap_style == "venn":
-        fig = plt.figure(figsize=(18, 10))
+        fig = plt.figure(figsize=figure_size or (18, 10))
         plt.subplot(1, 2, 1)
-        venn_diagram(df, datasets, namecol=namecol, title="Overlap of Confirmed Lipid IDs", ax=plt.gca())
+        venn_diagram(
+            df,
+            datasets,
+            namecol=namecol,
+            title=f"Overlap of {id_status_label} Lipid IDs",
+            ax=plt.gca(),
+            rounded_six_set=rounded_six_set_venn,
+            number_fontsize=venn_number_fontsize,
+            legend_fontsize=venn_legend_fontsize,
+            legend_loc=venn_legend_loc,
+            legend_bbox_to_anchor=venn_legend_bbox_to_anchor,
+            legend_ncol=venn_legend_ncol
+        )
         plt.subplot(1, 2, 2)
         bar_chart_of_classes(
             df,
@@ -561,6 +668,13 @@ def compare_classes_plot(
     if overlap_style == "venn":
         fig.tight_layout()
 
-    fig.savefig(f"{output_basename}.png", dpi=600, bbox_inches="tight")
-    fig.savefig(f"{output_basename}.pdf", bbox_inches="tight")
+    fig.savefig(
+        f"{output_basename}.png",
+        dpi=600,
+        bbox_inches=save_bbox_inches
+    )
+    fig.savefig(
+        f"{output_basename}.pdf",
+        bbox_inches=save_bbox_inches
+    )
     plt.show()

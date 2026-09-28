@@ -124,6 +124,8 @@ default_isdf["Mass"] = (default_isdf["m/z (+)"] + default_isdf["m/z (-)"]) / 2.
 default_isdf["Concentration (uM)"] = default_isdf["Concentration (ug/mL)"] / default_isdf["Mass"]
 
 default_is_mapper = {"GM3": "PI", "PEtOH": "PG", "SHexCer": "Cer", "EtherPC": "PC", "HexCer": "Cer", "Hex2Cer": "Cer"}
+area_match_is_classes = {"PC", "EtherPC", "EtherPE","PE", "PI", "SM"}
+preferred_quant_adducts = {"PC": "[M+CH3COO]", "EtherPC": "[M+CH3COO]"}
 # print(default_isdf.to_string())
 # exit()
 
@@ -479,8 +481,11 @@ def get_is_conc_from_isdf(isrow, isdf, conc_col):
     # Remove only leading 'IS ' (with space), keep rest intact
     if isname.startswith("IS "):
         isname = isname[3:].strip()
+    # Skyline and the standard table may use '-' and '_' interchangeably in lipid tails.
+    normalized_isname = isname.replace("-", "_")
+    normalized_isdf_names = isdf["Lipid"].astype(str).str.replace("-", "_", regex=False)
     # Find matches
-    isdf_row = isdf[(isdf["Lipid"] == isname) & (isdf["Class"] == isclass)]
+    isdf_row = isdf[(normalized_isdf_names == normalized_isname) & (isdf["Class"] == isclass)]
     # If none or multiple matches, print warning and return None
     if len(isdf_row) == 0:
         print(f"WARNING: No matching IS found in IS dataframe for '{isname}' of class '{isclass}'. Assuming concentration of 1 for this compound.")
@@ -492,7 +497,25 @@ def get_is_conc_from_isdf(isrow, isdf, conc_col):
     return conc
 
 
-def calc_is(df, isrows, replicates, conc_col, isdf=default_isdf):
+def get_area_matched_is(row, isrows, replicates):
+    """Select one internal standard whose mean peak area is closest to the analyte."""
+    analyte_values = pd.to_numeric(row[replicates], errors="coerce")
+    analyte_area = analyte_values.mean()
+    if not np.isfinite(analyte_area) or analyte_area <= 0:
+        return None
+
+    standard_values = isrows[replicates].apply(pd.to_numeric, errors="coerce")
+    standard_areas = standard_values.mean(axis=1)
+    valid = np.isfinite(standard_areas) & (standard_areas > 0)
+    if not valid.any():
+        return None
+
+    # Compare fold differences so standards above and below the analyte are treated symmetrically.
+    area_distances = np.abs(np.log(standard_areas[valid] / analyte_area))
+    return isrows.loc[[area_distances.idxmin()]]
+
+
+def calc_is(df, isrows, replicates, conc_col, isdf=default_isdf, match_by_area=False):
     # Copy just the replicate columns
     normdata = df[replicates].copy()
     cls = df["Molecule List Name"].values[0] if "Molecule List Name" in df.columns else "Unknown"
@@ -501,8 +524,8 @@ def calc_is(df, isrows, replicates, conc_col, isdf=default_isdf):
         print("WARNING: No data rows found. Skipping IS calculation.")
         return normdata
     if len(isrows) == 0:
-        print(f"WARNING: No IS rows found for class {cls} and adduct {adduct}. Setting this data to 0.")
-        return normdata * 0
+        print(f"WARNING: No IS rows found for class {cls} and adduct {adduct}. Excluding this adduct from quantification.")
+        return normdata * np.nan
 
     # Single IS row
     if len(isrows) == 1:
@@ -514,25 +537,35 @@ def calc_is(df, isrows, replicates, conc_col, isdf=default_isdf):
                     isval /= conc
                     # print(f"INFO: Normalizing by IS value {isval} for class {cls} and adduct {adduct} in replicate {r}.")
                 else:
-                    print(f"WARNING: No valid concentration found for IS row in class {cls} and adduct {adduct}. Assuming concentration of 1 for normalization.")
+                    print(f"WARNING: No valid concentration found for IS row in class {cls} and adduct {adduct}. Excluding this adduct from quantification.")
+                    normdata[r] = np.nan
+                    continue
             if isval == 0:
-                print(f"WARNING: IS value is zero for class {cls} and adduct {adduct} in replicate {r}. Skipping normalization.")
+                print(f"WARNING: IS value is zero for class {cls} and adduct {adduct} in replicate {r}. Excluding this adduct from quantification.")
+                normdata[r] = np.nan
                 continue
             normdata[r] = normdata[r].astype(float) / isval
 
-    # Multiple IS rows — match by closest RT
+    # Area matching uses one standard per analyte across all replicates so that the
+    # selected standard does not change between experimental groups. Other classes match by RT.
     else:
         for i, row in df.iterrows():
             rt = row.get("RT", None)
-            if rt is None:
-                print(f"WARNING: No RT found for row {i} but multiple standards are found. Skipping normalization")
+            area_matched_isrow = get_area_matched_is(row, isrows, replicates) if match_by_area else None
+            if area_matched_isrow is None and rt is None:
+                print(f"WARNING: No RT found for row {i} but multiple standards are found. Excluding this adduct from quantification.")
+                normdata.loc[i, replicates] = np.nan
                 continue
 
             for r in replicates:
                 possible_rows = isrows[isrows[r] > 0]
-                closest_isrow = possible_rows.iloc[(possible_rows["RT"] - rt).abs().argsort()[:1]]
+                if area_matched_isrow is not None and float(area_matched_isrow[r].iloc[0]) > 0:
+                    closest_isrow = area_matched_isrow
+                else:
+                    closest_isrow = possible_rows.iloc[(possible_rows["RT"] - rt).abs().argsort()[:1]]
                 if len(closest_isrow) == 0:
-                    print(f"WARNING: No IS rows with nonzero value found for class {cls} and adduct {adduct} in replicate {r}. Skipping normalization.")
+                    print(f"WARNING: No IS rows with nonzero value found for class {cls} and adduct {adduct} in replicate {r}. Excluding this adduct from quantification.")
+                    normdata.at[i, r] = np.nan
                     continue
                 isval = float(closest_isrow[r].values[0])
                 if isdf is not None:
@@ -541,11 +574,16 @@ def calc_is(df, isrows, replicates, conc_col, isdf=default_isdf):
                         rawarea = normdata.at[i, r]
                         intratio = rawarea / isval
                         if intratio > 50:
-                            print(f"WARNING: High internal standard ratio of {intratio} for row {i} in class {cls} and adduct {adduct} in replicate {r}. This may indicate an issue with the IS normalization.")
-                            normdata.at[i, r] = 0
+                            if match_by_area:
+                                standard_name = closest_isrow["Molecule"].iloc[0]
+                                print(f"WARNING: Analyte/internal standard peak-area ratio of {intratio} for "
+                                      f"{row['Molecule']} ({adduct}, {r}) exceeds 50. Using {standard_name}, "
+                                      f"the closest-area standard, is still out of range. Excluding this adduct from quantification.")
+                            else:
+                                print(f"WARNING: High internal standard ratio of {intratio} for row {i} in class {cls} and adduct {adduct} in replicate {r}. This may indicate an issue with the IS normalization.")
+                            normdata.at[i, r] = np.nan
                             continue
-                        else:
-                            isval /= conc
+                        isval /= conc
                         #
                         # corrected = float(rawarea) / isval
                         # if corrected > 1:
@@ -553,13 +591,12 @@ def calc_is(df, isrows, replicates, conc_col, isdf=default_isdf):
                         #     print(closest_isrow.to_string())
                         #     print("ISval:", isval, "Raw area:", rawarea, "Corrected area:", corrected, "Int Ratio:", intratio)
                     else:
-                        print(f"WARNING: No valid concentration found for IS row in class {cls} and adduct {adduct}. Setting to 0.")
-                        normdata.at[i, r] = 0
+                        print(f"WARNING: No valid concentration found for IS row in class {cls} and adduct {adduct}. Excluding this adduct from quantification.")
+                        normdata.at[i, r] = np.nan
                         continue
                 if isval == 0:
-                    print(f"WARNING: IS value is zero for class {cls} and adduct {adduct} in replicate {r}. Skipping normalization.")
-                    print("This should actually not be possible to access...")
-                    normdata.at[i, r] = 0
+                    print(f"WARNING: IS value is zero for class {cls} and adduct {adduct} in replicate {r}. Excluding this adduct from quantification.")
+                    normdata.at[i, r] = np.nan
                     continue
                 normdata.at[i, r] = float(normdata.at[i, r]) / isval
 
@@ -578,20 +615,19 @@ def get_is(df, class_name, adduct, is_mapper_dict=None):
     return isrows
 
 def dereplicate_adducts(normdf, replicates):
-    # for each lipid name, if there are two different adducts, take the mean of the two adducts for each replicate and use that as the value for a merged row with the name of the lipid and a summed string of both adducts
+    # Average valid adduct estimates for each lipid without allowing a failed adduct to dilute the result.
     outrows = []
     lipids = normdf["Molecule"].unique()
     for lipid in lipids:
         subdf = normdf[normdf["Molecule"] == lipid]
         adducts = subdf["Adduct"].unique()
-        if len(adducts) == 1:
-            outrows.append(subdf.iloc[0])
-        else:
-            newrow = subdf.iloc[0].copy()
+        newrow = subdf.iloc[0].copy()
+        if len(adducts) > 1:
             newrow["Adduct"] = "+".join(adducts)
-            for r in replicates:
-                newrow[r] = subdf[r].mean()
-            outrows.append(newrow)
+        for r in replicates:
+            valid_values = pd.to_numeric(subdf[r], errors="coerce").dropna()
+            newrow[r] = valid_values.mean() if len(valid_values) > 0 else 0
+        outrows.append(newrow)
     outdf = pd.DataFrame(outrows)
     print(len(normdf), "rows before dereplication, ", len(outdf), "rows after dereplication.")
     return outdf
@@ -605,6 +641,15 @@ def normalize_is(df, replicates, conc_col, isdf="Default", dereplicate=True):
             raise ValueError(f"Invalid value for isdf: {isdf}. Must be 'Default' or a custom IS dataframe.")
 
     normdf = df.copy()
+    for class_name, preferred_adduct in preferred_quant_adducts.items():
+        class_mask = normdf["Molecule List Name"] == class_name
+        excluded_mask = class_mask & (normdf["Adduct"] != preferred_adduct)
+        excluded_count = excluded_mask.sum()
+        if excluded_count > 0:
+            print(f"Using {preferred_adduct} only for {class_name} quantification; "
+                  f"excluding {excluded_count} rows with other adducts.")
+            normdf = normdf[~excluded_mask].copy()
+
     classes = normdf["Molecule List Name"].unique()
     for r in replicates:
         normdf[r] = normdf[r].astype(float)
@@ -624,7 +669,8 @@ def normalize_is(df, replicates, conc_col, isdf="Default", dereplicate=True):
             # Get IS rows for this class
             isrow = get_is(normdf, c, a, is_mapper_dict=default_is_mapper)
             # Calculate normalized data for this class and replicate
-            normdata = calc_is(subdf, isrow, replicates, conc_col, isdf=isdf)
+            normdata = calc_is(subdf, isrow, replicates, conc_col, isdf=isdf,
+                               match_by_area=c in area_match_is_classes)
             # Merge back into normdf
             mask = (mask1) & (mask2) & (mask3)
             normdf.loc[mask, replicates] = normdata
@@ -1273,7 +1319,7 @@ if __name__ == "__main__":
                                        file_modes=["Products", "Precursors"], drop_IS=True, normalize_IS=True,
                                        norm_tmm=False,
                   normalize_TIC=True, paired=True, bh_correction=True, plot_results=True, write_output=True,
-                     fold_range=np.log2(2), otherthresh=0.03, set1_name="FT", set2_name="E", drop_lipids=[],
+                     fold_range=np.log2(2), otherthresh=0.03, set1_name="FT", set2_name="E", drop_lipids=["LPI 16:0", "PE 36:2|PE 18:1_18:1_A","PE P_37:1"],
                                        drop_class=[])
 
     exit()
