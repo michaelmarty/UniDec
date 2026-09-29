@@ -412,7 +412,7 @@ def main():
     by_class = frequency_summary(lipids, occurrences, ["Ontology", "Dataset"])
     overall.to_csv(output_dir / "Tail_Frequencies_by_Dataset.csv", index=False)
     by_class.to_csv(output_dir / "Tail_Frequencies_by_Class.csv", index=False)
-    population = "Annotated" if args.all_ids else "Confirmed"
+    population = "Annotated" if args.all_ids else "Accepted"
     selected_frequencies = tail_composition_table(overall, datasets, args.min_tail_percent)
     selected_frequencies.to_csv(output_dir / "Tail_Selection_Frequencies.csv", index_label="Tail")
     coverage_counts, coverage_percentages, lipid_coverage = tail_coverage_tables(

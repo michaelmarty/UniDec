@@ -139,12 +139,6 @@ required_columns = {
     "Average Mz",
     "MS/MS spectrum",
     "Overall Match Status",
-    "S/N average",
-    "RT similarity",
-    "m/z similarity",
-    "Matched peaks count",
-    "Simple dot product",
-    "Weighted dot product",
     "Reverse dot product",
     "Fill %",
 }
@@ -163,8 +157,8 @@ df["ID Status"] = np.where(
 )
 
 status_colors = {
-    "True": "#D55E00",
-    "False": "#0072B2",
+    "True": "#0072B2",
+    "False": "#D55E00",
 }
 
 
@@ -226,32 +220,25 @@ def calculate_all_class_strengths(frame):
 
 
 df = calculate_all_class_strengths(df)
-df["Log10 Class Strength"] = np.log10(
-    pd.to_numeric(df["Class Strength"], errors="coerce").clip(lower=0) + 1
+df["Square Root Class Strength"] = np.sqrt(
+    pd.to_numeric(df["Class Strength"], errors="coerce").clip(lower=0)
 )
 
-class_strength_valid = df.dropna(subset=["Class Strength"]).copy()
+class_strength_valid = df.dropna(
+    subset=["Square Root Class Strength"]
+).copy()
 class_strength_auc = roc_auc_score(
     class_strength_valid["ID Status"].eq("True"),
-    class_strength_valid["Class Strength"],
+    class_strength_valid["Square Root Class Strength"],
 )
 
-# PLS regression with binary confirmation status as the supervised response.
+# PLS regression with binary acceptance status as the supervised response.
 # This is commonly visualized as PLS discriminant analysis (PLS-DA).
-df["Log10 S/N"] = np.log10(
-    pd.to_numeric(df["S/N average"], errors="coerce").clip(lower=1e-10)
-)
-
+# Restore the three predictors used in the original figure.
 pls_features = [
-    "RT similarity",
-    "m/z similarity",
-    "Simple dot product",
-    "Weighted dot product",
+    "Square Root Class Strength",
     "Reverse dot product",
-    "Matched peaks count",
     "Fill %",
-    "Log10 S/N",
-    "Log10 Class Strength",
 ]
 
 for column in pls_features:
@@ -337,7 +324,7 @@ for status, (marker, label, marker_size) in status_markers.items():
 
 score_ax.set_xlabel("PLS Component 1")
 score_ax.set_ylabel("PLS Component 2")
-score_ax.set_title("Identification-Quality PLS-DA")
+score_ax.set_title("Top-3-Feature Identification-Quality PLS-DA")
 score_ax.spines["top"].set_visible(False)
 score_ax.spines["right"].set_visible(False)
 score_ax.legend(
@@ -367,20 +354,14 @@ score_ax.text(
 )
 
 feature_labels = {
-    "RT similarity": "RT similarity",
-    "m/z similarity": "m/z similarity",
-    "Simple dot product": "Simple dot product",
-    "Weighted dot product": "Weighted dot product",
     "Reverse dot product": "Reverse dot product",
-    "Matched peaks count": "Matched peaks",
     "Fill %": "Fill %",
-    "Log10 S/N": "log10(S/N)",
-    "Log10 Class Strength": "log10(1 + class strength)",
+    "Square Root Class Strength": "Square-root class strength",
 }
 
 # Because all predictors were standardized, coefficient magnitudes can be
-# compared directly. Positive values predict confirmation; negative values
-# predict rejection after accounting for the other features.
+# compared directly. Positive values predict acceptance; negative values
+# predict exclusion after accounting for the other features.
 pls_coefficients = np.asarray(pls.coef_).reshape(-1)
 coefficient_positions = np.arange(len(pls_features))
 coefficient_colors = np.where(
@@ -404,29 +385,29 @@ coefficient_ax.invert_yaxis()
 coefficient_ax.axvline(0, color="#777777", linewidth=0.9)
 coefficient_ax.set_xlabel("Standardized PLS Coefficient")
 coefficient_ax.set_ylabel("Quality Feature")
-coefficient_ax.set_title("Features Predicting ID Status")
+coefficient_ax.set_title("Top 3 ID-Status Predictors")
 coefficient_ax.spines["top"].set_visible(False)
 coefficient_ax.spines["right"].set_visible(False)
 coefficient_ax.text(
     0.98,
-    0.98,
-    "Orange: Accepted\nBlue: Excluded",
+    0.04,
+    "Blue: Accepted\nOrange: Excluded",
     transform=coefficient_ax.transAxes,
     fontsize=8,
     ha="right",
-    va="top",
+    va="bottom",
 )
 
 
-# C: overall strength distributions across every class and polarity. Log
-# transformation retains zero-strength IDs while controlling the long tail.
+# C: a square-root transformation retains zero-strength IDs and controls the
+# long tail without using a logarithm or adding a pseudocount.
 strength_plot_df = df.dropna(
-    subset=["Log10 Class Strength", "Class Strength Percentile"]
+    subset=["Square Root Class Strength", "Class Strength Percentile"]
 ).copy()
 violin_values = [
     strength_plot_df.loc[
         strength_plot_df["ID Status"].eq(status),
-        "Log10 Class Strength",
+        "Square Root Class Strength",
     ].to_numpy()
     for status in ["False", "True"]
 ]
@@ -464,7 +445,7 @@ for position, status in enumerate(["False", "True"]):
     jitter = random_generator.normal(0, 0.065, len(status_df))
     strength_distribution_ax.scatter(
         position + jitter,
-        status_df["Log10 Class Strength"],
+        status_df["Square Root Class Strength"],
         s=8,
         color=status_colors[status],
         alpha=0.14,
@@ -474,7 +455,7 @@ for position, status in enumerate(["False", "True"]):
     outlier_mask = status_df["Network Strength Outlier"].to_numpy()
     strength_distribution_ax.scatter(
         position + jitter[outlier_mask],
-        status_df.loc[outlier_mask, "Log10 Class Strength"],
+        status_df.loc[outlier_mask, "Square Root Class Strength"],
         s=19,
         facecolors="none",
         edgecolors="black",
@@ -487,23 +468,24 @@ strength_distribution_ax.set_xticks(
     [0, 1],
     labels=["Excluded", "Accepted"],
 )
-strength_distribution_ax.set_ylabel("log10(1 + Class Strength)")
+strength_distribution_ax.set_ylabel("Square-Root Class Strength")
 strength_distribution_ax.set_title(
     "Class-Network Strength by ID Status",
     pad=10,
 )
 strength_distribution_ax.set_ylim(
-    top=strength_plot_df["Log10 Class Strength"].max() * 1.28
+    0,
+    strength_plot_df["Square Root Class Strength"].max() * 1.28,
 )
 strength_distribution_ax.spines["top"].set_visible(False)
 strength_distribution_ax.spines["right"].set_visible(False)
 strength_distribution_ax.text(
-    0.88,
+    0.50,
     0.98,
     f"Class strength ROC AUC = {class_strength_auc:.2f}",
     transform=strength_distribution_ax.transAxes,
     fontsize=8,
-    ha="right",
+    ha="center",
     va="top",
 )
 strength_distribution_ax.legend(
@@ -520,7 +502,8 @@ strength_distribution_ax.legend(
             label="Lowest 5% within class/polarity",
         )
     ],
-    loc="upper left",
+    loc="upper center",
+    bbox_to_anchor=(0.5, 0.92),
     frameon=False,
     fontsize=8,
 )
@@ -591,13 +574,21 @@ class_strength_ax.set_yticks(class_positions, labels=class_medians.index)
 class_strength_ax.invert_yaxis()
 class_strength_ax.set_xlim(0, 100)
 class_strength_ax.set_xlabel(
-    "Median Strength Percentile"
+    "Median Strength Percentile\nWithin Class/Polarity"
 )
 class_strength_ax.set_ylabel("Lipid Class")
 class_strength_ax.set_title("Class-Specific Network Strength")
 class_strength_ax.spines["top"].set_visible(False)
 class_strength_ax.spines["right"].set_visible(False)
-class_strength_ax.legend(frameon=False, loc="lower right", fontsize=8)
+# Keep the status key outside panel D so its markers cannot be mistaken for data points.
+class_strength_ax.legend(
+    loc="upper left",
+    bbox_to_anchor=(1.02, 1.0),
+    ncol=1,
+    frameon=False,
+    fontsize=8,
+    borderaxespad=0,
+)
 
 
 for panel_label, ax in zip(
@@ -616,15 +607,20 @@ for panel_label, ax in zip(
     )
 
 pls_fig.savefig(
-    "Figure 5.png",
+    "Figure5.png",
     dpi=600,
+    bbox_inches="tight",
+    pad_inches=0.08,
 )
 pls_fig.savefig(
-    "Figure 5.pdf",
+    "Figure5.pdf",
+    bbox_inches="tight",
+    pad_inches=0.08,
 )
 
 print("\nIDs included in PLS-DA:")
 print(pls_df.groupby("ID Status").size().to_string())
+print("PLS-DA features: " + ", ".join(pls_features))
 print(
     f"5-fold cross-validated AUC: {cross_validated_auc:.3f}\n"
     f"5-fold cross-validated accuracy: {cross_validated_accuracy:.3f}"
