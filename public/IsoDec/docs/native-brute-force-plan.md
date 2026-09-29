@@ -1,5 +1,9 @@
 # Native brute-force fragment matching plan
 
+Latest status: see **Review fixes and corrected reference (2026-09-29)** at
+the end of this document. Earlier 780-hit ETD results and timings are historical;
+the corrected cosine calculation now accepts 794 hits on the same input.
+
 ## Goal and current boundary
 
 Move the repeated isotope-envelope search for top-down fragments into IsoDec's
@@ -796,3 +800,159 @@ inside Numba-compiled `fastwithin_abstol_withnearest()` and `merge_massdist()`;
 substituting a `ctypes` function for the Python-level call does not replace
 those compiled calls. No standalone C lookup was retained in the source tree.
 The existing Numba cache remains the faster path to a material startup gain.
+
+### Normal native match indexes are not yet a grouping input (2026-09-28)
+
+Before using normal IsoDec's `MatchedPeak.matchedindsexp` array for the C mass
+grouping port, decoded its increasing isotope-index prefix and treated the
+paired centroid indexes as offsets into the exported `startindex:endindex`
+window. On the supplied 3,537-centroid regression spectrum, this changed the
+matched centroid set in **71 of 277 peaks**. The group count stayed at 197 and
+group membership stayed the same, but fitted mass distributions differed.
+The direct substitution was therefore reverted. The Python rematch of the
+exported window remains the grouping reference.
+
+For example, one charge-1 peak has theoretical m/z values near 649.2872 and
+650.2905. Its stored native centroid offsets are 5 and 7, which index
+649.2629 and 650.2237 in the exported window. The Python rematch selects
+649.2872 and 650.2906. This shows that the native offsets cannot simply be
+interpreted relative to the exported window; it does not establish whether
+the mismatch comes from the original search-window base, result bookkeeping,
+or another cause. A regression test now protects this peak's mass-grouping
+centroids.
+
+The shared C port needs either absolute accepted-centroid indexes with an
+explicit count and documented base, or a native rematch against the same
+exported window using Python `find_matches()` semantics. Compare the selected
+centroid sets and all fitted group fields with the current Python path before
+removing its rematch. Native acceptance indexes alone are not a parity oracle
+for mass grouping.
+
+### Shared native grouping implementation and order decision (2026-09-28)
+
+Added a version-1 C batch grouping ABI in `mass_group.c`, used by normal
+IsoDec and sequence brute-force matching. Normal peaks first go through one
+native batch rematch of the exported centroid windows; fragment peaks retain
+their accepted centroid sets. Both then use the same order-dependent C merge.
+Python reconstructs `MatchedMass` objects and their peak memberships from
+the native summaries. An older library without these entry points continues
+to use Python grouping. `IsoDecConfig.mass_group_order` accepts `"original"`
+and `"matched_intensity"`; original order is the default. The UniDec GUI's
+separate config class also defaults to original order when this field is
+absent.
+
+With a Windows x64 release build, the 3,537-centroid normal regression input
+returned the same 277 peaks and 197 original-order groups as Python. Selected
+centroid sets, group membership, fitted mass distributions, merged centroids,
+charge and scan arrays, tabular output, and binned mass spectrum agreed. The
+normal native peak intensities are float32, and representative/candidate
+masses can differ by less than 0.001 Da because the C grouping arithmetic
+uses double for masses. Six native grouping tests, all 51 IsoDec tests, and
+the two focused UniDec GUI workflow tests passed with the rebuilt local DLL.
+The rebuilt `isodeclib.dll` is in the package's `bin` directory.
+
+In 15 alternating warm measurements of complete normal spectrum processing
+after three warmups, the Python path had a 35.08 ms median and the native path
+a 32.21 ms median. The native path had one 91 ms outlier; the result suggests
+only a small warm gain on this input. Linux, macOS, and wheel builds remain
+to be validated.
+
+The supplied 50,121-centroid ETD input returned the same 780 labeled hits and
+294 original-order groups through both the native and Python grouping paths.
+Group membership, lookup masses, representative and candidate masses, fitted
+mass distributions, merged centroids, and total intensities agreed at
+`rtol=1e-6, atol=1e-3`. In eight alternating warm complete matcher calls per
+path, after two warmups, the median was 184.71 ms with C grouping and
+206.25 ms with Python grouping. With the existing Numba disk cache, three
+fresh-interpreter native calls took 211-213 ms each; three Python-grouping
+calls took 633-841 ms each. These
+calls exclude file loading and GUI plotting.
+
+The real GUI handler returned 780 hits, 294 groups, and 81.7829% sequence
+coverage, with a clean shutdown. One fresh GUI process took 1.20 s for its
+first handler call and 0.65 s for its second. In a separate alternating
+warm comparison of eight handler calls per path, the median was 690.0 ms
+with native grouping and 700.7 ms with Python grouping. Plot-time variation
+was larger than that 10.7 ms median difference, so the direct matcher
+benchmark is stronger evidence of a speed gain than the whole-GUI timing.
+
+Descending matched-intensity order reproduces the Python policy and yields
+196 rather than 197 groups on the normal regression spectrum. It combines a
+charge-6 candidate near 6035.0874 Da and a charge-5 candidate near
+6033.1060 Da; there is no sequence identity for this spectrum to judge that
+merge. The earlier labeled ETD case supports combining all four z'36 hits,
+and the new native intensity-order run reproduced the Python policy's 293
+groups without mixing theoretical masses on that spectrum. The known-source
+synthetic decoy demonstrates that isotope-shift grouping can still combine
+distinct fragments. Keep original order as the shared
+default until independent labeled inputs establish that intensity-first
+improves identification across both workflows. Intensity order remains
+available explicitly for evaluation.
+
+### Review fixes and corrected reference (2026-09-29)
+
+Fixed the review findings in the Python reference, native implementations, and
+binding rather than merely loosening parity checks:
+
+- Grouping recovers missing accepted centroids using `calc_mass_dists`, refreshes
+  cached neutral centroids, and supports missing isotope distributions.
+- Coincident zero-weight centroids retain a finite mass in both implementations.
+- The binding validates buffer shapes, finite values, lengths, and scan/charge
+  integer ranges before exposing memory to C. Native pair/count overflow checks
+  reject oversized input; valid output pointers reset on errors, and scan
+  subtraction cannot overflow a signed integer.
+- Native result slots clear the unused isotope-array tails, and Python reads
+  only `realisolength`. The normal fixture's formerly unsorted envelope is now
+  monotonic; a synthetic stale-tail regression also checks intensity sums.
+- Cosine scoring no longer wraps a missing preceding isotope to the final
+  observed isotope. This fixes Python scoring, C grouping, and C fragment
+  matching. An actually present preceding isotope still contributes its penalty.
+  Perfect one-isotope matches now score 1, not approximately 0.7071.
+- Group masses, distributions, total intensities, and scan intensities now use
+  double precision consistently, including the Python incremental path. Scores
+  and acceptance thresholds were not retuned to preserve erroneous old counts.
+
+The normal fixture retains 277 hits, 197 original-order groups, and 196
+intensity-order groups. The repository ETD fixture now yields 794 accepted hits,
+298 original-order groups, and 297 intensity-order groups through independently
+executed Python and native paths. Both orders have zero groups mixing theoretical
+fragment masses on this input; every fitted-axis origin remains within 5 ppm
+(maximum 4.425 ppm). These labels are not independent experimental ground truth,
+so original order remains the default.
+
+`tests/data/ca_etd/` contains the supplied centroid spectrum and FASTA, their
+provenance, and a compressed JSON reference generated by the corrected Python-only
+path. The reference freezes hit records and every group field. Expanded tests
+compare separate native and Python objects, all scan/RT fields, memberships,
+missing envelopes, zero intensities, malformed buffers, tolerance boundaries,
+shuffled insertions, duplicate charges/scans, and multiple scans. All-group
+comparisons use absolute mass tolerance 1e-9 Da and intensity relative tolerance
+1e-12; integer fields and membership are exact. Actual TSV/MSAlign exports and
+mass spectra are compared, in addition to the frozen original-order reference.
+
+Appending scans intentionally remains a Python incremental operation after the
+first native batch, tested against an all-Python grouping/rematching fallback.
+Intensity ordering is per incoming spectrum, not a global replay of prior scans.
+Both evaluation scripts now suppress the batch finalizer when collecting pristine
+hits; patching `add_pk_to_masses` alone no longer suppresses native grouping.
+
+Windows x64 release builds, all 80 IsoDec tests (with importlib collection), and
+both focused UniDec GUI workflow tests pass. The 33 focused native-grouping and
+integration tests also pass with deprecation warnings treated as errors. Linux GCC
+standalone grouping ABI checks pass with `-Wall -Wextra -Werror` and AddressSanitizer
+plus UndefinedBehaviorSanitizer, including repeated allocation/free, oversized
+counts, zero weights, and extreme scan numbers. The fragment matcher also compiles
+with GCC warnings treated as errors. The WSL environment lacks CMake and FFTW
+development dependencies, so this is not a full Linux package validation. A macOS
+host is unavailable. Windows wheel validation needs the missing packaging tools
+(`build`, `scikit-build-core`, and `wheel`) in an isolated environment.
+
+After two warmups and five alternating measurements per path, the full corrected
+ETD matcher took median 217.30 ms with native grouping and 216.40 ms with Python
+grouping. Input validation removes the earlier small warm advantage on this run;
+these results do not substantiate a warm speedup or update the historical GUI
+timings. Native grouping still avoids invoking Python's JIT merge routines.
+
+Deprecated trapezoidal integration calls were replaced throughout package code,
+scripts, and both teaching notebooks. IsoDec uses SciPy's `trapezoid` to retain
+its NumPy 1.23/Python 3.9 dependency floor; UniDec and scripts use `np.trapezoid`.

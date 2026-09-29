@@ -22,6 +22,7 @@ class IsoDecConfig:
         self.background_subtraction = 0
 
         self.mass_diff_c = 1.0033
+        self.mass_group_order = "original"
         self.peakwindow = 80
         self.phaseres = 8
         self.matchtol = 5

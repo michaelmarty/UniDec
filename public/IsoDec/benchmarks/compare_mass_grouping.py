@@ -111,7 +111,7 @@ def run(spectrum, sequence, fragmentation, centroided, random_trials):
         spectrum = get_all_centroids(spectrum, window=config.peakwindow,
                                      threshold=config.peakthresh * 0.1)
     spectrum = spectrum[np.argsort(spectrum[:, 0])]
-    with patch.object(MatchedCollection, "add_pk_to_masses", lambda *a, **k: None):
+    with patch("isodec.brute_force_seq_match._group_fragment_peaks", lambda pks, *a, **k: pks):
         hits = brute_force_pep_match(sequence, spectrum, centroided=True,
                                     config=config, fragmentation_type=fragmentation)
     source = hits.peaks

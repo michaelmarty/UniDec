@@ -139,7 +139,7 @@ def main():
     config.activescanrt = 0
     config.activescanorder = 2
     # Obtain pristine accepted hits without the normal per-hit grouping.
-    with patch.object(MatchedCollection, "add_pk_to_masses", lambda *a, **k: None):
+    with patch("isodec.brute_force_seq_match._group_fragment_peaks", lambda pks, *a, **k: pks):
         hits = brute_force_pep_match(sequence, spectrum, centroided=True, config=config,
                                     fragmentation_type=args.fragmentation)
     results = {policy: evaluate(hits.peaks, hits.fragment_theoretical, config, policy)

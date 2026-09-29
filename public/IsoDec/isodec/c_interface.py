@@ -12,11 +12,26 @@ if not __package__:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     __package__ = "isodec"
 
-from .match import MatchedPeak, MatchedCollection
+from .match import MatchedPeak, MatchedCollection, MatchedMass
 from .config import IsoDecConfig
 from .plots import cplot
 
 _system = platform.system()
+
+
+def _group_array(value, name, pairs=True, allow_empty=False):
+    """Validate lengths and shapes before exposing a NumPy buffer to C."""
+    array = np.ascontiguousarray(value, dtype=np.float64)
+    if (array.ndim != (2 if pairs else 1) or
+            (pairs and array.shape[1] != 2)):
+        raise ValueError(f"{name} must have shape (N, 2)" if pairs
+                         else f"{name} must be one-dimensional")
+    if (not allow_empty and len(array) == 0) or array.size > np.iinfo(np.int32).max:
+        raise ValueError(f"{name} has an invalid size")
+    if not np.all(np.isfinite(array)):
+        raise ValueError(f"{name} must contain finite values")
+    return array
+
 _library_names = {
     "Windows": "isodeclib.dll",
     "Linux": "isodeclib.so",
@@ -120,6 +135,34 @@ class FragmentHitStruct(ctypes.Structure):
         ("scale", ctypes.c_double),
         ("isotope_indexes", ctypes.c_int * 128),
         ("centroid_indexes", ctypes.c_int * 128),
+    ]
+
+
+class MassGroupPeakStruct(ctypes.Structure):
+    _fields_ = [
+        ("monoiso", ctypes.c_double), ("mz", ctypes.c_double),
+        ("peakint", ctypes.c_double), ("matchedintensity", ctypes.c_double),
+        ("avgmass", ctypes.c_double), ("rt", ctypes.c_double),
+        ("charge", ctypes.c_int), ("scan", ctypes.c_int),
+        ("monoisos", ctypes.POINTER(ctypes.c_double)), ("monoisos_count", ctypes.c_int),
+        ("massdist", ctypes.POINTER(ctypes.c_double)), ("massdist_count", ctypes.c_int),
+        ("decon_centroids", ctypes.POINTER(ctypes.c_double)), ("centroid_count", ctypes.c_int),
+        ("float32_intensity", ctypes.c_int), ("float32_massdist", ctypes.c_int),
+    ]
+
+
+class MassGroupResultStruct(ctypes.Structure):
+    _fields_ = [
+        ("monoiso", ctypes.c_double), ("lookup_mass", ctypes.c_double),
+        ("apexintensity", ctypes.c_double),
+        ("totalintensity", ctypes.c_double), ("avgmass", ctypes.c_double),
+        ("minrt", ctypes.c_double), ("maxrt", ctypes.c_double),
+        ("apexrt", ctypes.c_double), ("minscan", ctypes.c_int),
+        ("maxscan", ctypes.c_int), ("apexscan", ctypes.c_int),
+        ("seed_index", ctypes.c_int), ("totalpeaks", ctypes.c_int),
+        ("monoisos", ctypes.POINTER(ctypes.c_double)), ("monoisos_count", ctypes.c_int),
+        ("massdist", ctypes.POINTER(ctypes.c_double)), ("massdist_count", ctypes.c_int),
+        ("decon_centroids", ctypes.POINTER(ctypes.c_double)), ("centroid_count", ctypes.c_int),
     ]
 
 
@@ -259,6 +302,39 @@ class IsoDecWrapper:
             self.c_lib.free_fragment_hits.argtypes = [ctypes.POINTER(FragmentHitStruct)]
             self.c_lib.free_fragment_hits.restype = None
 
+        self._group_centroid_match = getattr(self.c_lib, "match_group_centroids_batch", None)
+        if self._group_centroid_match is not None:
+            self._group_centroid_match.argtypes = [
+                ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.c_int,
+                ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_double),
+                ctypes.POINTER(ctypes.c_int), ctypes.c_int, ctypes.c_double,
+                ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int), ctypes.c_int,
+            ]
+            self._group_centroid_match.restype = ctypes.c_int
+
+        self._mass_group = getattr(self.c_lib, "group_mass_peaks_batch", None)
+        if self._mass_group is not None:
+            version = getattr(self.c_lib, "mass_group_abi_version", None)
+            if version is None:
+                raise ImportError("native mass-grouping ABI has no version")
+            version.argtypes = []
+            version.restype = ctypes.c_int
+            if version() != 1:
+                raise ImportError("unsupported native mass-grouping ABI version")
+            self._mass_group.argtypes = [
+                ctypes.POINTER(MassGroupPeakStruct), ctypes.c_int,
+                ctypes.c_double, ctypes.c_int, ctypes.c_double, ctypes.c_double,
+                ctypes.c_int, ctypes.c_int,
+                ctypes.POINTER(ctypes.POINTER(MassGroupResultStruct)),
+                ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.POINTER(ctypes.c_int)),
+            ]
+            self._mass_group.restype = ctypes.c_int
+            self.c_lib.free_mass_groups.argtypes = [
+                ctypes.POINTER(MassGroupResultStruct), ctypes.c_int,
+                ctypes.POINTER(ctypes.c_int),
+            ]
+            self.c_lib.free_mass_groups.restype = None
+
         self.modeldir = str(modelpath)
         # self.modelpath = ctypes.c_char_p(
         #     os.path.join(self.modeldir, "phase_model_8.bin").encode()
@@ -301,6 +377,146 @@ class IsoDecWrapper:
             ) for i in range(count.value)]
         finally:
             self.c_lib.free_fragment_hits(pointer)
+
+    def match_group_centroids_batch(self, spectrum, peaks, tolerance):
+        """Return accepted local centroid indexes, or None for an older library."""
+        if self._group_centroid_match is None or not peaks:
+            return None
+        spectrum = _group_array(spectrum, "spectrum")
+        if len(peaks) > np.iinfo(np.int32).max // 2:
+            raise ValueError("too many peaks")
+        envelopes = [_group_array(p.isodist, "isodist", allow_empty=True) for p in peaks]
+        total = sum(len(a) for a in envelopes)
+        if total > np.iinfo(np.int32).max:
+            raise ValueError("too many isotopes")
+        for peak in peaks:
+            if not 0 <= peak.startindex <= peak.endindex <= len(spectrum):
+                raise ValueError("invalid centroid window")
+        mz = np.ascontiguousarray(spectrum[:, 0], dtype=np.float64)
+        intensity = np.ascontiguousarray(spectrum[:, 1], dtype=np.float64)
+        windows = np.ascontiguousarray(
+            [(peak.startindex, min(peak.endindex + 1, len(spectrum))) for peak in peaks],
+            dtype=np.int32)
+        offsets = np.zeros(len(peaks) + 1, dtype=np.int32)
+        offsets[1:] = np.cumsum([len(a) for a in envelopes])
+        isotope_mz = np.ascontiguousarray(
+            np.concatenate([a[:, 0] for a in envelopes]), dtype=np.float64)
+        counts = np.zeros(len(peaks), dtype=np.int32)
+        indexes = np.empty(len(isotope_mz), dtype=np.int32)
+        status = self._group_centroid_match(
+            mz.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+            intensity.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), len(mz),
+            windows.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
+            isotope_mz.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+            offsets.ctypes.data_as(ctypes.POINTER(ctypes.c_int)), len(peaks),
+            tolerance, counts.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
+            indexes.ctypes.data_as(ctypes.POINTER(ctypes.c_int)), len(indexes),
+        )
+        if status != 0:
+            raise ValueError("native mass-group centroid matching failed")
+        ends = np.cumsum(counts)
+        starts = np.concatenate(([0], ends[:-1]))
+        return [indexes[start:end] for start, end in zip(starts, ends)]
+
+    def group_mass_peaks_batch(self, peaks, config, order="original"):
+        """Build MatchedMass objects in one native call, if supported."""
+        if self._mass_group is None:
+            return None
+        if order not in ("original", "matched_intensity"):
+            raise ValueError("mass grouping order must be original or matched_intensity")
+        if not peaks:
+            return [], np.array([])
+        if len(peaks) > np.iinfo(np.int32).max // 2:
+            raise ValueError("too many peaks")
+        keepalive = []
+        if not isinstance(config.maxshift, (int, np.integer)) or not 0 <= config.maxshift <= 64:
+            raise ValueError("maxshift must be an integer between 0 and 64")
+        inputs = (MassGroupPeakStruct * len(peaks))()
+        for i, peak in enumerate(peaks):
+            monoisos = _group_array(peak.monoisos, "monoisos", pairs=False)
+            massdist = _group_array(peak.massdist, "massdist")
+            for name in ("centroids", "matchedcentroids", "isodist"):
+                value = getattr(peak, name)
+                if value is not None:
+                    _group_array(value, name, allow_empty=True)
+            for name in ("z", "scan"):
+                value = getattr(peak, name)
+                if (not np.isfinite(value) or int(value) != value or
+                        not np.iinfo(np.int32).min <= value <= np.iinfo(np.int32).max):
+                    raise ValueError(f"{name} is outside the native integer range")
+            # Use the same recovery and cache-refresh rules as MatchedMass.
+            decon = _group_array(peak.calc_mass_dists(), "decon_centroids")
+            keepalive.append((monoisos, massdist, decon))
+            inputs[i] = MassGroupPeakStruct(
+                peak.monoiso, peak.mz, peak.peakint, peak.matchedintensity,
+                peak.avgmass, peak.rt, int(peak.z), int(peak.scan),
+                monoisos.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), len(monoisos),
+                massdist.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), len(massdist),
+                decon.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), len(decon),
+                0, 0,
+            )
+        results = ctypes.POINTER(MassGroupResultStruct)()
+        count = ctypes.c_int()
+        ids = ctypes.POINTER(ctypes.c_int)()
+        status = self._mass_group(
+            inputs, len(peaks), config.matchtol, config.maxshift, config.mass_diff_c,
+            config.css_thresh, 100, int(order == "matched_intensity"),
+            ctypes.byref(results), ctypes.byref(count), ctypes.byref(ids),
+        )
+        if status != 0:
+            raise ValueError("native mass grouping failed")
+        try:
+            assignment = np.ctypeslib.as_array(ids, shape=(len(peaks),)).copy()
+            insertion = list(range(len(peaks)))
+            if order == "matched_intensity":
+                insertion.sort(key=lambda i: -peaks[i].matchedintensity)
+            members_by_group = [[] for _ in range(count.value)]
+            for index in insertion:
+                members_by_group[assignment[index]].append(peaks[index])
+            masses = []
+            lookup = np.empty(count.value)
+            for group_id in range(count.value):
+                result = results[group_id]
+                members = members_by_group[group_id]
+                group = MatchedMass.__new__(MatchedMass)
+                group.monoiso = result.monoiso
+                lookup[group_id] = result.lookup_mass
+                group.monoisos = np.ctypeslib.as_array(
+                    result.monoisos, shape=(result.monoisos_count,)).copy()
+                group.massdist = np.ctypeslib.as_array(
+                    result.massdist, shape=(result.massdist_count * 2,)).copy().reshape(-1, 2)
+                group.decon_centroids = np.ctypeslib.as_array(
+                    result.decon_centroids, shape=(result.centroid_count * 2,)).copy().reshape(-1, 2)
+                group.clusters = members
+                group.totalpeaks = result.totalpeaks
+                group.totalintensity = result.totalintensity
+                group.apexintensity = result.apexintensity
+                group.avgmass = result.avgmass
+                group.minscan, group.maxscan = result.minscan, result.maxscan
+                group.minrt, group.maxrt = result.minrt, result.maxrt
+                group.apexscan, group.apexrt = result.apexscan, result.apexrt
+                group.scans = np.array(list(dict.fromkeys(p.scan for p in members)))
+                group.scan_intensities = {}
+                for member in members:
+                    if member.scan in group.scan_intensities:
+                        group.scan_intensities[member.scan] += float(member.matchedintensity)
+                    else:
+                        group.scan_intensities[member.scan] = float(member.matchedintensity)
+                first_by_charge = []
+                seen_charges = set()
+                for member in members:
+                    if member.z not in seen_charges:
+                        first_by_charge.append(member)
+                        seen_charges.add(member.z)
+                group.zs = np.array([p.z for p in first_by_charge])
+                group.mzs = np.array([p.mz for p in first_by_charge])
+                group.mzints = np.array([p.peakint for p in first_by_charge])
+                distributions = [p.isodist for p in first_by_charge if p.isodist is not None]
+                group.isodists = np.vstack(distributions) if distributions else None
+                masses.append(group)
+            return masses, lookup
+        finally:
+            self.c_lib.free_mass_groups(results, count, ids)
 
     def encode(self, centroids, maxz=50, phaseres=8, config=None):
         cmz = centroids[:, 0].astype(np.double)
@@ -376,6 +592,7 @@ class IsoDecWrapper:
 
         if pks is None:
             pks = MatchedCollection()
+        pending = []
         for p in matchedpeaks[:nmatched]:
             if p.z == 0:
                 continue
@@ -401,9 +618,11 @@ class IsoDecWrapper:
                 pk.ms_order = config.activescanorder
                 pk.rt = config.activescanrt
 
-            isodist = np.array(p.isodist)
-            isomz = np.array(p.isomz)
-            isomass = np.array(p.isomass)
+            if not 0 < p.realisolength <= len(p.isodist):
+                raise ValueError("invalid native isotope length")
+            isodist = np.array(p.isodist[:p.realisolength], dtype=np.float32)
+            isomz = np.array(p.isomz[:p.realisolength], dtype=np.float32)
+            isomass = np.array(p.isomass[:p.realisolength], dtype=np.float32)
             b1 = isodist > np.amax(isodist) * 0.001
             isodist = isodist[b1]
             isomz = isomz[b1]
@@ -420,8 +639,26 @@ class IsoDecWrapper:
             pk.startindex = p.startindex
             pk.endindex = p.endindex
 
+            pending.append(pk)
+        matched = self.match_group_centroids_batch(centroids, pending, self.config.matchtol)
+        if matched is not None:
+            for peak, indexes in zip(pending, matched):
+                if len(indexes):
+                    peak.matchedcentroids = peak.centroids[np.unique(indexes)]
+        order = getattr(self.config, "mass_group_order", "original")
+        if order not in ("original", "matched_intensity"):
+            raise ValueError("mass grouping order must be original or matched_intensity")
+        grouped = (self.group_mass_peaks_batch(pending, self.config, order)
+                   if not pks.peaks else None)
+        for pk in pending:
             pks.add_peak(pk)
-            pks.add_pk_to_masses(pk, config=self.config)
+        if grouped is not None:
+            pks.masses, pks.monoisos = grouped
+        else:
+            insertion = (sorted(pending, key=lambda p: -p.matchedintensity)
+                         if order == "matched_intensity" else pending)
+            for pk in insertion:
+                pks.add_pk_to_masses(pk, config=self.config)
         return pks
 
     def determine_model(self, default=True):

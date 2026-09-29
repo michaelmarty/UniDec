@@ -746,10 +746,7 @@ def plot_individual_samples(files, figsize=(12, 10), save=True):
 
                     for start, end in windows:
                         mask = (sx >= start) & (sx <= end)
-                        try:
-                            area = np.trapezoid(sy[mask], sx[mask])
-                        except Exception:
-                            area = np.trapz(sy[mask], sx[mask])
+                        area = np.trapezoid(sy[mask], sx[mask])
 
                         ax.fill_between(sx[mask], sy[mask], color=color, alpha=0.5)
 

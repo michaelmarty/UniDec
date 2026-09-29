@@ -30,7 +30,7 @@ def plot2d(list):
     Z=MakeGrid(list,xvals,yvals)
 
     zvals=np.sum(Z,axis=1)
-    integral=np.trapz(zvals,x=xvals)
+    integral=np.trapezoid(zvals,x=xvals)
     #print integral,np.sum(Z)/integral
     #print zvals.shape
     #plt.figure()
@@ -49,7 +49,7 @@ def extract(data,ranges):
         bool2=data[:,0]>min
         bool3=np.all(np.array([bool1,bool2]),axis=0)
         cut=data[bool3]
-        integral+=np.trapz(cut[:,1],x=cut[:,0])
+        integral+=np.trapezoid(cut[:,1],x=cut[:,0])
         booarr.append(bool3)
     #bool4=np.any(np.array(booarr),axis=0)
     #cut=data[bool4]

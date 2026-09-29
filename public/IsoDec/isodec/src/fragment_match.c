@@ -49,6 +49,8 @@ int match_fragment_batch(
     int min_peaks, double cosine_threshold, double min_area, int minus_one_as_zero,
     struct FragmentHit** output, int* output_count)
 {
+    // Retained in the ABI; no preceding isotope is present in these windows.
+    (void)minus_one_as_zero;
     if (!output || !output_count || spectrum_count < 0 || fragment_count < 0 ||
         isolen < 1 || isolen > ISODEC_FRAGMENT_ISOTOPES || min_peaks < 1 ||
         min_peaks > isolen || max_charge < 0 || !isfinite(adduct) ||
@@ -133,7 +135,8 @@ int match_fragment_batch(
             }
             if (unique < min_peaks) continue;
             double ab = 0, a2 = 0, b2 = 0, observed_max = 0;
-            if (minus_one_as_zero) a2 = observed[n_iso - 1] * observed[n_iso - 1];
+            // This window starts at the first retained isotope. There is no
+            // preceding sample to penalize; never wrap around to the last one.
             for (int k = 0; k < n_iso; k++) {
                 ab += observed[k] * theory[k];
                 a2 += observed[k] * observed[k];

@@ -3,6 +3,7 @@ import pytest
 
 from isodec.config import IsoDecConfig
 from isodec.match import MatchedMass, MatchedPeak, merge_massdist
+from isodec.match import calc_css_from_data, calculate_cosinesimilarity, merge_decon_centroids
 
 
 def _peak(mass, intensity):
@@ -83,3 +84,18 @@ def test_mass_axis_does_not_follow_out_of_tolerance_centroid(shift):
     theory = np.array([[1000.0, 10.0]])
     observed = np.array([[1000.0 + shift, 20.0]])
     np.testing.assert_array_equal(merge_massdist(theory.copy(), observed, 5.0), theory)
+
+
+def test_cosine_does_not_wrap_missing_preceding_isotope():
+    assert calculate_cosinesimilarity(np.array([2.]), np.array([1.]), 0, 0) == pytest.approx(1.)
+    assert calculate_cosinesimilarity(np.array([5., 2.]), np.array([1.]), 0, 1) == pytest.approx(2 / np.sqrt(29))
+    assert calculate_cosinesimilarity(np.array([2., 5.]), np.array([1.]), -1, 1) == pytest.approx(1.)
+    for intensities in ([1.], [1., 2., 3.]):
+        data = np.column_stack((1000. + np.arange(len(intensities)), intensities))
+        assert calc_css_from_data(data, data) == pytest.approx(1.)
+    assert calc_css_from_data(np.array([[1000., 0.]]), np.array([[1000., 0.]])) == 0
+
+
+def test_zero_weight_centroid_merge_has_finite_mass():
+    result = merge_decon_centroids(np.array([[1000., 0.], [1000., 0.], [1001., 2.]]))
+    np.testing.assert_array_equal(result, [[1000., 0.], [1001., 2.]])

@@ -44,6 +44,7 @@ add_subdirectory("${ISOGEN_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/isogen")
 add_library(isodeclib SHARED
     isodeclib.c
     fragment_match.c
+    mass_group.c
     isodeclib.h
     phase_model_4.h
     phase_model_8.h

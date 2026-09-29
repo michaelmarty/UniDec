@@ -38,6 +38,14 @@ for peak in peaks:
     print(peak.mz, peak.z, peak.monoiso, peak.matchedintensity)
 ```
 
+Mass groups use peak insertion order by default. To evaluate descending
+matched intensity order, set
+`engine.config.mass_group_order = "matched_intensity"` before processing.
+Intensity order applies within each incoming spectrum. Native grouping handles
+new collections; appending scans uses the Python incremental merge rules, with
+the same double-precision group summaries. The ETD example and frozen grouping
+reference are in `tests/data/ca_etd/`.
+
 TXT, DAT, CSV, and NPZ single-scan spectra are supported without UniDec. Raw
 vendor files, mzML/mzXML, and I2MS import use UniDec's extensive importer stack:
 

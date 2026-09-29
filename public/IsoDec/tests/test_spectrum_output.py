@@ -22,6 +22,8 @@ def test_deconvolution_output_regression(processed_spectrum):
     assert all(1 <= peak.z <= 50 for peak in peaks)
     assert all(np.isfinite(peak.monoiso) for peak in peaks)
     assert all(peak.matchedintensity > 0 for peak in peaks)
+    assert all(np.all(np.diff(peak.isodist[:, 0]) > 0) for peak in peaks)
+    assert all(np.all(np.diff(peak.massdist[:, 0]) > 0) for peak in peaks)
 
     fingerprint = [(peak.z, peak.mz, peak.monoiso) for peak in peaks[:8]]
     expected = [
@@ -41,6 +43,14 @@ def test_deconvolution_output_regression(processed_spectrum):
         rtol=0,
         atol=0.03,
     )
+
+
+def test_mass_group_uses_centroids_from_exported_window(processed_spectrum):
+    peak = next(p for p in processed_spectrum if p.z == 1 and abs(p.mz - 649.2872) < 0.001)
+    np.testing.assert_allclose(peak.matchedcentroids[:, 0],
+                               [649.2871704, 650.2905884], rtol=0, atol=1e-4)
+    assert not np.any(np.isclose(peak.decon_centroids[:, 0], 649.2628784 - peak.config.adductmass,
+                                 rtol=0, atol=1e-4))
 
 
 def test_builtin_text_reader_and_file_pipeline(tmp_path):

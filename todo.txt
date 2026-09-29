@@ -28,7 +28,9 @@ Integrate IsoDec into other GUI elements, like UPP
 
 IsoGen predict fragments from sequences.
 
-Integrate Brute Force Matching into C Code
+Fix some things with IsoDec Gui layout
+ca_etd example data
+Switch IsoDec into a simpler file name mode
 
 
 Someday Maybe:

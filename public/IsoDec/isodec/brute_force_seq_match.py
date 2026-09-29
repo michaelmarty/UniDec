@@ -31,7 +31,22 @@ def _add_fragment_peak(pks, label, mass, massdist, spectrum, left, right, z,
     peak.rt = config.activescanrt
     peak.ms_order = config.activescanorder
     pks.add_peak(peak)
-    pks.add_pk_to_masses(peak, config)
+
+
+def _group_fragment_peaks(pks, config, wrapper):
+    order = getattr(config, "mass_group_order", "original")
+    if order not in ("original", "matched_intensity"):
+        raise ValueError("mass grouping order must be original or matched_intensity")
+    grouped = (wrapper.group_mass_peaks_batch(pks.peaks, config, order)
+               if wrapper is not None and hasattr(wrapper, "group_mass_peaks_batch") else None)
+    if grouped is not None:
+        pks.masses, pks.monoisos = grouped
+    else:
+        insertion = (sorted(pks.peaks, key=lambda p: -p.matchedintensity)
+                     if order == "matched_intensity" else pks.peaks)
+        for peak in insertion:
+            pks.add_pk_to_masses(peak, config)
+    return pks
 
 
 def brute_force_pep_match(
@@ -99,6 +114,7 @@ def brute_force_pep_match(
     min_mz, max_mz = spectrum[0, 0], spectrum[-1, 0]
     adduct = config.adductmass
 
+    wrapper = None
     if native:
         from .c_interface import IsoDecWrapper
         wrapper = native_wrapper if native_wrapper is not None else IsoDecWrapper()
@@ -115,7 +131,7 @@ def brute_force_pep_match(
                 _add_fragment_peak(pks, fragments.labels[index], mass, massdist,
                                    spectrum, left, right, z, matched, isotopes,
                                    score, scale, config)
-            return pks
+            return _group_fragment_peaks(pks, config, wrapper)
     for label, mass, values in zip(fragments.labels, fragments.masses, fragments.intensities):
         mass = float(mass)
         if not np.isfinite(mass) or mass <= 0:
@@ -168,4 +184,4 @@ def brute_force_pep_match(
 
             _add_fragment_peak(pks, label, mass, massdist, spectrum, left, right,
                                z, matched, isotopes, score, scale, config)
-    return pks
+    return _group_fragment_peaks(pks, config, wrapper)
