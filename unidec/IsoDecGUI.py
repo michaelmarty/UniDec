@@ -292,6 +292,8 @@ class IsoDecPres(UniDecPres):
             return
 
         self.view.show_fragment_matches(sequence, pks)
+        self.translate_pks()
+        self.update_peak_panel()
         self._save_sequence()
         self.view.SetStatusText("Sequence coverage: {:.1%}".format(pks.sequence_coverage), number=5)
 
@@ -354,6 +356,7 @@ class IsoDecPres(UniDecPres):
         if pks.peaks:
             self.eng.data.massdat = self.isodeceng.pks_to_mass(self.eng.config.massbins)
             self.translate_pks()
+            self.update_peak_panel()
             self.makeplot2()
             self.view.show_fragment_matches(sequence, pks)
             self.view.SetStatusText("Brute Force Match: {} peaks, {:.1%} coverage".format(
@@ -398,6 +401,15 @@ class IsoDecPres(UniDecPres):
             return
         udpks = Peaks()
         udpks.merge_isodec_pks(idpks, self.eng.config)
+        for displayed, group in zip(udpks.peaks, sorted(idpks.masses, key=lambda p: p.monoiso)):
+            labels = []
+            for peak in group.clusters:
+                match = getattr(peak, "sequence_match", None)
+                for label in ([match] if isinstance(match, str) else match or []):
+                    if label and label not in labels:
+                        labels.append(label)
+            if labels:
+                displayed.label = ", ".join(labels)
         self.eng.pks = udpks
         # Send pks to structure
 
@@ -414,6 +426,9 @@ class IsoDecPres(UniDecPres):
         self.translate_pks()
         self.plot_mass_peaks()
         self.plot_mz_peaks()
+        self.update_peak_panel()
+
+    def update_peak_panel(self):
         if self.eng.config.idconfig.avgpeakmasses == 1:
             self.view.peakpanel.add_data(self.eng.pks, show="mass", collab1="Avg Mass")
             self.isodeceng.showavg = True
@@ -448,12 +463,18 @@ class IsoDecPres(UniDecPres):
                     continue
                 isodist[:, 1] = isodist[:, 1] * -1
                 self.view.plot1.add_centroid(isodist, color=p.color, repaint=False)
+                self.view.plot1.subplot1.lines[-1].set_gid("isodec_isotope")
         self.view.plot1.repaint()
         pass
 
     def on_delete(self, evt=None):
+        axes = self.view.plot1.subplot1
+        show_isotopes = axes is not None and any(
+            line.get_gid() == "isodec_isotope" for line in axes.lines)
         self.plot_mass_peaks()
         self.plot_mz_peaks()
+        if show_isotopes:
+            self.on_plot_dists()
 
     def on_replot(self, evt=None):
         self.view.export_gui_to_config()

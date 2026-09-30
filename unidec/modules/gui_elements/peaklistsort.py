@@ -39,13 +39,15 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         else:
             self.list_ctrl.InsertColumn(3, "Area", width=50)
         self.list_ctrl.InsertColumn(4, "Name", width=75)
+        if isodec:
+            self.list_ctrl.SetColumnWidth(4, 55)
 
         listmix.ColumnSorterMixin.__init__(self, 5)
         self.Bind(wx.EVT_LIST_COL_CLICK, self.on_column_click, self.list_ctrl)
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_right_click, self.list_ctrl)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.list_ctrl, 0, wx.ALL | wx.EXPAND)
+        sizer.Add(self.list_ctrl, 1 if isodec else 0, wx.ALL | wx.EXPAND)
         self.SetSizer(sizer)
 
         self.EVT_DELETE_SELECTION_2 = wx.PyEventBinder(wx.NewEventType(), 1)
@@ -61,6 +63,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.selection = []
         self.selection2 = []
         self.pks = None
+        self._row_peaks = []
         self.errorsdisplayed = False
 
         self.popupID1 = wx.NewIdRef()
@@ -118,6 +121,12 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         """
         self.list_ctrl.DeleteAllItems()
         self.remove = []
+        self._row_peaks = []
+
+    def _item_mass(self, row):
+        if self.isodec:
+            return self._row_peaks[self.list_ctrl.GetItemData(row)].mass
+        return tofloat(self.list_ctrl.GetItem(row, col=1).GetText())
 
     def fix_text_color(self):
         print("test")
@@ -138,6 +147,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         """
         self.list_ctrl.DeleteAllItems()
         self.pks = pks
+        self._row_peaks = []
 
         col = self.list_ctrl.GetColumn(2)
         if show2 == "height":
@@ -149,7 +159,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.list_ctrl.SetColumn(2, col)
 
         col = self.list_ctrl.GetColumn(3)
-        width = 65
+        width = 40 if self.isodec else 65
         if not self.meta:
             col.SetText("Area")
         if show == "avgcharge":
@@ -172,7 +182,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
             col = self.list_ctrl.GetColumn(1)
             col.SetText(collab1)
             self.list_ctrl.SetColumn(1, col)
-            self.list_ctrl.SetColumnWidth(1, -2)
+            self.list_ctrl.SetColumnWidth(1, 80 if self.isodec else -2)
         except Exception as e:
             pass
 
@@ -183,7 +193,10 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
                 self.list_ctrl.InsertItem(i, p.textmarker)
                 # self.list_ctrl.SetItem(i, 1, str(p.mass))
 
-                if collab1 == "Avg Mass":
+                if self.isodec:
+                    mass = p.avgmass if collab1 == "Avg Mass" else p.mass
+                    self.list_ctrl.SetItem(i, 1, f"{mass:,.3f}")
+                elif collab1 == "Avg Mass":
                     self.list_ctrl.SetItem(i,1, f"{p.avgmass}")
 
                 else:
@@ -227,6 +240,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
                     self.list_ctrl.SetItem(i, 3, "")
                 self.list_ctrl.SetItem(i, 4, str(p.label))
                 self.list_ctrl.SetItemData(i, i)
+                self._row_peaks.append(p)
                 color = wx.Colour(int(round(p.color[0] * 255)), int(round(p.color[1] * 255)),
                                   int(round(p.color[2] * 255)),
                                   alpha=255)
@@ -319,10 +333,10 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         num = self.list_ctrl.GetSelectedItemCount()
         self.selection = []
         self.selection.append(item)
-        self.remove.append(tofloat(self.list_ctrl.GetItem(item, col=1).GetText()))
+        self.remove.append(self._item_mass(item))
         for i in range(1, num):
             item = self.list_ctrl.GetNextSelected(item)
-            self.remove.append(tofloat(self.list_ctrl.GetItem(item, col=1).GetText()))
+            self.remove.append(self._item_mass(item))
             self.selection.append(item)
         for i in range(0, num):
             self.list_ctrl.DeleteItem(self.selection[num - i - 1])
@@ -352,7 +366,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         self.selection = np.array(self.selection)
         for i in range(tot - 1, -1, -1):
             if not np.any(self.selection == i):
-                self.remove.append(tofloat(self.list_ctrl.GetItem(i, col=1).GetText()))
+                self.remove.append(self._item_mass(i))
                 self.list_ctrl.DeleteItem(i)
         for p in self.pks.peaks:
             if p.mass in self.remove:
@@ -370,7 +384,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         # Show Differences
         item = self.list_ctrl.GetFirstSelected()
         # num = self.list_ctrl.GetSelectedItemCount()
-        self.selection2 = tofloat(self.list_ctrl.GetItem(item, col=1).GetText())
+        self.selection2 = self._item_mass(item)
 
         self.pks.diffs_from(self.selection2)
 
@@ -439,10 +453,10 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         item = self.list_ctrl.GetFirstSelected()
         num = self.list_ctrl.GetSelectedItemCount()
         self.selection2 = []
-        self.selection2.append(tofloat(self.list_ctrl.GetItem(item, col=1).GetText()))
+        self.selection2.append(self._item_mass(item))
         for i in range(1, num):
             item = self.list_ctrl.GetNextSelected(item)
-            self.selection2.append(tofloat(self.list_ctrl.GetItem(item, col=1).GetText()))
+            self.selection2.append(self._item_mass(item))
         newevent = wx.PyCommandEvent(self.EVT_CHARGE_STATE._getEvtType(), self.GetId())
         self.GetEventHandler().ProcessEvent(newevent)
 
@@ -456,10 +470,10 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         item = self.list_ctrl.GetFirstSelected()
         num = self.list_ctrl.GetSelectedItemCount()
         self.selection2 = []
-        self.selection2.append(tofloat(self.list_ctrl.GetItem(item, col=1).GetText()))
+        self.selection2.append(self._item_mass(item))
         for i in range(1, num):
             item = self.list_ctrl.GetNextSelected(item)
-            self.selection2.append(tofloat(self.list_ctrl.GetItem(item, col=1).GetText()))
+            self.selection2.append(self._item_mass(item))
         newevent = wx.PyCommandEvent(self.EVT_MASSES._getEvtType(), self.GetId())
         self.GetEventHandler().ProcessEvent(newevent)
 
@@ -493,10 +507,10 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         item = self.list_ctrl.GetFirstSelected()
         num = self.list_ctrl.GetSelectedItemCount()
         self.selection2 = []
-        self.selection2.append(tofloat(self.list_ctrl.GetItem(item, col=1).GetText()))
+        self.selection2.append(self._item_mass(item))
         for i in range(1, num):
             item = self.list_ctrl.GetNextSelected(item)
-            self.selection2.append(tofloat(self.list_ctrl.GetItem(item, col=1).GetText()))
+            self.selection2.append(self._item_mass(item))
         newevent = wx.PyCommandEvent(self.EVT_NAMES._getEvtType(), self.GetId())
         self.GetEventHandler().ProcessEvent(newevent)
 
@@ -520,10 +534,10 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         item = self.list_ctrl.GetFirstSelected()
         num = self.list_ctrl.GetSelectedItemCount()
         self.selection2 = []
-        self.selection2.append(tofloat(self.list_ctrl.GetItem(item, col=1).GetText()))
+        self.selection2.append(self._item_mass(item))
         for i in range(1, num):
             item = self.list_ctrl.GetNextSelected(item)
-            self.selection2.append(tofloat(self.list_ctrl.GetItem(item, col=1).GetText()))
+            self.selection2.append(self._item_mass(item))
         newevent = wx.PyCommandEvent(self.EVT_AREAS._getEvtType(), self.GetId())
         self.GetEventHandler().ProcessEvent(newevent)
 
@@ -537,10 +551,10 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         item = self.list_ctrl.GetFirstSelected()
         num = self.list_ctrl.GetSelectedItemCount()
         self.selection2 = []
-        self.selection2.append(tofloat(self.list_ctrl.GetItem(item, col=1).GetText()))
+        self.selection2.append(self._item_mass(item))
         for i in range(1, num):
             item = self.list_ctrl.GetNextSelected(item)
-            self.selection2.append(tofloat(self.list_ctrl.GetItem(item, col=1).GetText()))
+            self.selection2.append(self._item_mass(item))
         newevent = wx.PyCommandEvent(self.EVT_COLOR_PEAKS._getEvtType(), self.GetId())
         self.GetEventHandler().ProcessEvent(newevent)
 
@@ -588,7 +602,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         else:
             self.list_ctrl.SetItemTextColour(item, col=black_text)
 
-        peak = tofloat(self.list_ctrl.GetItem(item, col=1).GetText())
+        peak = self._item_mass(item)
         i = ud.nearest(self.pks.masses, peak)
         self.pks.peaks[i].color = topcolor
 
@@ -602,7 +616,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
             else:
                 self.list_ctrl.SetItemTextColour(item, col=black_text)
 
-            peak = tofloat(self.list_ctrl.GetItem(item, col=1).GetText())
+            peak = self._item_mass(item)
             i = ud.nearest(self.pks.masses, peak)
             self.pks.peaks[i].color = topcolor
 
@@ -677,7 +691,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         Changes the marker
         """
         item = self.list_ctrl.GetFirstSelected()
-        peak = tofloat(self.list_ctrl.GetItem(item, col=1).GetText())
+        peak = self._item_mass(item)
         i = ud.nearest(self.pks.masses, peak)
         dlg = SelectMarker(self)
         dlg.initialize_interface(self.pks, i)
@@ -687,7 +701,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
         num = self.list_ctrl.GetSelectedItemCount()
         for i in range(1, num):
             item = self.list_ctrl.GetNextSelected(item)
-            peak = tofloat(self.list_ctrl.GetItem(item, col=1).GetText())
+            peak = self._item_mass(item)
             i = ud.nearest(self.pks.masses, peak)
             self.pks.peaks[i].textmarker = textmarker
             self.pks.peaks[i].marker = marker
@@ -727,7 +741,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
     def on_popup_rename(self, e=None):
         print("Renaming Peak")
         item = self.list_ctrl.GetFirstSelected()
-        peak = tofloat(self.list_ctrl.GetItem(item, col=1).GetText())
+        peak = self._item_mass(item)
         i = ud.nearest(self.pks.masses, peak)
         dialog = miscwindows.SingleInputDialog(self)
         dialog.initialize_interface(title="Rename Peak",
@@ -750,7 +764,7 @@ class PeakListCtrlPanel(wx.Panel, listmix.ColumnSorterMixin):
 
     def on_popup_image(self, e=None):
         item = self.list_ctrl.GetFirstSelected()
-        peak = tofloat(self.list_ctrl.GetItem(item, col=1).GetText())
+        peak = self._item_mass(item)
         i = ud.nearest(self.pks.masses, peak)
         newevent = wx.PyCommandEvent(self.EVT_IMAGE._getEvtType(), self.GetId())
         newevent.id = i

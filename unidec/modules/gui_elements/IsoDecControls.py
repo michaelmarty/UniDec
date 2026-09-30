@@ -33,6 +33,7 @@ class MainControls(wx.Panel):  # scrolled.ScrolledPanel):
 
         size1 = wx.Size(75, -1)
         self.foldpanels = fpb.FoldPanelBar(self.scrolledpanel, -1, size=(250, 800), agwStyle=fpb.FPB_VERTICAL)
+        self.foldpanels.Freeze()
         style1 = fpb.CaptionBarStyle()
         style1b = fpb.CaptionBarStyle()
         style1c = fpb.CaptionBarStyle()
@@ -393,7 +394,7 @@ class MainControls(wx.Panel):  # scrolled.ScrolledPanel):
         self.foldpanels.AddFoldPanelWindow(foldpanel3b, panel3b, fpb.FPB_ALIGN_WIDTH)
         self.foldpanels.AddFoldPanelWindow(foldpanel3b, wx.StaticText(foldpanel3b, -1, " "), fpb.FPB_ALIGN_WIDTH)
 
-        foldpanel4 = self.foldpanels.AddFoldPanel(caption="Sequence Matching", collapsed=True, cbstyle=style1c)
+        foldpanel4 = self.foldpanels.AddFoldPanel(caption="Sequence Matching", collapsed=False, cbstyle=style1c)
         panel4 = wx.Panel(foldpanel4, -1)
         sequence_sizer = wx.BoxSizer(wx.VERTICAL)
         sequence_sizer.Add(wx.StaticText(panel4, label="Sequence (ProForma):"), 0, wx.BOTTOM, 3)
@@ -431,6 +432,7 @@ class MainControls(wx.Panel):  # scrolled.ScrolledPanel):
         foldpanel3.SetBackgroundColour(wx.Colour(255, bright, bright))
         foldpanel3b.SetBackgroundColour(wx.Colour(255, bright, bright))
         foldpanel4.SetBackgroundColour(wx.Colour(bright, bright, 255))
+        self.foldpanels.Thaw()
 
         sizercontrol.SetMinSize(wx.Size(250, 0))
 
