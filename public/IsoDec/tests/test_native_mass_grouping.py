@@ -319,9 +319,10 @@ def test_native_first_scan_and_python_accumulation_match_fallback(spectrum, orde
 @pytest.mark.parametrize("order", ["original", "matched_intensity"])
 def test_repository_etd_native_python_and_exports(order, tmp_path):
     wrapper = _native_wrapper()
-    data = Path(__file__).parent / "data" / "ca_etd"
-    spectrum = np.loadtxt(data / "spectrum.dat")
-    sequence = "".join(line.strip() for line in (data / "sequence.fasta").read_text().splitlines()
+    tests = Path(__file__).parent
+    data = tests / "ca_etd_unidecfiles"
+    spectrum = np.loadtxt(tests / "ca_etd.dat")
+    sequence = "".join(line.strip() for line in (data / "seq.fasta").read_text().splitlines()
                        if not line.startswith(">"))
     wrapper.config.mass_group_order = order
     wrapper.config.activescan = 1

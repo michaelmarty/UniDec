@@ -44,7 +44,7 @@ matched intensity order, set
 Intensity order applies within each incoming spectrum. Native grouping handles
 new collections; appending scans uses the Python incremental merge rules, with
 the same double-precision group summaries. The ETD example and frozen grouping
-reference are in `tests/data/ca_etd/`.
+reference are in `tests/ca_etd.dat` and `tests/ca_etd_unidecfiles/`.
 
 TXT, DAT, CSV, and NPZ single-scan spectra are supported without UniDec. Raw
 vendor files, mzML/mzXML, and I2MS import use UniDec's extensive importer stack:
