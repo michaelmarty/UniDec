@@ -1,10 +1,87 @@
 # Native brute-force fragment matching plan
 
-Latest status: see **Review fixes and corrected reference (2026-09-29)** at
-the end of this document. Earlier 780-hit ETD results and timings are historical;
-the corrected cosine calculation now accepts 794 hits on the same input.
+## Current closeout assessment (2026-09-29)
 
-## Goal and current boundary
+The native fragment matcher and initial-batch C mass merge are implemented and
+integrated into the runtime and IsoDecGUI. No further major algorithm migration
+is required. Python appends later scans by design; native scan appending would
+be a separate feature. Original insertion order
+remains the default. The sections below preserve the design and experiment
+history; their earlier counts, proposed ports, and release status are superseded
+by this assessment and the dated follow-ups.
+
+Current acceptance evidence:
+
+- Sequence-composition fragment batches include supported ion termini and
+  known-formula modifications; unknown-composition modifications are rejected.
+- Corrected ETD results agree with the frozen Python reference: 794 hits,
+  298 original-order groups, or 297 matched-intensity-order groups. The normal
+  fixture has 277 hits and 197 original-order groups.
+- Membership, mass distributions, intensities, scans, exports, and multi-scan
+  accumulation have native/Python parity coverage. C ownership and error cases
+  have CTest and sanitizer coverage for the mass-group ABI.
+- This review reran all 80 IsoDec tests on Windows/Python 3.12: 80 passed,
+  no skips, in 25.96 seconds. This is a source-checkout test with the local
+  batch-capable IsoGen and DLL, not a fresh installed-wheel acceptance run.
+  A separate probe confirmed the IsoGen batch API and all three native
+  fragment-match, grouping, and centroid-rematch entry points are available.
+- Linux x86_64 Release build, CTest, and an isolated installed wheel previously
+  passed all 80 tests with the pinned IsoGen wheel. That validation used system
+  FFTW under WSL; it does not prove repaired-wheel portability or ARM64 support.
+- Native grouping avoids the Python JIT merge routines, but the corrected warm
+  ETD measurements do not establish a speed gain. Historical GUI timings are
+  not current performance claims after the subsequent GUI changes.
+
+### Remaining major release work
+
+1. **Release and require the batch-capable PyIsoGen dependency.** IsoDec's
+   `pyisogen>=1.1.2` requirement and the pinned batch-capable IsoGen source both
+   identify version 1.1.2. The published 1.1.2 used during Linux validation lacks
+   `calc_pep_fragment_isodists`; this review also downloaded the current
+   published Windows x64 wheel and confirmed that API is absent. The current
+   PyPI release still identifies as 1.1.2. Publish the required API under a
+   distinguishable version, update the minimum dependency and submodule pointer
+   deliberately, then prove a clean
+   pip install works without an editable source checkout or replacement wheel.
+   See [PyIsoGen on PyPI](https://pypi.org/project/pyisogen/).
+2. **Finish installed-wheel acceptance on the supported platform matrix.**
+   Validate Windows x64/ARM64, macOS Intel/Apple silicon, and repaired Linux
+   x86_64/ARM64 wheels using the released dependency. Include native loading,
+   frozen ETD output, normal processing, multi-scan/export parity, and CTest.
+   Require the fragment-match and grouping entry points in release tests:
+   `native=True` currently permits a Python fallback, and grouping tests skip
+   when their ABI is absent, so a green parity test alone is insufficient.
+   The macOS publish jobs currently repair and upload wheels without installing
+   and testing them. The IsoDec workflows live under `public/IsoDec/.github`
+   in this combined repository; ensure they actually run for the standalone
+   package revision, since root workflows currently cover UniDec.
+
+### Bounded robustness work before release
+
+The six brute-force tests cover successful matching, charge limits, malformed
+public inputs, modified-fragment parity, nearby centroids, and coverage summaries.
+They do not yet directly exercise the fragment C ABI's full edge contract.
+Add focused native/Python tests for empty batches, zero or missing isotopes,
+threshold equality, spectrum-boundary windows, invalid envelope buffers,
+older-library fallback, and native error propagation. Keep the fallback tests
+separate from release tests that require the new native symbols.
+
+Audit the fragment binding's dimensions/counts before passing pointers, and
+guard `fragment_match.c`'s signed `capacity * 2` growth against overflow. The
+grouping ABI's stronger validation does not automatically cover this separate
+entry point. These are targeted hardening and acceptance tasks, not reasons
+to redesign the matcher or mass merge.
+
+### Deferred, optional research
+
+Further C scan appending, a new grouping default, fragment-identity grouping,
+more chemistry support, and additional speed optimization are separate work.
+More independently labeled spectra would help evaluate identification accuracy
+and insertion-order choices; the current ETD labels are algorithmic assignments,
+not experimental ground truth. Reprofile the current full GUI only if another
+performance change or a new speed claim is proposed.
+
+## Original goal and design
 
 Move the repeated isotope-envelope search for top-down fragments into IsoDec's
 C library and predict each fragment's isotope envelope from its sequence, not
@@ -14,10 +91,12 @@ isotope envelopes. Pass that batch and IsoDec's prepared centroid spectrum to
 the C matcher once; return matches identified by fragment index and charge.
 Keep `MatchedPeak` construction and sequence coverage reporting in Python.
 
-The current Python path is the reference implementation in
-`isodec/brute_force_seq_match.py`. It uses `isogen.calc_pep_fragments()` for
+At the start of this work, the Python reference path in
+`isodec/brute_force_seq_match.py` used `isogen.calc_pep_fragments()` for
 fragment masses and labels, `calc_isotope_dist_dual()` for mass-based peptide
-isotope envelopes, and IsoDec's `find_matches()` and score/area rules. IsoDec's
+isotope envelopes, and IsoDec's `find_matches()` and score/area rules. The
+implemented Python reference now consumes the same sequence-composition batch
+as the native matcher. IsoDec's
 native library already links to IsoGen and calls `fft_pep_mass_to_dist()`;
 the pinned IsoGen revision also exports `fft_pep_seq_to_dist()` for sequence
 input. Sequence mode intentionally changes predicted intensities and may
@@ -291,7 +370,7 @@ If first-use time still matters after deployment testing, profile the
 remaining roughly 1.4 s of cached first-call mass-list work before designing
 a single batched C mass-list builder.
 
-## Optional C mass-list port
+## C mass-list port proposal (historical; completed)
 
 **Scope and payoff.** This would be an IsoDec change; IsoGen's fragment batch
 API needs no change. Target the one-spectrum brute-force path first and keep
