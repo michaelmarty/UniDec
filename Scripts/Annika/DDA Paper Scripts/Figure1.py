@@ -30,14 +30,8 @@ dataset_display_names = {
 }
 plot_datasets = [dataset_display_names.get(name, name) for name in datasets]
 
-dataset_colors = {
-    "OTOT": "#440154",
-    "OTIT": "#414487",
-    "ITIT": "#2A788E",
-    "Stellar": "#22A884",
-    "Stellarboth": "#7AD151",
-}
-bar_colors = [dataset_colors[name] for name in datasets]
+# Skip viridis's darkest end so OT/OT remains distinct and readable.
+bar_colors = plt.get_cmap("viridis")(np.linspace(0.15, 0.80, len(datasets)))
 
 # Calculate the confirmed percentage from the same confirmed and rejected
 # ID populations used in Figure 1.
@@ -144,14 +138,14 @@ scan_standard_deviations = np.asarray(
 fig = plt.figure(figsize=(6.5, 4.875), layout="constrained")
 grid = fig.add_gridspec(nrows=2, ncols=2)
 
-confirmed_ax = fig.add_subplot(grid[1, 0])
-rejected_ax = fig.add_subplot(grid[0, 1], sharey=confirmed_ax)
+confirmed_ax = fig.add_subplot(grid[0, 1])
+rejected_ax = fig.add_subplot(grid[1, 0], sharey=confirmed_ax)
 scan_ax = fig.add_subplot(grid[0, 0])
 percent_ax = fig.add_subplot(grid[1, 1])
-axes = [scan_ax, rejected_ax, confirmed_ax, percent_ax]
+axes = [scan_ax, confirmed_ax, rejected_ax, percent_ax]
 x_positions = np.arange(len(plot_datasets))
 
-# C: confirmed ID counts
+# B: confirmed ID counts
 confirmed_bars = confirmed_ax.bar(
     x_positions,
     confirmed_counts.values,
@@ -165,9 +159,9 @@ confirmed_ax.bar_label(
     fontsize=8
 )
 confirmed_ax.set_ylabel("Lipid IDs")
-confirmed_ax.set_title("Confirmed Lipid IDs")
+confirmed_ax.set_title("Accepted Lipid IDs")
 
-# B: rejected ID counts, sharing the same y-axis scale as panel C
+# C: rejected ID counts, sharing the same y-axis scale as panel B
 rejected_bars = rejected_ax.bar(
     x_positions,
     rejected_counts.values,
@@ -181,7 +175,7 @@ rejected_ax.bar_label(
     fontsize=8
 )
 rejected_ax.set_ylabel("Lipid IDs")
-rejected_ax.set_title("Rejected Lipid IDs")
+rejected_ax.set_title("Excluded Lipid IDs")
 
 shared_count_limit = max(confirmed_counts.max(), rejected_counts.max()) * 1.12
 confirmed_ax.set_ylim(0, shared_count_limit)
@@ -202,8 +196,8 @@ percent_ax.bar_label(
     padding=3,
     fontsize=8
 )
-percent_ax.set_ylabel("Confirmed IDs (%)")
-percent_ax.set_title("Percentage of IDs Confirmed")
+percent_ax.set_ylabel("Accepted IDs (%)")
+percent_ax.set_title("Percentage of IDs Accepted")
 percent_ax.set_ylim(0, 100)
 percent_ax.yaxis.set_major_formatter(PercentFormatter(xmax=100, decimals=0))
 
@@ -267,7 +261,11 @@ fig.savefig(
     "Figure 1.pdf"
 )
 
-print("\nConfirmed/rejected percentage summary:")
-print(true_positive_summary.to_string())
+print("\nAccepted/excluded percentage summary:")
+print(true_positive_summary.rename(columns={
+    "Confirmed_IDs": "Accepted_IDs",
+    "Rejected_IDs": "Excluded_IDs",
+    "Percent Confirmed": "Percent Accepted",
+}).to_string())
 
 plt.show(block=True)

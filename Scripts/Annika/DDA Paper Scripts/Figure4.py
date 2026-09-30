@@ -1,645 +1,459 @@
-import os
+"""Plot dataset coverage of lipids containing each tail, using Figure 3's format.
+
+Default: confirmed IDs from the five manuscript datasets. Each distinct class
+and chain composition counts once per dataset across features/adducts/polarities.
+Each tail has a 100% stacked horizontal bar: segments show the fraction of
+unique lipids containing that tail found in exactly 1, 2, 3, 4, or 5 datasets.
+A lipid containing two copies of a tail counts once in that tail's bar.
+Coverage uses resolved chain compositions so tail identities remain meaningful.
+
+Show tails reaching 1% of all annotated tail copies
+in at least one selected dataset, ordered by carbon number and double-bond
+count. This frequency cutoff only selects the tails to show; bar percentages
+describe dataset coverage. Other tails, LCB entries, and O- ether tails are hidden.
+
+An additional figure uses Figure 2's stacked-bar format: lipids shared across
+5, 4, 3, or 2 datasets, followed by lipids unique to each instrument/mode.
+Colored segments count annotations for each displayed tail. Each unique lipid
+contributes once per distinct tail, so stack totals count lipid-tail pairs.
+Rarity and instrument detection tables are also exported for all eligible tails.
+Rarity means occurrence among unique annotated lipids, not measured MS1 signal.
+
+Sum-only multi-chain annotations are excluded, rather than interpreting a total
+such as PC 34:1 as one 34:1 tail. Chain modifications and sphingoid backbones
+remain distinct. These are annotation compositions, not abundance measurements
+or independent confirmation of every chain by fragment matching.
+
+Run with --min-tail-percent 1 (default) or --no-show. --tail 18:0 selects the
+tail coverage printed in the console; it does not override the figure's threshold. Use --all-ids
+explicitly to analyze an unvalidated CSV such as Combined_DDA.csv from DDA prep.
+"""
+
+import argparse
 from pathlib import Path
-import sys
+import re
 
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
+from matplotlib.ticker import MaxNLocator, PercentFormatter
 import numpy as np
 import pandas as pd
-from sklearn.cross_decomposition import PLSRegression
-from sklearn.metrics import accuracy_score, roc_auc_score
-from sklearn.model_selection import StratifiedKFold, cross_val_predict
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler
 
 
-# Make the repository importable when this script is run directly.
-repository_root = Path(__file__).resolve().parents[3]
-if str(repository_root) not in sys.path:
-    sys.path.insert(0, str(repository_root))
+TOPDIR = Path(r"Z:\Group Share\Annika\Stellar\Untargeted DDA\Final Results\DDA Pipeline")
+DATASETS = ["OTOT", "OTIT", "ITIT", "Stellar", "Stellarboth"]
+DATASET_LABELS = {
+    "OTOT": "OT/OT", "OTIT": "OT/IT", "ITIT": "IT/IT",
+    "Stellar": "Stellar", "Stellarboth": "Stellar (+/-)",
+}
+RARITY_BINS = [0, 0.5, 1, 2, 5, np.inf]
+RARITY_LABELS = ["\u22640.5%", "0.5\u20131%", "1\u20132%", "2\u20135%", ">5%"]
+# Same sequential blue palette as Figure 3.
+COVERAGE_COLORS = {
+    1: "#D9EAF4",
+    2: "#B8D8E8",
+    3: "#8FC1DA",
+    4: "#5FA6C8",
+    5: "#347FA8",
+}
 
-from PublicScripts.Lipids.LipidFunctions import network_analysis  # noqa: E402
+# Expected chains in the core annotation. Extra (FA ...) or leading (O-...)
+# substituents are parsed separately. Unknown classes are reported, not guessed.
+CHAIN_COUNTS = {
+    **dict.fromkeys(["FA", "CE", "CAR", "NAE", "MG", "LPC", "LPE", "LPG", "LPI", "LPS", "LPA"], 1),
+    **dict.fromkeys(["PC", "PE", "PG", "PI", "PS", "PA", "DG", "Cer", "SM", "HexCer", "Hex2Cer", "Hex3Cer", "GM3", "DGDG", "MGDG", "DGGA", "SQDG", "DLCL"], 2),
+    **dict.fromkeys(["TG", "ADGGA", "HBMP", "MLCL"], 3),
+    "CL": 4,
+}
+SPHINGOLIPIDS = {"Cer", "SM", "HexCer", "Hex2Cer", "Hex3Cer", "GM3"}
+CHAIN_PATTERN = re.compile(r"(?P<prefix>[OP]-)?(?P<carbon>\d+):(?P<db>\d+)(?P<mod>;O\d*|\(\d+OH\))?")
+
+plt.rcParams.update({
+    "font.family": "Arial",
+    "font.size": 8,
+    "axes.titlesize": 10,
+    "axes.labelsize": 9,
+    "xtick.labelsize": 8,
+    "ytick.labelsize": 8,
+    "legend.fontsize": 8,
+    "pdf.fonttype": 42,
+    "ps.fonttype": 42,
+})
 
 
-plt.rcParams.update(
-    {
-        "font.family": "Arial",
-        "font.size": 8,
-        "axes.titlesize": 10,
-        "axes.labelsize": 9,
-        "xtick.labelsize": 8,
-        "ytick.labelsize": 8,
-        "legend.fontsize": 8,
-        "pdf.fonttype": 42,
-        "ps.fonttype": 42,
-    }
-)
+def parse_lipid_tails(name, lipid_class):
+    """Return (detailed class, chain tuple, exclusion reason).
 
-topdir = r"Z:\Group Share\Annika\Stellar\Untargeted DDA\Final Results\DDA Pipeline"
-os.chdir(topdir)
+    Parse the current name, rather than T1-T4: those columns can be stale after
+    a name edit, and T1 also contains unresolved totals in the pipeline output.
+    """
+    if not isinstance(name, str) or not name.strip():
+        return "", (), "Missing lipid name"
+    base_class = str(lipid_class).strip().removeprefix("Ether").removeprefix("Ox")
+    if base_class not in CHAIN_COUNTS:
+        return "", (), "Unsupported class or no discrete lipid tails"
+    detailed = name.split("|")[-1].strip().split(maxsplit=1)
+    if len(detailed) != 2:
+        return "", (), "Missing chain annotation"
+    detailed_class, body = detailed
+    extra = []
 
-input_file = "Combined_Fragment_Assignment_Colored.xlsx"
-removed_file = "Removed_Identifications.xlsx"
+    def collect_extra(match):
+        extra.append(match.group(1).strip())
+        return ""
 
-df = pd.read_excel(input_file, sheet_name="Sheet1")
+    body = re.sub(r"^\(([^()]+)\)", collect_extra, body)
+    body = re.sub(r"\(FA\s+([^()]+)\)", collect_extra, body)
+    core = [part.strip() for part in re.split(r"[_/]", body)]
+    core = [part for part in core if part != "0:0"]  # Lyso empty-chain placeholder.
+    if len(core) != CHAIN_COUNTS[base_class]:
+        return detailed_class, (), "Unresolved total or incomplete chain annotation"
+    chains = []
+    for position, chain in enumerate(core + extra):
+        match = CHAIN_PATTERN.fullmatch(chain)
+        if match is None or int(match['carbon']) == 0:
+            return detailed_class, (), "Unsupported chain notation"
+        value = f"{match['prefix'] or ''}{int(match['carbon'])}:{int(match['db'])}{match['mod'] or ''}"
+        if base_class in SPHINGOLIPIDS and position == 0:
+            value = "LCB " + value
+        chains.append(value)
+    # Tail identity comparison ignores sn-position order; retain multiplicities
+    # in the species key so TG 16:0_18:0_18:0 and 16:0_16:0_18:0 stay distinct.
+    return detailed_class, tuple(sorted(chains)), ""
 
 
-def normalized_text(series):
-    return (
-        series
-        .fillna("")
-        .astype(str)
-        .str.replace("\u00a0", " ", regex=False)
-        .str.strip()
-        .str.casefold()
+def prepare_lipids(input_path, datasets, all_ids=False):
+    source = pd.read_csv(input_path) if input_path.suffix.lower() == ".csv" else pd.read_excel(input_path)
+    required = {"Dataset", "Ontology", "Metabolite name"}
+    if not all_ids:
+        required.add("Overall Match Status")
+    missing = required.difference(source.columns)
+    if missing:
+        raise ValueError("Missing columns: " + ", ".join(sorted(missing)) + ". Raw DDA annotations require --all-ids.")
+    for column in ["Dataset", "Ontology", "Metabolite name"]:
+        source[column] = source[column].fillna("").astype(str).str.replace("\u00a0", " ", regex=False).str.strip()
+    source["Dataset"] = source["Dataset"].str.casefold().map({d.casefold(): d for d in datasets})
+    source = source.loc[source["Dataset"].notna()].copy()
+    if not all_ids:
+        source = source.loc[source["Overall Match Status"].isin([True, "TRUE", "True", "true", 1, "1"])].copy()
+    if source.empty:
+        raise ValueError("No eligible IDs in the selected datasets.")
+    audit = source[["Dataset", "Ontology", "Metabolite name"]].copy()
+    parsed = [parse_lipid_tails(row["Metabolite name"], row["Ontology"]) for _, row in source.iterrows()]
+    audit["Detailed class"] = [item[0] for item in parsed]
+    audit["Chains"] = [item[1] for item in parsed]
+    audit["Exclusion reason"] = [item[2] for item in parsed]
+    audit["Species"] = audit["Detailed class"] + " " + audit["Chains"].map("_".join)
+    resolved = audit["Exclusion reason"].eq("")
+    duplicate_indices = audit.loc[resolved].loc[
+        audit.loc[resolved].duplicated(["Dataset", "Ontology", "Species"])
+    ].index
+    audit.loc[duplicate_indices, "Exclusion reason"] = "Duplicate chain composition within dataset"
+    lipids = audit.loc[audit["Exclusion reason"].eq("")].copy()
+    if lipids.empty:
+        raise ValueError("No resolved chain annotations were found in the selected IDs.")
+    lipids = lipids.reset_index(drop=True)
+    occurrences = pd.DataFrame([
+        {"Dataset": row["Dataset"], "Ontology": row["Ontology"], "Species": row["Species"],
+         "Tail": tail, "Tail copies": row["Chains"].count(tail)}
+        for _, row in lipids.iterrows() for tail in sorted(set(row["Chains"]))
+    ])
+    return lipids, occurrences, audit
+
+
+def frequency_summary(lipids, occurrences, group_columns):
+    """Return lipid prevalence and tail-copy composition, including absent tails."""
+    denominators = lipids.groupby(group_columns).size().rename("Resolved lipids")
+    counts = occurrences.groupby(group_columns + ["Tail"]).size().unstack("Tail", fill_value=0)
+    counts = counts.reindex(denominators.index, fill_value=0)
+    summary = counts.stack().rename("Lipids with tail").reset_index()
+    summary = summary.merge(denominators.reset_index(), on=group_columns, validate="many_to_one")
+    copies = occurrences.groupby(group_columns + ["Tail"])["Tail copies"].sum().rename("Tail occurrences")
+    summary = summary.merge(copies.reset_index(), on=group_columns + ["Tail"], how="left", validate="one_to_one")
+    summary["Tail occurrences"] = summary["Tail occurrences"].fillna(0).astype(int)
+    summary["Lipids with tail (%)"] = 100 * summary["Lipids with tail"] / summary["Resolved lipids"]
+    summary["Total tail occurrences"] = summary.groupby(group_columns)["Tail occurrences"].transform("sum")
+    summary["Tail composition (%)"] = (
+        100 * summary["Tail occurrences"] / summary["Total tail occurrences"].replace(0, np.nan)
     )
+    return summary
 
 
-# Apex is outside the dataset comparison used in the manuscript figures.
-if "Dataset" not in df.columns:
-    raise ValueError("The input workbook is missing required column: Dataset")
-apex_mask = normalized_text(df["Dataset"]).eq("apex")
-apex_count = int(apex_mask.sum())
-df = df.loc[~apex_mask].copy()
-print(f"Excluded {apex_count} Apex IDs from analysis.")
+def save_figure(fig, output_dir, name):
+    for extension in ["png", "pdf"]:
+        path = output_dir / f"{name}.{extension}"
+        fig.savefig(path, dpi=600)
+        print(f"Saved {path}")
 
 
-# Exclude every exact entry recorded in the manual-removal workbook. The
-# category rules below also prevent equivalent rows from reappearing if a new
-# export assigns them different alignment IDs.
-exact_manual_removal = pd.Series(False, index=df.index)
-if os.path.exists(removed_file):
-    removed_df = pd.read_excel(removed_file, sheet_name="Sheet1")
-    removal_key_columns = [
-        "Dataset",
-        "Spectrum reference file name",
-        "Alignment ID",
-        "Metabolite name",
-        "Adduct type",
+def tail_structural_type(tail):
+    """Order fatty-acyl chains, ether-linked chains, LCBs, then the remainder."""
+    if tail == "Other tails":
+        return 3
+    if tail.startswith("LCB "):
+        return 2
+    if tail.startswith(("O-", "P-")):
+        return 1
+    return 0
+
+
+def tail_sort_key(tail):
+    """Sort by structural type, carbon count, and unsaturation."""
+    structural_type = tail_structural_type(tail)
+    match = CHAIN_PATTERN.fullmatch(tail.removeprefix("LCB "))
+    if match is None:
+        return (structural_type, np.inf, np.inf, tail)
+    return (structural_type, int(match["carbon"]), int(match["db"]), tail)
+
+
+def tail_composition_table(summary, datasets, min_tail_percent=1.0):
+    """Hide Other, LCB, and O- tails without changing the full-distribution percentages."""
+    counts = summary.pivot(index="Tail", columns="Dataset", values="Tail occurrences")
+    counts = counts.reindex(columns=datasets).fillna(0)
+    denominators = counts.sum(axis=0)
+    frequencies = counts.div(denominators.replace(0, np.nan), axis=1) * 100
+    eligible = (
+        frequencies.max(axis=1).ge(min_tail_percent)
+        & ~frequencies.index.str.startswith(("LCB ", "O-"))
+        & (frequencies.index != "Other tails")
+    )
+    tails = sorted(frequencies.index[eligible], key=tail_sort_key)
+    return frequencies.reindex(index=tails)
+
+
+def tail_coverage_tables(occurrences, datasets, tails):
+    """Count unique lipids per tail by the number of selected datasets containing them."""
+    # Ignore tail-copy multiplicity, adducts, and duplicate features when counting
+    # dataset coverage. Each class/chain composition contributes once per tail.
+    selected = occurrences.loc[
+        occurrences["Dataset"].isin(datasets) & occurrences["Tail"].isin(tails)
     ]
-    if all(column in df.columns for column in removal_key_columns) and all(
-        column in removed_df.columns for column in removal_key_columns
-    ):
-        def make_removal_keys(frame):
-            key_frame = pd.DataFrame(index=frame.index)
-            for column in removal_key_columns:
-                if column == "Alignment ID":
-                    key_frame[column] = (
-                        pd.to_numeric(frame[column], errors="coerce")
-                        .astype("Int64")
-                        .astype(str)
-                    )
-                else:
-                    key_frame[column] = normalized_text(frame[column])
-            return key_frame.agg("||".join, axis=1)
-
-        removed_keys = set(make_removal_keys(removed_df))
-        exact_manual_removal = make_removal_keys(df).isin(removed_keys)
-
-class_text = normalized_text(df["Ontology"])
-adduct_text = normalized_text(df["Adduct type"]).str.replace(
-    " ", "", regex=False
-)
-lipid_name_text = normalized_text(df["Metabolite name"])
-
-# Rules documented in Removed_Identifications.xlsx:
-#   - DG sodium adduct excluded
-#   - Formate adduct excluded
-#   - FAHFA excluded
-dg_sodium_removal = (
-    class_text.eq("dg")
-    & adduct_text.str.contains(r"m\+na", regex=True, na=False)
-)
-formate_removal = adduct_text.str.contains(
-    r"hcoo|cho2|formate",
-    regex=True,
-    na=False,
-)
-fahfa_removal = (
-    class_text.str.contains("fahfa", regex=False, na=False)
-    | lipid_name_text.str.contains("fahfa", regex=False, na=False)
-)
-
-manual_removal_mask = (
-    exact_manual_removal
-    | dg_sodium_removal
-    | formate_removal
-    | fahfa_removal
-)
-manual_removal_count = int(manual_removal_mask.sum())
-df = df.loc[~manual_removal_mask].copy().reset_index(drop=True)
-print(f"Excluded {manual_removal_count} manually removed IDs from analysis.")
-
-required_columns = {
-    "Dataset",
-    "Metabolite name",
-    "Ontology",
-    "Polarity",
-    "Adduct type",
-    "Average Mz",
-    "MS/MS spectrum",
-    "Overall Match Status",
-    "S/N average",
-    "RT similarity",
-    "m/z similarity",
-    "Matched peaks count",
-    "Simple dot product",
-    "Weighted dot product",
-    "Reverse dot product",
-    "Fill %",
-}
-missing_columns = required_columns.difference(df.columns)
-if missing_columns:
-    raise ValueError(
-        "The input workbook is missing required columns: "
-        + ", ".join(sorted(missing_columns))
+    lipid_coverage = (
+        selected.groupby(["Ontology", "Species", "Tail"])["Dataset"]
+        .nunique().rename("Dataset Coverage").reset_index()
     )
-
-true_values = [True, "TRUE", "True", "true", 1, "1"]
-df["ID Status"] = np.where(
-    df["Overall Match Status"].isin(true_values),
-    "True",
-    "False",
-)
-
-status_colors = {
-    "True": "#D55E00",
-    "False": "#0072B2",
-}
+    coverage_groups = list(range(1, len(datasets) + 1))
+    counts = pd.crosstab(lipid_coverage["Tail"], lipid_coverage["Dataset Coverage"])
+    counts = counts.reindex(index=tails, columns=coverage_groups, fill_value=0)
+    totals = counts.sum(axis=1)
+    percentages = counts.div(totals.replace(0, np.nan), axis=0) * 100
+    return counts, percentages, lipid_coverage
 
 
-# Calculate each ID's class strength in a spectral-similarity network containing
-# every candidate from the same lipid class and polarity. Raw strength is useful
-# as a predictor, while within-group percentiles make different-sized classes
-# comparable in the all-class plots below.
-network_tolerance = 0.3
-minimum_network_size = 3
-
-
-def calculate_all_class_strengths(frame):
-    frame = frame.copy()
-    frame["_Figure Row"] = np.arange(len(frame))
-    frame["_Network Class"] = normalized_text(frame["Ontology"])
-    frame["_Network Polarity"] = normalized_text(frame["Polarity"])
-    frame["Class Strength"] = np.nan
-
-    analyzed_groups = 0
-    for _, network_input in frame.groupby(
-        ["_Network Class", "_Network Polarity"],
-        sort=True,
-    ):
-        if len(network_input) < minimum_network_size:
-            continue
-
-        local_input = network_input.reset_index(drop=True)
-        network_df, _ = network_analysis(
-            local_input,
-            mz_tol=network_tolerance,
-            header="Class_",
-            add_all_cols=True,
+def plot_coverage(percentages, datasets, population, ax):
+    """Use Figure 3's 100% horizontal stacks and dataset-coverage legend."""
+    y_positions = np.arange(len(percentages))
+    left = np.zeros(len(percentages))
+    colors = list(COVERAGE_COLORS.values())
+    if len(datasets) > len(colors):
+        colors = plt.get_cmap("Blues")(np.linspace(0.15, 0.75, len(datasets)))
+    for coverage in percentages.columns:
+        values = percentages[coverage].to_numpy()
+        ax.barh(
+            y_positions, values, left=left, height=0.72,
+            color=colors[coverage - 1], edgecolor="white", linewidth=0.7,
+            label=f"{coverage} Dataset{'s' if coverage != 1 else ''}",
         )
-        frame.loc[
-            network_df["_Figure Row"].astype(int).to_numpy(),
-            "Class Strength",
-        ] = network_df["Class_strength"].to_numpy()
-        analyzed_groups += 1
-
-    frame["Class Strength Percentile"] = (
-        frame.groupby(
-            ["_Network Class", "_Network Polarity"],
-        )["Class Strength"]
-        .rank(method="average", pct=True)
-        * 100
+        left += values
+    ax.set_yticks(y_positions, labels=percentages.index)
+    ax.invert_yaxis()
+    ax.set_xlim(0, 100)
+    ax.set_xticks(np.arange(0, 101, 20))
+    ax.xaxis.set_major_formatter(PercentFormatter(xmax=100, decimals=0))
+    ax.tick_params(axis="both", labelsize=8)
+    ax.set_xlabel(f"{population} Lipids Containing Tail (%)", labelpad=12, fontsize=9)
+    ax.set_ylabel("Tail Identity", fontsize=9)
+    ax.set_title(f"Dataset Coverage of {population} Lipids by Tail", fontsize=10)
+    ax.spines[["top", "right"]].set_visible(False)
+    for row in range(1, len(percentages)):
+        if tail_structural_type(percentages.index[row]) != tail_structural_type(percentages.index[row - 1]):
+            ax.axhline(row - 0.5, color="#999999", linewidth=0.7)
+    if percentages.empty:
+        ax.text(0.5, 0.5, "No eligible tails meet the threshold",
+                transform=ax.transAxes, ha="center", va="center", fontsize=8, wrap=True)
+    ax.legend(
+        title="Dataset Coverage", title_fontsize=9, fontsize=8,
+        bbox_to_anchor=(1.02, 0.5), loc="center left", frameon=False, ncol=1,
     )
-    frame["Network Strength Outlier"] = (
-        frame["Class Strength Percentile"] <= 5
+    return ax
+
+
+def instrument_tail_tables(occurrences, datasets):
+    """Compare detection against one pooled lipid catalog shared by all datasets."""
+    selected = occurrences.loc[occurrences["Dataset"].isin(datasets)].drop_duplicates(
+        ["Dataset", "Ontology", "Species", "Tail"]
     )
-    frame = frame.drop(
-        columns=["_Figure Row", "_Network Class", "_Network Polarity"]
-    )
-
-    print(
-        f"Calculated class strength for {analyzed_groups} "
-        f"class/polarity networks."
-    )
-    return frame
-
-
-df = calculate_all_class_strengths(df)
-df["Log10 Class Strength"] = np.log10(
-    pd.to_numeric(df["Class Strength"], errors="coerce").clip(lower=0) + 1
-)
-
-class_strength_valid = df.dropna(subset=["Class Strength"]).copy()
-class_strength_auc = roc_auc_score(
-    class_strength_valid["ID Status"].eq("True"),
-    class_strength_valid["Class Strength"],
-)
-
-# PLS regression with binary confirmation status as the supervised response.
-# This is commonly visualized as PLS discriminant analysis (PLS-DA).
-df["Log10 S/N"] = np.log10(
-    pd.to_numeric(df["S/N average"], errors="coerce").clip(lower=1e-10)
-)
-
-pls_features = [
-    "RT similarity",
-    "m/z similarity",
-    "Simple dot product",
-    "Weighted dot product",
-    "Reverse dot product",
-    "Matched peaks count",
-    "Fill %",
-    "Log10 S/N",
-    "Log10 Class Strength",
-]
-
-for column in pls_features:
-    df[column] = pd.to_numeric(df[column], errors="coerce")
-
-pls_df = df.dropna(subset=pls_features).copy()
-pls_df["Confirmed Response"] = (
-    pls_df["ID Status"].eq("True").astype(float)
-)
-
-feature_scaler = StandardScaler()
-scaled_features = feature_scaler.fit_transform(pls_df[pls_features])
-confirmed_response = pls_df["Confirmed Response"].to_numpy()
-
-pls = PLSRegression(n_components=2, scale=False)
-pls.fit(scaled_features, confirmed_response)
-pls_scores = pls.x_scores_.copy()
-
-# Orient component 1 so positive scores point toward confirmed IDs. PLS signs
-# are otherwise arbitrary and can flip between equivalent fits.
-confirmed_component_1 = pls_scores[confirmed_response == 1, 0].mean()
-rejected_component_1 = pls_scores[confirmed_response == 0, 0].mean()
-if confirmed_component_1 < rejected_component_1:
-    pls_scores[:, 0] *= -1
-
-pls_df["PLS1"] = pls_scores[:, 0]
-pls_df["PLS2"] = pls_scores[:, 1]
-
-# Cross-validated predictions provide a less optimistic summary than scoring
-# the same rows used to fit the displayed PLS model.
-cross_validation = StratifiedKFold(
-    n_splits=5,
-    shuffle=True,
-    random_state=42,
-)
-cross_validated_predictions = cross_val_predict(
-    make_pipeline(
-        StandardScaler(),
-        PLSRegression(n_components=2, scale=False),
-    ),
-    pls_df[pls_features],
-    confirmed_response,
-    cv=cross_validation,
-).ravel()
-cross_validated_auc = roc_auc_score(
-    confirmed_response,
-    cross_validated_predictions,
-)
-cross_validated_accuracy = accuracy_score(
-    confirmed_response,
-    cross_validated_predictions >= 0.5,
-)
-
-pls_fig = plt.figure(figsize=(6.5, 4.77), layout="constrained")
-figure_grid = pls_fig.add_gridspec(
-    nrows=2,
-    ncols=2,
-    height_ratios=[1, 1.05],
-    width_ratios=[1.35, 1],
-)
-score_ax = pls_fig.add_subplot(figure_grid[0, 0])
-coefficient_ax = pls_fig.add_subplot(figure_grid[0, 1])
-strength_distribution_ax = pls_fig.add_subplot(figure_grid[1, 0])
-class_strength_ax = pls_fig.add_subplot(figure_grid[1, 1])
-
-status_markers = {
-    "False": ("X", "Rejected", 40),
-    "True": ("o", "Confirmed", 28),
-}
-
-for status, (marker, label, marker_size) in status_markers.items():
-    status_df = pls_df[pls_df["ID Status"] == status]
-    score_ax.scatter(
-        status_df["PLS1"],
-        status_df["PLS2"],
-        color=status_colors[status],
-        marker=marker,
-        s=marker_size,
-        alpha=0.55,
-        linewidths=0.25,
-        label=label,
-    )
-
-score_ax.set_xlabel("PLS Component 1")
-score_ax.set_ylabel("PLS Component 2")
-score_ax.set_title("Identification-Quality PLS-DA")
-score_ax.spines["top"].set_visible(False)
-score_ax.spines["right"].set_visible(False)
-score_ax.legend(
-    frameon=True,
-    facecolor="white",
-    edgecolor="none",
-    framealpha=0.90,
-    loc="upper left",
-)
-score_ax.text(
-    0.02,
-    0.02,
-    (
-        f"5-fold CV AUC = {cross_validated_auc:.2f}\n"
-        f"5-fold CV accuracy = {100 * cross_validated_accuracy:.1f}%"
-    ),
-    transform=score_ax.transAxes,
-    fontsize=8,
-    ha="left",
-    va="bottom",
-    bbox={
-        "facecolor": "white",
-        "edgecolor": "none",
-        "alpha": 0.90,
-        "pad": 3,
-    },
-)
-
-feature_labels = {
-    "RT similarity": "RT similarity",
-    "m/z similarity": "m/z similarity",
-    "Simple dot product": "Simple dot product",
-    "Weighted dot product": "Weighted dot product",
-    "Reverse dot product": "Reverse dot product",
-    "Matched peaks count": "Matched peaks",
-    "Fill %": "Fill %",
-    "Log10 S/N": "log10(S/N)",
-    "Log10 Class Strength": "log10(1 + class strength)",
-}
-
-# Because all predictors were standardized, coefficient magnitudes can be
-# compared directly. Positive values predict confirmation; negative values
-# predict rejection after accounting for the other features.
-pls_coefficients = np.asarray(pls.coef_).reshape(-1)
-coefficient_positions = np.arange(len(pls_features))
-coefficient_colors = np.where(
-    pls_coefficients >= 0,
-    status_colors["True"],
-    status_colors["False"],
-)
-
-coefficient_ax.barh(
-    coefficient_positions,
-    pls_coefficients,
-    color=coefficient_colors,
-    edgecolor="black",
-    linewidth=0.6,
-)
-coefficient_ax.set_yticks(
-    coefficient_positions,
-    labels=[feature_labels[feature] for feature in pls_features],
-)
-coefficient_ax.invert_yaxis()
-coefficient_ax.axvline(0, color="#777777", linewidth=0.9)
-coefficient_ax.set_xlabel("Standardized PLS Coefficient")
-coefficient_ax.set_ylabel("Quality Feature")
-coefficient_ax.set_title("Features Predicting ID Status")
-coefficient_ax.spines["top"].set_visible(False)
-coefficient_ax.spines["right"].set_visible(False)
-coefficient_ax.text(
-    0.98,
-    0.98,
-    "Orange: Confirmed\nBlue: Rejected",
-    transform=coefficient_ax.transAxes,
-    fontsize=8,
-    ha="right",
-    va="top",
-)
-
-
-# C: overall strength distributions across every class and polarity. Log
-# transformation retains zero-strength IDs while controlling the long tail.
-strength_plot_df = df.dropna(
-    subset=["Log10 Class Strength", "Class Strength Percentile"]
-).copy()
-violin_values = [
-    strength_plot_df.loc[
-        strength_plot_df["ID Status"].eq(status),
-        "Log10 Class Strength",
-    ].to_numpy()
-    for status in ["False", "True"]
-]
-violins = strength_distribution_ax.violinplot(
-    violin_values,
-    positions=[0, 1],
-    widths=0.76,
-    showmeans=False,
-    showmedians=False,
-    showextrema=False,
-)
-for violin_body, status in zip(violins["bodies"], ["False", "True"]):
-    violin_body.set_facecolor(status_colors[status])
-    violin_body.set_edgecolor("black")
-    violin_body.set_linewidth(0.8)
-    violin_body.set_alpha(0.48)
-
-strength_distribution_ax.boxplot(
-    violin_values,
-    positions=[0, 1],
-    widths=0.18,
-    patch_artist=True,
-    showfliers=False,
-    boxprops={"facecolor": "white", "edgecolor": "black", "linewidth": 1.0},
-    medianprops={"color": "black", "linewidth": 1.5},
-    whiskerprops={"color": "black", "linewidth": 1.0},
-    capprops={"color": "black", "linewidth": 1.0},
-)
-
-random_generator = np.random.default_rng(42)
-for position, status in enumerate(["False", "True"]):
-    status_df = strength_plot_df[
-        strength_plot_df["ID Status"].eq(status)
+    present_datasets = set(selected["Dataset"])
+    total_lipids = len(selected[["Ontology", "Species"]].drop_duplicates())
+    selected = selected.loc[
+        ~selected["Tail"].str.startswith(("LCB ", "O-")) & selected["Tail"].ne("Other tails")
     ]
-    jitter = random_generator.normal(0, 0.065, len(status_df))
-    strength_distribution_ax.scatter(
-        position + jitter,
-        status_df["Log10 Class Strength"],
-        s=8,
-        color=status_colors[status],
-        alpha=0.14,
-        linewidths=0,
-        rasterized=True,
+    pooled = selected.drop_duplicates(["Ontology", "Species", "Tail"]).groupby("Tail").size()
+    tails = sorted(pooled.index, key=tail_sort_key)
+    counts = pd.crosstab(selected["Tail"], selected["Dataset"]).reindex(
+        index=tails, columns=datasets, fill_value=0
     )
-    outlier_mask = status_df["Network Strength Outlier"].to_numpy()
-    strength_distribution_ax.scatter(
-        position + jitter[outlier_mask],
-        status_df.loc[outlier_mask, "Log10 Class Strength"],
-        s=19,
-        facecolors="none",
-        edgecolors="black",
-        linewidths=0.55,
-        alpha=0.80,
-        rasterized=True,
+    # A selected dataset with no resolved lipids has no detection data.
+    for dataset in datasets:
+        if dataset not in present_datasets:
+            counts[dataset] = np.nan
+    metadata = pooled.reindex(tails).rename("Pooled lipids with tail").to_frame()
+    metadata["Total pooled lipids"] = total_lipids
+    metadata["Pooled lipid prevalence (%)"] = (
+        100 * metadata["Pooled lipids with tail"] / (total_lipids or np.nan)
     )
-
-strength_distribution_ax.set_xticks(
-    [0, 1],
-    labels=["Rejected", "Confirmed"],
-)
-strength_distribution_ax.set_ylabel("log10(1 + Class Strength)")
-strength_distribution_ax.set_title(
-    "Class-Network Strength by ID Status",
-    pad=10,
-)
-strength_distribution_ax.set_ylim(
-    top=strength_plot_df["Log10 Class Strength"].max() * 1.28
-)
-strength_distribution_ax.spines["top"].set_visible(False)
-strength_distribution_ax.spines["right"].set_visible(False)
-strength_distribution_ax.text(
-    0.88,
-    0.98,
-    f"Class strength ROC AUC = {class_strength_auc:.2f}",
-    transform=strength_distribution_ax.transAxes,
-    fontsize=8,
-    ha="right",
-    va="top",
-)
-strength_distribution_ax.legend(
-    handles=[
-        Line2D(
-            [0],
-            [0],
-            marker="o",
-            linestyle="none",
-            markerfacecolor="none",
-            markeredgecolor="black",
-            markeredgewidth=0.8,
-            markersize=7,
-            label="Lowest 5% within class/polarity",
-        )
-    ],
-    loc="upper left",
-    frameon=False,
-    fontsize=8,
-)
-
-# D: show whether the strength shift is consistent across sufficiently sampled
-# lipid classes. Percentiles normalize strength within class and polarity.
-class_strength_summary = (
-    strength_plot_df
-    .groupby(["Ontology", "ID Status"])
-    .agg(
-        Count=("Class Strength Percentile", "size"),
-        Median_Percentile=("Class Strength Percentile", "median"),
+    metadata["Prevalence bin"] = pd.cut(
+        metadata["Pooled lipid prevalence (%)"], RARITY_BINS, labels=RARITY_LABELS
     )
-    .reset_index()
-)
-class_counts = class_strength_summary.pivot(
-    index="Ontology",
-    columns="ID Status",
-    values="Count",
-)
-class_medians = class_strength_summary.pivot(
-    index="Ontology",
-    columns="ID Status",
-    values="Median_Percentile",
-)
-eligible_classes = class_counts.index[
-    class_counts.get("False", pd.Series(index=class_counts.index, dtype=float)).ge(10)
-    & class_counts.get("True", pd.Series(index=class_counts.index, dtype=float)).ge(10)
-]
-class_medians = class_medians.loc[eligible_classes].dropna(
-    subset=["False", "True"]
-)
-class_medians["Strength Shift"] = (
-    class_medians["True"] - class_medians["False"]
-)
-class_medians = class_medians.sort_values("Strength Shift", ascending=False)
-
-class_positions = np.arange(len(class_medians))
-class_strength_ax.hlines(
-    class_positions,
-    class_medians["False"],
-    class_medians["True"],
-    color="#A5A5A5",
-    linewidth=1.5,
-    zorder=1,
-)
-class_strength_ax.scatter(
-    class_medians["False"],
-    class_positions,
-    color=status_colors["False"],
-    edgecolor="black",
-    linewidth=0.5,
-    s=45,
-    label="Rejected",
-    zorder=2,
-)
-class_strength_ax.scatter(
-    class_medians["True"],
-    class_positions,
-    color=status_colors["True"],
-    edgecolor="black",
-    linewidth=0.5,
-    s=45,
-    label="Confirmed",
-    zorder=2,
-)
-class_strength_ax.set_yticks(class_positions, labels=class_medians.index)
-class_strength_ax.invert_yaxis()
-class_strength_ax.set_xlim(0, 100)
-class_strength_ax.set_xlabel(
-    "Median Within-Class/Polarity Strength Percentile"
-)
-class_strength_ax.set_ylabel("Lipid Class")
-class_strength_ax.set_title("Class-Specific Network Strength")
-class_strength_ax.spines["top"].set_visible(False)
-class_strength_ax.spines["right"].set_visible(False)
-class_strength_ax.legend(frameon=False, loc="lower right", fontsize=8)
+    percentages = counts.div(metadata["Pooled lipids with tail"], axis=0) * 100
+    return counts, percentages, metadata
 
 
-for panel_label, ax in zip(
-    ["A", "B", "C", "D"],
-    [score_ax, coefficient_ax, strength_distribution_ax, class_strength_ax],
-):
-    ax.text(
-        0.02,
-        1.18,
-        panel_label,
-        transform=ax.transAxes,
-        fontsize=10,
-        fontweight="bold",
-        ha="left",
-        va="bottom",
+def rarity_detection_tables(counts, metadata):
+    """Count distinct tails detected at least once, within pooled rarity bins."""
+    bin_totals = metadata.groupby("Prevalence bin", observed=False).size().rename("Pooled tail identities")
+    detected = counts.gt(0).groupby(metadata["Prevalence bin"], observed=False).sum()
+    for dataset in counts.columns:
+        if counts[dataset].isna().all():
+            detected[dataset] = np.nan
+    percentages = detected.div(bin_totals.replace(0, np.nan), axis=0) * 100
+    return detected, percentages, bin_totals
+
+
+def tail_overlap_tables(occurrences, datasets, tails):
+    """Assign each lipid-tail pair to one shared or instrument-only category."""
+    selected = occurrences.loc[
+        occurrences["Dataset"].isin(datasets) & occurrences["Tail"].isin(tails)
+    ].drop_duplicates(["Dataset", "Ontology", "Species", "Tail"])
+    membership = selected.groupby(["Ontology", "Species", "Tail"])["Dataset"].agg(
+        **{"Dataset Coverage": "nunique", "Only Dataset": "first"}
+    ).reset_index()
+    shared = membership["Dataset Coverage"].gt(1)
+    membership["Overlap Category"] = membership["Only Dataset"].map(
+        lambda dataset: DATASET_LABELS.get(dataset, dataset) + " Only"
     )
+    membership.loc[shared, "Overlap Category"] = (
+        membership.loc[shared, "Dataset Coverage"].astype(str) + " Datasets"
+    )
+    membership.loc[shared, "Only Dataset"] = ""
+    categories = [f"{coverage} Datasets" for coverage in range(len(datasets), 1, -1)]
+    categories += [DATASET_LABELS.get(dataset, dataset) + " Only" for dataset in datasets]
+    counts = pd.crosstab(membership["Overlap Category"], membership["Tail"]).reindex(
+        index=categories, columns=tails, fill_value=0
+    )
+    return counts, membership
 
-pls_fig.savefig(
-    "Figure 4.png",
-    dpi=600,
-)
-pls_fig.savefig(
-    "Figure 4.pdf",
-)
 
-print("\nIDs included in PLS-DA:")
-print(pls_df.groupby("ID Status").size().to_string())
-print(
-    f"5-fold cross-validated AUC: {cross_validated_auc:.3f}\n"
-    f"5-fold cross-validated accuracy: {cross_validated_accuracy:.3f}"
-)
-print(
-    f"\nAll-class network strength "
-    f"(m/z tolerance = {network_tolerance:.2f} Da):"
-)
-print(f"Class-strength ROC AUC: {class_strength_auc:.3f}")
-print("Lowest-5% network-strength outliers by ID status:")
-print(
-    strength_plot_df
-    .groupby("ID Status")["Network Strength Outlier"]
-    .agg(["sum", "count", "mean"])
-    .to_string()
-)
+def plot_instrument_comparison(counts, population, ax):
+    """Match Figure 2: stacked counts by overlap category, colored by tail."""
+    x_positions = np.arange(len(counts))
+    bottom = np.zeros(len(counts))
+    palette = list(plt.get_cmap("tab20").colors) + list(plt.get_cmap("tab20b").colors)
+    for index, tail in enumerate(counts.columns):
+        values = counts[tail].to_numpy()
+        ax.bar(x_positions, values, bottom=bottom, width=0.65,
+               color=palette[index % len(palette)], edgecolor="white", linewidth=0.3,
+               label=tail)
+        bottom += values
+    ax.set_xticks(x_positions, labels=counts.index, rotation=45, ha="right")
+    ax.tick_params(axis="both", labelsize=8)
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.set_ylim(0, max(1, bottom.max() * 1.08) if len(bottom) else 1)
+    ax.set_ylabel("Tail Annotations (count)", fontsize=9)
+    ax.set_title(f"Tail Distribution by Overlap Category\n{population} Lipids", fontsize=10)
+    ax.spines[["top", "right"]].set_visible(False)
+    if len(counts.columns):
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(handles[::-1], labels[::-1], title="Tail Identity", title_fontsize=9,
+                  fontsize=8, bbox_to_anchor=(1.02, 1.0), loc="upper left", frameon=False,
+                  ncol=2 if len(counts.columns) > 12 else 1)
+    else:
+        ax.text(0.5, 0.5, "No eligible tails meet the threshold", transform=ax.transAxes,
+                ha="center", va="center", fontsize=8, wrap=True)
+    return ax
 
-plt.show(block=True)
+
+def plot_tail_comparison(percentages, counts, datasets, output_dir, population):
+    """Stack the dataset-coverage and overlap-category panels vertically."""
+    fig, axes = plt.subplots(2, 1, figsize=(6.5, 6.5),
+                             gridspec_kw={"height_ratios": [1.5, 1]})
+    plot_coverage(percentages, datasets, population, axes[0])
+    plot_instrument_comparison(counts, population, axes[1])
+    for label, ax in zip(["A", "B"], axes):
+        ax.text(-0.12, 1.04, label, transform=ax.transAxes,
+                fontsize=10, fontweight="bold", va="top")
+    fig.tight_layout(h_pad=2.5)
+    save_figure(fig, output_dir, "Figure4")
+    return fig
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input", type=Path, default=TOPDIR / "Combined_Fragment_Assignment_Colored.xlsx")
+    parser.add_argument("--output-dir", type=Path)
+    parser.add_argument("--datasets", nargs="+", default=DATASETS)
+    parser.add_argument("--tail", default="18:0")
+    parser.add_argument(
+        "--min-tail-percent", type=float, default=1.0,
+        help="Show tails excluding LCB and O- entries that reach this percentage in any selected dataset (default: 1).",
+    )
+    parser.add_argument("--all-ids", action="store_true")
+    parser.add_argument("--no-show", action="store_true")
+    args = parser.parse_args()
+    if not 0 <= args.min_tail_percent <= 100:
+        parser.error("--min-tail-percent must be between 0 and 100")
+    datasets = list(dict.fromkeys(args.datasets))
+    output_dir = args.output_dir or args.input.parent
+    lipids, occurrences, audit = prepare_lipids(args.input, datasets, args.all_ids)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    audit.assign(Chains=audit.Chains.map("; ".join)).to_csv(output_dir / "Tail_Annotation_Audit.csv", index=False)
+    lipids.assign(Chains=lipids.Chains.map("; ".join)).to_csv(output_dir / "Tail_Resolved_Lipids.csv", index=False)
+    occurrences.to_csv(output_dir / "Tail_Occurrences.csv", index=False)
+    overall = frequency_summary(lipids, occurrences, ["Dataset"])
+    by_class = frequency_summary(lipids, occurrences, ["Ontology", "Dataset"])
+    overall.to_csv(output_dir / "Tail_Frequencies_by_Dataset.csv", index=False)
+    by_class.to_csv(output_dir / "Tail_Frequencies_by_Class.csv", index=False)
+    population = "Annotated" if args.all_ids else "Accepted"
+    selected_frequencies = tail_composition_table(overall, datasets, args.min_tail_percent)
+    selected_frequencies.to_csv(output_dir / "Tail_Selection_Frequencies.csv", index_label="Tail")
+    coverage_counts, coverage_percentages, lipid_coverage = tail_coverage_tables(
+        occurrences, datasets, selected_frequencies.index
+    )
+    coverage_counts.to_csv(output_dir / "Tail_Coverage_Counts.csv", index_label="Tail")
+    coverage_percentages.to_csv(output_dir / "Tail_Coverage_Percentages.csv", index_label="Tail")
+    lipid_coverage.to_csv(output_dir / "Tail_Lipid_Dataset_Coverage.csv", index=False)
+    instrument_counts, instrument_percentages, tail_metadata = instrument_tail_tables(occurrences, datasets)
+    instrument_counts.to_csv(output_dir / "Tail_Instrument_Detection_Counts.csv", index_label="Tail")
+    instrument_percentages.to_csv(output_dir / "Tail_Instrument_Detection_Percentages.csv", index_label="Tail")
+    tail_metadata.to_csv(output_dir / "Tail_Instrument_Pooled_Lipids.csv", index_label="Tail")
+    overlap_counts, overlap_membership = tail_overlap_tables(
+        occurrences, datasets, selected_frequencies.index
+    )
+    overlap_counts.to_csv(output_dir / "Tail_Overlap_Category_Counts.csv")
+    overlap_membership.to_csv(output_dir / "Tail_Overlap_Lipid_Membership.csv", index=False)
+    plot_tail_comparison(
+        coverage_percentages, overlap_counts, datasets, output_dir, population
+    )
+    rarity_counts, rarity_percentages, rarity_totals = rarity_detection_tables(instrument_counts, tail_metadata)
+    rarity_counts.to_csv(output_dir / "Tail_Rarity_Detection_Counts.csv")
+    rarity_percentages.to_csv(output_dir / "Tail_Rarity_Detection_Percentages.csv")
+    rarity_totals.to_csv(output_dir / "Tail_Rarity_Pooled_Counts.csv")
+    print("\nTail identities detected by instrument within each pooled-prevalence bin (%):")
+    print(rarity_percentages.rename(
+        index=lambda label: str(label).replace("\u2264", "<=").replace("\u2013", "-")
+    ).round(1).to_string())
+    print("\nAnnotation accounting:")
+    print(audit["Exclusion reason"].replace("", "Included unique chain composition").value_counts().to_string())
+    print(f"\nDataset coverage of lipids containing {args.tail}:")
+    tail_counts, tail_percentages, _ = tail_coverage_tables(occurrences, datasets, [args.tail])
+    print(pd.DataFrame({
+        "Unique lipids": tail_counts.loc[args.tail],
+        "Lipids (%)": tail_percentages.loc[args.tail],
+    }).round(2).to_string())
+    if args.no_show:
+        plt.close("all")
+    else:
+        plt.show(block=True)
+
+
+if __name__ == "__main__":
+    main()
