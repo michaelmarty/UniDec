@@ -134,6 +134,7 @@ try:
                 app, 'write_to_recent'
             ), patch.object(view.menu, 'update_recent'):
                 app.on_open_file('sample.txt', directory=directory)
+                assert app.eng.open_file.call_args.kwargs['simple_output'] is True
 
         open_into(new_dir)
         assert (old_dir / 'seq.fasta').read_text(encoding='utf-8') == '>IsoDec sequence\\nS[Acetylation]HHS\\n'
@@ -188,6 +189,29 @@ try:
     with patch('wx.MessageBox') as message:
         app.on_brute_force_match()
     assert 'Turn off Average Mass' in message.call_args.args[0]
+
+    with tempfile.TemporaryDirectory() as directory:
+        app.eng.config.udir = directory
+        app.eng.config.idconfig.write_msalign = 1
+        app.eng.config.idconfig.write_tsv = 1
+        with patch.object(app.isodeceng, 'export_peaks') as export:
+            app.export_results()
+        assert [call.kwargs['filename'] for call in export.call_args_list] == [
+            str(Path(directory) / 'results'), str(Path(directory) / 'results.tsv')]
+
+        spectrum_path = Path(directory) / 'sample.dat'
+        spectrum_path.write_text('500 1\\n501 2\\n', encoding='utf-8')
+        current_directory = os.getcwd()
+        with patch.object(app.isodeceng, 'process_file'), patch.object(
+            view, 'export_gui_to_config'
+        ), patch.object(app.isodeceng, 'export_peaks') as export:
+            app.batch_process(str(spectrum_path))
+        output = Path(directory) / 'sample_unidecfiles'
+        assert (output / 'seq.fasta').is_file()
+        assert [call.kwargs.get('filename', call.args[1] if len(call.args) > 1 else None)
+                for call in export.call_args_list] == [
+                    str(output / 'results'), str(output / 'results.tsv')]
+        assert os.getcwd() == current_directory
 finally:
     app.view.Destroy()
     app.wx_app.Yield()

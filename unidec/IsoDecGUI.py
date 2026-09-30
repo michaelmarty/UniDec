@@ -94,7 +94,8 @@ class IsoDecPres(UniDecPres):
         if not skipengine:
             # Open File in Engine
             self.top_path = os.path.join(directory, filename)
-            self.eng.open_file(filename, directory, refresh=refresh, isodeceng=self.isodeceng, **kwargs)
+            self.eng.open_file(filename, directory, refresh=refresh, isodeceng=self.isodeceng,
+                               simple_output=True, **kwargs)
 
         self.sequence_path = Path(self.eng.config.udir) / "seq.fasta" if self.eng.config.udir else None
         self._load_sequence()
@@ -609,32 +610,31 @@ class IsoDecPres(UniDecPres):
         self.view.export_gui_to_config()
         self.isodeceng.process_file(path)
         # The output directory should be a directory with the same name as the input file + _unidecfiles
-        outdir = os.path.dirname(path) + "\\" + os.path.splitext(os.path.basename(path))[0] + "_unidecfiles\\"
+        outdir = os.path.splitext(path)[0] + "_unidecfiles"
         # Check of the outdirectory exists
         if not os.path.exists(outdir):
             os.makedirs(outdir)
         self._save_sequence(Path(outdir) / "seq.fasta")
 
-        # Get the filename wihtout the path or extension
-        filename = os.path.splitext(os.path.basename(path))[0]
-        os.chdir(os.path.dirname(outdir))
-
+        result_prefix = os.path.join(outdir, "results")
         if self.eng.config.idconfig.write_msalign == 1:
-            self.isodeceng.export_peaks("msalign", filename, reader=self.isodeceng.reader)
+            self.isodeceng.export_peaks("msalign", filename=result_prefix,
+                                        reader=self.isodeceng.reader)
 
         if self.eng.config.idconfig.write_tsv == 1:
-            self.isodeceng.export_peaks("tsv", filename + ".tsv")
+            self.isodeceng.export_peaks("tsv", result_prefix + ".tsv")
         pass
 
     def export_results(self):
+        result_prefix = os.path.join(self.eng.config.udir, "results")
         if self.eng.config.idconfig.write_msalign == 1:
-            self.isodeceng.export_peaks("msalign", filename=self.eng.config.outfname,
+            self.isodeceng.export_peaks("msalign", filename=result_prefix,
                                         reader=self.isodeceng.reader, max_precursors=1)
-            print("Exported MSAlign File: ", self.eng.config.outfname)
+            print("Exported MSAlign File: ", result_prefix)
 
         if self.eng.config.idconfig.write_tsv == 1:
-            self.isodeceng.export_peaks("tsv", filename=self.eng.config.outfname + ".tsv")
-            print("Exported TSV File: ", self.eng.config.outfname + ".tsv")
+            self.isodeceng.export_peaks("tsv", filename=result_prefix + ".tsv")
+            print("Exported TSV File: ", result_prefix + ".tsv")
 
     def on_remove_assigned_peaks(self, e=None):
         print(self.isodeceng.config)
