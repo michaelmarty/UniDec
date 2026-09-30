@@ -1015,3 +1015,14 @@ harness was merged into `isodec_test.cpp` as `--test-mass-group` and registered
 with CTest. After these changes, the native CTest passed, all 80 IsoDec tests
 passed on Linux, and the focused UniDec naming and GUI workflow tests passed
 on Windows.
+
+### C mass merge closeout (2026-09-29)
+
+The C mass merge migration is complete for initial batches in normal IsoDec
+and sequence brute-force matching. Python continues to append later scans by
+design; the multi-scan parity test covers that boundary. Original insertion
+order remains the default, and matched-intensity order remains an evaluation
+option. The corrected ETD comparison showed no warm speed gain, so there is
+no pending performance claim for this migration. Publishing the required
+PyIsoGen API and completing platform wheel validation remain separate release
+work described above.

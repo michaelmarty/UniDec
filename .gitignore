@@ -74,3 +74,5 @@ Scripts/Importers/reader_tester.py
 /public/UniDec/.eggs/
 /public/UniDec/unidec/bin/Example Data/IMMS/aqpz_unidecfiles/aqpz_ccs.txt
 /public/UniDec/unidec/bin/Example Data/IMMS/aqpz_unidecfiles/aqpz_ccsz.bin
+/public/UniDec/unidec/bin/Example Data/IsoDec/ca_etd_unidecfiles/results.tsv
+/public/UniDec/unidec/bin/Example Data/IsoDec/ca_etd_unidecfiles/rawdata.txt

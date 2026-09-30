@@ -34,6 +34,7 @@ import isodec
 from isodec.match import MatchedCollection
 from isodec.isotope import calc_isotope_dist_dual
 from isodec.fragment_view import plot_fragment_matches
+from unidec.modules.peakstructure import Peaks
 
 local_isodec = Path.cwd().parent / 'IsoDec' / 'isodec'
 if (local_isodec / '__init__.py').is_file():
@@ -53,11 +54,31 @@ with patch.object(IsoDecPres, 'read_recent', return_value=[recent_path]):
     app = IsoDecPres()
 try:
     view = app.view
+    view.Show()
+    app.wx_app.Yield()
+    assert view.controls.foldpanels.GetFoldPanel(6).IsExpanded()
+    assert view.peakpanel.list_ctrl.GetSize().height == view.plotpanel.GetSize().height
+    assert view.sizerplot.GetSize().height == view.plotpanel.GetVirtualSize().height
+    if view.GetClientSize().width >= 1300:
+        assert view.peakpanel.GetSize().width < 300
+        assert view.plotpanel.GetSize().width >= 800
+    for plot in (view.plot1, view.plot2):
+        plot.centroid_plot(np.array([[500, 1.2e8], [600, 2.4e8], [700, 1.1e8]]),
+                           xlabel='Mass', ylabel='Intensity')
+        plot.canvas.draw()
+        assert plot.subplot1.yaxis.get_tightbbox(plot.canvas.get_renderer()).x0 >= 0
+        plot.clear_plot()
     recent_item = view.menu.menuOpenRecent.GetMenuItems()[0]
     assert recent_item.GetItemLabelText() == os.path.basename(recent_path)
     with patch.object(app, 'on_open_file') as open_recent:
         view.ProcessEvent(wx.CommandEvent(wx.EVT_MENU.typeId, recent_item.GetId()))
     open_recent.assert_called_once_with(os.path.basename(recent_path), os.path.dirname(recent_path))
+    examples = [Path(path) for _, path, _ in view.menu.masterd2]
+    ca_etd = next(path for path in examples if path.name == 'ca_etd.dat')
+    assert (ca_etd.with_suffix('').with_name('ca_etd_unidecfiles') / 'seq.fasta').is_file()
+    with patch.object(app, 'on_open_file') as open_example:
+        view.menu.load_example_data(examples.index(ca_etd))
+    open_example.assert_called_once_with(ca_etd.name, str(ca_etd.parent))
     controls = view.controls
     assert view.sizerplot.GetItemSpan(view.fragment_panel) == (1, 2)
     assert controls.ctlfragmentation.GetValue() == 'ETD'
@@ -183,12 +204,54 @@ try:
     assert brute_message.call_args is None
     assert any(peak.sequence_match == 'b6' and peak.z == 2 for peak in app.isodeceng.pks)
     assert app.isodeceng.pks.masses
+    assert view.peakpanel.list_ctrl.GetItemCount() == len(app.eng.pks.peaks)
+    assert any('b6' in view.peakpanel.list_ctrl.GetItem(i, 4).GetText()
+               for i in range(view.peakpanel.list_ctrl.GetItemCount()))
     show_matches.assert_called_once()
     assert 'Brute Force Match:' in view.GetStatusBar().GetStatusText(5)
+    app.on_match_sequence()
+    assert any('b6' in view.peakpanel.list_ctrl.GetItem(i, 4).GetText()
+               for i in range(view.peakpanel.list_ctrl.GetItemCount()))
     controls.ctlavgpeakmasses.SetValue(True)
     with patch('wx.MessageBox') as message:
         app.on_brute_force_match()
     assert 'Turn off Average Mass' in message.call_args.args[0]
+
+    peaks = Peaks()
+    peaks.add_peaks(np.array([[600.12341, 10], [600.12349, 8]]))
+    peaks.default_params()
+    for index, peak in enumerate(peaks.peaks):
+        peak.mztab = np.array([[500 + index, 10]])
+        peak.stickdat = np.array([[500 + index, 5]])
+        peak.avgmass = 601.12341 + index
+    app.eng.pks = peaks
+    app.eng.data.data2 = np.array([[500, 10], [501, 8]])
+    app.eng.data.massdat = np.array([[600, 10], [601, 8]])
+    view.peakpanel.add_data(peaks, collab1='Avg Mass')
+    assert view.peakpanel.list_ctrl.GetItem(0, 1).GetText() == '601.123'
+    assert view.peakpanel._item_mass(0) == peaks.peaks[0].mass
+    view.peakpanel.add_data(peaks, show='zs')
+    assert view.peakpanel.list_ctrl.GetColumnWidth(1) == 80
+    assert view.peakpanel.list_ctrl.GetColumnWidth(3) == 40
+    assert view.peakpanel.list_ctrl.GetColumnWidth(4) == 55
+    assert [view.peakpanel.list_ctrl.GetItem(i, 1).GetText() for i in range(2)] == [
+        '600.123', '600.123']
+    app.plot_mass_peaks()
+    app.plot_mz_peaks()
+    app.on_plot_dists()
+    assert sum(line.get_gid() == 'isodec_isotope' for line in view.plot1.subplot1.lines) == 2
+    view.peakpanel.list_ctrl.Select(0)
+    view.peakpanel.on_popup_two()
+    assert [peak.ignore for peak in peaks.peaks] == [0, 1]
+    isotopes = [line for line in view.plot1.subplot1.lines if line.get_gid() == 'isodec_isotope']
+    assert len(isotopes) == 1
+    assert 500 in isotopes[0].get_xdata()
+    view.peakpanel.on_popup_three()
+    assert sum(line.get_gid() == 'isodec_isotope' for line in view.plot1.subplot1.lines) == 2
+    app.plot_mz_peaks()
+    view.peakpanel.list_ctrl.Select(0)
+    view.peakpanel.on_popup_two()
+    assert not any(line.get_gid() == 'isodec_isotope' for line in view.plot1.subplot1.lines)
 
     with tempfile.TemporaryDirectory() as directory:
         app.eng.config.udir = directory

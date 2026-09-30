@@ -28,9 +28,6 @@ Integrate IsoDec into other GUI elements, like UPP
 
 IsoGen predict fragments from sequences.
 
-Fix some things with IsoDec Gui layout
-
-
 Someday Maybe:
 
 polarity switching, or "weaving" between scans
