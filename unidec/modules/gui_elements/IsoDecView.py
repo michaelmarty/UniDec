@@ -71,12 +71,13 @@ class IsoDecView(MainwindowBase):
                                            axes=plot_axes, parent=plotwindow)
         self.plot2 = PlottingWindow.Plot1d(plotwindow, integrate=1, figsize=figsize,
                                            axes=plot_axes, parent=plotwindow)
-        self.plot1.SetMinSize((350, 350))
-        self.plot2.SetMinSize((350, 350))
+        self.plot1.SetMinSize((200, 200))
+        self.plot2.SetMinSize((200, 200))
         self.fragment_panel = wx.Panel(plotwindow)
         self.fragment_figure = Figure(figsize=(7, 2.5))
         self.fragment_ax = self.fragment_figure.add_subplot(111)
         self.fragment_canvas = FigureCanvasWxAgg(self.fragment_panel, -1, self.fragment_figure)
+        self.fragment_canvas.SetMinSize((1, 250))
         self.fragment_has_matches = False
         fragment_sizer = wx.BoxSizer(wx.VERTICAL)
         fragment_sizer.Add(self.fragment_canvas, 1, wx.EXPAND)
@@ -152,6 +153,18 @@ class IsoDecView(MainwindowBase):
         self.resize_plots()
         for plot in self.plots:
             plot.set_resize(plot.GetSize())
+
+    def resize_plots(self, e=None):
+        if e is not None:
+            wx.CallAfter(self.resize_plots)
+            e.Skip()
+            return
+        halfwidth = int(self.plotpanel.GetSize().width / 2)
+        for plot in self.plots:
+            plot.SetMinSize(wx.Size(halfwidth, 200))
+            plot.canvas.SetMinSize(wx.Size(halfwidth, 200))
+        self.fragment_panel.SetMinSize(wx.Size(-1, 250))
+        self.plotpanel.Layout()
 
     def clear_fragment_plot(self):
         self.fragment_has_matches = False
