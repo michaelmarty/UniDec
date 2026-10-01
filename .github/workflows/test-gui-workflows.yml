@@ -175,12 +175,33 @@ jobs:
           start /b /wait "" "%RUNNER_TEMP%\oneapi.exe" -s -x -f "%RUNNER_TEMP%\oneapi-extracted" --log extract.log
           "%RUNNER_TEMP%\oneapi-extracted\bootstrapper.exe" -s --action install --components=%ONEAPI_WINDOWS_COMPONENTS% --eula=accept -p=NEED_VS2022_INTEGRATION=0 --log-dir=.
 
+      - name: Locate Visual Studio for oneAPI
+        if: matrix.compiler == 'IntelLLVM'
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          if (-not (Test-Path -LiteralPath $vswhere -PathType Leaf)) {
+            throw "Visual Studio locator was not found: $vswhere"
+          }
+          $installationPath = (& $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | Select-Object -First 1).Trim()
+          if (-not $installationPath) {
+            throw 'No Visual Studio installation with C++ build tools was found.'
+          }
+          $visualStudioYear = Split-Path (Split-Path $installationPath -Parent) -Leaf
+          if ($visualStudioYear -notin @('2019', '2022', '2026')) {
+            throw "Unsupported Visual Studio installation: $installationPath"
+          }
+          "VS${visualStudioYear}INSTALLDIR=$installationPath" >> $env:GITHUB_ENV
+          "ONEAPI_VCVARSALL_TARGET=vs$visualStudioYear" >> $env:GITHUB_ENV
+
       - name: Configure and build with IntelLLVM
         if: matrix.compiler == 'IntelLLVM'
         shell: cmd
         run: |
-          call "C:\Program Files (x86)\Intel\oneAPI\setvars-vcvarsall.bat" vs2022
+          call "C:\Program Files (x86)\Intel\oneAPI\setvars-vcvarsall.bat" %ONEAPI_VCVARSALL_TARGET%
+          if errorlevel 1 exit /b 1
           call "C:\Program Files (x86)\Intel\oneAPI\compiler\latest\env\vars.bat"
+          if errorlevel 1 exit /b 1
           set "CC=icx-cl"
           set "CXX=icx-cl"
           cmake -S unidec/src -B build/unidec-windows-intel -G Ninja -DCMAKE_BUILD_TYPE=Release -DUNIDEC_REQUIRE_INTELLLVM=ON -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT_PATH%/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }} -DHDF5_ROOT=%VCPKG_ROOT_PATH%/installed/${{ matrix.triplet }} -DFFTW_ROOT=%VCPKG_ROOT_PATH%/installed/${{ matrix.triplet }}
@@ -204,8 +225,10 @@ jobs:
         if: matrix.compiler == 'IntelLLVM'
         shell: cmd
         run: |
-          call "C:\Program Files (x86)\Intel\oneAPI\setvars-vcvarsall.bat" vs2022
+          call "C:\Program Files (x86)\Intel\oneAPI\setvars-vcvarsall.bat" %ONEAPI_VCVARSALL_TARGET%
+          if errorlevel 1 exit /b 1
           call "C:\Program Files (x86)\Intel\oneAPI\compiler\latest\env\vars.bat"
+          if errorlevel 1 exit /b 1
           set "PATH=%VCPKG_ROOT_PATH%\installed\${{ matrix.triplet }}\bin;%PATH%"
           unidec\bin\unidec.exe > "%RUNNER_TEMP%\unidec-help.txt" 2>&1
           if not "%ERRORLEVEL%"=="88" exit /b 1
