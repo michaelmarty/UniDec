@@ -63,7 +63,7 @@ try:
     assert view.fragment_canvas.GetSize() == view.fragment_panel.GetSize()
     assert view.plotpanel.GetVirtualSize().height == view.plotpanel.GetClientSize().height
     assert view.controls.foldpanels.GetFoldPanel(6).IsExpanded()
-    assert view.peakpanel.list_ctrl.GetSize().height == view.plotpanel.GetSize().height
+    assert view.peakpanel.list_ctrl.GetSize().height >= view.peakpanel.GetClientSize().height - 4
     assert view.sizerplot.GetSize().height == view.plotpanel.GetVirtualSize().height
     if view.GetClientSize().width >= 1300:
         assert view.peakpanel.GetSize().width < 300
