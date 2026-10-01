@@ -12,7 +12,7 @@ Install a published wheel:
 python -m pip install isodec
 ```
 
-IsoDec supports Python 3.9 and newer on 64-bit Windows, Linux, and macOS,
+IsoDec supports Python 3.10 and newer on 64-bit Windows, Linux, and macOS,
 including Windows ARM64 and Apple silicon. Native builds are also tested on
 ARM64 Linux; the Windows ARM64 wheel is tested with Python 3.14. Compatible
 wheels include the native IsoDec and IsoGen libraries. A source build requires

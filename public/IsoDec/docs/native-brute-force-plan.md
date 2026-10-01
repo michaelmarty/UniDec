@@ -1029,8 +1029,9 @@ these results do not substantiate a warm speedup or update the historical GUI
 timings. Native grouping still avoids invoking Python's JIT merge routines.
 
 Deprecated trapezoidal integration calls were replaced throughout package code,
-scripts, and both teaching notebooks. IsoDec uses SciPy's `trapezoid` to retain
-its NumPy 1.23/Python 3.9 dependency floor; UniDec and scripts use `np.trapezoid`.
+scripts, and both teaching notebooks. IsoDec uses SciPy's `trapezoid` for
+consistency with its NumPy 1.23 dependency floor; UniDec and scripts use
+`np.trapezoid`.
 
 ### Linux native build follow-up (2026-09-29)
 
