@@ -163,6 +163,11 @@ class IsoDecView(MainwindowBase):
         for plot in self.plots:
             plot.SetMinSize(wx.Size(halfwidth, 200))
             plot.canvas.SetMinSize(wx.Size(halfwidth, 200))
+            left = max(0.23, 65 / max(halfwidth, 1))
+            axes = (left, 0.13, 0.93 - left, 0.79)
+            plot._axes = axes
+            if plot.subplot1 is not None:
+                plot.subplot1.set_position(axes)
         self.fragment_panel.SetMinSize(wx.Size(-1, 250))
         self.plotpanel.Layout()
 
