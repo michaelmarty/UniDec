@@ -34,14 +34,25 @@ for name in ("cacert.pem", "logo.ico", "mass_table.csv", "UniDecLogoMR.png",
 for name in ("Presets", "Example Data"):
     datas.append((str(bin_dir / name), "unidec/bin/" + name))
 datas.append((str(root / "unidec" / "metaunidec" / "images"), "unidec/metaunidec/images"))
+# IsoGen loads this database lazily for ProForma modification and fragment matching.
+datas.append((
+    str(isodec_checkout / "extern" / "IsoGen" / "isogen" / "resources" / "protein_modifications.json.gz"),
+    "isogen/resources",
+))
 
 if system == "Windows":
-    for name in ("UniDec.exe", "CDCReader.exe", "h5repack.exe"):
+    for name in ("UniDec.exe", "CDCReader.exe", "h5repack.exe", "unideclib.dll"):
         binaries.append((str(bin_dir / name), "unidec/bin"))
-    binaries += [(str(path), "unidec/bin") for path in bin_dir.glob("*.dll")]
+    binaries += [
+        (str(path), "unidec/bin")
+        for path in bin_dir.glob("*.dll")
+        if path.name != "unideclib.dll"
+    ]
 else:
     native_name = "unidecmac" if system == "Darwin" else "unideclinux"
     binaries.append((str(bin_dir / native_name), "unidec/bin"))
+    library_name = "libunideclib.dylib" if system == "Darwin" else "libunideclib.so"
+    binaries.append((str(bin_dir / library_name), "unidec/bin"))
 
 hiddenimports = [
     "scipy.special._ufuncs_cxx", "scipy.linalg.cython_blas", "scipy.linalg.cython_lapack",
@@ -72,6 +83,12 @@ coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name=outputdir)
 destination = Path(DISTPATH) / outputdir
 for name in ("readme.md", "LICENSE", "installer.bat"):
     shutil.copy2(root / name, destination / name)
+
+userin = input("Is Sign Complete? Zip build? (y/n): ")
+if userin.lower() != "y":
+    print("Exiting without zipping.")
+    sys.exit(0)
+
 archive = shutil.make_archive(
     str(Path(DISTPATH) / (outputdir + "_" + datetime.date.today().strftime("%y%m%d"))),
     "zip", root_dir=DISTPATH, base_dir=outputdir,
