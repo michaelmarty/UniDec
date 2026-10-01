@@ -187,9 +187,17 @@ jobs:
           if (-not $installationPath) {
             throw 'No Visual Studio installation with C++ build tools was found.'
           }
-          $visualStudioYear = Split-Path (Split-Path $installationPath -Parent) -Leaf
-          if ($visualStudioYear -notin @('2019', '2022', '2026')) {
-            throw "Unsupported Visual Studio installation: $installationPath"
+          $visualStudioVersion = Split-Path (Split-Path $installationPath -Parent) -Leaf
+          $visualStudioYear = @{
+            '16' = '2019'
+            '17' = '2022'
+            '18' = '2026'
+            '2019' = '2019'
+            '2022' = '2022'
+            '2026' = '2026'
+          }[$visualStudioVersion]
+          if (-not $visualStudioYear) {
+            throw "Unsupported Visual Studio version '$visualStudioVersion' at $installationPath"
           }
           "VS${visualStudioYear}INSTALLDIR=$installationPath" >> $env:GITHUB_ENV
           "ONEAPI_VCVARSALL_TARGET=vs$visualStudioYear" >> $env:GITHUB_ENV
