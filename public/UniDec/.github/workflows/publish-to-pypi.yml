@@ -90,7 +90,7 @@ jobs:
           grep -q 'Universal Deconvolution' <<< "$output"
 
       - name: Store native outputs
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
           path: |
@@ -154,11 +154,30 @@ jobs:
           "%RUNNER_TEMP%\oneapi-extracted\bootstrapper.exe" -s --action install --components=%ONEAPI_WINDOWS_COMPONENTS% --eula=accept -p=NEED_VS2022_INTEGRATION=0 --log-dir=.
           if errorlevel 1 exit /b 1
 
+      - name: Locate Visual Studio for oneAPI
+        if: matrix.compiler == 'IntelLLVM'
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          if (-not (Test-Path -LiteralPath $vswhere -PathType Leaf)) {
+            throw "Visual Studio locator was not found: $vswhere"
+          }
+          $installationPath = (& $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | Select-Object -First 1).Trim()
+          if (-not $installationPath) {
+            throw 'No Visual Studio installation with C++ build tools was found.'
+          }
+          $visualStudioYear = Split-Path (Split-Path $installationPath -Parent) -Leaf
+          if ($visualStudioYear -notin @('2019', '2022', '2026')) {
+            throw "Unsupported Visual Studio installation: $installationPath"
+          }
+          "VS${visualStudioYear}INSTALLDIR=$installationPath" >> $env:GITHUB_ENV
+          "ONEAPI_VCVARSALL_TARGET=vs$visualStudioYear" >> $env:GITHUB_ENV
+
       - name: Configure and build with IntelLLVM
         if: matrix.compiler == 'IntelLLVM'
         shell: cmd
         run: |
-          call "C:\Program Files (x86)\Intel\oneAPI\setvars-vcvarsall.bat" vs2022
+          call "C:\Program Files (x86)\Intel\oneAPI\setvars-vcvarsall.bat" %ONEAPI_VCVARSALL_TARGET%
           if errorlevel 1 exit /b 1
           call "C:\Program Files (x86)\Intel\oneAPI\compiler\latest\env\vars.bat"
           if errorlevel 1 exit /b 1
@@ -202,7 +221,7 @@ jobs:
           }
 
       - name: Store native outputs
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
           path: build/release-native/
@@ -395,7 +414,7 @@ jobs:
         run: python -m twine check distpypi/*
 
       - name: Store distributions
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: python-package-distributions
           path: distpypi/
