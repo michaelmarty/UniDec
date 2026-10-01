@@ -59,6 +59,10 @@ hiddenimports = [
     "scipy.special.cython_special", "pubsub.core", "matplotlib.backends.backend_ps",
     "matplotlib.backends.backend_pdf", "pycparser",
 ]
+excluded_optional_visualization_packages = [
+    # These optional visualization packages are not used by the desktop application.
+    "altair", "marimo", "mpld3", "polars",
+]
 if system == "Windows":
     hiddenimports += ["clr", "clr_loader", "pythonnet"]
 
@@ -69,7 +73,8 @@ a = Analysis(
     datas=datas,
     hiddenimports=hiddenimports,
     excludes=["IPython", "statsmodels", "pyopenms", "sklearn", "torch",
-              "PyQt5", "PySide2", "shiboken2"],
+              "PyQt5", "PySide2", "shiboken2",
+              *excluded_optional_visualization_packages],
 )
 pyz = PYZ(a.pure)
 exe = EXE(
