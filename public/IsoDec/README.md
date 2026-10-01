@@ -90,6 +90,8 @@ list instead of selecting the assignment with the smallest ppm error.
 Pass `match_multiple_monoisotopics=False` to match only each peak's `monoiso`
 mass instead of all masses in `monoisos`.
 
+### Plotting Sequence
+
 To view matches along a wrapped sequence, run `python tests/show_fragment_matches.py`
 from the IsoDec directory. The demo uses IsoGen's carbonic anhydrase ETD masses.
 For an embedded view, call `plot_fragment_matches(ax, sequence, pks)` from
@@ -110,6 +112,10 @@ provided in [CITATION.cff](CITATION.cff).
 
 ### 2.0.5
 
+- Updated to IsoGen 1.1.3 for improved fragment matching.
+- Require Python 3.10 or newer.
+- Moved mass grouping and merging into the native core for improved performance and
+  reduced memory usage.
 - Fixed the intensity-weighted average of monoisotopic mass candidates during
   mass grouping and prevented merges from modifying the first peak's candidates.
 - Fixed isotope-distribution mass-axis fitting to shift toward observed
