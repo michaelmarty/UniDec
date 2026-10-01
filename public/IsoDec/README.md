@@ -17,7 +17,7 @@ including Windows ARM64 and Apple silicon. Native builds are also tested on
 ARM64 Linux; the Windows ARM64 wheel is tested with Python 3.14. Compatible
 wheels include the native IsoDec and IsoGen libraries. A source build requires
 CMake 3.22.1 or newer, a C/C++ compiler, FFTW, and an initialized IsoGen
-submodule:
+submodule. IsoDec pins IsoGen and the `pyisogen` package to version 1.1.3:
 
 ```shell
 git clone --recurse-submodules https://github.com/michaelmarty/IsoDec.git

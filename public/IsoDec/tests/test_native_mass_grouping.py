@@ -333,9 +333,9 @@ def test_repository_etd_native_python_and_exports(order, tmp_path):
                                   native_wrapper=wrapper, **kwargs)
     expected = brute_force_pep_match(sequence, spectrum, config=deepcopy(wrapper.config),
                                     native=False, **kwargs)
-    # Correcting the wrapped cosine penalty admits 14 additional ETD hits.
-    assert len(actual) == len(expected) == 794
-    assert len(actual.masses) == (298 if order == "original" else 297)
+    # IsoGen 1.1.3 produces seven additional ETD hits.
+    assert len(actual) == len(expected) == 801
+    assert len(actual.masses) == (300 if order == "original" else 299)
     assert [(p.sequence_match, p.z) for p in actual] == [(p.sequence_match, p.z) for p in expected]
     _assert_groups(actual, expected)
     if order == "original":

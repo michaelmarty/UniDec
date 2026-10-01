@@ -14,8 +14,8 @@ Current acceptance evidence:
 
 - Sequence-composition fragment batches include supported ion termini and
   known-formula modifications; unknown-composition modifications are rejected.
-- Corrected ETD results agree with the frozen Python reference: 794 hits,
-  298 original-order groups, or 297 matched-intensity-order groups. The normal
+- Corrected ETD results agree with the frozen Python reference: 801 hits,
+  300 original-order groups, or 299 matched-intensity-order groups. The normal
   fixture has 277 hits and 197 original-order groups.
 - Membership, mass distributions, intensities, scans, exports, and multi-scan
   accumulation have native/Python parity coverage. C ownership and error cases
@@ -34,16 +34,12 @@ Current acceptance evidence:
 
 ### Remaining major release work
 
-1. **Release and require the batch-capable PyIsoGen dependency.** IsoDec's
-   `pyisogen>=1.1.2` requirement and the pinned batch-capable IsoGen source both
-   identify version 1.1.2. The published 1.1.2 used during Linux validation lacks
-   `calc_pep_fragment_isodists`; this review also downloaded the current
-   published Windows x64 wheel and confirmed that API is absent. The current
-   PyPI release still identifies as 1.1.2. Publish the required API under a
-   distinguishable version, update the minimum dependency and submodule pointer
-   deliberately, then prove a clean
-   pip install works without an editable source checkout or replacement wheel.
-   See [PyIsoGen on PyPI](https://pypi.org/project/pyisogen/).
+1. **Require the batch-capable PyIsoGen dependency.** IsoDec pins
+   `pyisogen==1.1.3`, and its IsoGen submodule is pinned to the corresponding
+   `v1.1.3` source revision. This published release provides
+   `calc_pep_fragment_isodists`, so a normal editable install resolves the
+   batch-capable wheel without a replacement source build. See
+   [PyIsoGen on PyPI](https://pypi.org/project/pyisogen/).
 2. **Finish installed-wheel acceptance on the supported platform matrix.**
    Validate Windows x64/ARM64, macOS Intel/Apple silicon, and repaired Linux
    x86_64/ARM64 wheels using the released dependency. Include native loading,
@@ -992,8 +988,8 @@ binding rather than merely loosening parity checks:
   and acceptance thresholds were not retuned to preserve erroneous old counts.
 
 The normal fixture retains 277 hits, 197 original-order groups, and 196
-intensity-order groups. The repository ETD fixture now yields 794 accepted hits,
-298 original-order groups, and 297 intensity-order groups through independently
+intensity-order groups. The repository ETD fixture now yields 801 accepted hits,
+300 original-order groups, and 299 intensity-order groups through independently
 executed Python and native paths. Both orders have zero groups mixing theoretical
 fragment masses on this input; every fitted-axis origin remains within 5 ppm
 (maximum 4.425 ppm). These labels are not independent experimental ground truth,
@@ -1067,12 +1063,9 @@ passed in 19.56 seconds**, including normal-spectrum grouping, multi-scan and
 export parity, and the frozen ETD reference: 794 hits, 298 original-order
 groups, and 297 intensity-order groups.
 
-The pinned PyIsoGen source currently also identifies itself as version 1.1.2,
-so the declared `pyisogen>=1.1.2` dependency does not distinguish the required
-batch-capable build from the published release. A normal fresh pip install
-therefore still lacks fragment batch support; this remains a release dependency
-issue, despite passing validation with the pinned source build. No dependency
-version or publishing configuration was changed during this validation.
+IsoGen 1.1.3 now provides the required batch API as a published release.
+IsoDec pins both `pyisogen` and its source submodule to that version, so a
+normal fresh pip install resolves the batch-capable build.
 
 This validates a local Linux x86_64 wheel on WSL Ubuntu with system FFTW;
 it does not establish manylinux portability or ARM64 compatibility. Windows
