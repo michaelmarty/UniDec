@@ -39,7 +39,8 @@ Activate it with `venv\Scripts\Activate.ps1` in Windows PowerShell, or
 
 The `gui` extra installs wxPython, which is required by `gunidec` and `unidecim`.
 For command-line and Python API use without the GUI, install `UniDec` without
-the extra. The portable Windows download already includes wxPython.
+the extra. Windows ARM64 wheel installation is tested with Python 3.14. The
+portable Windows download already includes wxPython.
 
 To install from a source checkout instead:
 
@@ -86,12 +87,9 @@ listed, you'll need to figure out which packages provide these libraries.
 python -m venv venv --system-site-packages
 ```
 
-If you're on an x86_64 machine and step 1 did not throw any errors, then you
-will likely be able to proceed with the Pip install as shown above, as there
-is a compiled version of the UniDec engine binary in `unidec/bin/unideclinux`.
-If you are on an Arm or other non-x86_64 system, or if running UniDec from
-within the GUI throws errors (in the terminal window), you may need to recompile
-the UniDec engine:
+Published wheels include the UniDec engine for x86_64 and ARM64 Linux; ARM64
+installation is tested with Python 3.13. On another architecture, or if running
+UniDec from the GUI reports a native engine error, recompile the engine:
 
     ./unidec/src/compilelinux.sh
 
@@ -321,6 +319,8 @@ v.9.0.0
 
 Split IsoDec, IsoGen, and UniDecImporter into separate Python packages. This allows more targeted development on each of those and simplifies testing and releases. I am working on automating more of the docs and releases on each to improve consistency and catch any issues. Hopefullly this will help. Let me know what bugs pop up.
 
+IsoDec and IsoGen have been improved to allow fragment prediction and matching. These have been integrated into the IsoDec GUI to have a match sequence to IsoDec outputs and also to match a sequence to the input spectrum. Pieces of this have also been moved to C for speed improvements. 
+
 Split UniDecIM into a separate window and engine to simplify the code. It had been a weird window switch of the main UniDec. Should be easier now. Split UCD and UCCD windows in the same way.
 
 UniDecIM now supports Artifact Suppression and Point Smoothing like the main window.
@@ -341,7 +341,9 @@ Added in automated testing, document building, and publishing with the help of C
 
 As part of the automated builds, there should be an actual up-to-date Mac version for people willing to install it on Python! Thanks to Xavier who kept building it for me over the years.
 
-CD-MS modes will now use truncated file names. Too many people were hitting path length issues with the full file names. So, it will now be just conf.dat rather than [filename]_conf.dat. May decide to migrate the other windows to this. Let me know what you think.
+CD-MS modes will now use truncated file names. Too many people were hitting path length issues with the full file names. So, it will now be just conf.dat rather than [filename]_conf.dat. IsoDec has also been migrated to this. May decide to migrate the other windows to this. Let me know what you think.
+
+Removed interactive html plot to simplify.
 
 v.8.3.0
 

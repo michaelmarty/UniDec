@@ -715,6 +715,10 @@ class UniDecBatchProcessor(object):
             self.eng.reset_config()
             path = self.get_file_path(row, use_converted=use_converted)
 
+            if interactive:
+                print("Interactive HTML reports are disabled; using static figures.")
+                interactive = False
+
             # Get the time range
             self.time_range = get_time_range(row)
 

@@ -49,7 +49,7 @@ class IsoDecView(MainwindowBase):
         # splitterwindow2.SetSashGravity(0.5)
         panelp = wx.Panel(splitterwindow2, -1)
         panel = scrolled.ScrolledPanel(splitterwindow2, -1)  # wx.Panel(splitterwindow2, -1)
-        splitterwindow2.SplitVertically(panelp, panel, sashPosition=-270)
+        splitterwindow2.SplitVertically(panelp, panel, sashPosition=-260)
 
         file_drop_target = MyFileDropTarget(self)
         self.splitterwindow.SetDropTarget(file_drop_target)
@@ -66,30 +66,35 @@ class IsoDecView(MainwindowBase):
         self.splitterwindow.SplitVertically(plotwindow, splitterwindow2, sashPosition=-550)
         self.sizerplot = wx.GridBagSizer()
         figsize = self.config.figsize
-        self.plot1 = PlottingWindow.Plot1d(plotwindow, smash=1, figsize=figsize, parent=plotwindow)
-        self.plot2 = PlottingWindow.Plot1d(plotwindow, integrate=1, figsize=figsize, parent=plotwindow)
+        plot_axes = (0.23, 0.13, 0.70, 0.79)
+        self.plot1 = PlottingWindow.Plot1d(plotwindow, smash=1, figsize=figsize,
+                                           axes=plot_axes, parent=plotwindow)
+        self.plot2 = PlottingWindow.Plot1d(plotwindow, integrate=1, figsize=figsize,
+                                           axes=plot_axes, parent=plotwindow)
+        self.plot1.SetMinSize((200, 200))
+        self.plot2.SetMinSize((200, 200))
         self.fragment_panel = wx.Panel(plotwindow)
-        self.fragment_figure = Figure(figsize=(12, 3))
+        self.fragment_figure = Figure(figsize=(7, 2.5))
         self.fragment_ax = self.fragment_figure.add_subplot(111)
         self.fragment_canvas = FigureCanvasWxAgg(self.fragment_panel, -1, self.fragment_figure)
+        self.fragment_canvas.SetMinSize((1, 250))
         self.fragment_has_matches = False
         fragment_sizer = wx.BoxSizer(wx.VERTICAL)
         fragment_sizer.Add(self.fragment_canvas, 1, wx.EXPAND)
         self.fragment_panel.SetSizer(fragment_sizer)
-        self.fragment_panel.SetMinSize((1200, 250))
+        self.fragment_panel.SetMinSize((-1, 250))
         self.clear_fragment_plot()
 
         self.sizerplot.Add(self.plot1, (0, 0), span=(1, 1), flag=wx.EXPAND)
         self.sizerplot.Add(self.plot2, (0, 1), span=(1, 1), flag=wx.EXPAND)
         self.sizerplot.Add(self.fragment_panel, (1, 0), span=(1, 2), flag=wx.EXPAND)
+        self.sizerplot.AddGrowableRow(0, 1)
+        self.sizerplot.AddGrowableCol(0, 1)
+        self.sizerplot.AddGrowableCol(1, 1)
 
         # plotwindow.SetScrollbars(1, 1,1,1)
-        if self.system == "Linux":
-            plotwindow.SetSizer(self.sizerplot)
-            self.sizerplot.Fit(self)
-        else:
-            plotwindow.SetSizerAndFit(self.sizerplot)
-        plotwindow.SetupScrolling()
+        plotwindow.SetSizer(self.sizerplot)
+        plotwindow.SetupScrolling(scroll_x=False)
         plotwindow.SetFocus()
         plotwindow.Bind(wx.EVT_SET_FOCUS, self.onFocus)
         self.plotpanel = plotwindow
@@ -104,11 +109,10 @@ class IsoDecView(MainwindowBase):
         #
         # ...........................
         sizerpeaks = wx.BoxSizer(wx.VERTICAL)
-        self.peakpanel = peaklistsort.PeakListCtrlPanel(panelp, size=(300, 600), isodec=True)
+        self.peakpanel = peaklistsort.PeakListCtrlPanel(panelp, size=(275, -1), isodec=True)
         self.bind_peakpanel()
-        sizerpeaks.Add(self.peakpanel, 0, wx.EXPAND)
+        sizerpeaks.Add(self.peakpanel, 1, wx.EXPAND)
         panelp.SetSizer(sizerpeaks)
-        sizerpeaks.Fit(self)
 
         # ..........................
         #
@@ -119,28 +123,25 @@ class IsoDecView(MainwindowBase):
         self.controls = IsoDecControls.MainControls(self, self.config, self.pres, panel)
         sizercontrols.Add(self.controls, 1, wx.EXPAND)
         panel.SetSizer(sizercontrols)
-        sizercontrols.Fit(self)
 
         splitterwindow2.SetMinimumPaneSize(20)
         self.splitterwindow.SetMinimumPaneSize(20)
         # self.splitterwindow.SetMinSize((0,0))
         # splitterwindow2.SetMinSize((0,0))
 
-        if self.system == "Linux":
-            self.sizerplot.Fit(self.splitterwindow)
-
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.splitterwindow, 1, wx.EXPAND)
 
         # Set everything up
         self.SetSizer(sizer)
-        sizer.Fit(self)
-        self.SetSize((self.GetSize().width, self.GetSize().height + 100))
-
+        self.SetSize((min(self.displaysize[0] - 40, 1800),
+                      min(self.displaysize[1] - 40, 1000)))
+        self.Centre()
         self.Layout()
 
         self.plotpanel.SetMinSize(wx.Size(-1, -1))
         self.plotpanel.Bind(wx.EVT_SIZE, self.resize_plots)
+        wx.CallAfter(self.resize_initial_plots)
 
         self.splitterwindow.SetMinimumPaneSize(20)
         self.splitterwindow.SetSashGravity(0.99)
@@ -148,21 +149,46 @@ class IsoDecView(MainwindowBase):
         splitterwindow2.SetMinimumPaneSize(20)
         splitterwindow2.SetSashGravity(0.5)
 
+    def resize_initial_plots(self):
+        self.resize_plots()
+        for plot in self.plots:
+            plot.set_resize(plot.GetSize())
+
+    def resize_plots(self, e=None):
+        if e is not None:
+            wx.CallAfter(self.resize_plots)
+            e.Skip()
+            return
+        halfwidth = int(self.plotpanel.GetSize().width / 2)
+        for plot in self.plots:
+            plot.SetMinSize(wx.Size(halfwidth, 200))
+            plot.canvas.SetMinSize(wx.Size(halfwidth, 200))
+            left = max(0.23, 65 / max(halfwidth, 1))
+            axes = (left, 0.13, 0.93 - left, 0.79)
+            plot._axes = axes
+            if plot.subplot1 is not None:
+                plot.subplot1.set_position(axes)
+        self.fragment_panel.SetMinSize(wx.Size(-1, 250))
+        self.plotpanel.Layout()
+
     def clear_fragment_plot(self):
         self.fragment_has_matches = False
         self.fragment_ax.clear()
         self.fragment_ax.set_axis_off()
         self.fragment_canvas.draw_idle()
 
-    def show_fragment_matches(self, sequence, pks):
+    def show_fragment_matches(self, sequence, pks, show_match_percent=True):
         residues_per_line = 70
         lines = math.ceil((len(pks.fragment_matches.index) + 1) / residues_per_line)
         ion_count = sum(column.endswith("_match") and pks.fragment_matches[column].notna().any()
                         for column in pks.fragment_matches)
         height = max(2.5, 0.35 + lines * (0.22 + 0.07 * ion_count))
-        self.fragment_figure.set_size_inches(12, height)
-        self.fragment_panel.SetMinSize((1200, int(height * self.fragment_figure.dpi)))
-        plot_fragment_matches(self.fragment_ax, sequence, pks, residues_per_line=residues_per_line)
+        width = max(7, self.plotpanel.GetClientSize().width / self.fragment_figure.dpi)
+        self.fragment_figure.set_size_inches(width, height)
+        self.fragment_panel.Show()
+        self.fragment_panel.SetMinSize((-1, int(height * self.fragment_figure.dpi)))
+        plot_fragment_matches(self.fragment_ax, sequence, pks, residues_per_line=residues_per_line,
+                              show_match_percent=show_match_percent)
         self.fragment_has_matches = True
         self.fragment_figure.tight_layout(pad=0.3)
         self.fragment_canvas.draw_idle()

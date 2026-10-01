@@ -13,11 +13,6 @@ import base64
 import webbrowser
 import os
 
-try:
-    import mpld3
-except:
-    print("mpld3 not found")
-
 luminance_cutoff = 135
 
 
@@ -26,13 +21,6 @@ def write_to_html(html_str, outfile, mode="a"):
     html_file = io.open(outfile, mode, encoding='utf-8')
     html_file.write(html_str)
     html_file.close()
-
-
-def fig_to_html_mpld3(fig, outfile=None):
-    html_str = mpld3.fig_to_html(fig, no_extras=True)
-    if outfile is not None:
-        write_to_html(html_str, outfile)
-    return html_str
 
 
 '''

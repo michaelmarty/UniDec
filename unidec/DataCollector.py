@@ -1355,7 +1355,7 @@ class DataCollector(wx.Frame):
                     boo1 = msdat[:, 0] < limits[1]
                     boo2 = msdat[:, 0] > limits[0]
                     intdat = msdat[np.all([boo1, boo2], axis=0)]
-                    val = np.trapz(intdat[:, 1], x=intdat[:, 0])
+                    val = np.trapezoid(intdat[:, 1], x=intdat[:, 0])
                     pass
                 vals.append(val)
             vals = np.array(vals)

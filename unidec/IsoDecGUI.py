@@ -9,13 +9,14 @@ import unidec.tools as ud
 from unidec.modules.unidec_presbase import UniDecPres
 from isodec.runtime import IsoDecRuntime
 from isodec import match_fragments
+from isodec.fragment_matching import summarize_assigned_fragments
 from unidec.modules.gui_elements.IsoDecView import IsoDecView
 from unidec.engine import UniDec
 import os
 import wx
 import time
 from unidec.modules.peakstructure import Peaks
-from isodec.datatools import get_all_centroids
+from isodec.datatools import check_spacings, get_all_centroids
 import numpy as np
 from unidec.modules.isolated_packages import FileDialogs
 import platform
@@ -31,6 +32,8 @@ class IsoDecPres(UniDecPres):
         self.sequence_path = None
 
         self.view = IsoDecView(self, "IsoDec", self.eng.config, iconfile=None)
+        self.recent_files = self.read_recent()
+        self.view.menu.update_recent()
         try:
             if (platform.node() == 'CHEM-A90237' or platform.node() == 'Aurora25') and True:
                 # self.on_ex()
@@ -91,7 +94,8 @@ class IsoDecPres(UniDecPres):
         if not skipengine:
             # Open File in Engine
             self.top_path = os.path.join(directory, filename)
-            self.eng.open_file(filename, directory, refresh=refresh, isodeceng=self.isodeceng, **kwargs)
+            self.eng.open_file(filename, directory, refresh=refresh, isodeceng=self.isodeceng,
+                               simple_output=True, **kwargs)
 
         self.sequence_path = Path(self.eng.config.udir) / "seq.fasta" if self.eng.config.udir else None
         self._load_sequence()
@@ -156,6 +160,9 @@ class IsoDecPres(UniDecPres):
         :return: None
         """
         self.view.plot1.centroid_plot(self.eng.data.data2, xlabel="m/z", ylabel="Intensity", color="k")
+        axes = self.view.plot1.subplot1
+        self._spectrum_plot_artists = tuple(len(artists) for artists in
+                                            (axes.lines, axes.texts, axes.collections, axes.patches))
         # self.eng.makeplot1(plot=self.view.plot1, intthresh=intthresh, imfit=imfit)
 
     def makeplot2(self, e=None):
@@ -224,6 +231,7 @@ class IsoDecPres(UniDecPres):
         self.view.export_gui_to_config()
         self.match_source_ready = False
         self.view.clear_fragment_plot()
+        self.view.peakpanel.clear_list()
         self._save_sequence()
 
         tstart = time.perf_counter()
@@ -285,8 +293,81 @@ class IsoDecPres(UniDecPres):
             return
 
         self.view.show_fragment_matches(sequence, pks)
+        self.translate_pks()
+        self.update_peak_panel()
         self._save_sequence()
         self.view.SetStatusText("Sequence coverage: {:.1%}".format(pks.sequence_coverage), number=5)
+
+    def on_brute_force_match(self, e=None):
+        controls = self.view.controls
+        sequence = self._sequence_text()
+        if not sequence:
+            wx.MessageBox("Enter a sequence to match.", "Brute Force Match", wx.OK | wx.ICON_ERROR)
+            return
+        if controls.ctlavgpeakmasses.GetValue():
+            wx.MessageBox("Brute Force Match requires monoisotopic masses. Turn off Average Mass.",
+                          "Brute Force Match", wx.OK | wx.ICON_ERROR)
+            return
+
+        try:
+            ppm_tolerance = float(controls.ctlfragmentppm.GetValue())
+            if not np.isfinite(ppm_tolerance) or ppm_tolerance < 0:
+                raise ValueError("Tolerance must be a non-negative number.")
+            self.view.export_gui_to_config()
+            self.translate_config()
+            config = deepcopy(self.isodeceng.config)
+            config.matchtol = ppm_tolerance
+            tstart = time.perf_counter()
+            data = np.asarray(self.eng.data.data2)
+            if data.ndim != 2 or data.shape[1] != 2 or len(data) == 0:
+                raise ValueError("Run Data Prep before running Brute Force Match.")
+            if len(data) > 2 and check_spacings(data) <= config.meanpeakspacing_thresh:
+                # Some saved configurations mark profile data as centroided.
+                # IsoDec's normal run accepts data2 as-is, but this search
+                # needs one centroid per isotope peak for envelope scoring.
+                data = get_all_centroids(data)
+            self.view.SetStatusText("Running Brute Force Match...", number=5)
+            pks = self.isodeceng.brute_force_pep_match(
+                sequence, data, fragmentation_type=controls.ctlfragmentation.GetValue(),
+                centroided=True, config=config)
+            if pks.peaks:
+                summarize_assigned_fragments(pks, sequence)
+            print("Brute Force Match Done. Time: %.2fs" % (time.perf_counter() - tstart))
+        except (ValueError, TypeError, KeyError) as error:
+            wx.MessageBox(str(error), "Brute Force Match", wx.OK | wx.ICON_ERROR)
+            self.view.SetStatusText("Brute Force Match failed", number=5)
+            return
+
+        self._save_sequence()
+        self.match_source_ready = bool(pks.peaks)
+        self.view.peakpanel.clear_list()
+        spectrum_plot = self.view.plot1
+        axes = getattr(spectrum_plot, "subplot1", None)
+        artist_counts = (tuple(len(artists) for artists in
+                               (axes.lines, axes.texts, axes.collections, axes.patches))
+                         if axes is not None else None)
+        clean_spectrum_plot = (
+            getattr(spectrum_plot, "flag", False)
+            and getattr(spectrum_plot, "data", None) is self.eng.data.data2
+            and axes is not None
+            and artist_counts == getattr(self, "_spectrum_plot_artists", None)
+        )
+        if not clean_spectrum_plot:
+            self.makeplot1(imfit=False)
+        if pks.peaks:
+            self.eng.data.massdat = self.isodeceng.pks_to_mass(self.eng.config.massbins)
+            self.translate_pks()
+            self.update_peak_panel()
+            self.makeplot2()
+            self.view.show_fragment_matches(sequence, pks, show_match_percent=False)
+            self.view.SetStatusText("Brute Force Match: {} peaks, {:.1%} coverage".format(
+                len(pks.peaks), pks.sequence_coverage), number=5)
+        else:
+            self.eng.pks = Peaks()
+            self.eng.data.massdat = np.empty((0, 2))
+            self.view.plot2.clear_plot()
+            self.view.clear_fragment_plot()
+            self.view.SetStatusText("Brute Force Match: no peaks found", number=5)
 
     def _sequence_text(self):
         return "".join(line.strip() for line in self.view.controls.ctlsequence.GetValue().splitlines()
@@ -321,6 +402,15 @@ class IsoDecPres(UniDecPres):
             return
         udpks = Peaks()
         udpks.merge_isodec_pks(idpks, self.eng.config)
+        for displayed, group in zip(udpks.peaks, sorted(idpks.masses, key=lambda p: p.monoiso)):
+            labels = []
+            for peak in group.clusters:
+                match = getattr(peak, "sequence_match", None)
+                for label in ([match] if isinstance(match, str) else match or []):
+                    if label and label not in labels:
+                        labels.append(label)
+            if labels:
+                displayed.label = ", ".join(labels)
         self.eng.pks = udpks
         # Send pks to structure
 
@@ -337,6 +427,9 @@ class IsoDecPres(UniDecPres):
         self.translate_pks()
         self.plot_mass_peaks()
         self.plot_mz_peaks()
+        self.update_peak_panel()
+
+    def update_peak_panel(self):
         if self.eng.config.idconfig.avgpeakmasses == 1:
             self.view.peakpanel.add_data(self.eng.pks, show="mass", collab1="Avg Mass")
             self.isodeceng.showavg = True
@@ -371,12 +464,18 @@ class IsoDecPres(UniDecPres):
                     continue
                 isodist[:, 1] = isodist[:, 1] * -1
                 self.view.plot1.add_centroid(isodist, color=p.color, repaint=False)
+                self.view.plot1.subplot1.lines[-1].set_gid("isodec_isotope")
         self.view.plot1.repaint()
         pass
 
     def on_delete(self, evt=None):
+        axes = self.view.plot1.subplot1
+        show_isotopes = axes is not None and any(
+            line.get_gid() == "isodec_isotope" for line in axes.lines)
         self.plot_mass_peaks()
         self.plot_mz_peaks()
+        if show_isotopes:
+            self.on_plot_dists()
 
     def on_replot(self, evt=None):
         self.view.export_gui_to_config()
@@ -533,32 +632,31 @@ class IsoDecPres(UniDecPres):
         self.view.export_gui_to_config()
         self.isodeceng.process_file(path)
         # The output directory should be a directory with the same name as the input file + _unidecfiles
-        outdir = os.path.dirname(path) + "\\" + os.path.splitext(os.path.basename(path))[0] + "_unidecfiles\\"
+        outdir = os.path.splitext(path)[0] + "_unidecfiles"
         # Check of the outdirectory exists
         if not os.path.exists(outdir):
             os.makedirs(outdir)
         self._save_sequence(Path(outdir) / "seq.fasta")
 
-        # Get the filename wihtout the path or extension
-        filename = os.path.splitext(os.path.basename(path))[0]
-        os.chdir(os.path.dirname(outdir))
-
+        result_prefix = os.path.join(outdir, "results")
         if self.eng.config.idconfig.write_msalign == 1:
-            self.isodeceng.export_peaks("msalign", filename, reader=self.isodeceng.reader)
+            self.isodeceng.export_peaks("msalign", filename=result_prefix,
+                                        reader=self.isodeceng.reader)
 
         if self.eng.config.idconfig.write_tsv == 1:
-            self.isodeceng.export_peaks("tsv", filename + ".tsv")
+            self.isodeceng.export_peaks("tsv", result_prefix + ".tsv")
         pass
 
     def export_results(self):
+        result_prefix = os.path.join(self.eng.config.udir, "results")
         if self.eng.config.idconfig.write_msalign == 1:
-            self.isodeceng.export_peaks("msalign", filename=self.eng.config.outfname,
+            self.isodeceng.export_peaks("msalign", filename=result_prefix,
                                         reader=self.isodeceng.reader, max_precursors=1)
-            print("Exported MSAlign File: ", self.eng.config.outfname)
+            print("Exported MSAlign File: ", result_prefix)
 
         if self.eng.config.idconfig.write_tsv == 1:
-            self.isodeceng.export_peaks("tsv", filename=self.eng.config.outfname + ".tsv")
-            print("Exported TSV File: ", self.eng.config.outfname + ".tsv")
+            self.isodeceng.export_peaks("tsv", filename=result_prefix + ".tsv")
+            print("Exported TSV File: ", result_prefix + ".tsv")
 
     def on_remove_assigned_peaks(self, e=None):
         print(self.isodeceng.config)

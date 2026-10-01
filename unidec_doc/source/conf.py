@@ -49,7 +49,6 @@ autodoc_mock_imports = [
     'massql',
     'matchms',
     'molmass',
-    'mpld3',
     'sqlalchemy',
     'torch',
     'torchvision',

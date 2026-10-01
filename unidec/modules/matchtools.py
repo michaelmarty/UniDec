@@ -341,7 +341,7 @@ known_labels = ["Correct", "Incorrect", "Ignore"]
 
 def calc_pairs(row, remove_zeros=True, fmoddf=None, keywords=None):
     """
-    For use with UniDec Processing HEKPipeline
+    For use with UniDec Processing Pipeline
     Calculate the potential pairs from a row.
     :param row: Row from a df with Sequence N in the column heading designating the sequence. Seq N + Seq M will look for a pair.
     :param remove_zeros: Boolean to remove the pairs with masses of 0 from the output. Default is True.
