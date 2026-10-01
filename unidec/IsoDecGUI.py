@@ -9,7 +9,6 @@ import unidec.tools as ud
 from unidec.modules.unidec_presbase import UniDecPres
 from isodec.runtime import IsoDecRuntime
 from isodec import match_fragments
-from isodec.fragment_matching import summarize_assigned_fragments
 from unidec.modules.gui_elements.IsoDecView import IsoDecView
 from unidec.engine import UniDec
 import os
@@ -329,8 +328,6 @@ class IsoDecPres(UniDecPres):
             pks = self.isodeceng.brute_force_pep_match(
                 sequence, data, fragmentation_type=controls.ctlfragmentation.GetValue(),
                 centroided=True, config=config)
-            if pks.peaks:
-                summarize_assigned_fragments(pks, sequence)
             print("Brute Force Match Done. Time: %.2fs" % (time.perf_counter() - tstart))
         except (ValueError, TypeError, KeyError) as error:
             wx.MessageBox(str(error), "Brute Force Match", wx.OK | wx.ICON_ERROR)
@@ -358,9 +355,8 @@ class IsoDecPres(UniDecPres):
             self.translate_pks()
             self.update_peak_panel()
             self.makeplot2()
-            self.view.show_fragment_matches(sequence, pks)
-            self.view.SetStatusText("Brute Force Match: {} peaks, {:.1%} coverage".format(
-                len(pks.peaks), pks.sequence_coverage), number=5)
+            self.view.clear_fragment_plot()
+            self.view.SetStatusText("Brute Force Match: {} peaks".format(len(pks.peaks)), number=5)
         else:
             self.eng.pks = Peaks()
             self.eng.data.massdat = np.empty((0, 2))

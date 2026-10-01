@@ -133,13 +133,14 @@ class IsoDecView(MainwindowBase):
 
         # Set everything up
         self.SetSizer(sizer)
-        self.SetSize((min(self.displaysize[0] - 40, 1400),
-                      min(self.displaysize[1] - 40, 900)))
+        self.SetSize((min(self.displaysize[0] - 40, 1800),
+                      min(self.displaysize[1] - 40, 1000)))
         self.Centre()
         self.Layout()
 
         self.plotpanel.SetMinSize(wx.Size(-1, -1))
         self.plotpanel.Bind(wx.EVT_SIZE, self.resize_plots)
+        wx.CallAfter(self.resize_plots)
 
         self.splitterwindow.SetMinimumPaneSize(20)
         self.splitterwindow.SetSashGravity(0.99)
@@ -149,6 +150,7 @@ class IsoDecView(MainwindowBase):
 
     def clear_fragment_plot(self):
         self.fragment_has_matches = False
+        self.fragment_panel.Hide()
         self.fragment_ax.clear()
         self.fragment_ax.set_axis_off()
         self.fragment_canvas.draw_idle()
@@ -161,6 +163,7 @@ class IsoDecView(MainwindowBase):
         height = max(2.5, 0.35 + lines * (0.22 + 0.07 * ion_count))
         width = max(7, self.plotpanel.GetClientSize().width / self.fragment_figure.dpi)
         self.fragment_figure.set_size_inches(width, height)
+        self.fragment_panel.Show()
         self.fragment_panel.SetMinSize((-1, int(height * self.fragment_figure.dpi)))
         plot_fragment_matches(self.fragment_ax, sequence, pks, residues_per_line=residues_per_line)
         self.fragment_has_matches = True
