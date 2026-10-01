@@ -1,16 +1,16 @@
 version 9.0.0
 imflag 0
 cdmsflag 1
-input C:\Python\UniDecDev\public\UniDec\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1_input.dat
-output C:\Python\UniDecDev\public\UniDec\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\GroEL_CDMS_1
+input C:\Python\UniDecDev\public\UniDec\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\input.dat
+output C:\Python\UniDecDev\public\UniDec\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\
 numit 50
-numz 51
-endz 100
+numz 36
+endz 85
 startz 50
 zzsig 1e-06
 psig 1.0
-beta 1.0
-suppression_topn 0
+beta 0.0
+suppression_topn 1
 suppression_topx 0.0
 suppression_percent 0.0
 suppression_startit 3
@@ -28,8 +28,8 @@ molig 0.0
 massbins 10.0
 mtabsig 0.0
 isomode 0
-minmz 9992.689903846154
-maxmz 12573.891826923078
+minmz 10000.0
+maxmz 13000.0
 subbuff 0.0
 subtype 0
 smooth 0.0
@@ -42,7 +42,7 @@ plotsep 0.025
 intthresh 0.0
 reductionpercent 0.0
 aggressive 0
-rawflag 0
+rawflag 1
 adductmass 1.007276467
 nativezub 100.0
 nativezlb -100.0
