@@ -8,6 +8,13 @@ on:
       - "pyproject.toml"
       - "tests/**"
       - "unidec/**"
+  pull_request:
+    paths:
+      - ".github/workflows/test-gui-workflows.yml"
+      - "build_native.sh"
+      - "pyproject.toml"
+      - "tests/**"
+      - "unidec/**"
   workflow_dispatch:
 
 concurrency:
@@ -121,6 +128,7 @@ jobs:
           python -m unittest discover -s tests -p "test_native_build.py" -v
 
   windows-native-builds:
+    if: github.event_name != 'push'
     name: ${{ matrix.name }} native build
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
