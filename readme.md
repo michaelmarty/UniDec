@@ -343,6 +343,8 @@ As part of the automated builds, there should be an actual up-to-date Mac versio
 
 CD-MS modes will now use truncated file names. Too many people were hitting path length issues with the full file names. So, it will now be just conf.dat rather than [filename]_conf.dat. IsoDec has also been migrated to this. May decide to migrate the other windows to this. Let me know what you think.
 
+Removed interactive html plot to simplify.
+
 v.8.3.0
 
 Fixed bug where datanorm wasn't being loaded into UniDecCD.

@@ -11,7 +11,6 @@ lxml
 lxml_html_clean
 MarkupSafe
 matplotlib
-mpld3
 natsort
 networkx
 numba

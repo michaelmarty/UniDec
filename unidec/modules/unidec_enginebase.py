@@ -625,7 +625,6 @@ class UniDecEngine:
                 print("Plot 4: %.2gs" % (tend - tstart))
             return plot
 
-    #This is broken
     def gen_html_report(self, event=None, outfile=None, plots=None, interactive=False, open_in_browser=True,
                         results_string=None, del_columns=None, findex=None, allpng=False):
         """
@@ -633,7 +632,7 @@ class UniDecEngine:
         :param event: Unused Event
         :param outfile: Output file name. Default is None, which will use the default name.
         :param plots: List of plots to include in the report. Must be 2D with row and column format.
-        :param interactive: If True, will include interactive plots. Default is False.
+        :param interactive: Retained for compatibility; interactive plots are disabled.
         :param open_in_browser: If True, will open the report in the default browser. Default is True.
         :param results_string: String to include in the report. Default is None.
         :param del_columns: List of columns to delete from the report. Default is None.
@@ -676,7 +675,6 @@ class UniDecEngine:
                 plots = np.vstack((plots, lastrow))
 
         svg_grid = []
-        figure_list = []
         for row in plots:
             svg_row = []
             goodrow = False
@@ -689,7 +687,6 @@ class UniDecEngine:
                         svg_row.append(png_html)
                     else:
                         svg_row.append(c.get_svg())
-                    figure_list.append(c.figure)
                 else:
                     svg_row.append("<p></p>")
             if goodrow:
@@ -699,12 +696,7 @@ class UniDecEngine:
         self.html_str += svg_grid_string
 
         if interactive:
-            for f in figure_list:
-                try:
-                    self.html_str += fig_to_html_mpld3(f, outfile)
-                except Exception as e:
-                    print("Unable to create interactive figures", e)
-                    pass
+            print("Interactive HTML reports are disabled; using static figures.")
 
         # Write results string paragraph
         if results_string is not None:
@@ -732,5 +724,3 @@ class UniDecEngine:
             # os.system(self.config.opencommand + "\"" + outfile + "\"")
 
         return outfile
-
-

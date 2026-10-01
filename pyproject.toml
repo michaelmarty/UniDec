@@ -26,7 +26,7 @@ requires-python = ">=3.10"
 [project.optional-dependencies]
 # install with <installer> install '.[opt-dependency group]'
 gui = ["wxPython>=4.0"]
-dev = ["pytest", "pyinstaller", "molmass", "mpld3",
+dev = ["pytest", "pyinstaller", "molmass",
     "wxpython>=4.0"]
 img = ['pyimzml']
 
