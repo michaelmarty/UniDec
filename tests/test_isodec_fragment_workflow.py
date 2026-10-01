@@ -54,6 +54,7 @@ with patch.object(IsoDecPres, 'read_recent', return_value=[recent_path]):
     app = IsoDecPres()
 try:
     view = app.view
+    view.SetSize((984, 728))
     view.Show()
     app.wx_app.Yield()
     assert view.fragment_panel.IsShown()
