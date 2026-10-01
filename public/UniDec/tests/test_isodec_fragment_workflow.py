@@ -56,8 +56,11 @@ try:
     view = app.view
     view.Show()
     app.wx_app.Yield()
-    assert not view.fragment_panel.IsShown()
+    assert view.fragment_panel.IsShown()
     assert view.plot2.GetPosition().x + view.plot2.GetSize().width <= view.plotpanel.GetClientSize().width
+    assert all(plot.canvas.GetSize() == plot.GetSize() for plot in (view.plot1, view.plot2))
+    assert view.fragment_canvas.GetSize() == view.fragment_panel.GetSize()
+    assert view.plotpanel.GetVirtualSize().height == view.plotpanel.GetClientSize().height
     assert view.controls.foldpanels.GetFoldPanel(6).IsExpanded()
     assert view.peakpanel.list_ctrl.GetSize().height == view.plotpanel.GetSize().height
     assert view.sizerplot.GetSize().height == view.plotpanel.GetVirtualSize().height
@@ -100,6 +103,7 @@ try:
     assert app.isodeceng.pks.peaks[0].sequence_match == 'b2'
     assert view.fragment_panel.IsShown()
     assert len(view.fragment_ax.lines) == 2
+    assert 'Fragments Matched' in view.fragment_ax.get_title(loc='left')
     assert '16.7%' in view.GetStatusBar().GetStatusText(5)
     peak = app.isodeceng.pks.peaks[0]
     peak.monoiso = mass + 10
@@ -174,11 +178,14 @@ try:
             app, 'fix_parameters'
         ), patch.object(app, 'translate_config'), patch.object(
             app, 'export_config'
-        ), patch.object(app.isodeceng, 'batch_process_spectrum', side_effect=StopProcess):
+        ), patch.object(view.peakpanel, 'clear_list') as clear_peaks, patch.object(
+            app.isodeceng, 'batch_process_spectrum', side_effect=StopProcess
+        ):
             try:
                 app.on_unidec_button()
             except StopProcess:
                 pass
+        clear_peaks.assert_called_once()
         assert (empty_dir / 'seq.fasta').read_text(encoding='utf-8') == '>IsoDec sequence\\nPEPTIDE\\n'
 
     view.clear_all_plots()
@@ -207,8 +214,12 @@ try:
     assert brute_message.call_args is None
     assert any(peak.sequence_match == 'b6' and peak.z == 2 for peak in app.isodeceng.pks)
     assert app.isodeceng.pks.masses
-    assert not hasattr(app.isodeceng.pks, 'fragment_matches')
-    assert not view.fragment_panel.IsShown()
+    assert np.isclose(app.isodeceng.pks.fragment_matches.loc[6, 'b_match'], batch.masses[index])
+    assert view.fragment_panel.IsShown()
+    assert view.fragment_has_matches
+    assert len(view.fragment_ax.lines) == 2
+    assert view.fragment_ax.get_title(loc='left').startswith('Sequence Coverage:')
+    assert 'Fragments Matched' not in view.fragment_ax.get_title(loc='left')
     assert view.peakpanel.list_ctrl.GetItemCount() == len(app.eng.pks.peaks)
     assert any('b6' in view.peakpanel.list_ctrl.GetItem(i, 4).GetText()
                for i in range(view.peakpanel.list_ctrl.GetItemCount()))

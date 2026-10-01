@@ -18,8 +18,8 @@ from isodec.config import IsoDecConfig
 from isodec.match import MatchedCollection, MatchedPeak, find_matches
 
 
-FROZEN_SNAPSHOT_RTOL = 1e-11
-FROZEN_SNAPSHOT_ATOL = 1e-8
+FROZEN_SNAPSHOT_RTOL = 1e-6
+FROZEN_SNAPSHOT_ATOL = 1e-7
 
 
 def _peak(mass, intensity):

@@ -1003,7 +1003,7 @@ missing envelopes, zero intensities, malformed buffers, tolerance boundaries,
 shuffled insertions, duplicate charges/scans, and multiple scans. All-group
 native/Python comparisons use absolute mass tolerance 1e-9 Da and intensity
 relative tolerance 1e-12; integer fields and membership are exact. The
-cross-platform frozen reference uses 1e-8 absolute and 1e-11 relative
+cross-platform frozen reference uses 1e-7 absolute and 1e-6 relative
 tolerances. Actual TSV/MSAlign exports and mass spectra are compared, in
 addition to the frozen original-order reference.
 

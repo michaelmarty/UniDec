@@ -38,6 +38,18 @@ def test_fragment_view_colors_modified_residue_red():
     ]
 
 
+def test_fragment_view_can_hide_fragment_match_percentage():
+    sequence = "PEPTIDE"
+    masses = isogen.calc_pep_fragments(sequence, ion_types="b")
+    pks = SimpleNamespace(peaks=[SimpleNamespace(monoiso=masses["b3"])])
+    match_fragments(pks, sequence, ion_types="b")
+    ax = Figure().subplots()
+
+    plot_fragment_matches(ax, sequence, pks, show_match_percent=False)
+
+    assert ax.get_title(loc="left") == "Sequence Coverage: 16.7%"
+
+
 def test_wrapped_z_mark_moves_left_while_c_mark_stays_right():
     table = pd.DataFrame(index=range(1, 8), columns=["c_match", "z'_match"])
     table.loc[4] = [1.0, 1.0]
