@@ -140,7 +140,7 @@ class IsoDecView(MainwindowBase):
 
         self.plotpanel.SetMinSize(wx.Size(-1, -1))
         self.plotpanel.Bind(wx.EVT_SIZE, self.resize_plots)
-        wx.CallAfter(self.resize_plots)
+        wx.CallAfter(self.resize_initial_plots)
 
         self.splitterwindow.SetMinimumPaneSize(20)
         self.splitterwindow.SetSashGravity(0.99)
@@ -148,14 +148,18 @@ class IsoDecView(MainwindowBase):
         splitterwindow2.SetMinimumPaneSize(20)
         splitterwindow2.SetSashGravity(0.5)
 
+    def resize_initial_plots(self):
+        self.resize_plots()
+        for plot in self.plots:
+            plot.set_resize(plot.GetSize())
+
     def clear_fragment_plot(self):
         self.fragment_has_matches = False
-        self.fragment_panel.Hide()
         self.fragment_ax.clear()
         self.fragment_ax.set_axis_off()
         self.fragment_canvas.draw_idle()
 
-    def show_fragment_matches(self, sequence, pks):
+    def show_fragment_matches(self, sequence, pks, show_match_percent=True):
         residues_per_line = 70
         lines = math.ceil((len(pks.fragment_matches.index) + 1) / residues_per_line)
         ion_count = sum(column.endswith("_match") and pks.fragment_matches[column].notna().any()
@@ -165,7 +169,8 @@ class IsoDecView(MainwindowBase):
         self.fragment_figure.set_size_inches(width, height)
         self.fragment_panel.Show()
         self.fragment_panel.SetMinSize((-1, int(height * self.fragment_figure.dpi)))
-        plot_fragment_matches(self.fragment_ax, sequence, pks, residues_per_line=residues_per_line)
+        plot_fragment_matches(self.fragment_ax, sequence, pks, residues_per_line=residues_per_line,
+                              show_match_percent=show_match_percent)
         self.fragment_has_matches = True
         self.fragment_figure.tight_layout(pad=0.3)
         self.fragment_canvas.draw_idle()
