@@ -20,10 +20,12 @@ Fragment labels are algorithmic assignments, not independent experimental
 ground truth. This one input is insufficient to select a global default order.
 
 `reference_original.json.gz` freezes the corrected Python-only matcher and
-grouping output with IsoGen 1.1.3: 801 hits and 298 original-order groups, including
+grouping output with IsoGen 1.1.3: 801 hits and 300 original-order groups, including
 hit records, membership, and every mass-group field. It is compressed UTF-8 JSON
 (no pickle). The test compares native output both to this saved reference and to
-a separate Python run. Regenerate deliberately after reviewing behavior changes:
+a separate Python run. Integer fields are exact; the frozen floating-point
+reference uses a 1e-11 relative and 1e-8 absolute tolerance for cross-platform
+native-library variation. Regenerate deliberately after reviewing behavior changes:
 
 ```python
 import gzip

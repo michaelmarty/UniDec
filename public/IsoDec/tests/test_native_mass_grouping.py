@@ -18,6 +18,10 @@ from isodec.config import IsoDecConfig
 from isodec.match import MatchedCollection, MatchedPeak, find_matches
 
 
+FROZEN_SNAPSHOT_RTOL = 1e-11
+FROZEN_SNAPSHOT_ATOL = 1e-8
+
+
 def _peak(mass, intensity):
     config = IsoDecConfig()
     massdist = np.column_stack((mass + np.arange(3) * config.mass_diff_c,
@@ -347,7 +351,8 @@ def test_repository_etd_native_python_and_exports(order, tmp_path):
             if value.dtype.kind in "iUS":
                 np.testing.assert_array_equal(value, frozen[field], err_msg=field)
             else:
-                np.testing.assert_allclose(value, frozen[field], rtol=1e-12, atol=1e-9,
+                np.testing.assert_allclose(value, frozen[field], rtol=FROZEN_SNAPSHOT_RTOL,
+                                           atol=FROZEN_SNAPSHOT_ATOL,
                                            err_msg=field)
     np.testing.assert_allclose(actual.to_mass_spectrum(), expected.to_mass_spectrum(),
                                rtol=1e-12, atol=1e-9)

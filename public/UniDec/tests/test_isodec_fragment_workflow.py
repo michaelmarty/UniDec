@@ -56,6 +56,8 @@ try:
     view = app.view
     view.Show()
     app.wx_app.Yield()
+    assert not view.fragment_panel.IsShown()
+    assert view.plot2.GetPosition().x + view.plot2.GetSize().width <= view.plotpanel.GetClientSize().width
     assert view.controls.foldpanels.GetFoldPanel(6).IsExpanded()
     assert view.peakpanel.list_ctrl.GetSize().height == view.plotpanel.GetSize().height
     assert view.sizerplot.GetSize().height == view.plotpanel.GetVirtualSize().height
@@ -96,6 +98,7 @@ try:
     controls.ctlfragmentppm.SetValue('5')
     app.on_match_sequence()
     assert app.isodeceng.pks.peaks[0].sequence_match == 'b2'
+    assert view.fragment_panel.IsShown()
     assert len(view.fragment_ax.lines) == 2
     assert '16.7%' in view.GetStatusBar().GetStatusText(5)
     peak = app.isodeceng.pks.peaks[0]
@@ -199,15 +202,16 @@ try:
     controls.ctlmaxmz.SetValue(str(spectrum[-1, 0] + 1))
     with patch('wx.MessageBox') as brute_message, patch.object(app, 'makeplot1'), patch.object(
         app, 'makeplot2'
-    ), patch.object(view, 'show_fragment_matches') as show_matches:
+    ):
         app.on_brute_force_match()
     assert brute_message.call_args is None
     assert any(peak.sequence_match == 'b6' and peak.z == 2 for peak in app.isodeceng.pks)
     assert app.isodeceng.pks.masses
+    assert not hasattr(app.isodeceng.pks, 'fragment_matches')
+    assert not view.fragment_panel.IsShown()
     assert view.peakpanel.list_ctrl.GetItemCount() == len(app.eng.pks.peaks)
     assert any('b6' in view.peakpanel.list_ctrl.GetItem(i, 4).GetText()
                for i in range(view.peakpanel.list_ctrl.GetItemCount()))
-    show_matches.assert_called_once()
     assert 'Brute Force Match:' in view.GetStatusBar().GetStatusText(5)
     app.on_match_sequence()
     assert any('b6' in view.peakpanel.list_ctrl.GetItem(i, 4).GetText()

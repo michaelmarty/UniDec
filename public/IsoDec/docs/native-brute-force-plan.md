@@ -1001,9 +1001,11 @@ path. The reference freezes hit records and every group field. Expanded tests
 compare separate native and Python objects, all scan/RT fields, memberships,
 missing envelopes, zero intensities, malformed buffers, tolerance boundaries,
 shuffled insertions, duplicate charges/scans, and multiple scans. All-group
-comparisons use absolute mass tolerance 1e-9 Da and intensity relative tolerance
-1e-12; integer fields and membership are exact. Actual TSV/MSAlign exports and
-mass spectra are compared, in addition to the frozen original-order reference.
+native/Python comparisons use absolute mass tolerance 1e-9 Da and intensity
+relative tolerance 1e-12; integer fields and membership are exact. The
+cross-platform frozen reference uses 1e-8 absolute and 1e-11 relative
+tolerances. Actual TSV/MSAlign exports and mass spectra are compared, in
+addition to the frozen original-order reference.
 
 Appending scans intentionally remains a Python incremental operation after the
 first native batch, tested against an all-Python grouping/rematching fallback.
