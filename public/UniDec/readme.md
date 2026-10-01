@@ -319,6 +319,8 @@ v.9.0.0
 
 Split IsoDec, IsoGen, and UniDecImporter into separate Python packages. This allows more targeted development on each of those and simplifies testing and releases. I am working on automating more of the docs and releases on each to improve consistency and catch any issues. Hopefullly this will help. Let me know what bugs pop up.
 
+IsoDec and IsoGen have been improved to allow fragment prediction and matching. These have been integrated into the IsoDec GUI to have a match sequence to IsoDec outputs and also to match a sequence to the input spectrum. Pieces of this have also been moved to C for speed improvements. 
+
 Split UniDecIM into a separate window and engine to simplify the code. It had been a weird window switch of the main UniDec. Should be easier now. Split UCD and UCCD windows in the same way.
 
 UniDecIM now supports Artifact Suppression and Point Smoothing like the main window.
@@ -339,7 +341,7 @@ Added in automated testing, document building, and publishing with the help of C
 
 As part of the automated builds, there should be an actual up-to-date Mac version for people willing to install it on Python! Thanks to Xavier who kept building it for me over the years.
 
-CD-MS modes will now use truncated file names. Too many people were hitting path length issues with the full file names. So, it will now be just conf.dat rather than [filename]_conf.dat. May decide to migrate the other windows to this. Let me know what you think.
+CD-MS modes will now use truncated file names. Too many people were hitting path length issues with the full file names. So, it will now be just conf.dat rather than [filename]_conf.dat. IsoDec has also been migrated to this. May decide to migrate the other windows to this. Let me know what you think.
 
 v.8.3.0
 
