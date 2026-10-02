@@ -197,7 +197,7 @@ jobs:
           if errorlevel 1 exit /b 1
           cmake --build build/unidec-release-intel --parallel
           if errorlevel 1 exit /b 1
-          for %%D in (libiomp5md.dll libmmd.dll mkl_rt.2.dll svml_dispmd.dll) do (
+          for %%D in (libiomp5md.dll libmmd.dll svml_dispmd.dll) do (
             for /f "delims=" %%P in ('where %%D') do copy /y "%%P" "unidec\bin\%%D"
             if not exist "unidec\bin\%%D" (
               echo Required Intel runtime DLL was not found: %%D
@@ -226,7 +226,7 @@ jobs:
           if (-not $libraries) { throw 'vcpkg did not provide runtime DLLs.' }
           $runtimeLibraries = @($libraries)
           if ('${{ matrix.compiler }}' -eq 'IntelLLVM') {
-            $intelRuntimeNames = @('libiomp5md.dll', 'libmmd.dll', 'mkl_rt.2.dll', 'svml_dispmd.dll')
+            $intelRuntimeNames = @('libiomp5md.dll', 'libmmd.dll', 'svml_dispmd.dll')
             $runtimeLibraries += @($intelRuntimeNames | ForEach-Object {
               Get-Item -LiteralPath "unidec/bin/$_" -ErrorAction Stop
             })
@@ -244,7 +244,7 @@ jobs:
             if ($file.Length -eq 0) { throw "Empty native output: $name" }
           }
           if ('${{ matrix.compiler }}' -eq 'IntelLLVM') {
-            foreach ($name in @('libiomp5md.dll', 'libmmd.dll', 'mkl_rt.2.dll', 'svml_dispmd.dll')) {
+            foreach ($name in @('libiomp5md.dll', 'libmmd.dll', 'svml_dispmd.dll')) {
               $file = Get-Item -LiteralPath "unidec/bin/$name" -ErrorAction Stop
               if ($file.Length -eq 0) { throw "Empty Intel runtime DLL: $name" }
             }
