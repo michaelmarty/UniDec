@@ -12,12 +12,12 @@ Install a published wheel:
 python -m pip install isodec
 ```
 
-IsoDec supports Python 3.9 and newer on 64-bit Windows, Linux, and macOS,
+IsoDec supports Python 3.10 and newer on 64-bit Windows, Linux, and macOS,
 including Windows ARM64 and Apple silicon. Native builds are also tested on
 ARM64 Linux; the Windows ARM64 wheel is tested with Python 3.14. Compatible
 wheels include the native IsoDec and IsoGen libraries. A source build requires
 CMake 3.22.1 or newer, a C/C++ compiler, FFTW, and an initialized IsoGen
-submodule:
+submodule. IsoDec pins IsoGen and the `pyisogen` package to version 1.1.3:
 
 ```shell
 git clone --recurse-submodules https://github.com/michaelmarty/IsoDec.git
@@ -37,6 +37,14 @@ peaks = engine.batch_process_spectrum(spectrum, centroided=True)
 for peak in peaks:
     print(peak.mz, peak.z, peak.monoiso, peak.matchedintensity)
 ```
+
+Mass groups use peak insertion order by default. To evaluate descending
+matched intensity order, set
+`engine.config.mass_group_order = "matched_intensity"` before processing.
+Intensity order applies within each incoming spectrum. Native grouping handles
+new collections; appending scans uses the Python incremental merge rules, with
+the same double-precision group summaries. The ETD example and frozen grouping
+reference are in `tests/ca_etd.dat` and `tests/ca_etd_unidecfiles/`.
 
 TXT, DAT, CSV, and NPZ single-scan spectra are supported without UniDec. Raw
 vendor files, mzML/mzXML, and I2MS import use UniDec's extensive importer stack:
@@ -82,6 +90,8 @@ list instead of selecting the assignment with the smallest ppm error.
 Pass `match_multiple_monoisotopics=False` to match only each peak's `monoiso`
 mass instead of all masses in `monoisos`.
 
+### Plotting Sequence
+
 To view matches along a wrapped sequence, run `python tests/show_fragment_matches.py`
 from the IsoDec directory. The demo uses IsoGen's carbonic anhydrase ETD masses.
 For an embedded view, call `plot_fragment_matches(ax, sequence, pks)` from
@@ -99,6 +109,19 @@ runtime notices. When using IsoDec, please cite Pavek et al.,
 provided in [CITATION.cff](CITATION.cff).
 
 ## Changelog
+
+### 2.0.5
+
+- Updated to IsoGen 1.1.3 for improved fragment matching.
+- Require Python 3.10 or newer.
+- Moved mass grouping and merging into the native core for improved performance and
+  reduced memory usage.
+- Fixed the intensity-weighted average of monoisotopic mass candidates during
+  mass grouping and prevented merges from modifying the first peak's candidates.
+- Fixed isotope-distribution mass-axis fitting to shift toward observed
+  centroids in either direction, preventing accumulated positive mass drift.
+- Use matched centroids when merging neutral-mass groups, so unrelated peaks
+  in a local isotope window do not distort the fitted distribution.
 
 ### 2.0.4
 

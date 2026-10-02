@@ -49,7 +49,7 @@ def parse_and_plot(topdir, min_x1, max_x1, min_x2, max_x2):
             for key in eic_neg_data.files:
                 chopped_neg_data = datachop(eic_neg_data[key], min_x1, max_x1)
                 ax1.plot(eic_neg_data[key][:, 0], eic_neg_data[key][:, 1], color='blue')
-                area1 = np.trapz(chopped_neg_data[:, 1], chopped_neg_data[:, 0])
+                area1 = np.trapezoid(chopped_neg_data[:, 1], chopped_neg_data[:, 0])
             ax1.set_title('EIC Negative Mode_DPPG', loc='right')
             ax1.fill_between(eic_neg_data[key][:, 0], eic_neg_data[key][:, 1], 0, where=(eic_neg_data[key][:, 0] > min_x1) & (eic_neg_data[key][:, 0] < max_x1), alpha=0.5, color='blue')
             ax1.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
@@ -70,7 +70,7 @@ def parse_and_plot(topdir, min_x1, max_x1, min_x2, max_x2):
             for key in eic_pos_data.files:
                 chopped_pos_data = datachop(eic_pos_data[key], min_x2, max_x2)
                 ax2.plot(eic_pos_data[key][:, 0], eic_pos_data[key][:, 1], color='red')
-                area2 = np.trapz(chopped_pos_data[:, 1], chopped_pos_data[:, 0])
+                area2 = np.trapezoid(chopped_pos_data[:, 1], chopped_pos_data[:, 0])
             ax2.set_title('EIC Positive Mode_DPPC', loc='right')
             ax2.fill_between(eic_pos_data[key][:, 0], eic_pos_data[key][:, 1], 0, where=(eic_pos_data[key][:, 0] > min_x2) & (eic_pos_data[key][:, 0] < max_x2), alpha=0.5, color='red')
             ax2.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))

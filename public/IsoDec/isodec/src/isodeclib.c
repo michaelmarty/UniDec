@@ -1169,6 +1169,12 @@ int bestshift_adjust(const double *mz, const float *inten, const int length, flo
         matchpeaks[nmatched].score = bestscore;
         matchpeaks[nmatched].realisolength = realisolength;
         // Fill up arrays in struct
+        // A reused result slot can previously have held a longer envelope.
+        memset(matchpeaks[nmatched].isomz, 0, sizeof(matchpeaks[nmatched].isomz));
+        memset(matchpeaks[nmatched].isodist, 0, sizeof(matchpeaks[nmatched].isodist));
+        memset(matchpeaks[nmatched].isomass, 0, sizeof(matchpeaks[nmatched].isomass));
+        memset(matchpeaks[nmatched].matchedindsiso, -1, sizeof(matchpeaks[nmatched].matchedindsiso));
+        memset(matchpeaks[nmatched].matchedindsexp, -1, sizeof(matchpeaks[nmatched].matchedindsexp));
         for (int i = 0; i < realisolength; i++) { matchpeaks[nmatched].isomz[i] = isomz[i]; }
         for (int i = 0; i < realisolength; i++) { matchpeaks[nmatched].isodist[i] = isodist[i]; }
         for (int i = 0; i < realisolength; i++) { matchpeaks[nmatched].isomass[i] = monoiso + (float) i * mass_diff_c; }

@@ -102,7 +102,8 @@ class UniDec(UniDecEngine):
     def _load_raw_data(self, importer, time_range=None):
         """Load conventional MS data and return its cache path and contents."""
         self.data.rawdata = importer.get_avg_scan(time_range=time_range)
-        return self.config.outfname + "_rawdata.txt", self.data.rawdata
+        suffix = "rawdata.txt" if getattr(self, "simple_output", False) else "_rawdata.txt"
+        return self.config.outfname + suffix, self.data.rawdata
 
     def _restore_processed_data(self, refresh=False):
         """Restore cached one-dimensional processed data when available."""
@@ -119,7 +120,7 @@ class UniDec(UniDecEngine):
         self.config.procflag = 0
 
     def open_file(self, file_name, file_directory=None, time_range=None, refresh=False, load_results=False,
-                 isodeceng=None, *args, **kwargs):
+                 isodeceng=None, simple_output=False, *args, **kwargs):
         """
         Open text or mzML file. Will create _unidecfiles directory if it does not exist.
 
@@ -175,11 +176,14 @@ class UniDec(UniDecEngine):
         if not os.path.isdir(dirnew):
             os.mkdir(dirnew)
         self.config.udir = dirnew
+        self.simple_output = simple_output
         if "silent" not in kwargs or not kwargs["silent"]:
             print("Output Directory:", self.config.udir)
-        self.config.outfname = os.path.join(self.config.udir, basename)
+        legacy_outfname = os.path.join(self.config.udir, basename)
+        self.config.outfname = (os.path.join(self.config.udir, "") if simple_output
+                                else legacy_outfname)
         self.config.extension = os.path.splitext(self.config.filename)[1]
-        self.config.default_file_names()
+        self.config.default_file_names(s="" if simple_output else "_")
 
         # Import vendor readers only when a data file is opened. Their optional
         # dependencies add noticeable overhead to GUI startup.
@@ -213,6 +217,15 @@ class UniDec(UniDecEngine):
         else:
             if os.path.isfile(self.config.confname) and not refresh:
                 self.load_config(self.config.confname)
+            elif simple_output and os.path.isfile(legacy_outfname + "_conf.dat") and not refresh:
+                short_outfname = self.config.outfname
+                try:
+                    self.config.outfname = legacy_outfname
+                    self.config.default_file_names()
+                    self.load_config(self.config.confname)
+                finally:
+                    self.config.outfname = short_outfname
+                    self.config.default_file_names(s="")
             else:
                 self.export_config()
 

@@ -43,6 +43,8 @@ add_subdirectory("${ISOGEN_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/isogen")
 
 add_library(isodeclib SHARED
     isodeclib.c
+    fragment_match.c
+    mass_group.c
     isodeclib.h
     phase_model_4.h
     phase_model_8.h
@@ -119,6 +121,8 @@ install(CODE "
 add_executable(isodec_test isodec_test.cpp)
 target_include_directories(isodec_test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(isodec_test PRIVATE isodeclib)
+enable_testing()
+add_test(NAME mass_group COMMAND isodec_test --test-mass-group)
 if(ISODEC_STATIC_GNU_RUNTIME AND UNIX AND NOT APPLE AND
    CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|IntelLLVM")
     target_link_options(isodec_test PRIVATE -static-libstdc++ -static-libgcc)

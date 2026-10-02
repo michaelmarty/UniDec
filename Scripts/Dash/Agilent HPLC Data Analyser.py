@@ -247,7 +247,7 @@ def calculate_areas_and_retention_times(data):
             # print(y_data.shape)
 
             # Calculate the area under the curve for the flowthrough peak
-            area_flowthrough = np.trapz(y_data, x_data)
+            area_flowthrough = np.trapezoid(y_data, x_data)
             print(area_flowthrough)
 
             # Store results
@@ -295,7 +295,7 @@ def calculate_areas_and_retention_times(data):
             # print(y_data.shape)
 
             # Calculate the area under the curve for the flowthrough peak
-            area_elution = np.trapz(y_el_data, x_el_data)
+            area_elution = np.trapezoid(y_el_data, x_el_data)
             print(area_elution)
 
             # Store results

@@ -14,7 +14,7 @@ ION_COLORS = {
 }
 
 
-def plot_fragment_matches(ax, sequence, pks, residues_per_line=40):
+def plot_fragment_matches(ax, sequence, pks, residues_per_line=40, show_match_percent=True):
     """Draw matched cleavage marks on an existing Matplotlib axis.
 
     ``pks`` must have been processed by ``match_fragments`` for ``sequence``.
@@ -82,8 +82,10 @@ def plot_fragment_matches(ax, sequence, pks, residues_per_line=40):
     ax.set_xlim(-2, residues_per_line + 0.5)
     ax.set_ylim(lines * row_height, -0.15)
     ax.set_axis_off()
-    ax.set_title("Sequence Coverage: {:.1%}  |  Fragments Matched: {:.1f}%".format(
-        pks.sequence_coverage, pks.fragment_match_percent), loc="left", fontsize=10)
+    title = "Sequence Coverage: {:.1%}".format(pks.sequence_coverage)
+    if show_match_percent:
+        title += "  |  Fragments Matched: {:.1f}%".format(pks.fragment_match_percent)
+    ax.set_title(title, loc="left", fontsize=10)
     if ion_types:
         ax.legend([Line2D([0], [0], color=ION_COLORS[ion[0]], lw=2)
                    for ion in ion_types], ion_types, ncol=len(ion_types),

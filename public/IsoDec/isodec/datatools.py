@@ -6,7 +6,7 @@ from copy import deepcopy
 # from bisect import bisect_left
 
 # Make a python code from this C code
-@njit(fastmath=True)
+@njit(fastmath=True, cache=True)
 def fastnearest(array, target):
     """
     In a sorted array, quickly find the position of the element closest to the target.
@@ -81,7 +81,7 @@ def fastwithin_abstol(array, target, tol):
 
     return result
 
-@njit(fastmath=True)
+@njit(fastmath=True, cache=True)
 def fastwithin_abstol_withnearest(array, target, tol):
     result = []
 

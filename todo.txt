@@ -11,14 +11,22 @@ Profile-mode IsoDec
 
 Update Score Calculations in Different Modes
 
+IsoGen adjust prediction based on data within reasonable limit, predict monoiso and sulfur content?
+
+IsoDec brute force matching
+
 
 Lower Priority:
 
 Importer testing for Sciex
 
+Importer read other types of files, like excel
+
 Fix Agilent Importer
 
 Integrate IsoDec into other GUI elements, like UPP
+
+IsoGen predict fragments from sequences.
 
 Someday Maybe:
 

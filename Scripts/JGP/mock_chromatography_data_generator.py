@@ -38,7 +38,7 @@ if __name__ == "__main__":
     for i in range(len(centers)):
         curr_intensity = gaussian(time, heights[i], centers[i]*60, widths[i]*60)
         #Calculate the area under the curve
-        area = np.trapz(curr_intensity, time)
+        area = np.trapezoid(curr_intensity, time)
         real_areas[i] = area
         intensity += curr_intensity
 

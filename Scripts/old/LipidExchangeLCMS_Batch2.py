@@ -60,7 +60,7 @@ for t in exchangetimes:
                     for p in pcol:
                         mztest=np.abs(mz-p)
                         btest=mztest<sigma
-                        inttot+=np.trapz(intensity[btest],mz[btest])
+                        inttot+=np.trapezoid(intensity[btest],mz[btest])
                         #plt.plot(mz[btest],intensity[btest])
                     ints.append(inttot)
 
@@ -71,7 +71,7 @@ for t in exchangetimes:
         cints=np.transpose(cints)
         times=np.array(times)
 
-        maxes=np.trapz(cints,times,axis=1)
+        maxes=np.trapezoid(cints,times,axis=1)
         psr=maxes[0]/maxes[1]
         pcr=maxes[2]/maxes[3]
         #print psr,pcr

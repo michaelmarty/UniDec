@@ -17,6 +17,21 @@ native `IsoDecWrapper`, and the accumulated `MatchedCollection`.
 `IsoDecWrapper` is the direct ctypes interface to `isodeclib`. Its
 `predict_charge`, `encode`, and `process_spectrum` methods accept NumPy arrays.
 
+## `brute_force_pep_match`
+
+`brute_force_pep_match(sequence, spectrum, fragmentation_type=None,
+ion_types=None, centroided=False, config=None, max_charge=None)` asks IsoGen
+for a batch of sequence-composition fragment envelopes and matches every
+charge state in the supplied spectrum. The native matcher consumes the
+prepared centroids and returns a `MatchedCollection`; an older IsoDec native
+library uses the Python matcher with the same IsoGen batch. The GUI's **Brute
+Force Match** button uses this workflow and reports its elapsed time.
+
+IsoGen must include `calc_pep_fragment_isodists` and its matching native
+library. Fragments with mass-only or ambiguous modification chemistry raise
+`ValueError`, because their exact isotope composition cannot be inferred from
+mass alone.
+
 ## `IsoDecConfig`
 
 `IsoDecConfig` contains peak detection, isotope matching, charge model, and

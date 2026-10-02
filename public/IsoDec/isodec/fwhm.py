@@ -5,6 +5,7 @@ These focused helpers replace the dependency on UniDec's much larger
 """
 
 import numpy as np
+from scipy.integrate import trapezoid
 
 from .tools import safedivide
 
@@ -20,7 +21,7 @@ def _interpolate_x(point1, point2, y_value):
 def _sigma(data):
     if len(data) < 2 or np.max(data[:, 1]) <= 0:
         return -1.0
-    area = np.trapz(data[:, 1], data[:, 0])
+    area = trapezoid(data[:, 1], data[:, 0])
     return area / (np.sqrt(2 * np.pi) * np.max(data[:, 1]))
 
 

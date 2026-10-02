@@ -31,7 +31,7 @@ plt.plot(xdata1, ydata1, label='Full Data', color='black', linewidth=1.5)
 
 for minx, maxx in ranges:
     cutx, cuty = datachop(xdata1, ydata1, minx, maxx)
-    area = np.trapz(cuty, x=cutx)
+    area = np.trapezoid(cuty, x=cutx)
     areas.append(area)
 
     # Plot the chopped data

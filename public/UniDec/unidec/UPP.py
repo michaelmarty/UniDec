@@ -40,7 +40,7 @@ class HelpDlg(wx.Frame):
 
         html_str += "<html><body>" \
                     "<header><h1>Overview</h1></header><p>" \
-                    "Welcome to the UniDec Processing HEKPipeline (UPP)! " \
+                    "Welcome to the UniDec Processing Pipeline (UPP)! " \
                     "This module is designed to help you process, deconvolve, " \
                     "and extract specific information from your data. " \
                     "Expanding on the batch processing features present in UniDec from the beginning, " \
@@ -243,12 +243,11 @@ class MyFileDropTarget(wx.FileDropTarget):
 class UPPApp(wx.Frame):
     """"""
 
-    def __init__(self, nrows=2, ncolumns=2, title="UniDec Processing HEKPipeline"):
+    def __init__(self, nrows=2, ncolumns=2, title="UniDec Processing Pipeline"):
         """Constructor"""
         wx.Frame.__init__(self, parent=None, title=title, size=(1800, 600))
         self.use_decon = True
         self.use_converted = False
-        self.use_interactive = False
         self.make_combined_peaks = True
         self.allpng = False
         self.make_individual_reports = True
@@ -390,11 +389,6 @@ class UPPApp(wx.Frame):
         self.hideemptybtn.Bind(wx.EVT_BUTTON, self.on_hide_empty_columns)
         hsizer2.Add(self.hideemptybtn, 0)
 
-        # Insert a checkbox to select whether to generate interactive HTML reports
-        self.interactivebox = wx.CheckBox(panel, label="Interactive Reports  ")
-        hsizer2.Add(self.interactivebox, 0, wx.EXPAND)
-        self.interactivebox.SetValue(self.use_interactive)
-
         # Insert a checkbox to select whether to generate HTML reports with all PNG images and not SVG. Saves a bit of space.
         self.pngbox = wx.CheckBox(panel, label="PNG Figures  ")
         hsizer2.Add(self.pngbox, 0, wx.EXPAND)
@@ -441,7 +435,7 @@ class UPPApp(wx.Frame):
         self.runbtn.SetBackgroundColour("red")
         self.get_from_gui()
         wx.Yield()
-        self.bpeng.run_df(decon=self.use_decon, use_converted=self.use_converted, interactive=self.use_interactive,
+        self.bpeng.run_df(decon=self.use_decon, use_converted=self.use_converted,
                           write_peaks=self.make_combined_peaks, allpng=self.allpng,
                           write_html=self.make_combined_report, individual_html=self.make_individual_reports)
         self.load_to_gui()
@@ -472,7 +466,7 @@ class UPPApp(wx.Frame):
         toppeaks = deepcopy(self.bpeng.pks)
         # Run SubDF
         subdf2 = self.bpeng.run_df(df=subdf, decon=self.use_decon, use_converted=self.use_converted,
-                                   interactive=self.use_interactive, write_xlsx=False, write_html=False,
+                                   write_xlsx=False, write_html=False,
                                    write_peaks=False, allpng=self.allpng,
                                    individual_html=self.make_individual_reports)
 
@@ -563,7 +557,6 @@ class UPPApp(wx.Frame):
     def get_from_gui(self):
         self.use_converted = self.useconvbox.GetValue()
         self.use_decon = self.usedeconbox.GetValue()
-        self.use_interactive = self.interactivebox.GetValue()
         self.make_combined_peaks = self.peaklistbox.GetValue()
         self.allpng = self.pngbox.GetValue()
         self.make_combined_report = self.combinedbox.GetValue()
