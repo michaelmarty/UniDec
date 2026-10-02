@@ -365,7 +365,7 @@ jobs:
           cp native-artifacts/linux-arm64/* unidec/bin/
           chmod +x unidec/bin/unideclinux unidec/bin/unidecmac
           python -m build --wheel --outdir dist-linux-arm64
-          python -m wheel tags --platform-tag linux_aarch64 --remove dist-linux-arm64/*.whl
+          python -m wheel tags --platform-tag manylinux_2_39_aarch64 --remove dist-linux-arm64/*.whl
           mv dist-linux-arm64/*.whl distpypi/
 
       - name: Verify built distributions contain current native binaries
@@ -398,7 +398,7 @@ jobs:
           universal_wheel, = Path('distpypi').glob('*-none-any.whl')
           windows_arm_wheel, = Path('distpypi').glob('*-none-win_arm64.whl')
           macos_arm_wheel, = Path('distpypi').glob('*-none-macosx_11_0_arm64.whl')
-          linux_arm_wheel, = Path('distpypi').glob('*-none-linux_aarch64.whl')
+          linux_arm_wheel, = Path('distpypi').glob('*-none-manylinux_2_39_aarch64.whl')
           sdist, = Path('distpypi').glob('*.tar.gz')
           with zipfile.ZipFile(universal_wheel) as archive:
               for name, source in (linux_x64_binaries | macos_intel_binaries | x64_binaries).items():
@@ -647,7 +647,7 @@ jobs:
         shell: bash
         run: |
           shopt -s nullglob
-          wheels=(distpypi/*-none-linux_aarch64.whl)
+          wheels=(distpypi/*-none-manylinux_2_39_aarch64.whl)
           test "${#wheels[@]}" -eq 1
           python -m venv .venv-arm64
           test_python=.venv-arm64/bin/python
