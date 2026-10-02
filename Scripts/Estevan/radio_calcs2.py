@@ -133,7 +133,7 @@ def main():
     predict_cpm(hot_sa, total_conc, assay_vol)
 
     background = 66
-    total = predict_cpm(hot_sa, total_conc, assay_vol*1e6) + background
+    total = predict_cpm(final_sa, total_conc, assay_vol*1e6) + background
     ft = 3328   # using the values from DHA which is comparable to the NMS ligand
     wash = 160
     elution = 641
