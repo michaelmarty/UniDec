@@ -54,7 +54,7 @@ jobs:
 
     steps:
       - name: Check out the tagged source
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -62,7 +62,7 @@ jobs:
         run: rm -f "unidec/bin/${{ matrix.executable }}" "unidec/bin/${{ matrix.library }}"
 
       - name: Install Linux native dependencies
-        if: runner.os == 'Linux'
+        if: matrix.artifact == 'native-linux'
         run: sudo apt-get update && sudo apt-get install --yes libfftw3-dev libhdf5-dev patchelf pkg-config
 
       - name: Install macOS native dependencies
@@ -72,11 +72,13 @@ jobs:
           brew install fftw hdf5 libomp pkg-config
 
       - name: Build native UniDec
+        if: matrix.artifact != 'native-linux-arm64'
         env:
           MACOSX_DEPLOYMENT_TARGET: ${{ matrix.deployment_target }}
         run: bash ./build_native.sh
 
       - name: Verify native outputs
+        if: matrix.artifact != 'native-linux-arm64'
         shell: bash
         run: |
           test -s "unidec/bin/${{ matrix.executable }}"
@@ -93,30 +95,43 @@ jobs:
         if: matrix.artifact == 'native-linux-arm64'
         shell: bash
         run: |
-          python -m pip install --upgrade auditwheel build wheel
-          dependency_paths=$(
-            ldd unidec/bin/unideclinux unidec/bin/libunideclib.so |
-              awk '/=> \// { print $3 }' |
-              sort -u
-          )
-          while IFS= read -r dependency; do
-            case "$(basename "$dependency")" in
-              libc.so.*|libdl.so.*|libm.so.*|libpthread.so.*|librt.so.*|libutil.so.*)
-                continue
-                ;;
-            esac
-            cp -L "$dependency" unidec/bin/
-          done <<< "$dependency_paths"
-          for binary in unidec/bin/unideclinux unidec/bin/*.so*; do
-            patchelf --force-rpath --set-rpath '$ORIGIN' "$binary"
-          done
-          rm -f unidec/bin/UniDec.exe unidec/bin/unidec.exe unidec/bin/unideclib.dll \
-            unidec/bin/unidecmac unidec/bin/libunideclib.dylib
-          python -m build --wheel --outdir dist-linux-arm64
-          python -m wheel tags --platform-tag linux_aarch64 --remove dist-linux-arm64/*.whl
-          mkdir repaired-linux-arm64
-          auditwheel show dist-linux-arm64/*.whl
-          auditwheel repair --wheel-dir repaired-linux-arm64 dist-linux-arm64/*.whl
+          docker run --rm --volume "$PWD:/io" --workdir /io \
+            quay.io/pypa/manylinux_2_28_aarch64 /bin/bash -euxo pipefail -c '
+              dnf install --assumeyes fftw-devel hdf5-devel
+              export PATH=/opt/python/cp310-cp310/bin:$PATH
+              python -m pip install --upgrade build cmake wheel
+              rm -rf build/native dist-linux-arm64 repaired-linux-arm64
+              rm -f unidec/bin/unideclinux unidec/bin/libunideclib.so unidec/bin/h5repack
+              bash ./build_native.sh
+              cp "$(command -v h5repack)" unidec/bin/h5repack
+              file unidec/bin/unideclinux unidec/bin/libunideclib.so unidec/bin/h5repack |
+                tee /tmp/unidec-file-types
+              test "$(grep -c "ARM aarch64" /tmp/unidec-file-types)" -eq 3
+              dependency_paths=$(
+                ldd unidec/bin/unideclinux unidec/bin/libunideclib.so unidec/bin/h5repack |
+                  awk "/=> \// { print \$3 }" |
+                  sort -u
+              )
+              while IFS= read -r dependency; do
+                case "$(basename "$dependency")" in
+                  libc.so.*|libdl.so.*|libm.so.*|libpthread.so.*|librt.so.*|libutil.so.*)
+                    continue
+                    ;;
+                esac
+                cp -L "$dependency" unidec/bin/
+              done <<< "$dependency_paths"
+              for binary in unidec/bin/unideclinux unidec/bin/h5repack unidec/bin/*.so*; do
+                patchelf --force-rpath --set-rpath "\$ORIGIN" "$binary"
+              done
+              rm -f unidec/bin/UniDec.exe unidec/bin/unidec.exe unidec/bin/unideclib.dll \
+                unidec/bin/unidecmac unidec/bin/libunideclib.dylib
+              python -m build --wheel --outdir dist-linux-arm64
+              python -m wheel tags --platform-tag linux_aarch64 --remove dist-linux-arm64/*.whl
+              mkdir repaired-linux-arm64
+              auditwheel show dist-linux-arm64/*.whl
+              auditwheel repair --plat manylinux_2_28_aarch64 \
+                --wheel-dir repaired-linux-arm64 dist-linux-arm64/*.whl
+            '
 
       - name: Store native outputs
         uses: actions/upload-artifact@v7
@@ -142,7 +157,7 @@ jobs:
             compiler: IntelLLVM
             artifact: native-windows-intel
           - name: Windows ARM64
-            os: windows-11-vs2026-arm
+            os: windows-11-arm
             triplet: arm64-windows
             compiler: MSVC
             artifact: native-windows-arm64
@@ -152,7 +167,7 @@ jobs:
 
     steps:
       - name: Check out the tagged source
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -294,7 +309,7 @@ jobs:
 
     steps:
       - name: Check out the tagged source
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -308,13 +323,13 @@ jobs:
             unidec/bin/fftw*.dll unidec/bin/libfftw*.dll
 
       - name: Download Windows x64 native binaries
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: native-windows-intel
           path: native-artifacts/windows-x64
 
       - name: Download Windows ARM64 native binaries
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: native-windows-arm64
           path: native-artifacts/windows-arm64
@@ -323,13 +338,13 @@ jobs:
         run: cp native-artifacts/windows-x64/* unidec/bin/
 
       - name: Download Linux x64 native binaries
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: native-linux
           path: native-artifacts/linux-x64
 
       - name: Download Linux ARM64 native binaries
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: native-linux-arm64
           path: native-artifacts/linux-arm64
@@ -338,13 +353,13 @@ jobs:
         run: cp native-artifacts/linux-x64/unideclinux native-artifacts/linux-x64/libunideclib.so unidec/bin/
 
       - name: Download macOS Intel native binaries
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: native-macos-intel
           path: native-artifacts/macos-intel
 
       - name: Download macOS ARM64 native binaries
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: native-macos-arm64
           path: native-artifacts/macos-arm64
@@ -360,7 +375,7 @@ jobs:
           chmod +x unidec/bin/unideclinux unidec/bin/unidecmac
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
@@ -490,13 +505,13 @@ jobs:
 
     steps:
       - name: Download distributions
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: python-package-distributions
           path: distpypi/
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
@@ -551,17 +566,17 @@ jobs:
   smoke-windows-arm64:
     name: Smoke-test the wheel on Windows ARM64
     needs: build
-    runs-on: windows-11-vs2026-arm
+    runs-on: windows-11-arm
 
     steps:
       - name: Download distributions
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: python-package-distributions
           path: distpypi/
 
       - name: Set up native ARM64 Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.14"
           architecture: arm64
@@ -635,7 +650,7 @@ jobs:
 
     steps:
       - name: Download distributions
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: python-package-distributions
           path: distpypi/
@@ -661,13 +676,13 @@ jobs:
 
     steps:
       - name: Download distributions
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: python-package-distributions
           path: distpypi/
 
       - name: Set up native ARM64 Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.13"
           architecture: arm64
@@ -719,7 +734,7 @@ jobs:
 
     steps:
       - name: Download distributions
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: python-package-distributions
           path: distpypi/
