@@ -9,17 +9,17 @@ from scipy.signal import find_peaks
 
 # 4 text files
 files = [
-r"Z:\Group Share\Estevan\Q Exactive Data\20250902\msp1d1_minus_1_to_80_DMPC_CDMS_2025-09-02-01-20-17_unidecfiles\msp1d1_minus_1_to_80_DMPC_CDMS_2025-09-02-01-20-17_mass.txt",
-    r"Z:\Group Share\Estevan\Q Exactive Data\20251106\20251106_EC_D1sfCheryshort_1to80_DMPC_rep2_numba2_CDMS_2025-11-06-11-40-25_unidecfiles\20251106_EC_D1sfCheryshort_1to80_DMPC_rep2_numba2_CDMS_2025-11-06-11-40-25_mass.txt",
-    r"Z:\Group Share\Estevan\Q Exactive Data\20251105\20251105_EC_D1sfGFP1to80_DMPC_CDMSlowerspray_2025-11-05-11-20-47_unidecfiles\20251105_EC_D1sfGFP1to80_DMPC_CDMSlowerspray_2025-11-05-11-20-47_mass.txt",
-r"Z:\Group Share\Estevan\Q Exactive Data\20251111\20251111_EC_D1mblueberry_1to80_DMPC_CDMS_2025-11-11-11-03-38_unidecfiles\20251111_EC_D1mblueberry_1to80_DMPC_CDMS_2025-11-11-11-03-38_mass.txt"
+r"Z:\Group Share\Estevan\Q Exactive Data\october30\20251030\20251030_EC_D1T0minus_1to80_DMPC_CDMS_2025-10-30-09-19-32_unidecfiles\20251030_EC_D1T0minus_1to80_DMPC_CDMS_2025-10-30-09-19-32_mass.txt",
+    r"Z:\Group Share\Estevan\Q Exactive Data\Fluoro_ND_paper\Replicates\FluroND\sfCherry - done\Short - done\20251106_EC_MSP1D1sfCherryS_CDMS_rep2_unidecfiles\20251106_EC_MSP1D1sfCherryS_CDMS_rep2_mass.txt",
+ #   r"Z:\Group Share\Estevan\Q Exactive Data\20251105\20251105_EC_D1sfGFP1to80_DMPC_CDMSlowerspray_2025-11-05-11-20-47_unidecfiles\20251105_EC_D1sfGFP1to80_DMPC_CDMSlowerspray_2025-11-05-11-20-47_mass.txt",
+#r"Z:\Group Share\Estevan\Q Exactive Data\20251111\20251111_EC_D1mblueberry_1to80_DMPC_CDMS_2025-11-11-11-03-38_unidecfiles\20251111_EC_D1mblueberry_1to80_DMPC_CDMS_2025-11-11-11-03-38_mass.txt"
 ]
 
 # Base masses (kDa) for each subplot
-base_masses = [44.088, 95.492, 97.722, 97.486]   # <-- EDIT THESE
+base_masses = [44.088, 95.458]   # <-- EDIT THESE
 
 # Colors for each replicate
-colors = ["C0", "C1", "C2"]
+colors = ["C0", "C1"]
 
 # ----------------------------
 # PROCESSING + PLOTTING

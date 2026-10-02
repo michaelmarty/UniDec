@@ -20,19 +20,19 @@ lipid_mass_Da = 678
 # If you still want to set x-axis limits (in number of lipids when x_as_lipids=True,
 # otherwise in kDa), set x_range appropriately:
 # Example for lipid counts:
-x_range = (250, 450)  # number of lipids limits (if x_as_lipids True)
+x_range = (0, 100)  # number of lipids limits (if x_as_lipids True)
 # Example for mass (kDa): x_range = (140, 190)
 
 # === FILES TO PLOT ===
 files = [
-    r"Z:\Group Share\Estevan\Q Exactive Data\20251205\20251205_EC_E3t3_1to150DMPC_unidecfiles\20251205_EC_E3t3_1to150DMPC_mass.txt",
-    r"Z:\Group Share\Estevan\Q Exactive Data\20251205\20251205_EC_E3t3_1to150DMPC_cdms_2025-12-05-11-07-52_unidecfiles\20251205_EC_E3t3_1to150DMPC_cdms_2025-12-05-11-07-52_mass.txt"
+    r"Z:\Group Share\Estevan\Q Exactive Data\october30\20251030\20251030_EC_D1T0minus_1to80_DMPC_CDMS_2025-10-30-09-19-32_unidecfiles\20251030_EC_D1T0minus_1to80_DMPC_CDMS_2025-10-30-09-19-32_mass.txt",
+    r"Z:\Group Share\Estevan\Q Exactive Data\Fluoro_ND_paper\Replicates\FluroND\sfCherry - done\Short - done\20251106_EC_MSP1D1sfCherryS_CDMS_rep2_unidecfiles\20251106_EC_MSP1D1sfCherryS_CDMS_rep2_mass.txt"
 ]
 
 # === LEGEND LABELS (one per file) ===
 labels = [
-    "MSP1E3D1 DMPC Native-MS",
-    "MSP1E3D1 DMPC CD-MS"
+    "MSP1D1",
+    "MSP1D1-sfCherry"
 ]
 
 # === FIGURE SETUP ===

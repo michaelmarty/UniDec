@@ -15,29 +15,29 @@ lipid_mass_Da = 678
 # If you still want to set x-axis limits (in number of lipids when x_as_lipids=True,
 # otherwise in kDa), set x_range appropriately:
 # Example for lipid counts:
-x_range = (100, 200)  # number of lipids limits (if x_as_lipids True)
+x_range = (0, 250)  # number of lipids limits (if x_as_lipids True)
 # Example for mass (kDa): x_range = (140, 190)
 
 # === FILES & PROTEIN PARAMETERS ===
 datasets = [
     {
-        "file": r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\Control - Done\D1T0\20251105_EC_D1T0(-)1to80_DMPC_amberlite.1g_unidecfiles\20251105_EC_D1T0(-)1to80_DMPC_amberlite.1g_mass.txt",
-        "label": "MSP1D1 DMPC",
+        "file": r"Z:\Group Share\Estevan\Q Exactive Data\october30\20251030\20251030_EC_D1T0minus_1to80_DMPC_CDMS_2025-10-30-09-19-32_unidecfiles\20251030_EC_D1T0minus_1to80_DMPC_CDMS_2025-10-30-09-19-32_mass.txt",
+        "label": "MSP1D1",
         "protein_mass_per_scaffold_kDa": 22,  # mass of ONE scaffold protein for this dataset
         "n_scaffold_proteins": 2  # number of scaffold proteins per nanodisc for this dataset
     },
     {
-        "file": r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\sfGFP - done\D1T0\20251103_EC_D1sfGFP422uM_BCA_1to65_DMPC_native_unidecfiles\20251103_EC_D1sfGFP422uM_BCA_1to65_DMPC_native_mass.txt",
-        "label": "MSP1D1-sfGFP DMPC",
-        "protein_mass_per_scaffold_kDa": 48.8,  # example: different protein or construct
+        "file": r"Z:\Group Share\Estevan\Q Exactive Data\Fluoro_ND_paper\Replicates\FluroND\mCherry - done\20251202_EC_MSP1D1mCherry_CDMS_rep1_unidecfiles\20251202_EC_MSP1D1mCherry_CDMS_rep1_mass.txt",
+        "label": "MSP1D1-mCherry",
+        "protein_mass_per_scaffold_kDa": 48.6,  # example: different protein or construct
         "n_scaffold_proteins": 2
     },
-    {
-        "file": r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\sfCherry - done\Short - done\20251106_EC_D1sfCheryshort_1to80_DMPC_rep2_numba2_unidecfiles\20251106_EC_D1sfCheryshort_1to80_DMPC_rep2_numba2_mass.txt",
-        "label": "MSP1D1-sfCherryS DMPC",
-        "protein_mass_per_scaffold_kDa": 47.7,  # example: different protein or construct
-        "n_scaffold_proteins": 2
-    },
+    # {
+    #     "file": r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\sfCherry - done\Short - done\20251106_EC_D1sfCheryshort_1to80_DMPC_rep2_numba2_unidecfiles\20251106_EC_D1sfCheryshort_1to80_DMPC_rep2_numba2_mass.txt",
+    #     "label": "MSP1D1-sfCherryS DMPC",
+    #     "protein_mass_per_scaffold_kDa": 47.7,  # example: different protein or construct
+    #     "n_scaffold_proteins": 2
+    # },
     # Add more datasets as needed...
 ]
 
@@ -59,9 +59,9 @@ if n_datasets == 1:
 # === CUSTOM COLORS ===
 colors = [
     "#A9A9A9",  # color for dataset 1
-    "#009E60",  # color for dataset 2
-    "#9B111E",
-    "#5C8D89",
+    "#bb94ee",  # color for dataset 2
+    #"#9B111E",
+    #"#5C8D89",
 ]
 
 # Apply font settings globally

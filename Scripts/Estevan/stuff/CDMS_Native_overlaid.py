@@ -9,14 +9,16 @@ x_range = (50, 250)  # x-axis limits (in kDa)
 
 # === FILES TO PLOT ===
 files = [
-    r"Z:\Group Share\Estevan\Q Exactive Data\20260218\Mass Check\20260218_SC_EC_D1sfGFP_DMPC_AM2_try5_unidecfiles\20260218_SC_EC_D1sfGFP_DMPC_AM2_try5_mass.txt",
-    #r"Z:\Group Share\Estevan\Q Exactive Data\20251105\20251105_EC_D1T0(-)1to80_DMPC_pad600_.1gCDMS_2025-11-05-10-08-56_unidecfiles\20251105_EC_D1T0(-)1to80_DMPC_pad600_.1gCDMS_2025-11-05-10-08-56_mass.txt"
+    r"Z:\Group Share\Estevan\Q Exactive Data\Fluoro_ND_paper\Replicates\FluroND\sfCherry - done\Short - done\20251106_EC_MSP1D1sfCherryS_NATIVE_rep1_unidecfiles\20251106_EC_MSP1D1sfCherryS_NATIVE_rep1_mass.txt",
+    r"Z:\Group Share\Estevan\Q Exactive Data\Fluoro_ND_paper\Replicates\FluroND\sfCherry - done\Short - done\20251106_EC_MSP1D1sfCherryS_CDMS_rep2_unidecfiles\20251106_EC_MSP1D1sfCherryS_CDMS_rep2_mass.txt",
+r"G:\EC\Mp data\cherry Mp.txt"
 ]
 
 # === LEGEND LABELS (one per file) ===
 labels = [
-    "MSP1D1-sfGFP DMPC + AM2",
-    #"MSP1D1 DMPC CD-MS"
+    "MSP1D1-sfCherry Native-MS",
+    "MSP1D1-sfCherry CD-MS",
+    "MSP1D1-sfCherry MP"
 ]
 
 # === FIGURE SETUP ===
@@ -24,8 +26,9 @@ fig, ax = plt.subplots(1, 1, figsize=(6, 3), dpi=300)
 
 # === CUSTOM COLORS ===
 colors = [
-    "#68BB59",  # color for file 1
-    "#080808",  # color for file 2
+    "#bb94ee",  # color for file 1
+    "#58589f",  # color for file 2
+"#6f3d99",
 ]
 
 # Apply font settings globally
@@ -47,7 +50,7 @@ for i, (file, label) in enumerate(zip(files, labels)):
     color = colors[i % len(colors)]
 
     # Plot the main curve on the single axes and capture handle for legend
-    line, = ax.plot(df["Mass_kDa"], df["Percent"], color=color, linewidth=1.5, label=label)
+    line, = ax.plot(df["Mass_kDa"], df["Percent"], color=color, linewidth=1., label=label)
     handles.append(line)
     legend_labels.append(label)
 
@@ -55,7 +58,7 @@ for i, (file, label) in enumerate(zip(files, labels)):
 ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)
 ax.set_xlim(x_range)          # kDa limits
-ax.set_ylim(0, 100)           # ensure 0-100 percent range
+ax.set_ylim(0, 110)           # ensure 0-100 percent range
 
 # Set desired ticks and labels: ticks at 0, 50, 100 and labels "0", "%", "100"
 ax.set_yticks([0, 50, 100])

@@ -14,34 +14,34 @@ x_as_lipids = True
 protein_mass_per_scaffold_kDa_list = [
     22,  # for file 1
     47.7,  # for file 2
-    48.8,  # for file 3 (example; add/remove as needed)
+    #48.8,  # for file 3 (example; add/remove as needed)
 ]
 
 n_scaffold_proteins_list = [
     2,  # for file 1
     2,  # for file 2
-    2,  # for file 3
+    #2,  # for file 3
 ]
 
 # Lipid mass in Daltons (same for all files; change if needed)
 lipid_mass_Da = 678
 
 # x-axis limits (lipid counts if x_as_lipids=True, otherwise in kDa)
-x_range = (100, 250)
+x_range = (0, 250)
 
 # === FILES TO PLOT ===
 files = [
-    r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\Control - Done\D1T0\20251105_EC_MSP1D1_DMPC_CDMS_rep2_unidecfiles\20251105_EC_MSP1D1_DMPC_CDMS_rep2_mass.txt",
-    r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\sfCherry - done\Short - done\20251106_EC_MSP1D1sfCherryS_CDMS_rep1_unidecfiles\20251106_EC_MSP1D1sfCherryS_CDMS_rep1_mass.txt",
-    r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\sfGFP - done\D1T0\20251203EC_MSP1D1sfGFP_CDMS_rep3_unidecfiles\20251203EC_MSP1D1sfGFP_CDMS_rep3_mass.txt",
+    r"Z:\Group Share\Estevan\Q Exactive Data\october30\20251030\20251030_EC_D1T0minus_1to80_DMPC_CDMS_2025-10-30-09-19-32_unidecfiles\20251030_EC_D1T0minus_1to80_DMPC_CDMS_2025-10-30-09-19-32_mass.txt",
+    r"Z:\Group Share\Estevan\Q Exactive Data\Fluoro_ND_paper\Replicates\FluroND\mCherry - done\20251202_EC_MSP1D1mCherry_NATIVE_rep1_unidecfiles\20251202_EC_MSP1D1mCherry_NATIVE_rep1_mass.txt",
+    #r"Z:\Group Share\Estevan\Fluoro_ND_paper\Replicates\FluroND\sfGFP - done\D1T0\20251203EC_MSP1D1sfGFP_CDMS_rep3_unidecfiles\20251203EC_MSP1D1sfGFP_CDMS_rep3_mass.txt",
     # example third file
 ]
 
 # === LEGEND LABELS (one per file) ===
 labels = [
     "MSP1D1",
-    "MSP1D1-sfCherryS",
-    "MSP1D1-sfGFP",
+    "MSP1D1-mCherry",
+    #"MSP1D1-sfGFP",
 ]
 
 # === FIGURE SETUP: N stacked subplots sharing x-axis ===
@@ -51,8 +51,8 @@ axes = fig.subplots(nrows=len(files), ncols=2)
 # === CUSTOM COLORS (repeat if fewer than files) ===
 colors = [
     "#000000",
-    "#CF7CA9",
-    "#00A9A5",
+    "#bb94ee",
+    #"#00A9A5",
 ]
 # Apply font settings globally
 plt.rcParams.update({'font.size': font_size, 'font.family': font_name})
@@ -138,5 +138,5 @@ for ax in axes[:-1]:
     plt.setp(ax[1].get_xticklabels(), visible=False)
 
 plt.tight_layout()
-plt.savefig("Z:\\Group Share\\Estevan\\Fluoro_ND_paper\\lipid_per_disc_stacked.png", dpi=1000)
+plt.savefig(r"C:\Users\ec45294\The University of Texas at Austin\MartyLab - General\Presentations\Estevan\4th year seminar\figures", dpi=1000)
 plt.show()
