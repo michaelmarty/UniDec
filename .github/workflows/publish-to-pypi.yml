@@ -129,7 +129,9 @@ jobs:
       - name: Remove tracked native outputs
         shell: pwsh
         run: |
-          Remove-Item -LiteralPath 'unidec/bin/UniDec.exe', 'unidec/bin/unideclib.dll' -ErrorAction Stop
+          Remove-Item -LiteralPath 'unidec/bin/UniDec.exe', 'unidec/bin/unideclib.dll', `
+            'unidec/bin/libiomp5md.dll', 'unidec/bin/libmmd.dll', `
+            'unidec/bin/mkl_rt.2.dll', 'unidec/bin/svml_dispmd.dll' -ErrorAction Stop
 
       - name: Install native dependencies with vcpkg
         shell: pwsh
@@ -195,6 +197,13 @@ jobs:
           if errorlevel 1 exit /b 1
           cmake --build build/unidec-release-intel --parallel
           if errorlevel 1 exit /b 1
+          for %%D in (libiomp5md.dll libmmd.dll mkl_rt.2.dll svml_dispmd.dll) do (
+            for /f "delims=" %%P in ('where %%D') do copy /y "%%P" "unidec\bin\%%D"
+            if not exist "unidec\bin\%%D" (
+              echo Required Intel runtime DLL was not found: %%D
+              exit /b 1
+            )
+          )
 
       - name: Configure and build Windows ARM64
         if: matrix.compiler == 'MSVC'
@@ -215,10 +224,17 @@ jobs:
         run: |
           $libraries = Get-ChildItem -LiteralPath "$env:VCPKG_ROOT_PATH/installed/${{ matrix.triplet }}/bin" -Filter '*.dll' -File
           if (-not $libraries) { throw 'vcpkg did not provide runtime DLLs.' }
-          Copy-Item -LiteralPath $libraries.FullName -Destination unidec/bin -Force
+          $runtimeLibraries = @($libraries)
+          if ('${{ matrix.compiler }}' -eq 'IntelLLVM') {
+            $intelRuntimeNames = @('libiomp5md.dll', 'libmmd.dll', 'mkl_rt.2.dll', 'svml_dispmd.dll')
+            $runtimeLibraries += @($intelRuntimeNames | ForEach-Object {
+              Get-Item -LiteralPath "unidec/bin/$_" -ErrorAction Stop
+            })
+          }
+          Copy-Item -LiteralPath $runtimeLibraries.FullName -Destination unidec/bin -Force
           New-Item -ItemType Directory -Path build/release-native -Force | Out-Null
           Copy-Item -LiteralPath 'unidec/bin/unidec.exe', 'unidec/bin/unideclib.dll' -Destination build/release-native -Force
-          Copy-Item -LiteralPath $libraries.FullName -Destination build/release-native -Force
+          Copy-Item -LiteralPath $runtimeLibraries.FullName -Destination build/release-native -Force
 
       - name: Verify native outputs
         shell: pwsh
@@ -226,6 +242,12 @@ jobs:
           foreach ($name in @('unidec.exe', 'unideclib.dll')) {
             $file = Get-Item -LiteralPath "unidec/bin/$name" -ErrorAction Stop
             if ($file.Length -eq 0) { throw "Empty native output: $name" }
+          }
+          if ('${{ matrix.compiler }}' -eq 'IntelLLVM') {
+            foreach ($name in @('libiomp5md.dll', 'libmmd.dll', 'mkl_rt.2.dll', 'svml_dispmd.dll')) {
+              $file = Get-Item -LiteralPath "unidec/bin/$name" -ErrorAction Stop
+              if ($file.Length -eq 0) { throw "Empty Intel runtime DLL: $name" }
+            }
           }
 
       - name: Store native outputs
