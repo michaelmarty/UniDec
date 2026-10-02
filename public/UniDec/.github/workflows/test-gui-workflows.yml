@@ -248,7 +248,7 @@ jobs:
           $runtimeLibraries = @($libraries) + @($intelRuntimeNames | ForEach-Object {
             Get-Item -LiteralPath "unidec/bin/$_" -ErrorAction Stop
           })
-          Copy-Item -LiteralPath $runtimeLibraries.FullName -Destination unidec/bin -Force
+          Copy-Item -LiteralPath $libraries.FullName -Destination unidec/bin -Force
 
       - name: Set up Python for IntelLLVM wheel smoke test
         if: matrix.compiler == 'IntelLLVM'

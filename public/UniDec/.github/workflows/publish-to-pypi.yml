@@ -231,7 +231,7 @@ jobs:
               Get-Item -LiteralPath "unidec/bin/$_" -ErrorAction Stop
             })
           }
-          Copy-Item -LiteralPath $runtimeLibraries.FullName -Destination unidec/bin -Force
+          Copy-Item -LiteralPath $libraries.FullName -Destination unidec/bin -Force
           New-Item -ItemType Directory -Path build/release-native -Force | Out-Null
           Copy-Item -LiteralPath 'unidec/bin/unidec.exe', 'unidec/bin/unideclib.dll' -Destination build/release-native -Force
           Copy-Item -LiteralPath $runtimeLibraries.FullName -Destination build/release-native -Force
