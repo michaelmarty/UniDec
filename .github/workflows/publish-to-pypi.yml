@@ -133,14 +133,20 @@ jobs:
                 --wheel-dir repaired-linux-arm64 dist-linux-arm64/*.whl
             '
 
+      - name: Stage native outputs
+        shell: bash
+        run: |
+          mkdir -p build/release-native
+          cp "unidec/bin/${{ matrix.executable }}" "unidec/bin/${{ matrix.library }}" build/release-native/
+          if [[ "${{ matrix.artifact }}" == "native-linux-arm64" ]]; then
+            cp repaired-linux-arm64/*.whl build/release-native/
+          fi
+
       - name: Store native outputs
         uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
-          path: |
-            unidec/bin/${{ matrix.executable }}
-            unidec/bin/${{ matrix.library }}
-            repaired-linux-arm64/*.whl
+          path: build/release-native/
           if-no-files-found: error
 
   native-windows:
