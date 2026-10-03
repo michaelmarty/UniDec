@@ -24,7 +24,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         include:
           - name: Linux x64
@@ -136,17 +136,18 @@ jobs:
       - name: Stage native outputs
         shell: bash
         run: |
-          mkdir -p build/release-native
-          cp "unidec/bin/${{ matrix.executable }}" "unidec/bin/${{ matrix.library }}" build/release-native/
+          staging_directory="$RUNNER_TEMP/unidec-native-artifact"
+          mkdir -p "$staging_directory"
+          cp "unidec/bin/${{ matrix.executable }}" "unidec/bin/${{ matrix.library }}" "$staging_directory/"
           if [[ "${{ matrix.artifact }}" == "native-linux-arm64" ]]; then
-            cp repaired-linux-arm64/*.whl build/release-native/
+            cp repaired-linux-arm64/*.whl "$staging_directory/"
           fi
 
       - name: Store native outputs
         uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
-          path: build/release-native/
+          path: ${{ runner.temp }}/unidec-native-artifact/
           if-no-files-found: error
 
   native-windows:
@@ -154,7 +155,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         include:
           - name: Windows IntelLLVM x64
