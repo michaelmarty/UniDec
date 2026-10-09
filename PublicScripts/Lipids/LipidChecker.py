@@ -41,15 +41,18 @@ LPC	[M+CH3COO]	HG(224), FA1(+O)
 EtherLPC	[M+CH3COO]	HG(168)	
 EtherLPC	[M+H]	HG(184)	
 LPE	[M-H]	HG(196), FA1(+O)	
+LPE	[M-H]	HG(214), FA1(+O)
+LPE	[M+H]	HGNL(141)
 LPG	[M-H]	HG(153), FA1(+O)	
 LPI	[M-H]	HG(153), FA1(+O), HG(241)	
 LPS	[M-H]	HG(153), FA1(+O)	
 PA	[M-H]	HG(153), FA1(+O), FA2(+O)	
 PC	[M+H]	HG(184)	
 PC	[M+CH3COO]	HG(224), HGNL(74), FA1(+O), FA2(+O)
-PC	[M+Na]	NLFA1(+O-C3H9N), NLFA2(+O-C3H9N)
+PC	[M+Na]	NLFA1(+O-C3H9N), NLFA2(+O-C3H9N)    
 PC	[M+Na]	NLFA1(+O-C5H14NO4P), NLFA2(+O-C5H14NO4P)
-EtherPC	[M+CH3COO]	HG(224), FA1(+O), FA2(+O), FA1(+O-C2H4), FA2(+O-C2H4)	
+EtherPC	[M+CH3COO]	FA2(+O), NLFA2(+O)+Acetate+CH3
+EtherPC	[M+CH3COO]	FA2(+O), NLFA2(-H)+Acetate+CH3
 EtherPC	[M+H]	HG(184)	
 PE	[M+H]	HGNL(141)	
 PE	[M-H]	HG(196), FA1(+O), FA2(+O)	
@@ -568,14 +571,6 @@ if __name__ == "__main__":
         plot_individual=False
     )
 
-    # Initial descriptive status
-    df["Identification Status"] = df["Overall Match Status"].map(
-        {
-            True: "Confirmed",
-            False: "Failed"
-        }
-    )
-
     df = flag_weird_lipids(
         df,
         max_unsaturation_by_class={
@@ -596,7 +591,7 @@ if __name__ == "__main__":
         sm_max_acyl_unsaturation=3,
         sm_min_total_carbons=30,
         sm_max_total_carbons=46,
-        etherpc_min_chain_carbons=24
+        etherpc_min_total_carbons=24
     )
 
     # Restore PC [M+H]+ rows that contain the diagnostic m/z 184 ion.
@@ -623,10 +618,46 @@ if __name__ == "__main__":
         "Overall Match Status"
     ] = True
 
+    # Accept positive LPEs meeting their reference-fragment rule, consistently
+    # with other headgroup-supported classes, while retaining a chain caution.
+    positive_lpe_headgroup_mask = (
+        (df["Ontology"] == "LPE")
+        & (clean_adduct == "[M+H]")
+        & (df["Overall Match Status"] == True)
+    )
+    df["Validation Status"] = df["Overall Match Status"].map(
+        {True: "Accepted", False: "Failed", "Provisional": "Provisional"}
+    )
+
+    # Set descriptive status after the final checks and PC restoration.
+    df["Identification Status"] = df["Overall Match Status"].map(
+        {
+            True: "Confirmed",
+            False: "Failed",
+            "Provisional": "Provisional"
+        }
+    )
+
     df.loc[
         positive_pc_mask,
         "Identification Status"
     ] = "PC class confirmed in positive mode; retain with caution"
+
+    df.loc[
+        positive_lpe_headgroup_mask,
+        "Identification Status"
+    ] = "LPE headgroup supported in positive mode; acyl chain unconfirmed"
+
+    # The positive-mode phosphocholine ion does not establish an ether linkage.
+    positive_etherpc_mask = (
+        (df["Ontology"] == "EtherPC")
+        & (clean_adduct == "[M+H]")
+        & (df["Overall Match Status"] == True)
+    )
+    df.loc[
+        positive_etherpc_mask,
+        "Identification Status"
+    ] = "PC headgroup supported in positive mode; ether linkage unconfirmed"
 
     removed_df.to_excel(
         "Removed_Identifications.xlsx",
@@ -636,4 +667,4 @@ if __name__ == "__main__":
     # df = df[df["Ontology"] == "DG"]
 
     write_colored_excel(df, "Overall Match Status", "Combined_Fragment_Assignment_Colored.xlsx",
-                        color_map={True: "lightgreen", False: "lightcoral"})
+                        color_map={True: "lightgreen", False: "lightcoral", "Provisional": "lightyellow"})
