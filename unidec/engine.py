@@ -147,7 +147,7 @@ class UniDec(UniDecEngine):
 
         file_path = os.path.join(file_directory, file_name)
 
-        if not os.path.isfile(file_path) and ('.d' not in file_directory or '.raw' not in file_directory):
+        if not os.path.exists(file_path):
             try:
                 file_path = file_directory
             except:
@@ -230,6 +230,8 @@ class UniDec(UniDecEngine):
                 self.export_config()
 
         self.auto_polarity(importer = curr_importer)
+        if isodeceng is None:
+            curr_importer.close()
 
         if load_results:
             self.unidec_imports(everything=True)
