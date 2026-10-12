@@ -319,6 +319,8 @@ v.9.0.1
 
 Fixes to bug with clearing plots.
 
+Fixes to Thermo centroiding loading. Fixed in UniDecImporter 1.0.3 version. 
+
 v.9.0.0
 
 Split IsoDec, IsoGen, and UniDecImporter into separate Python packages. This allows more targeted development on each of those and simplifies testing and releases. I am working on automating more of the docs and releases on each to improve consistency and catch any issues. Hopefullly this will help. Let me know what bugs pop up.
