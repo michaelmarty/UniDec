@@ -85,6 +85,18 @@ def test_native_grouping_matches_python_on_supplied_spectrum(spectrum, order, ex
     np.testing.assert_array_equal(native.to_mass_spectrum(), reference.to_mass_spectrum())
 
 
+def test_process_spectrum_sorts_centroids_before_native_calls(spectrum):
+    wrapper = _native_wrapper()
+    expected = wrapper.process_spectrum(spectrum)
+    middle = len(spectrum) // 2
+    unsorted = np.concatenate((spectrum[middle:], spectrum[:middle]))
+
+    actual = wrapper.process_spectrum(unsorted)
+
+    assert actual.to_df().equals(expected.to_df())
+    np.testing.assert_array_equal(actual.to_mass_spectrum(), expected.to_mass_spectrum())
+
+
 def test_native_rematch_uses_exported_window(spectrum):
     wrapper = _native_wrapper()
     peaks = wrapper.process_spectrum(spectrum)

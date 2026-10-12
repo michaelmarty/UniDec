@@ -562,6 +562,9 @@ class IsoDecWrapper:
 
     def process_spectrum(self, centroids, pks=None, config=None, input_type=None):
 
+        if len(centroids) > 1 and np.any(centroids[1:, 0] < centroids[:-1, 0]):
+            centroids = centroids[np.argsort(centroids[:, 0], kind="stable")]
+
         if input_type is None:
             input_type = "Peptide"
         type_c = ctypes.c_char_p(input_type.encode('utf-8'))
