@@ -68,7 +68,7 @@ class UniDecCDApp(UniDecApp):
             # self.on_dataprep_button(0)
             # self.on_auto(0)
 
-        if True and platform.node() == 'CHEM-A90237':
+        if not kwargs.get("ignore_args", False) and platform.node() == 'CHEM-A90237':
             path = "C:\\Python\\UniDecDev\\public\\UniDec\\unidec\\bin\\Example Data\\CDMS\\GroEL_CDMS_1.RAW"
             # path = "C:\\Data\\CDMS\\Replicates\\AAV8_IMID_CDMS_1.RAW"
             self.on_open_file(None, None, path=path)

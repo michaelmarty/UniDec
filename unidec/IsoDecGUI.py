@@ -4,6 +4,9 @@ import sys
 _local_isodec = Path(__file__).resolve().parents[2] / "IsoDec"
 if (_local_isodec / "isodec" / "__init__.py").is_file():
     sys.path.insert(0, str(_local_isodec))
+_local_isogen = _local_isodec / "extern" / "IsoGen"
+if (_local_isogen / "isogen" / "__init__.py").is_file():
+    sys.path.insert(0, str(_local_isogen))
 
 import unidec.tools as ud
 from unidec.modules.unidec_presbase import UniDecPres

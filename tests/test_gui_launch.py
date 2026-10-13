@@ -132,6 +132,32 @@ try:
         assert all("UniDec API Shell" not in label for label in labels)
         im_button = next(button for button in buttons if button.GetLabel().startswith("UniDec IM"))
         assert im_button.GetParent().GetSizer().GetItemPosition(im_button) == (5, 1)
+        file_menu = app.view.GetMenuBar().GetMenu(0)
+        menu_labels = [item.GetItemLabelText() for item in file_menu.GetMenuItems() if not item.IsSeparator()]
+        assert menu_labels == ["Run Tests", "About", "Exit"]
+        import wx
+        from unidec import gui_self_test
+        report = {{
+            "report_path": "report.json",
+            "success": True,
+            "summary": {{status: 0 for status in (
+                "pass", "skip", "failure", "timeout", "cancelled")}},
+        }}
+        with patch.object(gui_self_test, "run_controller", return_value=report) as run_controller, \
+                patch.object(wx, "MessageBox") as message_box:
+            app.view.on_run_tests()
+            test_thread = app.view.test_thread
+            test_thread.join(timeout=5)
+            assert not test_thread.is_alive()
+            app.wx_app.Yield()
+            run_controller.assert_called_once()
+            message_box.assert_called_once()
+        with patch.object(wx, "MessageBox") as message_box:
+            app.view.on_about()
+            assert str(app.view.eng.version) in message_box.call_args.args[0]
+        with patch.object(app, "on_close") as on_close:
+            app.view.on_exit()
+            on_close.assert_called_once_with()
     if {has_lazy_workflows!r}:
         import unidec
         import unidec.modules

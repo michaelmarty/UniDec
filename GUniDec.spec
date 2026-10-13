@@ -1,6 +1,7 @@
 # -*- mode: python -*-
 import datetime
 import hashlib
+import os
 from pathlib import Path
 import platform
 import shutil
@@ -15,6 +16,9 @@ isodec_checkout = root.parent / "IsoDec"
 package_paths = [str(root)]
 if (isodec_checkout / "isodec" / "__init__.py").is_file():
     package_paths.insert(0, str(isodec_checkout))
+isogen_checkout = isodec_checkout / "extern" / "IsoGen"
+if (isogen_checkout / "isogen" / "__init__.py").is_file():
+    package_paths.insert(0, str(isogen_checkout))
 sys.path[:0] = package_paths
 
 system = platform.system()
@@ -89,18 +93,16 @@ destination = Path(DISTPATH) / outputdir
 for name in ("readme.md", "LICENSE", "installer.bat"):
     shutil.copy2(root / name, destination / name)
 
-userin = input("Is Sign Complete? Zip build? (y/n): ")
-if userin.lower() != "y":
-    print("Exiting without zipping.")
-    sys.exit(0)
-
-archive = shutil.make_archive(
-    str(Path(DISTPATH) / (outputdir + "_" + datetime.date.today().strftime("%y%m%d"))),
-    "zip", root_dir=DISTPATH, base_dir=outputdir,
-)
-with open(archive, "rb") as stream:
-    digest = hashlib.sha256()
-    for block in iter(lambda: stream.read(65536), b""):
-        digest.update(block)
-print("ZIP:", archive)
-print("SHA256:", digest.hexdigest())
+if os.environ.get("UNIDEC_ZIP_BUILD", "").lower() in ("1", "true", "yes"):
+    archive = shutil.make_archive(
+        str(Path(DISTPATH) / (outputdir + "_" + datetime.date.today().strftime("%y%m%d"))),
+        "zip", root_dir=DISTPATH, base_dir=outputdir,
+    )
+    with open(archive, "rb") as stream:
+        digest = hashlib.sha256()
+        for block in iter(lambda: stream.read(65536), b""):
+            digest.update(block)
+    print("ZIP:", archive)
+    print("SHA256:", digest.hexdigest())
+else:
+    print("Skipping archive; set UNIDEC_ZIP_BUILD=1 to create it.")
