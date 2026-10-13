@@ -132,12 +132,10 @@ try:
         assert all("UniDec API Shell" not in label for label in labels)
         im_button = next(button for button in buttons if button.GetLabel().startswith("UniDec IM"))
         assert im_button.GetParent().GetSizer().GetItemPosition(im_button) == (5, 1)
-        file_menu = app.view.GetMenuBar().GetMenu(0)
-        menu_labels = [item.GetItemLabelText() for item in file_menu.GetMenuItems() if not item.IsSeparator()]
-        # macOS moves standard About and Exit items into the application menu.
-        expected_menu_labels = ["Run Tests"] if sys.platform == "darwin" else ["Run Tests", "About", "Exit"]
-        assert menu_labels == expected_menu_labels
         import wx
+        file_menu = app.view.GetMenuBar().GetMenu(0)
+        menu_item_ids = [item.GetId() for item in file_menu.GetMenuItems() if not item.IsSeparator()]
+        assert menu_item_ids == [app.view.run_tests_item.GetId(), wx.ID_ABOUT, wx.ID_EXIT]
         from unidec import gui_self_test
         report = {{
             "report_path": "report.json",
