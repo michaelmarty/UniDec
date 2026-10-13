@@ -7,13 +7,17 @@ import platform
 import shutil
 import sys
 
-from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
+from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs, get_package_paths
 
 
 root = Path(SPECPATH)
 # Match IsoDecGUI's preference for the development checkout.
 isodec_checkout = root.parent / "IsoDec"
 package_paths = [str(root)]
+# PyInstaller's module graph does not resolve PEP 660 editable installs. Add the
+# installed importer's source root while retaining normal site-package installs.
+importer_base, _ = get_package_paths("UniDecImporter")
+package_paths.insert(0, importer_base)
 if (isodec_checkout / "isodec" / "__init__.py").is_file():
     package_paths.insert(0, str(isodec_checkout))
 isogen_checkout = isodec_checkout / "extern" / "IsoGen"
