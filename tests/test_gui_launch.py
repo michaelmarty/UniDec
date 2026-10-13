@@ -134,7 +134,9 @@ try:
         assert im_button.GetParent().GetSizer().GetItemPosition(im_button) == (5, 1)
         file_menu = app.view.GetMenuBar().GetMenu(0)
         menu_labels = [item.GetItemLabelText() for item in file_menu.GetMenuItems() if not item.IsSeparator()]
-        assert menu_labels == ["Run Tests", "About", "Exit"]
+        # macOS moves standard About and Exit items into the application menu.
+        expected_menu_labels = ["Run Tests"] if sys.platform == "darwin" else ["Run Tests", "About", "Exit"]
+        assert menu_labels == expected_menu_labels
         import wx
         from unidec import gui_self_test
         report = {{
