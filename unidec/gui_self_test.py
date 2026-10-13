@@ -30,6 +30,7 @@ class WorkerSpec:
     application: str
     optional: bool = False
     companions: tuple = ()
+    generate_hdf5: bool = False
 
 
 WORKERS = (
@@ -42,10 +43,10 @@ WORKERS = (
     WorkerSpec("unichrom", "UniChrom native", "UniChrom/SEC_Native_Bispecific_Special.raw",
                "unichrom"),
     WorkerSpec("unichrom-state", "UniChrom saved state",
-               "UniChrom/SEC_Native_Bispecific_Special.hdf5", "unichrom",
-               companions=("UniChrom/SEC_Native_Bispecific_Special.raw",)),
-    WorkerSpec("metaunidec", "MetaUniDec", "UniChrom/SEC_Native_Bispecific_Special.hdf5",
-               "metaunidec"),
+               "UniChrom/SEC_Native_Bispecific_Special.raw", "unichrom",
+               generate_hdf5=True),
+    WorkerSpec("metaunidec", "MetaUniDec", "UniChrom/SEC_Native_Bispecific_Special.raw",
+               "metaunidec", generate_hdf5=True),
     WorkerSpec("unichrom-cd", "UniChromCD", "CDMS/BgalGroEL.dmt", "unichrom-cd"),
 )
 WORKER_BY_NAME = {worker.name: worker for worker in WORKERS}
@@ -74,6 +75,22 @@ def copy_fixture(source, workspace):
     else:
         shutil.copy2(source, destination)
     return destination
+
+
+def generate_chrom_hdf5(raw_path):
+    from unidec.modules.ChromEng import ChromEngine
+
+    engine = ChromEngine()
+    try:
+        engine.open_chrom(str(raw_path))
+        start, end = engine.get_minmax_times()
+        data = engine.get_data_from_times(start, end)
+        engine.data.add_data(data, name=str(start), attrs=engine.attrs, export=False)
+        engine.reset_vars()
+        return raw_path.with_suffix(".hdf5")
+    finally:
+        if engine.chromdat is not None and hasattr(engine.chromdat, "close"):
+            engine.chromdat.close()
 
 
 def _write_json(path, value):
@@ -181,6 +198,8 @@ def run_worker(name, report_path):
             fixture = copy_fixture(resolve_fixture(spec.fixture), workspace)
             for companion in spec.companions:
                 copy_fixture(resolve_fixture(companion), workspace)
+            if spec.generate_hdf5:
+                fixture = generate_chrom_hdf5(fixture)
         except FileNotFoundError as error:
             if spec.optional:
                 result.update(status=SKIP, message=str(error))
