@@ -150,6 +150,41 @@ class RecordingEngine:
 
 
 class TestBatchRowOrchestration(unittest.TestCase):
+    def test_engine_and_report_exceptions_propagate_without_processing_next_row(self):
+        """Record current fail-fast behavior; per-row recovery is not defined."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name in ("first.txt", "second.txt"):
+                (root / name).write_text("100 1\n", encoding="utf-8")
+            frame = pd.DataFrame([
+                {"Sample name": name, "Data Directory": directory}
+                for name in ("first.txt", "second.txt")
+            ])
+            for stage in ("open_file", "autorun", "gen_html_report"):
+                with self.subTest(stage=stage):
+                    processor = batch.UniDecBatchProcessor()
+                    engine = RecordingEngine()
+                    engine.open_file = Mock(wraps=engine.open_file)
+                    engine.autorun = Mock(wraps=engine.autorun)
+                    engine.gen_html_report = Mock()
+                    failure = RuntimeError("injected " + stage + " failure")
+                    getattr(engine, stage).side_effect = failure
+                    processor.eng = engine
+
+                    with self.assertRaises(RuntimeError) as raised:
+                        processor.run_df(
+                            frame.copy(), decon=True, write_html=False, write_xlsx=False,
+                            write_peaks=False, individual_html=True,
+                        )
+
+                    self.assertIs(raised.exception, failure)
+                    engine.open_file.assert_called_once()
+                    self.assertEqual(Path(engine.open_file.call_args.args[0]).name, "first.txt")
+                    self.assertEqual(engine.autorun.call_count, int(stage != "open_file"))
+                    self.assertEqual(engine.gen_html_report.call_count, int(stage == "gen_html_report"))
+                    self.assertEqual(len(processor.pks.peaks), 0)
+                    self.assertNotIn("NumPeaks", processor.rundf.columns)
+
     def test_rows_reset_config_keep_result_association_and_handle_missing_file(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

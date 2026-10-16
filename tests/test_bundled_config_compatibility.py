@@ -119,6 +119,50 @@ class TestBundledConfigCompatibility(unittest.TestCase):
             self.assertEqual(Path(restored.confname).parent, root / "restored")
             self.assertTrue(Path(source.confname).is_file())
 
+    def test_bundled_companion_lists_load_and_round_trip(self):
+        """Literal bundled oligomer/manual rows survive the real config loaders."""
+        cases = (
+            ("ADH", "ofile.dat", "oligomerlist",
+             np.array([["0.0", "36985.0", "0", "4", "ADH"]])),
+            ("GroEL HCD UniDec", "manualfile.dat", "manuallist",
+             np.array([[11956.807435, 94.469166, 67.0]])),
+        )
+        with tempfile.TemporaryDirectory(prefix="unidec-companion-") as directory:
+            for index, (stem, suffix, field, expected) in enumerate(cases):
+                with self.subTest(field=field):
+                    root = Path(directory, str(index))
+                    root.mkdir()
+                    parts = (stem + "_unidecfiles",)
+                    conf = copy_unidec_example(root, *parts, stem + "_conf.dat")
+                    companion = copy_unidec_example(root, *parts, stem + "_" + suffix)
+                    source = UniDecConfig()
+                    source.outfname = str(root / stem)
+                    source.default_file_names()
+                    source.config_import(str(conf))
+                    actual = getattr(source, field)
+                    if field == "oligomerlist":
+                        np.testing.assert_array_equal(actual, expected)
+                    else:
+                        np.testing.assert_allclose(actual, expected, atol=1e-6, rtol=0)
+                    self.assertEqual(Path(source.ofile if field == "oligomerlist"
+                                          else source.manualfile), companion)
+
+                    # Export to a second directory so loading cannot reuse the
+                    # original companion; singleton rows must remain 2D.
+                    output = root / "exported"
+                    output.mkdir()
+                    source.outfname = str(output / stem)
+                    source.default_file_names()
+                    source.config_export(source.confname)
+                    restored = UniDecConfig()
+                    restored.outfname = source.outfname
+                    restored.default_file_names()
+                    restored.config_import(source.confname)
+                    if field == "oligomerlist":
+                        np.testing.assert_array_equal(restored.oligomerlist, expected)
+                    else:
+                        np.testing.assert_allclose(restored.manuallist, expected, atol=1e-6, rtol=0)
+
 
 if __name__ == "__main__":
     unittest.main()
