@@ -371,9 +371,14 @@ class UniDec(UniDecEngine):
                     pass
             except (IOError, FileNotFoundError) as err:
                 print("Could not open kernel file.\nPlease select a valid kernel file to use DoubleDec")
-                return 0
+                return 1
         # Export Config and Call
         self.export_config()
+        self.pks = peakstructure.Peaks()
+        self.data.massdat = np.array([])
+        self.data.massgrid = np.array([])
+        self.data.fitdat = np.array([])
+        self.data.mzgrid = np.array([])
         tstart = time.perf_counter()
 
         out = ud.unidec_call(self.config, silent=silent)
@@ -404,15 +409,20 @@ class UniDec(UniDecEngine):
 
         # Import Results
         self.pks = peakstructure.Peaks()
-        self.data.massdat = np.loadtxt(self.config.massdatfile)
+        try:
+            self.data.massdat = np.loadtxt(self.config.massdatfile)
+        except (OSError, ValueError) as error:
+            self.data.massdat = np.array([])
+            raise ValueError("UniDec mass output must contain at least two columns") from error
+        if self.data.massdat.size > 0:
+            self.data.massdat = np.atleast_2d(self.data.massdat)
+        if self.data.massdat.size == 0 or self.data.massdat.ndim != 2 or self.data.massdat.shape[1] < 2:
+            self.data.massdat = np.array([])
+            raise ValueError("UniDec mass output must contain at least two columns")
 
         self.data.ztab = np.arange(self.config.startz, self.config.endz + 1)
 
-        try:
-            self.config.massdatnormtop = np.amax(self.data.massdat[:, 1])
-        except Exception:
-            self.data.massdat = np.array([self.data.massdat])
-            self.config.massdatnormtop = np.amax(self.data.massdat[:, 1])
+        self.config.massdatnormtop = np.amax(self.data.massdat[:, 1])
         if not efficiency:
             try:
                 self.data.massgrid = np.fromfile(self.config.massgridfile, dtype=self.config.dtype)

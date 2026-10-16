@@ -53,7 +53,9 @@ class MetaDataSet:
         self.indexes = sorted(self.indexes)
         self.len = len(self.indexes)
 
-        if ud.isempty(self.spectra):
+        loaded_indexes = [int(s.index) for s in self.spectra]
+        if loaded_indexes != self.indexes:
+            self.spectra = []
             for i in self.indexes:
                 s = Spectrum(self.topname, i, self.eng)
                 s.read_hdf5(file, speedy=speedy, hdfobj=hdf)

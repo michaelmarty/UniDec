@@ -3,6 +3,7 @@ from unidec.modules.plotting import plot1d, plot2d
 from unidec._version import __version__
 import unidec.modules.unidecstructure as unidecstructure
 import time
+from copy import deepcopy
 from unidec.modules.html_writer import *
 
 
@@ -10,8 +11,7 @@ from unidec.modules.html_writer import *
 version = __version__
 
 def copy_config(config):
-    # return deepcopy(config)
-    return type("UniDecConfig", (object,), dict(config.__dict__))
+    return deepcopy(config)
 
 
 class UniDecEngine:
@@ -120,7 +120,9 @@ class UniDecEngine:
     def update_history(self):
         # print "Update"
         try:
-            if self.config_count > 0 and self.config.check_new(self.config_history[len(self.config_history) - 1]):
+            current = self.config_history[self.config_count - 1]
+            if self.config_count > 0 and self.config.check_new(current):
+                self.config_history = self.config_history[:self.config_count]
                 self.config_history.append(copy_config(self.config))
                 self.config_count = len(self.config_history)
                 # print "Updated History", self.config_count
@@ -145,7 +147,7 @@ class UniDecEngine:
             old = self.config
             for item in new.__dict__:
                 try:
-                    old.__dict__[item] = new.__dict__[item]
+                    old.__dict__[item] = deepcopy(new.__dict__[item])
                 except KeyError as e:
                     print(e)
         pass
@@ -158,7 +160,7 @@ class UniDecEngine:
             old = self.config
             for item in new.__dict__:
                 try:
-                    old.__dict__[item] = new.__dict__[item]
+                    old.__dict__[item] = deepcopy(new.__dict__[item])
                 except KeyError as e:
                     print(e)
         pass

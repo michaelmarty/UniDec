@@ -410,8 +410,8 @@ class UniDecConfig(object):
             "CDslope": (self.CDslope, float),
             "CDzbins": (self.CDzbins, int),
             "CDres": (self.CDres, float),
-            "CDScanStart": (self.CDScanStart, float),
-            "CDScanEnd": (self.CDScanEnd, float),
+            "CDScanStart": (self.CDScanStart, int),
+            "CDScanEnd": (self.CDScanEnd, int),
             "CDprethresh": (self.CDprethresh, float),
             "HTksmooth": (self.HTksmooth, float),
             "CDScanCompress": (self.CDScanCompress, int),
@@ -439,7 +439,7 @@ class UniDecConfig(object):
             "centroided": (self.centroided, bool),
             "verbose": (self.verbose, bool),
             "zout": (self.zout, int),
-            "pusher": (self.pusher, int),
+            "pusher": (self.pusher, float),
             "mindt": (self.mindt, float),
             "maxdt": (self.maxdt, float),
             "ccsub": (self.ccsub, float),
@@ -816,6 +816,10 @@ class UniDecConfig(object):
                 if len(line.split()) > 1:
                     if line.startswith("version"):
                         self.inputversion = line.split()[1]
+                    if line.startswith("imflag"):
+                        self.imflag = ud.string_to_int(line.split()[1])
+                    if line.startswith("cdmsflag"):
+                        self.cdmsflag = ud.string_to_int(line.split()[1])
                     if line.startswith("minmz"):
                         self.minmz = ud.string_to_value(line.split()[1])
                     if line.startswith("maxmz"):
@@ -1153,7 +1157,8 @@ class UniDecConfig(object):
             "psfun": self.psfun, "psfunz": self.psfunz, "discreteplot": self.discreteplot, "massub": self.massub,
             "masslb": self.masslb,
             "msig": self.msig, "molig": self.molig, "massbins": self.massbins, "mtabsig": self.mtabsig,
-            "minmz": self.minmz, "maxmz": self.maxmz, "subbuff": self.subbuff, "smooth": self.smooth,
+            "minmz": self.minmz, "maxmz": self.maxmz, "subbuff": self.subbuff, "subtype": self.subtype,
+            "smooth": self.smooth,
             "mzbins": self.mzbins, "peakwindow": self.peakwindow, "peakthresh": self.peakthresh,
             "normthresh": self.normthresh,
             "peakplotthresh": self.peakplotthresh, "plotsep": self.separation, "intthresh": self.intthresh,
@@ -1254,6 +1259,7 @@ class UniDecConfig(object):
         self.massbins = read_attr(self.massbins, "massbins", config_group)
         self.mtabsig = read_attr(self.mtabsig, "mtabsig", config_group)
         self.subbuff = read_attr(self.subbuff, "subbuff", config_group)
+        self.subtype = read_attr(self.subtype, "subtype", config_group)
         self.smooth = read_attr(self.smooth, "smooth", config_group)
         self.mzbins = read_attr(self.mzbins, "mzbins", config_group)
         self.peakwindow = read_attr(self.peakwindow, "peakwindow", config_group)
@@ -1314,7 +1320,7 @@ class UniDecConfig(object):
         self.integratelb = read_attr(self.integratelb, "integratelb", config_group)
         self.integrateub = read_attr(self.integrateub, "integrateub", config_group)
         self.filterwidth = read_attr(self.filterwidth, "filterwidth", config_group)
-        self.zerolog = read_attr(self.zerolog, "zerolog, config_group", config_group)
+        self.zerolog = read_attr(self.zerolog, "zerolog", config_group)
         self.mfileflag = read_attr(self.mfileflag, "mfileflag", config_group)
         self.manualfileflag = read_attr(self.manualfileflag, "manualfileflag", config_group)
         self.imflag = read_attr(self.imflag, "imflag", config_group)

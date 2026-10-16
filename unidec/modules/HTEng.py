@@ -279,7 +279,7 @@ class HTEng:
         elif mode == "PP" or mode == "MRS":
             output, data = self.mrs_decon(data, **kwargs)
         else:
-            output, data = data
+            output = data
             print("Demultiplexing mode not recognized. Returning original data.", mode)
 
         if chop:
