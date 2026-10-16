@@ -11,6 +11,42 @@ Detailed descriptions of the algorithm are provided in the paper and subsequent 
 
 Please contact mtmarty@email.arizona.edu for questions, suggestions, or with any bugs.
 
+## UniDecCD peak scoring
+
+After single-histogram CD-MS deconvolution, peak picking calculates DScore for
+each peak and displays UniScore in the status bar. The Experimental menu provides
+the peak score window, score labels, and filtering. Peak parameter exports retain
+the existing DScore column.
+
+CD scoring preserves the processed input and reconvolved fit as aligned
+`[charge, m/z]` histograms. Each peak's mass window is reconstructed with the CD
+response kernel, accounting for the m/z convolution already present in profile
+output. Its fit/uniqueness component is the response-weighted product of local
+fit agreement (`min(observed, fitted) / max(observed, fitted)`) and purity
+(`peak response / total fitted response`, bounded to 0–1). Charge rows are
+averaged with predicted intensity raised to the scoring power. This rewards
+isolated, well-fitted responses and penalizes overlapping responses.
+
+DScore multiplies this component by the existing mass-shape, charge-distribution,
+and FWHM components. UniScore is the peak-height-squared weighted mean DScore
+multiplied by the 2D fit R², bounded to 0–1. Empty evidence scores zero; a perfect
+nonzero constant fit has R² of one. Undefined sparse-data components score zero.
+Before R² and local agreement are calculated, one nonnegative least-squares
+amplitude aligns the fitted histogram with the observed histogram. This removes
+global gain from older native binaries while preserving local fit errors. Current
+native single-histogram kernels are normalized to unit area so Richardson-Lucy and
+profile reconvolution conserve signal directly. Both integration and interpolation
+m/z-to-mass transforms also preserve the summed deconvolved intensity. Python
+rescales unnormalized native output to the processed input sum as a compatibility
+measure for older packaged executables.
+Python and native single-histogram deconvolution both supply fit evidence.
+Chromatographic full-stack output currently lacks the fit evidence required for
+this calculation. Processing new data invalidates previous scores.
+
+These CD-specific scores have not been calibrated against experimental quality
+labels; validate filtering cutoffs on representative CD-MS data before using
+the standard UniDec thresholds.
+
 ## Installation
 
 ### Binary download 

@@ -100,15 +100,10 @@ add_executable(unidec
 target_include_directories(unidec PRIVATE ${HDF5_INCLUDE_DIRS})
 target_include_directories(unideclib PRIVATE ${HDF5_INCLUDE_DIRS})
 
-# The Python package launches the executable from unidec/bin. Keep that copy
-# synchronized with normal IDE/CMake builds; the install target is not run by
-# CLion's regular Build action.
-add_custom_command(TARGET unidec POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${INSTALL_DIR}"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "$<TARGET_FILE:unidec>"
-                "${INSTALL_DIR}/$<TARGET_FILE_NAME:unidec>"
-        COMMENT "Deploying unidec executable to ${INSTALL_DIR}"
+# The Python package launches the executable from unidec/bin. Emit the target
+# there directly so IDE run configurations also launch beside its runtime DLLs.
+set_target_properties(unidec PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${INSTALL_DIR}"
 )
 
 # The ctypes wrapper loads the shared library from unidec/bin. Deploy it next

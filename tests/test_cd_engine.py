@@ -4,6 +4,7 @@ from types import SimpleNamespace
 import numpy as np
 
 from unidec.modules import CDEng
+from unidec.modules import peakstructure
 
 
 class TestCDCalibrationAndFiltering(unittest.TestCase):
@@ -103,6 +104,23 @@ class TestCDHistogramAndTransform(unittest.TestCase):
         np.testing.assert_array_equal(result.massdat, expected_massdat)
         self.assertEqual(engine.config.massdatnormtop, 5.0)
 
+    def test_mass_transform_conserves_total_signal_in_both_modes(self):
+        harray = np.array([[1.0, 2.0], [3.0, 4.0]])
+        for poolflag in (0, 1):
+            with self.subTest(poolflag=poolflag):
+                engine = self._engine(poolflag=poolflag)
+                engine.mz = np.array([11.0, 21.0])
+                engine.ztab = np.array([1.0, 2.0])
+                engine.X, engine.Y = np.meshgrid(engine.mz, engine.ztab, indexing="xy")
+                engine.mass = (engine.X - engine.config.adductmass) * engine.Y
+
+                result = engine.transform(harray=harray)
+
+                self.assertAlmostEqual(np.sum(result.massdat[:, 1]), np.sum(harray))
+                engine.harray = harray.copy()
+                engine.transform_mzmass()
+                self.assertAlmostEqual(np.sum(engine.data.mzmassgrid), np.sum(harray))
+
 
 class TestCDRichardsonLucy(unittest.TestCase):
     @staticmethod
@@ -116,6 +134,9 @@ class TestCDRichardsonLucy(unittest.TestCase):
         engine.config = SimpleNamespace(**defaults)
         engine.harray = observed.copy()
         engine.data = SimpleNamespace()
+        engine.pks = peakstructure.Peaks()
+        engine.ztab = np.arange(observed.shape[0]) + 1
+        engine.mz = np.arange(observed.shape[1]) + 1
         return engine
 
     def test_one_iteration_with_asymmetric_blur_matches_hand_calculation(self):
@@ -132,7 +153,7 @@ class TestCDRichardsonLucy(unittest.TestCase):
 
         np.testing.assert_allclose(result, expected, atol=1e-12)
         expected_fit = 0.75 * expected[0] + 0.25 * np.roll(expected[0], 1)
-        np.testing.assert_allclose(engine.data.fitdat, expected_fit, atol=1e-12)
+        np.testing.assert_allclose(engine.data.fitdat, expected_fit * engine.fit_scale, atol=1e-12)
         np.testing.assert_array_equal(observed, [[2.0, 4.0, 2.0, 0.0, 0.0]])
 
     def test_known_blurred_impulse_reconstructs_source_and_forward_fit(self):
@@ -157,7 +178,11 @@ class TestCDRichardsonLucy(unittest.TestCase):
         forward = (0.5 * result + 0.25 * np.roll(result, 1, axis=1)
                    + 0.25 * np.roll(result, -1, axis=1))
         np.testing.assert_allclose(forward, observed, atol=0.08, rtol=0)
-        np.testing.assert_allclose(engine.data.fitdat, np.sum(forward, axis=0), atol=1e-12)
+        np.testing.assert_allclose(
+            engine.data.fitdat,
+            np.sum(forward * engine.fit_scale, axis=0),
+            atol=1e-12,
+        )
 
     def test_zero_width_kernel_preserves_singleton_axes_and_optional_normalization(self):
         """With blur and regularizers disabled, the operator is the identity."""
@@ -176,7 +201,9 @@ class TestCDRichardsonLucy(unittest.TestCase):
 
                     self.assertEqual(result.shape, shape)
                     np.testing.assert_allclose(result, expected, atol=1e-12)
-                    np.testing.assert_allclose(engine.data.fitdat, np.sum(expected, axis=0), atol=1e-12)
+                    # Fit evidence stays on the measured scale even when the
+                    # returned deconvolution is normalized to a maximum of one.
+                    np.testing.assert_allclose(engine.data.fitdat, np.sum(observed, axis=0), atol=1e-12)
 
 
 if __name__ == "__main__":

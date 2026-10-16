@@ -236,7 +236,126 @@ class UniDecCD(engine.UniDec):
         self.massaxis = None
         self.invinjtime = None
         self.res = None
+        self._clear_scores()
         pass
+
+    def _clear_scores(self):
+        """Invalidate fit evidence whenever the input histogram changes."""
+        self.observed = None
+        self.fit2d = None
+        self.fit_scale = 0
+        self.data.fitdat = np.array([])
+        self.config.error = 0
+        self.pks.uniscore = 0
+        for p in self.pks.peaks:
+            for name in ("dscore", "lscore", "uscore", "mscore", "cs_score", "fscore"):
+                setattr(p, name, 0)
+
+    def _set_fit(self, observed, fitted):
+        """Store aligned [charge, m/z] evidence on the measured intensity scale."""
+        self._clear_scores()
+        observed = np.asarray(observed, dtype=float)
+        fitted = np.asarray(fitted, dtype=float)
+        if (observed.shape != (len(self.ztab), len(self.mz))
+                or fitted.shape != observed.shape or observed.size == 0
+                or not np.isfinite(observed).all() or not np.isfinite(fitted).all()
+                or np.any(observed < 0)):
+            raise ValueError("CD scoring requires finite, nonnegative, aligned 2D histograms")
+        fitted = np.maximum(fitted, 0)
+        fit_power = np.sum(fitted ** 2)
+        # Fit one nonnegative amplitude so R-squared is robust to output from
+        # older native binaries with non-unit response kernels and to small
+        # numerical gain differences in regularized fits.
+        self.fit_scale = float(np.sum(observed * fitted) / fit_power) if fit_power > 0 else 0
+        fitted *= self.fit_scale
+        self.observed = observed.copy()
+        self.fit2d = fitted.copy()
+        self.data.fitdat = fitted.sum(axis=0)
+        sse = np.sum((observed - fitted) ** 2)
+        variance = np.sum((observed - observed.mean()) ** 2)
+        # An empty signal has no evidence; a perfect nonzero constant fit does.
+        self.config.error = (float(np.clip(1 - sse / variance, 0, 1)) if variance > 0
+                             else float(sse == 0 and np.any(observed > 0)))
+
+    def _preserve_total_signal(self, array, target_sum):
+        """Put unnormalized deconvolution output on the input's discrete-sum scale."""
+        array = np.asarray(array)
+        if self.config.datanorm == 0:
+            output_sum = np.sum(array)
+            if target_sum > 0 and output_sum > 0:
+                array *= target_sum / output_sum
+            elif target_sum == 0:
+                array.fill(0)
+        return array
+
+    def pks_uscore(self, xfwhm=2, power=1):
+        """CD fit/uniqueness: response-weighted local fit agreement times purity.
+
+        Reconstruct each mass window with the CD response kernel. Purity is its
+        fraction of the total predicted response in each measured histogram bin.
+        Agreement is min(observed, fitted)/max(observed, fitted). Thus a perfectly
+        fitted isolated peak scores one; overlapping responses lose uniqueness.
+        Charge rows are combined using predicted intensity ** power.
+        """
+        if self.observed is None or self.fit2d is None:
+            raise ValueError("Run CD deconvolution before calculating peak scores")
+        # Profile output already contains the m/z convolution.
+        self.make_kernel()
+        response_kernel = self.kernel
+        if self.config.rawflag == 0:
+            response_kernel = np.zeros_like(self.kernel)
+            response_kernel[:, 0] = self.kernel.sum(axis=1)
+        kernel = fft_fun(response_kernel)
+        total = np.maximum(cconv2D_preB(self.harray, kernel), 0)
+        scale = self.fit2d.sum() / total.sum() if total.sum() > 0 else 0
+        agreement = safedivide(np.minimum(self.observed, self.fit2d),
+                               np.maximum(self.observed, self.fit2d))
+        mass = (self.mz[None, :] - self.config.adductmass) * self.ztab[:, None]
+        for p in self.pks.peaks:
+            widths = np.maximum(np.abs(np.asarray(p.intervalFWHM) - p.mass),
+                                self.config.massbins) * xfwhm
+            window = (mass >= p.mass - widths[0]) & (mass <= p.mass + widths[1])
+            response = np.maximum(cconv2D_preB(np.where(window, self.harray, 0), kernel), 0) * scale
+            purity = np.clip(safedivide(response, self.fit2d), 0, 1)
+            weights = response.sum(axis=1)
+            rows = safedivide(np.sum(response * purity * agreement, axis=1), weights)
+            rowweights = weights ** power
+            p.uscore = float(np.average(rows, weights=rowweights)) if rowweights.sum() > 0 else 0
+            p.mzstack = np.array([np.column_stack((self.mz, obs, fit))
+                                  for obs, fit in zip(self.observed, response)])
+
+    def dscore(self, xfwhm=2, power=2):
+        self.pks.uniscore = 0
+        if not self.pks.peaks:
+            return
+        if self.observed is None or self.fit2d is None:
+            raise ValueError("Run CD deconvolution before calculating peak scores")
+        if power < 0 or not np.isfinite(power) or xfwhm <= 0 or not np.isfinite(xfwhm):
+            raise ValueError("Scoring requires a positive window and nonnegative finite power")
+        with np.errstate(divide="ignore", invalid="ignore"):
+            self.pks_mscore(xfwhm=xfwhm, power=power)
+            self.pks_uscore(xfwhm=xfwhm, power=power)
+            self.pks_csscore(xfwhm=xfwhm)
+            self.pks_fscore()
+        # Sparse CD histograms can leave a mass-shape component undefined.
+        for p in self.pks.peaks:
+            for name in ("mscore", "uscore", "fscore", "cs_score"):
+                value = getattr(p, name)
+                setattr(p, name, float(np.clip(value, 0, 1)) if np.isfinite(value) else 0)
+            p.lscore = p.mscore * p.uscore * p.fscore
+            p.dscore = p.lscore * p.cs_score
+        weights = np.array([p.height for p in self.pks.peaks]) ** power
+        if np.isfinite(weights).all() and weights.sum() > 0:
+            self.pks.uniscore = float(np.average([p.dscore for p in self.pks.peaks], weights=weights)
+                                     * self.config.error)
+
+    def get_zstack(self, xfwhm=1):
+        super().get_zstack(xfwhm=xfwhm)
+        for p in self.pks.peaks:
+            if p.zstack.shape[1] == 0:
+                index = ud.nearest(self.data.massdat[:, 0], p.mass)
+                grid = np.reshape(self.data.massgrid, (len(self.data.massdat), len(self.data.ztab)))
+                p.zstack = np.concatenate(([self.data.massdat[index, 0]], grid[index]))[:, None]
 
     def exe_mode(self, exemode=True):
         self.exemode = exemode
@@ -277,6 +396,7 @@ class UniDecCD(engine.UniDec):
         :param path: File path to open.
         :return: None
         """
+        self._clear_scores()
         if platform.system() != "Windows" and path.split(".")[-1].lower() == "raw":
             print("Error: Thermo Raw files are only supported on Windows")
             raise ImportError
@@ -401,6 +521,7 @@ class UniDecCD(engine.UniDec):
         :param transform: Sets whether to transform the data from m/z to mass. Default True.
         :return: None
         """
+        self._clear_scores()
         starttime = time.perf_counter()
         # Copy filtered array and delete peaks.
         self.farray = deepcopy(self.darray)
@@ -793,6 +914,10 @@ class UniDecCD(engine.UniDec):
             if self.config.poolflag == 1:
                 newdata = np.atleast_2d(np.transpose([mass[i], d]))
                 massdata = ud.linterpolate(newdata, massaxis)
+                input_sum = np.sum(d)
+                output_sum = np.sum(massdata[:, 1])
+                if output_sum > 0:
+                    massdata[:, 1] *= input_sum / output_sum
             else:
                 boo1 = d > 0
                 newdata = np.transpose([mass[i][boo1], d[boo1]])
@@ -843,6 +968,10 @@ class UniDecCD(engine.UniDec):
             # else:
             if self.config.poolflag == 1 and len(newdata) >= 2:
                 massdata = ud.linterpolate(newdata, massaxis)
+                input_sum = np.sum(d)
+                output_sum = np.sum(massdata[:, 1])
+                if output_sum > 0:
+                    massdata[:, 1] *= input_sum / output_sum
             else:
                 massdata = ud.lintegrate(newdata, massaxis)
             self.data.mzmassgrid.append(massdata[:, 1])
@@ -1009,6 +1138,7 @@ class UniDecCD(engine.UniDec):
         Core unidec deconvolution function. Needs kernels already in place.
         :return: self.harray, the intensity array.
         """
+        self._clear_scores()
         # Create a working array of intensity values
         I = deepcopy(self.harray)
         D = deepcopy(self.harray)
@@ -1058,17 +1188,16 @@ class UniDecCD(engine.UniDec):
             i += 1
             # print(i)
         print("Deconvolution iterations: ", i)
-        if self.config.datanorm == 1:
+        if self.config.datanorm == 1 and np.amax(I) > 0:
             # Normalize the final array
             I /= np.amax(I)
 
         # Get the reconvolved data
         recon = cconv2D_preB(I, ftk)
 
-        # Get the fit data in 1D for the DScore calc
-        self.data.fitdat = np.sum(recon, axis=0)
-        if self.config.datanorm == 1:
-            self.data.fitdat /= np.amax(self.data.data2[:, 1]) / np.amax(self.data.fitdat)
+        if self.config.datanorm == 1 and np.amax(recon) > 0:
+            recon *= np.amax(D) / np.amax(recon)
+        self._set_fit(D, recon)
 
         if self.config.mzsig > 0 and self.config.rawflag == 0:
             # Reconvolved/Profile: Reconvolves with the peak shape in the mass dimension only
@@ -1079,6 +1208,8 @@ class UniDecCD(engine.UniDec):
             # Raw/Centroid: Takes the deconvolved data straight
             self.harray = I
 
+        self._preserve_total_signal(self.harray, np.sum(D))
+
         return self.harray
 
     def run_deconvolution(self, process_data=True):
@@ -1087,6 +1218,7 @@ class UniDecCD(engine.UniDec):
 
         :return: None
         """
+        self._clear_scores()
         if process_data:
             # Process data but don't transform
             output = self.process_data(transform=False)
@@ -1117,6 +1249,7 @@ class UniDecCD(engine.UniDec):
         np.savetxt(self.config.massdatfile, self.data.massdat)
 
     def decon_external_call(self):
+        self._clear_scores()
         self.export_config()
         # Check for this
         if self.config.CDzbins != 1 and self.config.zzsig != 0:
@@ -1125,6 +1258,7 @@ class UniDecCD(engine.UniDec):
             return
         # Output input data
         self.harray = np.array(self.harray)
+        observed = self.harray.copy()
         X, Y = np.meshgrid(self.mz, self.ztab, indexing='ij')
         outarray = self.harray.transpose()
         startdims = np.shape(outarray)
@@ -1133,17 +1267,19 @@ class UniDecCD(engine.UniDec):
         print("Saved Input File:", self.config.infname)#, outdat.shape, startdims)
 
         # Make the call
-        ud.unidec_call(self.config)
+        result = ud.unidec_call(self.config)
+        if result != 0:
+            raise RuntimeError(f"CD deconvolution failed with exit code {result}")
 
         # Load in deconvolved data
         self.harray = np.loadtxt(self.config.deconfile)
         print("Loaded Output File:", self.config.deconfile)
         self.harray = self.harray.reshape(startdims).transpose()
+        self._preserve_total_signal(self.harray, np.sum(observed))
 
         # Load in fit data, needed for scoring
-        self.data.fitdat = np.fromfile(self.config.fitdatfile, dtype=self.config.dtype)
-        self.data.fitdat = self.data.fitdat.reshape(startdims).transpose()
-        self.data.fitdat = np.sum(self.data.fitdat, axis=0)
+        fitted = np.fromfile(self.config.fitdatfile, dtype=self.config.dtype)
+        self._set_fit(observed, fitted.reshape(startdims).transpose())
         print("Loaded Output File:", self.config.deconfile)
 
     def decon_external_call_sequential(self, harray):
@@ -1170,6 +1306,7 @@ class UniDecCD(engine.UniDec):
 
     def decon_external_call_all(self, hstack, chromaxis=None):
         """Run the external UniDec deconvolution on a chromatography stack."""
+        self._clear_scores()
         if self.config.CDzbins != 1 and self.config.zzsig != 0:
             print("ERROR: Charge smoothing is only define for when charges are binned to unit charge")
             return

@@ -83,7 +83,10 @@ def run_deconvolution(spectrum, massrange=[5000, 50000], sat=0, harm=0, topn=0, 
     eng.config.suppression_topx = topx
     eng.config.beta = beta
     eng.autorun(auto_peak_width=True)
-
+    # Print subscores for each peak
+    for p in eng.pks.peaks:
+        print(f"Peak at {p.mass} has subscores of {p.uscore:.2f}, {p.mscore:.2f}, {p.cs_score:.2f}, {p.fscore:.2f}, {p.rsquared:.2f}")
+        print(f"{p.dscore}")
     return eng
 
 # Set noise seed for reproducibility

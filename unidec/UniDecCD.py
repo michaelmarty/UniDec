@@ -158,6 +158,7 @@ class UniDecCDApp(UniDecApp):
         self.dataprep()
 
     def dataprep(self):
+        self.view.SetStatusText("", number=3)
         self.view.clear_all_plots()
         self.export_config(self.eng.config.confname)
         self.eng.process_data()
@@ -226,6 +227,7 @@ class UniDecCDApp(UniDecApp):
         self.view.plot1.plot_native_z(0, "b", self.eng.data.data2[:, 0], width=1, alpha=0.5, mode="mz")
 
     def on_unidec_button(self, e=None):
+        self.view.SetStatusText("", number=3)
         self.view.SetStatusText("Deconvolving", number=5)
         # self.view.clear_all_plots()
         self.export_config(self.eng.config.confname)
@@ -262,8 +264,9 @@ class UniDecCDApp(UniDecApp):
         self.view.SetStatusText("Peak Pick Done", number=5)
         try:
             self.on_score()
-        except Exception:
-            pass
+        except Exception as error:
+            self.view.SetStatusText("Scoring unavailable: " + str(error), number=3)
+            print("CD peak scoring failed:", error)
         pass
 
     def on_replot(self, e=None):

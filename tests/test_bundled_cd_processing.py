@@ -11,6 +11,33 @@ from tests._test_support import copy_unidec_example
 
 
 class TestBundledCDProcessing(unittest.TestCase):
+    def test_bundled_mixture_has_finite_native_cd_scores(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-bundled-cd-score-") as directory:
+            root = Path(directory)
+            data_path = copy_unidec_example(root, "CDMS", "BgalGroEL.dmt")
+            config_dir = root / "BgalGroEL_unidecfiles"
+            config_dir.mkdir()
+            copy_unidec_example(config_dir, "CDMS", "BgalGroEL_unidecfiles", "BgalGroEL_conf.dat")
+            engine = UniDecCD()
+            if not Path(engine.config.UniDecPath).is_file():
+                self.skipTest("Packaged UniDec executable is unavailable")
+            try:
+                engine.open_file(str(data_path), refresh=True)
+                engine.run_deconvolution()
+                engine.pick_peaks(calc_dscore=False)
+                engine.dscore()
+                self.assertGreater(len(engine.pks.peaks), 0)
+                self.assertEqual(engine.observed.shape, engine.fit2d.shape)
+                self.assertGreater(engine.pks.uniscore, 0)
+                self.assertLessEqual(engine.pks.uniscore, 1)
+                for peak in engine.pks.peaks:
+                    self.assertTrue(np.isfinite(peak.dscore))
+                    self.assertGreaterEqual(peak.dscore, 0)
+                    self.assertLessEqual(peak.dscore, 1)
+            finally:
+                if getattr(engine, "importer", None) is not None:
+                    engine.importer.close()
+
     def test_dmt_and_saved_npz_contain_identical_events_in_different_orders(self):
         """DMT sorts by m/z while the cached NPZ preserves acquisition order."""
         with tempfile.TemporaryDirectory(prefix="unidec-bundled-cd-readers-") as directory:

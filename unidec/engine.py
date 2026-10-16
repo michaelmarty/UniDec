@@ -1134,7 +1134,7 @@ class UniDec(UniDecEngine):
             interval = np.array([p.mass - interval[0], p.mass + interval[1]])
 
             stack = []
-            bvals = []
+            # bvals = []
             for j, z in enumerate(self.data.ztab):
                 interval2 = (interval + z * self.config.adductmass) / z
                 boo1 = self.data.data2[:, 0] <= interval2[1]
@@ -1142,13 +1142,13 @@ class UniDec(UniDecEngine):
                 boo3 = np.all([boo1, boo2], axis=0)
                 top = self.data.data2[boo3]
                 stack.append(np.transpose([top[:, 0], top[:, 1], zarr[boo3, j]]))
-                bvals.append(boo3)
-            btot = np.any(bvals, axis=0)
-            fit = self.data.fitdat[btot]
-            top = self.data.data2[btot]
-            sse = np.sum((fit - top[:, 1]) ** 2)
-            denom = np.sum((top[:, 1] - np.mean(top[:, 1])) ** 2)
-            p.rsquared = 1 - ud.safedivide1(sse, denom)
+                # bvals.append(boo3)
+            # btot = np.any(bvals, axis=0)
+            # fit = self.data.fitdat[btot]
+            # top = self.data.data2[btot]
+            # sse = np.sum((fit - top[:, 1]) ** 2)
+            # denom = np.sum((top[:, 1] - np.mean(top[:, 1])) ** 2)
+            # p.rsquared = 1 - ud.safedivide1(sse, denom)
             p.mzstack = np.array(stack, dtype='object')
 
     def pks_uscore(self, xfwhm=2, power=1):
