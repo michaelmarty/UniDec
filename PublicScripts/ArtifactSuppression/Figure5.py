@@ -9,7 +9,9 @@ UNIDEC_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(UNIDEC_ROOT))
 
 from unidec.modules import CDEng
-from PublicScripts.ArtifactSuppression.metrics import panel_metrics, write_metrics_workbook
+from PublicScripts.ArtifactSuppression.metrics import (
+    description_with_uniscore, panel_metrics, write_metrics_workbook,
+)
 
 matplotlib.use(os.environ.get("MPLBACKEND", "TkAgg"))
 import matplotlib.pyplot as plt
@@ -116,6 +118,7 @@ rows = [
     ('Satellite 1', satellite_grid, satellite_mass_data),
     # ('Top 1', top_grid, top_mass_data),
 ]
+score_rows = [None, default_metric_rows, beta_metric_rows, satellite_metric_rows]
 
 fig, axes = plt.subplots(
     4,
@@ -165,7 +168,8 @@ for row, (label, grid, mass_data) in enumerate(rows):
         axis.text(
             0.97,
             0.95,
-            label,
+            description_with_uniscore(label, score_rows[row][column]["UniScore"])
+            if row > 0 else label,
             transform=axis.transAxes,
             va='top',
             ha='right',

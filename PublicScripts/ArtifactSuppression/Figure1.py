@@ -10,7 +10,6 @@ sys.path.insert(0, str(UNIDEC_ROOT))
 
 import unidec.engine as ud
 import unidec.modules.MassSpecBuilder as msb
-from PublicScripts.ArtifactSuppression.metrics import panel_metrics, write_metrics_workbook
 
 matplotlib.use(os.environ.get("MPLBACKEND", "TkAgg"))
 import matplotlib.pyplot as plt
@@ -167,10 +166,6 @@ def make_figure():
     results = [
         run_deconvolution(spectrum, **options) if options is not None else None
         for _, options in settings
-    ]
-    metric_engines = [
-        result[4] if result is not None else run_deconvolution(spectrum, topx=0.05)[4]
-        for result in results
     ]
 
     mz, charge, normal_grid, cmap, _ = results[0]
@@ -400,28 +395,6 @@ def make_figure():
         spine.set_linestyle("--")
 
     fig.subplots_adjust(left=0.055, right=0.99, bottom=0.2, top=0.95)
-    common_settings = {
-        "reference_basis": "synthetic input mass",
-        "simulation_resolution": 50,
-        "simulation_baseline": 0.03,
-        "simulation_noise": 0.01,
-        "simulation_zwidth": 0.75,
-        "random_seed": 42,
-        "selected_mz": selected_mz,
-    }
-    metric_rows = [
-        panel_metrics("A", "Data", panel_type="input m/z spectrum",
-                      reference_mass=20000, settings=common_settings),
-        panel_metrics("B", "Deconvolution", metric_engines[0], reference_mass=20000,
-                      settings=common_settings, panel_type="2D deconvolution"),
-    ]
-    metric_rows.extend(
-        panel_metrics(chr(ord("C") + index), title, engine, reference_mass=20000,
-                      settings=common_settings, panel_type="extracted charge vector",
-                      notes="Metrics describe the full deconvolution that supplies this vector.")
-        for index, ((title, _), engine) in enumerate(zip(settings, metric_engines))
-    )
-    write_metrics_workbook(Path(FIGURE_DIR, "Figure1.xlsx"), metric_rows)
     return fig
 
 

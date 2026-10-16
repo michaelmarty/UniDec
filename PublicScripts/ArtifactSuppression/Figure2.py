@@ -10,7 +10,9 @@ sys.path.insert(0, str(UNIDEC_ROOT))
 
 import unidec.engine as ud
 import unidec.modules.MassSpecBuilder as msb
-from PublicScripts.ArtifactSuppression.metrics import panel_metrics, write_metrics_workbook
+from PublicScripts.ArtifactSuppression.metrics import (
+    description_with_uniscore, panel_metrics, write_metrics_workbook,
+)
 
 matplotlib.use(os.environ.get("MPLBACKEND", "WxAgg"))
 import matplotlib.pyplot as plt
@@ -153,6 +155,8 @@ plot_labels = [
     'Top 0.05',
 ]
 for panel_index, (axis, label) in enumerate(zip(axes.flat, plot_labels)):
+    if panel_index > 0:
+        label = description_with_uniscore(label, engines[panel_index - 1].pks.uniscore)
     axis.text(0.03, 0.95, chr(ord('A') + panel_index),
               transform=axis.transAxes, va='top', ha='left')
     axis.text(0.95, 0.95, label, transform=axis.transAxes, va='top', ha='right')

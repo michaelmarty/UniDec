@@ -10,7 +10,9 @@ sys.path.insert(0, str(UNIDEC_ROOT))
 
 import unidec.engine as ud
 import unidec.modules.MassSpecBuilder as msb
-from PublicScripts.ArtifactSuppression.metrics import panel_metrics, write_metrics_workbook
+from PublicScripts.ArtifactSuppression.metrics import (
+    description_with_uniscore, panel_metrics, write_metrics_workbook,
+)
 
 matplotlib.use(os.environ.get("MPLBACKEND", "TkAgg"))
 import matplotlib.pyplot as plt
@@ -174,12 +176,14 @@ row_labels = [
     'Top 0.9',
     'Satellite 2',
 ]
+method_engines = [default_engines, top_05_engines, top_09_engines, satellite_2_engines]
 for row, label in enumerate(row_labels):
-    for axis in axes[row]:
+    for column, axis in enumerate(axes[row]):
         axis.text(
             0.95,
             0.95,
-            label,
+            description_with_uniscore(label, method_engines[row - 1][column].pks.uniscore)
+            if row > 0 else label,
             transform=axis.transAxes,
             va='top',
             ha='right',
@@ -241,7 +245,6 @@ for column, mass in enumerate(masses):
     metric_rows.append(panel_metrics(chr(ord('A') + column), 'Data',
                                      panel_type="input m/z spectrum",
                                      reference_mass=mass, settings=settings))
-method_engines = [default_engines, top_05_engines, top_09_engines, satellite_2_engines]
 for row, (label, engines_for_method) in enumerate(zip(row_labels[1:], method_engines), start=1):
     for column, (mass, engine) in enumerate(zip(masses, engines_for_method)):
         panel_index = row * 2 + column

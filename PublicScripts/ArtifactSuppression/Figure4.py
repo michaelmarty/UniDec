@@ -9,7 +9,9 @@ UNIDEC_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(UNIDEC_ROOT))
 
 import unidec.engine as ud
-from PublicScripts.ArtifactSuppression.metrics import panel_metrics, write_metrics_workbook
+from PublicScripts.ArtifactSuppression.metrics import (
+    description_with_uniscore, panel_metrics, write_metrics_workbook,
+)
 
 matplotlib.use(os.environ.get("MPLBACKEND", "TkAgg"))
 import matplotlib.pyplot as plt
@@ -239,11 +241,13 @@ for column, (title, spectrum, mass_datasets) in enumerate(column_datasets):
     # label_most_intense_charge(axes[0, column], spectrum, dominant_mass)
 
 for row, labels in enumerate(panel_labels):
-    for axis, label in zip(axes[row], labels):
+    for column, (axis, label) in enumerate(zip(axes[row], labels)):
         axis.text(
             0.95,
             0.95,
-            label,
+            description_with_uniscore(
+                label, (popc_engines, groel_engines)[column][row - 1].pks.uniscore
+            ) if row > 0 else label,
             transform=axis.transAxes,
             va='top',
             ha='right',

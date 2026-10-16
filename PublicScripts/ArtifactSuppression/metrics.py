@@ -82,6 +82,14 @@ def _finite_number(value):
     return number if np.isfinite(number) else None
 
 
+def description_with_uniscore(description, score):
+    """Put an available spectrum score below a panel's description."""
+    score = _finite_number(score)
+    if score is None:
+        return description
+    return f"{description}\nUniScore: {score:.2f}"
+
+
 def _reference_for_peak(reference_mass, peak_mass):
     if reference_mass is None:
         return None

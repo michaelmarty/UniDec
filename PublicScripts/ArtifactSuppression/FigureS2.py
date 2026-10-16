@@ -10,7 +10,9 @@ sys.path.insert(0, str(UNIDEC_ROOT))
 
 import unidec.engine as ud
 import unidec.modules.MassSpecBuilder as msb
-from PublicScripts.ArtifactSuppression.metrics import panel_metrics, write_metrics_workbook
+from PublicScripts.ArtifactSuppression.metrics import (
+    description_with_uniscore, panel_metrics, write_metrics_workbook,
+)
 
 matplotlib.use(os.environ.get("MPLBACKEND", "WxAgg"))
 import matplotlib.pyplot as plt
@@ -117,12 +119,13 @@ for column, mass in enumerate(masses):
     axes[-1, column].set_xlabel('Mass (kDa)')
 
 row_labels = ['Top 1', 'Top 2', 'Satellite 1']
+method_engines = [top_1_engines, top_2_engines, satellite_1_engines]
 for row, label in enumerate(row_labels):
-    for axis in axes[row]:
+    for column, axis in enumerate(axes[row]):
         axis.text(
             0.95,
             0.95,
-            label,
+            description_with_uniscore(label, method_engines[row][column].pks.uniscore),
             transform=axis.transAxes,
             va='top',
             ha='right',
@@ -165,7 +168,6 @@ os.chdir(FIGURE_DIR)
 plt.savefig('FigureS2.png', dpi=300)
 plt.savefig('FigureS2.pdf')
 metric_rows = []
-method_engines = [top_1_engines, top_2_engines, satellite_1_engines]
 for row, (label, engines_for_method) in enumerate(zip(row_labels, method_engines)):
     for column, (mass, engine) in enumerate(zip(masses, engines_for_method)):
         settings = {
