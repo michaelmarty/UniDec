@@ -5,12 +5,13 @@ from pathlib import Path
 import matplotlib
 import numpy as np
 
-UNIDEC_ROOT = Path(__file__).resolve().parents[3] / "public" / "UniDec"
+UNIDEC_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(UNIDEC_ROOT))
 
 from unidec.modules import CDEng
+from PublicScripts.ArtifactSuppression.metrics import panel_metrics, write_metrics_workbook
 
-matplotlib.use('TkAgg')
+matplotlib.use(os.environ.get("MPLBACKEND", "TkAgg"))
 import matplotlib.pyplot as plt
 
 matplotlib.rcParams.update({
@@ -18,11 +19,12 @@ matplotlib.rcParams.update({
     'font.size': 11,
 })
 
-FIGURE_DIR = (
-    r"C:\Users\mm96978\The University of Texas at Austin"
-    r"\MartyLab - General\Papers\Artifact Suppression\Figures"
-)
-DATA_FILE = os.path.join(FIGURE_DIR, "GroEL_CDMS_1.RAW")
+FIGURE_DIR = Path(os.environ.get(
+    "ARTIFACT_SUPPRESSION_FIGURE_DIR",
+    str(Path.home() / "The University of Texas at Austin" / "MartyLab - General"
+        / "Papers" / "Artifact Suppression" / "Figures"),
+))
+DATA_FILE = FIGURE_DIR / "GroEL_CDMS_1.RAW"
 
 # Analysis settings from GroEL_CDMS_1_unidecfiles/conf.dat.
 GROEL_CDMS_CONFIG = {
@@ -59,6 +61,8 @@ def run_deconvolution(engine, beta=0, topx=0, topn=0, satellite=0):
     engine.config.suppression_topn = topn
     engine.config.suppression_satellite = satellite
     engine.run_deconvolution()
+    engine.pick_peaks()
+    engine.autointegrate()
     return engine.harray.copy(), engine.data.massdat.copy()
 
 
@@ -79,8 +83,30 @@ raw_mz = engine.mz.copy()
 raw_charge = engine.ztab.copy()
 
 default_grid, default_mass_data = run_deconvolution(engine, beta=0)
+metric_settings = {
+    "data_file": DATA_FILE,
+    "reference_basis": "GroEL 14-mer (14 x 57,300 Da)",
+}
+default_metric_rows = [
+    panel_metrics('C', 'Normal', engine, reference_mass=57300.0 * 14,
+                  settings=metric_settings, panel_type="2D deconvolution"),
+    panel_metrics('D', 'Normal', engine, reference_mass=57300.0 * 14,
+                  settings=metric_settings),
+]
 beta_grid, beta_mass_data = run_deconvolution(engine, beta=1)
+beta_metric_rows = [
+    panel_metrics('E', 'Beta 1', engine, reference_mass=57300.0 * 14,
+                  settings=metric_settings, panel_type="2D deconvolution"),
+    panel_metrics('F', 'Beta 1', engine, reference_mass=57300.0 * 14,
+                  settings=metric_settings),
+]
 satellite_grid, satellite_mass_data = run_deconvolution(engine, beta=0, satellite=1)
+satellite_metric_rows = [
+    panel_metrics('G', 'Satellite 1', engine, reference_mass=57300.0 * 14,
+                  settings=metric_settings, panel_type="2D deconvolution"),
+    panel_metrics('H', 'Satellite 1', engine, reference_mass=57300.0 * 14,
+                  settings=metric_settings),
+]
 # top_grid, top_mass_data = run_deconvolution(engine, beta=0, topn=1)
 
 rows = [
@@ -172,4 +198,12 @@ fig.subplots_adjust(left=0.09, right=0.98, bottom=0.07, top=0.98)
 
 plt.savefig(os.path.join(FIGURE_DIR, 'Figure5.png'), dpi=300)
 plt.savefig(os.path.join(FIGURE_DIR, 'Figure5.pdf'))
+metric_rows = [
+    panel_metrics('A', 'Exp. Data', panel_type="experimental m/z-charge histogram",
+                  reference_mass=57300.0 * 14, settings=metric_settings),
+    panel_metrics('B', 'Exp. Data', panel_type="raw transformed mass distribution",
+                  reference_mass=57300.0 * 14, settings=metric_settings),
+]
+metric_rows.extend(default_metric_rows + beta_metric_rows + satellite_metric_rows)
+write_metrics_workbook(os.path.join(FIGURE_DIR, 'Figure5.xlsx'), metric_rows)
 plt.show()

@@ -5,19 +5,26 @@ from pathlib import Path
 import matplotlib
 import numpy as np
 
-UNIDEC_ROOT = Path(__file__).resolve().parents[3] / "public" / "UniDec"
+UNIDEC_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(UNIDEC_ROOT))
 
 import unidec.engine as ud
 import unidec.modules.MassSpecBuilder as msb
+from PublicScripts.ArtifactSuppression.metrics import panel_metrics, write_metrics_workbook
 
-matplotlib.use('TkAgg')
+matplotlib.use(os.environ.get("MPLBACKEND", "TkAgg"))
 import matplotlib.pyplot as plt
 
 matplotlib.rcParams.update({
     'font.family': 'Arial',
     'font.size': 11,
 })
+
+FIGURE_DIR = Path(os.environ.get(
+    "ARTIFACT_SUPPRESSION_FIGURE_DIR",
+    str(Path.home() / "The University of Texas at Austin" / "MartyLab - General"
+        / "Papers" / "Artifact Suppression" / "Figures"),
+))
 
 
 def normalize(data):
@@ -66,7 +73,7 @@ def run_deconvolution(spectrum, massrange, sat=0, topx=0, psig=10):
     eng.config.beta = 0
     eng.autorun(auto_peak_width=True)
 
-    return eng.data.massdat
+    return eng
 
 
 np.random.seed(42)
@@ -74,10 +81,10 @@ np.random.seed(42)
 masses = [150000, 600000]
 resolutions = [300, 1000]
 spectra = []
-default_mass_datasets = []
-top_01_mass_datasets = []
-top_05_mass_datasets = []
-satellite_1_mass_datasets = []
+default_engines = []
+top_01_engines = []
+top_05_engines = []
+satellite_1_engines = []
 
 for i, mass in enumerate(masses):
     spectrum, params = msb.simple_spectrum2(
@@ -92,16 +99,21 @@ for i, mass in enumerate(masses):
     massrange = [mass * 0.25, mass * 2.5]
 
     spectra.append(spectrum)
-    default_mass_datasets.append(run_deconvolution(spectrum, massrange))
-    top_01_mass_datasets.append(
+    default_engines.append(run_deconvolution(spectrum, massrange))
+    top_01_engines.append(
         run_deconvolution(spectrum, massrange, topx=0.1)
     )
-    top_05_mass_datasets.append(
+    top_05_engines.append(
         run_deconvolution(spectrum, massrange, topx=0.5)
     )
-    satellite_1_mass_datasets.append(
+    satellite_1_engines.append(
         run_deconvolution(spectrum, massrange, sat=1)
     )
+
+default_mass_datasets = [engine.data.massdat for engine in default_engines]
+top_01_mass_datasets = [engine.data.massdat for engine in top_01_engines]
+top_05_mass_datasets = [engine.data.massdat for engine in top_05_engines]
+satellite_1_mass_datasets = [engine.data.massdat for engine in satellite_1_engines]
 
 fig, axes = plt.subplots(5, 2, figsize=(6.5, 8))
 
@@ -195,11 +207,35 @@ for row, column in red_bar_panels:
 
 plt.tight_layout()
 
-os.chdir(
-    r"C:\Users\mm96978\The University of Texas at Austin"
-    r"\MartyLab - General\Papers\Artifact Suppression\Figures"
-)
+os.chdir(FIGURE_DIR)
 plt.savefig('FigureS3.png', dpi=300)
 plt.savefig('FigureS3.pdf')
+metric_rows = []
+for column, mass in enumerate(masses):
+    settings = {
+        "reference_basis": "synthetic input mass",
+        "simulation_resolution": resolutions[column],
+        "simulation_baseline": 0.03,
+        "simulation_noise": 0.01,
+        "simulation_zwidth": 1,
+        "random_seed": 42,
+    }
+    metric_rows.append(panel_metrics(chr(ord('A') + column), 'Data',
+                                     panel_type="input m/z spectrum",
+                                     reference_mass=mass, settings=settings))
+method_engines = [default_engines, top_01_engines, top_05_engines, satellite_1_engines]
+for row, (label, engines_for_method) in enumerate(zip(row_labels[1:], method_engines), start=1):
+    for column, (mass, engine) in enumerate(zip(masses, engines_for_method)):
+        settings = {
+            "reference_basis": "synthetic input mass",
+            "simulation_resolution": resolutions[column],
+            "simulation_baseline": 0.03,
+            "simulation_noise": 0.01,
+            "simulation_zwidth": 1,
+            "random_seed": 42,
+        }
+        metric_rows.append(panel_metrics(chr(ord('A') + row * 2 + column), label, engine,
+                                         reference_mass=mass, settings=settings))
+write_metrics_workbook('FigureS3.xlsx', metric_rows)
 
 plt.show()

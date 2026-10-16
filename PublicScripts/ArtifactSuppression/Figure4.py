@@ -5,12 +5,13 @@ from pathlib import Path
 import matplotlib
 import numpy as np
 
-UNIDEC_ROOT = Path(__file__).resolve().parents[3] / "public" / "UniDec"
+UNIDEC_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(UNIDEC_ROOT))
 
 import unidec.engine as ud
+from PublicScripts.ArtifactSuppression.metrics import panel_metrics, write_metrics_workbook
 
-matplotlib.use('TkAgg')
+matplotlib.use(os.environ.get("MPLBACKEND", "TkAgg"))
 import matplotlib.pyplot as plt
 
 matplotlib.rcParams.update({
@@ -24,10 +25,11 @@ POPC_DATA_FILE = (
 GROEL_DATA_FILE = (
     r"GroEL_SID1.RAW"
 )
-FIGURE_DIR = (
-    r"C:\Users\mm96978\The University of Texas at Austin"
-    r"\MartyLab - General\Papers\Artifact Suppression\Figures"
-)
+FIGURE_DIR = Path(os.environ.get(
+    "ARTIFACT_SUPPRESSION_FIGURE_DIR",
+    str(Path.home() / "The University of Texas at Austin" / "MartyLab - General"
+        / "Papers" / "Artifact Suppression" / "Figures"),
+))
 
 os.chdir(FIGURE_DIR)
 
@@ -118,7 +120,7 @@ def run_deconvolution(file_path, sat=0, topx=0, topn=0):
     eng.config.masslb = 90000
     eng.config.massub = 200000
     eng.autorun(auto_peak_width=True)
-    return eng.data.data2.copy(), eng.data.massdat.copy()
+    return eng.data.data2.copy(), eng.data.massdat.copy(), eng
 
 
 def run_deconvolution_with_config(file_path, config_options, sat=0, topx=0, topn=0, beta=0):
@@ -136,30 +138,45 @@ def run_deconvolution_with_config(file_path, config_options, sat=0, topx=0, topn
     eng.config.suppression_topx = topx
     eng.config.beta = beta
     eng.autorun(auto_peak_width=True)
-    return eng.data.data2.copy(), eng.data.massdat.copy()
+    return eng.data.data2.copy(), eng.data.massdat.copy(), eng
 
 
-popc_spectrum, popc_default_mass_data = run_deconvolution(POPC_DATA_FILE)
-_, popc_top_01_mass_data = run_deconvolution(POPC_DATA_FILE, topx=0.1)
-_, popc_top_05_mass_data = run_deconvolution(POPC_DATA_FILE, topx=0.5)
-_, popc_top_2_mass_data = run_deconvolution(POPC_DATA_FILE, topn=2)
-_, popc_satellite_2_mass_data = run_deconvolution(POPC_DATA_FILE, sat=2)
+popc_spectrum, popc_default_mass_data, popc_default_engine = run_deconvolution(POPC_DATA_FILE)
+_, popc_top_01_mass_data, popc_top_01_engine = run_deconvolution(POPC_DATA_FILE, topx=0.1)
+_, popc_top_05_mass_data, popc_top_05_engine = run_deconvolution(POPC_DATA_FILE, topx=0.5)
+_, popc_top_2_mass_data, popc_top_2_engine = run_deconvolution(POPC_DATA_FILE, topn=2)
+_, popc_satellite_2_mass_data, popc_satellite_2_engine = run_deconvolution(POPC_DATA_FILE, sat=2)
 
-groel_spectrum, groel_default_mass_data = run_deconvolution_with_config(
+groel_spectrum, groel_default_mass_data, groel_default_engine = run_deconvolution_with_config(
     GROEL_DATA_FILE, GROEL_CONFIG
 )
-_, groel_top_01_mass_data = run_deconvolution_with_config(
+_, groel_top_01_mass_data, groel_top_01_engine = run_deconvolution_with_config(
     GROEL_DATA_FILE, GROEL_CONFIG, topx=0.1
 )
-_, groel_satellite_1_mass_data = run_deconvolution_with_config(
+_, groel_satellite_1_mass_data, groel_satellite_1_engine = run_deconvolution_with_config(
     GROEL_DATA_FILE, GROEL_CONFIG, sat=1
 )
-_, groel_satellite_2_mass_data = run_deconvolution_with_config(
+_, groel_satellite_2_mass_data, groel_satellite_2_engine = run_deconvolution_with_config(
     GROEL_DATA_FILE, GROEL_CONFIG, sat=2
 )
-_, groel_beta_50_mass_data = run_deconvolution_with_config(
+_, groel_beta_50_mass_data, groel_beta_50_engine = run_deconvolution_with_config(
     GROEL_DATA_FILE, GROEL_CONFIG, beta=50
 )
+
+popc_engines = [
+    popc_default_engine,
+    popc_top_01_engine,
+    popc_top_05_engine,
+    popc_top_2_engine,
+    popc_satellite_2_engine,
+]
+groel_engines = [
+    groel_default_engine,
+    groel_top_01_engine,
+    groel_satellite_1_engine,
+    groel_satellite_2_engine,
+    groel_beta_50_engine,
+]
 
 column_datasets = [
     (
@@ -269,5 +286,26 @@ fig.subplots_adjust(left=0.06, right=0.98, bottom=0.07, top=0.96)
 os.chdir(FIGURE_DIR)
 plt.savefig('Figure4.png', dpi=300)
 plt.savefig('Figure4.pdf')
+metric_rows = [
+    panel_metrics('A', 'Data', panel_type="input m/z spectrum",
+                  settings={"data_file": POPC_DATA_FILE}),
+    panel_metrics('B', 'Data', panel_type="input m/z spectrum",
+                  settings={"data_file": GROEL_DATA_FILE,
+                            "reference_basis": "nearest 57,300 Da GroEL oligomer"}),
+]
+for row in range(1, 6):
+    popc_label, groel_label = panel_labels[row]
+    metric_rows.append(panel_metrics(
+        chr(ord('A') + row * 2), popc_label, popc_engines[row - 1],
+        settings={"data_file": POPC_DATA_FILE},
+        notes="No independent reference mass is defined for the nanodisc distribution.",
+    ))
+    metric_rows.append(panel_metrics(
+        chr(ord('A') + row * 2 + 1), groel_label, groel_engines[row - 1],
+        reference_mass=groel_masses,
+        settings={"data_file": GROEL_DATA_FILE,
+                  "reference_basis": "nearest 57,300 Da GroEL oligomer"},
+    ))
+write_metrics_workbook('Figure4.xlsx', metric_rows)
 
 plt.show()

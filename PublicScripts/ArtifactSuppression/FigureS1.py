@@ -5,19 +5,26 @@ from pathlib import Path
 import matplotlib
 import numpy as np
 
-UNIDEC_ROOT = Path(__file__).resolve().parents[3] / "public" / "UniDec"
+UNIDEC_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(UNIDEC_ROOT))
 
 import unidec.engine as ud
 import unidec.modules.MassSpecBuilder as msb
+from PublicScripts.ArtifactSuppression.metrics import panel_metrics, write_metrics_workbook
 
-matplotlib.use('WxAgg')
+matplotlib.use(os.environ.get("MPLBACKEND", "WxAgg"))
 import matplotlib.pyplot as plt
 
 matplotlib.rcParams.update({
     'font.family': 'Arial',
     'font.size': 11,
 })
+
+FIGURE_DIR = Path(os.environ.get(
+    "ARTIFACT_SUPPRESSION_FIGURE_DIR",
+    str(Path.home() / "The University of Texas at Austin" / "MartyLab - General"
+        / "Papers" / "Artifact Suppression" / "Figures"),
+))
 
 
 def normalize(data):
@@ -51,7 +58,7 @@ def run_deconvolution(spectrum, massrange=[5000, 50000], sat=0, harm=0,
     eng.config.beta = beta
     eng.autorun(auto_peak_width=True)
 
-    return eng.data.massdat
+    return eng
 
 
 np.random.seed(42)
@@ -61,28 +68,21 @@ spectrum, params = msb.simple_spectrum2(
 )
 spectrum, ztab = spectrum
 
-massdat_topn2_sat1 = run_deconvolution(spectrum, topn=2, sat=1)
-massdat_topx001_sat1 = run_deconvolution(
-    spectrum, topx=0.01, sat=1, harm=1
-)
-massdat_topn2_psig1 = run_deconvolution(spectrum, topn=2, psig=1)
-massdat_topn1_psig1 = run_deconvolution(spectrum, topn=1, psig=1)
-massdat_topx005_psig1 = run_deconvolution(spectrum, topx=0.05, psig=1)
-massdat_topx01_psig1 = run_deconvolution(spectrum, topx=0.1, psig=1)
-massdat_beta_some = run_deconvolution(spectrum, beta=50)
-massdat_beta_lots = run_deconvolution(spectrum, beta=500)
+engines = [
+    run_deconvolution(spectrum, topn=2, sat=1),
+    run_deconvolution(spectrum, topx=0.01, sat=1, harm=1),
+    run_deconvolution(spectrum, topn=2, psig=1),
+    run_deconvolution(spectrum, topn=1, psig=1),
+    run_deconvolution(spectrum, topx=0.05, psig=1),
+    run_deconvolution(spectrum, topx=0.1, psig=1),
+    run_deconvolution(spectrum, beta=50),
+    run_deconvolution(spectrum, beta=500),
+]
 
 fig, axes = plt.subplots(4, 2, figsize=(6.5, 6.4))
 
 mass_datasets = [
-    massdat_topn2_sat1,
-    massdat_topx001_sat1,
-    massdat_topn2_psig1,
-    massdat_topn1_psig1,
-    massdat_topx005_psig1,
-    massdat_topx01_psig1,
-    massdat_beta_some,
-    massdat_beta_lots,
+    engine.data.massdat for engine in engines
 ]
 plot_labels = [
     'Top 2 + Satellite 1',
@@ -121,11 +121,22 @@ axes[-1, 1].set_xlabel('Mass (kDa)')
 
 plt.tight_layout()
 
-os.chdir(
-    r"C:\Users\mm96978\The University of Texas at Austin"
-    r"\MartyLab - General\Papers\Artifact Suppression\Figures"
-)
+os.chdir(FIGURE_DIR)
 plt.savefig("FigureS1.png", dpi=300)
 plt.savefig("FigureS1.pdf")
+common_settings = {
+    "reference_basis": "synthetic input mass",
+    "simulation_resolution": 50,
+    "simulation_baseline": 0.03,
+    "simulation_noise": 0.01,
+    "simulation_zwidth": 0.75,
+    "random_seed": 42,
+}
+write_metrics_workbook(
+    "FigureS1.xlsx",
+    [panel_metrics(chr(ord('A') + index), label, engine, reference_mass=20000,
+                   settings=common_settings)
+     for index, (label, engine) in enumerate(zip(plot_labels, engines))],
+)
 
 plt.show()

@@ -5,11 +5,12 @@ from pathlib import Path
 import matplotlib
 import numpy as np
 
-UNIDEC_ROOT = Path(__file__).resolve().parents[3] / "public" / "UniDec"
+UNIDEC_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(UNIDEC_ROOT))
 
 import unidec.engine as ud
 import unidec.modules.MassSpecBuilder as msb
+from PublicScripts.ArtifactSuppression.metrics import panel_metrics, write_metrics_workbook
 
 matplotlib.use(os.environ.get("MPLBACKEND", "TkAgg"))
 import matplotlib.pyplot as plt
@@ -24,7 +25,11 @@ matplotlib.rcParams.update({
     "savefig.facecolor": "white",
 })
 
-FIGURE_DIR = r"C:\Users\mm96978\The University of Texas at Austin\MartyLab - General\Papers\Artifact Suppression\Figures"
+FIGURE_DIR = Path(os.environ.get(
+    "ARTIFACT_SUPPRESSION_FIGURE_DIR",
+    str(Path.home() / "The University of Texas at Austin" / "MartyLab - General"
+        / "Papers" / "Artifact Suppression" / "Figures"),
+))
 
 MASS_RANGE = (5000, 50000)
 MZ_LIMITS = (1500, 3000)
@@ -58,7 +63,7 @@ def run_deconvolution(spectrum, **suppression):
     mz = np.unique(mzgrid[:, 0])
     charge = np.unique(mzgrid[:, 1])
     intensity = mzgrid[:, 2].reshape(len(mz), len(charge))
-    return mz, charge, normalize(intensity), engine.config.cmap
+    return mz, charge, normalize(intensity), engine.config.cmap, engine
 
 
 def label_panel(axis, panel, description, color="black", rotate_description=False,
@@ -163,8 +168,12 @@ def make_figure():
         run_deconvolution(spectrum, **options) if options is not None else None
         for _, options in settings
     ]
+    metric_engines = [
+        result[4] if result is not None else run_deconvolution(spectrum, topx=0.05)[4]
+        for result in results
+    ]
 
-    mz, charge, normal_grid, cmap = results[0]
+    mz, charge, normal_grid, cmap, _ = results[0]
     selected_mz_index, selected_charge_index = np.unravel_index(
         np.argmax(normal_grid), normal_grid.shape
     )
@@ -260,16 +269,15 @@ def make_figure():
     colorbar = fig.colorbar(contour, cax=colorbar_axis, ticks=[0, 50, 100])
     colorbar.set_ticklabels(["0", "%", "100"])
 
-    normal_vector = normal_grid[selected_mz_index, charge_mask]
     for index, (axis, (title, _), result) in enumerate(
         zip(vector_axes, settings, results)
     ):
         if result is None:
-            vector = normal_vector.copy()
-            vector[vector < 0.05 * np.max(normal_vector)] = 0
+            vector = normal_grid[selected_mz_index, charge_mask].copy()
+            vector[vector < 0.05 * np.max(vector)] = 0
             result_cmap = cmap
         else:
-            result_mz, result_charge, result_grid, result_cmap = result
+            result_mz, result_charge, result_grid, result_cmap, _ = result
             if not np.array_equal(mz, result_mz) or not np.array_equal(charge, result_charge):
                 raise ValueError("Suppression runs produced incompatible m/z-charge grids")
             vector = result_grid[selected_mz_index, charge_mask]
@@ -392,11 +400,33 @@ def make_figure():
         spine.set_linestyle("--")
 
     fig.subplots_adjust(left=0.055, right=0.99, bottom=0.2, top=0.95)
+    common_settings = {
+        "reference_basis": "synthetic input mass",
+        "simulation_resolution": 50,
+        "simulation_baseline": 0.03,
+        "simulation_noise": 0.01,
+        "simulation_zwidth": 0.75,
+        "random_seed": 42,
+        "selected_mz": selected_mz,
+    }
+    metric_rows = [
+        panel_metrics("A", "Data", panel_type="input m/z spectrum",
+                      reference_mass=20000, settings=common_settings),
+        panel_metrics("B", "Deconvolution", metric_engines[0], reference_mass=20000,
+                      settings=common_settings, panel_type="2D deconvolution"),
+    ]
+    metric_rows.extend(
+        panel_metrics(chr(ord("C") + index), title, engine, reference_mass=20000,
+                      settings=common_settings, panel_type="extracted charge vector",
+                      notes="Metrics describe the full deconvolution that supplies this vector.")
+        for index, ((title, _), engine) in enumerate(zip(settings, metric_engines))
+    )
+    write_metrics_workbook(Path(FIGURE_DIR, "Figure1.xlsx"), metric_rows)
     return fig
 
 
 if __name__ == "__main__":
     figure = make_figure()
-    figure.savefig(FIGURE_DIR + r"\Figure1.png", dpi=300)
-    figure.savefig(FIGURE_DIR + r"\Figure1.pdf")
+    figure.savefig(FIGURE_DIR / "Figure1.png", dpi=300)
+    figure.savefig(FIGURE_DIR / "Figure1.pdf")
     plt.show()
