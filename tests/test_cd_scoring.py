@@ -53,6 +53,96 @@ class TestCDScoring(unittest.TestCase):
             self.assertAlmostEqual(getattr(peak, name), 1, msg=name)
         self.assertAlmostEqual(eng.pks.uniscore, 1)
 
+    def test_uscore_method_dispatch_and_skip(self):
+        eng = self.make_engine()
+        self.assertEqual(eng.uscore_method, 1)
+        for method in (0, 1, 2):
+            with self.subTest(method=method):
+                eng.dscore(uscore_method=method)
+                self.assertAlmostEqual(eng.pks.peaks[0].uscore, 1)
+                self.assertAlmostEqual(eng.pks.uniscore, 1)
+        eng.uscore_method = 2
+        eng.dscore()
+        self.assertAlmostEqual(eng.pks.uniscore, 1)
+        with self.assertRaises(ValueError):
+            eng.dscore(uscore_method=3)
+        eng._clear_scores()
+        with patch.object(eng, "make_kernel", side_effect=AssertionError("kernel")):
+            eng.pks_uscore(uscore_method=0)
+        self.assertEqual(eng.pks.peaks[0].uscore, 1)
+
+    def test_area_method_corrects_ideal_response_without_convolutions(self):
+        for shape in (0, 1, 2):
+            for rawflag in (0, 1):
+                for norm in (0, 1):
+                    with self.subTest(shape=shape, rawflag=rawflag, norm=norm):
+                        eng = self.make_engine()
+                        eng.mz = np.arange(1., 102.)
+                        eng.ztab = np.arange(1., 42.)
+                        eng.config.CDzbins = 1
+                        eng.config.mzsig = 5
+                        eng.config.csig = 5
+                        eng.config.psfun = shape
+                        eng.config.psfunz = shape
+                        eng.config.rawflag = rawflag
+                        eng.config.datanorm = norm
+                        eng.make_kernel()
+                        source = np.zeros((41, 101))
+                        source[20, 50] = 100
+                        observed = np.maximum(cconv2D_preB(source, fft_fun(eng.kernel)), 0)
+                        output = (np.maximum(cconv2D_preB(source, fft_fun(eng.mkernel)), 0)
+                                  if rawflag == 0 else source.copy())
+                        output[output < 1e-12] = 0
+                        if norm:
+                            output /= output.max()
+                        eng.harray = output
+                        eng.pks.peaks[0].mass = 51 * 21
+                        eng._set_fit(observed, observed)
+                        with patch("unidec.modules.CDEng.cconv2D_preB",
+                                   side_effect=AssertionError("extra convolution")):
+                            eng.pks_uscore(uscore_method=2)
+                        self.assertAlmostEqual(eng.pks.peaks[0].uscore, 1, places=8)
+
+    def test_area_method_penalizes_wrong_charge_and_handles_zero_signal(self):
+        eng = self.make_engine()
+        eng._set_fit(eng.harray[::-1], eng.harray)
+        eng.pks_uscore(uscore_method=2)
+        self.assertLess(eng.pks.peaks[0].uscore, 1)
+        eng.harray[:] = 0
+        eng._set_fit(eng.harray, eng.harray)
+        eng.pks_uscore(uscore_method=2)
+        self.assertEqual(eng.pks.peaks[0].uscore, 0)
+
+    def test_area_method_singleton_fractional_bins_and_clipped_windows(self):
+        for charges in ((1.,), (1., 1.5, 2.)):
+            with self.subTest(charges=charges):
+                eng = self.make_engine(charges)
+                eng.pks_uscore(uscore_method=2)
+                self.assertAlmostEqual(eng.pks.peaks[0].uscore, 1)
+        eng = self.make_engine((1., 2., 3.))
+        eng.config.mzsig = 2
+        eng.config.csig = 2
+        eng.config.psfun = 2
+        eng.config.psfunz = 2
+        eng.make_kernel()
+        source = np.zeros_like(eng.harray)
+        source[0, 0] = 1
+        observed = np.maximum(cconv2D_preB(source, fft_fun(eng.kernel)), 0)
+        eng.harray = source
+        eng.pks.peaks[0].mass = 1
+        eng._set_fit(observed, observed)
+        eng.pks_uscore(uscore_method=2, power=0)
+        self.assertAlmostEqual(eng.pks.peaks[0].uscore, 1)
+
+    def test_skipping_uscore_keeps_other_components_and_global_fit_penalty(self):
+        eng = self.make_engine()
+        eng._set_fit(eng.harray[::-1], eng.harray)
+        eng.dscore(uscore_method=0)
+        peak = eng.pks.peaks[0]
+        self.assertEqual(peak.uscore, 1)
+        self.assertAlmostEqual(peak.dscore, peak.mscore * peak.cs_score * peak.fscore)
+        self.assertAlmostEqual(eng.pks.uniscore, peak.dscore * eng.config.error)
+
     def test_charge_resolved_error_is_visible_when_mz_projection_is_identical(self):
         eng = self.make_engine()
         observed = eng.harray[::-1].copy()
@@ -222,8 +312,15 @@ class TestCDScoring(unittest.TestCase):
 
             eng.decon_external_call()
 
-            self.assertAlmostEqual(eng.fit_scale, 1, places=5)
-            self.assertAlmostEqual(np.sum(eng.fit2d), observed_sum, places=5)
+            # Conservation applies to native output before the scoring-only
+            # least-squares amplitude adjustment. After one iteration the fit
+            # shape is imperfect, so its optimal amplitude need not equal one.
+            native_fit = np.fromfile(eng.config.fitdatfile, dtype=eng.config.dtype)
+            native_output = np.loadtxt(eng.config.deconfile)
+            self.assertAlmostEqual(np.sum(native_fit), observed_sum, places=5)
+            self.assertAlmostEqual(np.sum(native_output), observed_sum, places=5)
+            native_fit = native_fit.reshape(len(eng.mz), len(eng.ztab)).T
+            np.testing.assert_allclose(eng.fit2d, native_fit * eng.fit_scale, rtol=1e-6)
             self.assertAlmostEqual(np.sum(eng.harray), observed_sum, places=5)
 
     def test_full_python_workflow_scores_and_exports_after_transform(self):

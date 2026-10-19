@@ -236,6 +236,7 @@ class UniDecCD(engine.UniDec):
         self.massaxis = None
         self.invinjtime = None
         self.res = None
+        self.uscore_method = 1
         self._clear_scores()
         pass
 
@@ -288,7 +289,76 @@ class UniDecCD(engine.UniDec):
                 array.fill(0)
         return array
 
-    def pks_uscore(self, xfwhm=2, power=1):
+    def pks_uscore(self, xfwhm=2, power=1, uscore_method=None):
+        """Select CD uniqueness scoring: 0=unity, 1=response, 2=window area."""
+        method = self.uscore_method if uscore_method is None else uscore_method
+        if method not in (0, 1, 2):
+            raise ValueError("CD UScore method must be 0 (skip), 1 (response), or 2 (area)")
+        if method == 0:
+            for p in self.pks.peaks:
+                p.uscore = 1.0
+                p.mzstack = np.array([])
+            return
+        if method == 2:
+            return self._pks_uscore_area(xfwhm=xfwhm, power=power)
+        return self._pks_uscore_response(xfwhm=xfwhm, power=power)
+
+    def _pks_uscore_area(self, xfwhm=2, power=1):
+        """Compare observed rectangles with single-charge output strips.
+
+        Windows extend +/- one response FWHM. Correct the output strip by
+        the enclosed charge-kernel fraction (and m/z fraction for centroid
+        output). This is exact for an isolated impulse; finite-width sources
+        and neighboring signals can change the enclosed fractions.
+        """
+        if self.observed is None or self.fit2d is None:
+            raise ValueError("Run CD deconvolution before calculating peak scores")
+        self.make_kernel()
+        nz, nm = self.observed.shape
+        mzwidth = max(self.config.mzsig, 0)
+        zwidth = max(self.config.csig, 0)
+        ml = np.searchsorted(self.mz, self.mz - mzwidth, side="left")
+        mr = np.searchsorted(self.mz, self.mz + mzwidth, side="right")
+        zl = np.searchsorted(self.ztab, self.ztab - zwidth, side="left")
+        zr = np.searchsorted(self.ztab, self.ztab + zwidth, side="right")
+        integral = np.pad(self.observed, ((1, 0), (1, 0))).cumsum(0).cumsum(1)
+        xarea = (integral[zr[:, None], mr] - integral[zl[:, None], mr]
+                 - integral[zr[:, None], ml] + integral[zl[:, None], ml])
+        output = np.asarray(self.harray, dtype=float)
+        output_sum = output.sum()
+        scale = self.observed.sum() / output_sum if output_sum > 0 else 0
+        rows = np.pad(output, ((0, 0), (1, 0))).cumsum(1)
+        strips = (rows[:, mr] - rows[:, ml]) * scale
+        yarea = strips.copy()
+        # The FFT response uses circular offsets. Sum exactly those sampled
+        # offsets falling inside each clipped window, including edge effects.
+        zk = self.kernel.sum(axis=1)
+        zfraction = np.array([zk[(np.arange(lo, hi) - i) % nz].sum()
+                              for i, (lo, hi) in enumerate(zip(zl, zr))])
+        yarea *= zfraction[:, None]
+        if self.config.rawflag != 0:
+            mk = self.kernel.sum(axis=0)
+            mfraction = np.array([mk[(np.arange(lo, hi) - i) % nm].sum()
+                                  for i, (lo, hi) in enumerate(zip(ml, mr))])
+            yarea *= mfraction[None, :]
+        agreement = np.zeros_like(xarea)
+        np.divide(np.abs(xarea - yarea), xarea, out=agreement, where=xarea > 0)
+        agreement = np.where(xarea > 0, np.clip(1 - agreement, 0, 1), 0)
+        for p in self.pks.peaks:
+            centers = np.divide(p.mass, self.ztab, out=np.zeros_like(self.ztab, dtype=float),
+                                where=self.ztab != 0) + self.config.adductmass
+            indices = np.array([ud.nearest(self.mz, center) for center in centers])
+            valid = ((self.ztab != 0) & (centers >= self.mz[0])
+                     & (centers <= self.mz[-1]))
+            scores = agreement[np.arange(nz), indices]
+            rowweights = np.where(valid, strips[np.arange(nz), indices] ** power, 0)
+            # With power=0, rows with no predicted signal still carry no evidence.
+            rowweights[strips[np.arange(nz), indices] <= 0] = 0
+            p.uscore = float(np.average(scores, weights=rowweights)) if rowweights.sum() > 0 else 0
+            # No response reconstruction is available in area mode.
+            p.mzstack = np.array([])
+
+    def _pks_uscore_response(self, xfwhm=2, power=1):
         """CD fit/uniqueness: response-weighted local fit agreement times purity.
 
         Reconstruct each mass window with the CD response kernel. Purity is its
@@ -324,7 +394,7 @@ class UniDecCD(engine.UniDec):
             p.mzstack = np.array([np.column_stack((self.mz, obs, fit))
                                   for obs, fit in zip(self.observed, response)])
 
-    def dscore(self, xfwhm=2, power=2):
+    def dscore(self, xfwhm=2, power=2, uscore_method=None):
         self.pks.uniscore = 0
         if not self.pks.peaks:
             return
@@ -334,7 +404,7 @@ class UniDecCD(engine.UniDec):
             raise ValueError("Scoring requires a positive window and nonnegative finite power")
         with np.errstate(divide="ignore", invalid="ignore"):
             self.pks_mscore(xfwhm=xfwhm, power=power)
-            self.pks_uscore(xfwhm=xfwhm, power=power)
+            self.pks_uscore(xfwhm=xfwhm, power=power, uscore_method=uscore_method)
             self.pks_csscore(xfwhm=xfwhm)
             self.pks_fscore()
         # Sparse CD histograms can leave a mass-shape component undefined.
@@ -1280,7 +1350,7 @@ class UniDecCD(engine.UniDec):
         # Load in fit data, needed for scoring
         fitted = np.fromfile(self.config.fitdatfile, dtype=self.config.dtype)
         self._set_fit(observed, fitted.reshape(startdims).transpose())
-        print("Loaded Output File:", self.config.deconfile)
+        print("Loaded Fit File:", self.config.fitdatfile)
 
     def decon_external_call_sequential(self, harray):
         # Check for this

@@ -27,6 +27,34 @@ fit agreement (`min(observed, fitted) / max(observed, fitted)`) and purity
 averaged with predicted intensity raised to the scoring power. This rewards
 isolated, well-fitted responses and penalizes overlapping responses.
 
+The CD Python engine also provides two alternative UScore modes. Set
+`eng.uscore_method` before `eng.pick_peaks()` or `eng.dscore()`:
+
+```python
+eng.uscore_method = 1  # Default: existing convolution-based response score
+eng.uscore_method = 2  # Local window-area score, with enclosed-kernel correction
+eng.uscore_method = 0  # Skip UScore: set every peak's UScore to one
+```
+
+For a single scoring call, use `eng.dscore(uscore_method=2)` instead. These are
+Python scoring selections, not serialized deconvolution configuration settings.
+Method 2 evaluates each peak at `m/z = mass / charge + adductmass`, rounded to
+the nearest histogram bin. X is the observed rectangle within plus/minus one
+configured m/z FWHM (`mzsig`) and charge FWHM (`csig`). Y is the output strip
+within the same m/z limits at that single charge bin. Zero widths select only
+the central bin. Output is first put on the observed total-signal scale, then Y
+is multiplied by the fraction of the sampled charge kernel enclosed by the
+rectangle. Centroid output also receives the enclosed m/z-kernel correction;
+profile output already contains m/z broadening. The local score is
+`clip(1 - abs(sum(X) - corrected_sum(Y)) / sum(X), 0, 1)`; empty evidence scores
+zero. Charge scores are averaged using output-strip intensity raised to the
+scoring power. Prefix sums provide window areas without additional convolutions.
+The correction gives unit UScore for an ideal isolated impulse; finite source
+width, neighboring charge signals, and overlapping peaks can change local areas.
+This area score measures local signal balance rather than pointwise fit shape.
+Skipping UScore leaves the other DScore components and global fit R-squared
+penalty active. The default response mode is unchanged.
+
 DScore multiplies this component by the existing mass-shape, charge-distribution,
 and FWHM components. UniScore is the peak-height-squared weighted mean DScore
 multiplied by the 2D fit R², bounded to 0–1. Empty evidence scores zero; a perfect
