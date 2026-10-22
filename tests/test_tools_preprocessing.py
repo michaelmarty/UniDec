@@ -28,6 +28,11 @@ class TestNormalization(unittest.TestCase):
 
 
 class TestLinearizationAndDuplicates(unittest.TestCase):
+    def test_integration_preserves_fractional_intensity_with_integer_axis(self):
+        data = np.array([[1.5, 0.5]])
+        result = tools.lintegrate(data, np.arange(4))
+        np.testing.assert_allclose(result[:, 1], [0.0, 0.25, 0.25, 0.0])
+
     def test_linearize_all_documented_modes(self):
         data = np.array([[1.0, 10.0], [2.0, 20.0], [3.0, 30.0], [4.0, 40.0], [5.0, 50.0]])
         cases = {
@@ -52,6 +57,11 @@ class TestLinearizationAndDuplicates(unittest.TestCase):
                     result = tools.linearize(data, 1.0, mode)
                     np.testing.assert_array_equal(result, data)
                     self.assertIsNot(result, data)
+
+    def test_auto_peak_width_defaults_to_gaussian_when_no_peak_is_found(self):
+        data = np.array([[100.0, 0.0], [101.0, 0.0], [102.0, 0.0]])
+        _, psfun, _ = tools.auto_peak_width(data)
+        self.assertEqual(psfun, 0)
 
     def test_remove_duplicates_sums_every_group_including_last(self):
         data = np.array([[1.0, 2.0], [1.0, 3.0], [2.0, 5.0], [3.0, 7.0], [3.0, 11.0]])

@@ -1,9 +1,18 @@
 import unittest
+from types import SimpleNamespace
+
+import numpy as np
 
 from unidec.modules.unidec_enginebase import UniDecEngine
 
 
 class TestEngineHistory(unittest.TestCase):
+    def test_auto_peak_width_rejects_zero_data(self):
+        engine = UniDecEngine(silent=True)
+        engine.data = SimpleNamespace(data2=np.array([[100.0, 0.0], [101.0, 0.0]]))
+        with self.assertRaisesRegex(ValueError, "positive finite intensity"):
+            engine.get_auto_peak_width()
+
     def test_undo_redo_boundaries_and_snapshot_independence(self):
         engine = UniDecEngine(silent=True)
         initial_masslb = engine.config.masslb

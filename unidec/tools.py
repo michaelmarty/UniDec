@@ -1036,6 +1036,8 @@ def auto_peak_width(datatop, psfun=None, singlepeak=False):
         fwhm = fit[0, 0]
     else:
         fwhm = 0
+    if psfun is None:
+        psfun = 0
     fwhm = np.round(fwhm, 5)
     return fwhm, psfun, maxval
 
@@ -1417,7 +1419,7 @@ def lintegrate(datatop, intx, fastmode=False):
         newdat = np.column_stack((intx, inty))
         return newdat
 
-    inty = np.zeros_like(intx)
+    inty = np.zeros_like(intx, dtype=float)
     for i in range(0, length):
         x = datatop[i, 0]
         y = datatop[i, 1]

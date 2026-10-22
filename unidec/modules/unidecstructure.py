@@ -197,6 +197,7 @@ class UniDecConfig(object):
         # Data Prep
         self.detectoreffva = 0
         self.mzbins = 0
+        self.linflag = 2 # Options:
         self.smooth = 0
         self.subbuff = 0
         self.subtype = 2
@@ -246,7 +247,6 @@ class UniDecConfig(object):
         self.nativezub = 1000
         self.nativezlb = -1000
         self.inflate = 1
-        self.linflag = 2
         self.integratelb = ""
         self.integrateub = ""
         self.filterwidth = 20

@@ -2,6 +2,7 @@ from unidec.modules import peakstructure
 from unidec.modules.plotting import plot1d, plot2d
 from unidec._version import __version__
 import unidec.modules.unidecstructure as unidecstructure
+import numpy as np
 import time
 from copy import deepcopy
 from unidec.modules.html_writer import *
@@ -166,6 +167,11 @@ class UniDecEngine:
         pass
 
     def get_auto_peak_width(self, set_it=True):
+        has_signal = self.data.data2.size and np.any(
+            np.isfinite(self.data.data2[:, 1]) & (self.data.data2[:, 1] > 0)
+        )
+        if not has_signal:
+            raise ValueError("Automatic peak width requires data with at least one positive finite intensity")
         try:
             fwhm, psfun, mid = ud.auto_peak_width(self.data.data2)
             self.config.automzsig = fwhm
