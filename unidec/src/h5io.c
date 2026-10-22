@@ -304,6 +304,7 @@ Config mh5LoadConfig(Config config, hid_t file_id)
 	config.linflag=int_attr(file_id, "/config", "linflag", config.linflag);
 	config.aggressiveflag=int_attr(file_id, "/config", "aggressive", config.aggressiveflag);
 	config.rawflag=int_attr(file_id, "/config", "rawflag", config.rawflag);
+	config.rescale_newblur = int_attr(file_id, "/config", "rescale_newblur", config.rescale_newblur);
 	config.poolflag=int_attr(file_id, "/config", "poolflag", config.poolflag);
 	config.isotopemode=int_attr(file_id, "/config", "isotopemode", config.isotopemode);
 	config.orbimode = int_attr(file_id, "/config", "orbimode", config.orbimode);

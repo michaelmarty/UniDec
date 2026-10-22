@@ -979,15 +979,16 @@ float getfitdatspeedy(float *fitdat, const float *blur, const int lengthmz, cons
     return fitmax;
 }
 
-float errfunspeedy(Config config, Decon decon, const float *dataInt, float *rsquared) {
+float errfunspeedy(Config config, Decon decon, const float *dataInt, float *rsquared, float *fitdatnorm) {
     //Get max intensity
     float maxint = 0;
     for (int i = 0; i < config.lengthmz; i++) {
         if (dataInt[i] > maxint) { maxint = dataInt[i]; }
     }
 
-    getfitdatspeedy(decon.fitdat, decon.blur, config.lengthmz, config.numz, decon.maxlength,
-                    maxint, decon.starttab, decon.endtab, decon.mzdist, config.speedyflag);
+    const float fitmax = getfitdatspeedy(decon.fitdat, decon.blur, config.lengthmz, config.numz, decon.maxlength,
+                                         maxint, decon.starttab, decon.endtab, decon.mzdist, config.speedyflag);
+    *fitdatnorm = fitmax != 0 ? maxint / fitmax : 1;
 
     if (config.baselineflag == 1) {
         #pragma omp parallel for schedule(auto)

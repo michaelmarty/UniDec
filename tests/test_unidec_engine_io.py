@@ -32,6 +32,7 @@ class TestUniDecConfigSerialization(unittest.TestCase):
         "masslb": 1234.5,
         "massub": 98765.5,
         "rawflag": 1,
+        "rescale_newblur": 0,
         "suppression_topn": 4,
         "suppression_topx": 0.35,
         "suppression_harmonic": 1,
@@ -77,6 +78,9 @@ class TestUniDecConfigSerialization(unittest.TestCase):
         "HTcycleindex": 17,
         "demultiplexmode": "MRS",
     }
+
+    def test_newblur_rescaling_defaults_off(self):
+        self.assertEqual(UniDecConfig().rescale_newblur, 0)
 
     def test_text_and_hdf5_round_trip(self):
         with tempfile.TemporaryDirectory(prefix="unidec-config-") as directory:
@@ -139,10 +143,12 @@ class TestUniDecConfigSerialization(unittest.TestCase):
             restored = UniDecConfig()
             default_dtsig = restored.dtsig
             default_suppression = restored.suppression_topn
+            default_rescale_newblur = restored.rescale_newblur
             restored.read_hdf5(str(legacy))
             self.assertEqual(restored.startz, 9)
             self.assertEqual(restored.dtsig, default_dtsig)
             self.assertEqual(restored.suppression_topn, default_suppression)
+            self.assertEqual(restored.rescale_newblur, default_rescale_newblur)
 
     def test_check_badness_repairs_malformed_limits_and_rejects_reversed_range(self):
         config = UniDecConfig()

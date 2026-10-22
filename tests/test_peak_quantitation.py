@@ -177,6 +177,27 @@ class TestPeakFilteringAndExport(unittest.TestCase):
 
 
 class TestPeakScoreComponents(unittest.TestCase):
+    def test_mzstack_uses_one_dimensional_fit_data_for_uniqueness_score(self):
+        engine = UniDec(silent=True)
+        engine.config = SimpleNamespace(massbins=1.0, adductmass=0.0, orbimode=0)
+        engine.data = SimpleNamespace(
+            data2=np.array([[4.0, 9.0], [5.0, 9.0], [6.0, 9.0]]),
+            fitdat=np.array([1.0, 2.0, 3.0]),
+            ztab=np.array([1.0]),
+            mzgrid=np.array([[4.0, 1.0, 1.0], [5.0, 1.0, 2.0], [6.0, 1.0, 3.0]]),
+        )
+        engine.pks = peakstructure.Peaks()
+        engine.pks.add_peaks([[5.0, 2.0]])
+        peak = engine.pks.peaks[0]
+        peak.intervalFWHM = [4.0, 6.0]
+
+        engine.get_mzstack(xfwhm=1, fitdat=True)
+        with patch.object(engine, "get_mzstack"):
+            engine.pks_uscore(xfwhm=1)
+
+        np.testing.assert_allclose(np.asarray(peak.mzstack[0][:, 1], dtype=float), engine.data.fitdat)
+        self.assertEqual(peak.uscore, 1.0)
+
     def test_hand_computable_score_components_and_combined_score(self):
         engine = UniDec(silent=True)
         engine.config = SimpleNamespace(

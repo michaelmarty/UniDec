@@ -1116,7 +1116,7 @@ class UniDec(UniDecEngine):
             p.cs_score = 1 - ud.safedivide1(badarea, zs)
             # print(badarea, zs, p.cs_score)
 
-    def get_mzstack(self, xfwhm=2):
+    def get_mzstack(self, xfwhm=2, fitdat=False):
         zarr = np.reshape(self.data.mzgrid[:, 2], (len(self.data.data2), len(self.data.ztab)))
         # zarr = zarr / np.amax(np.sum(zarr, axis=1)) * np.amax(self.data.data2[:, 1])
         for i, p in enumerate(self.pks.peaks):
@@ -1135,13 +1135,13 @@ class UniDec(UniDecEngine):
 
             stack = []
             # bvals = []
+            intensities = self.data.fitdat if fitdat else self.data.data2[:, 1]
             for j, z in enumerate(self.data.ztab):
                 interval2 = (interval + z * self.config.adductmass) / z
                 boo1 = self.data.data2[:, 0] <= interval2[1]
                 boo2 = self.data.data2[:, 0] >= interval2[0]
                 boo3 = np.all([boo1, boo2], axis=0)
-                top = self.data.data2[boo3]
-                stack.append(np.transpose([top[:, 0], top[:, 1], zarr[boo3, j]]))
+                stack.append(np.transpose([self.data.data2[boo3, 0], intensities[boo3], zarr[boo3, j]]))
                 # bvals.append(boo3)
             # btot = np.any(bvals, axis=0)
             # fit = self.data.fitdat[btot]

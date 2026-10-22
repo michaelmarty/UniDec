@@ -138,6 +138,7 @@ class UniDecConfig(object):
         self.peakcmap = u"rainbow"
         self.spectracmap = u"rainbow"
         self.rawflag = 0
+        self.rescale_newblur = 0
 
         # data prep
         self.minmz = ''
@@ -384,6 +385,7 @@ class UniDecConfig(object):
             "reductionpercent": (self.reductionpercent, float),
             "aggressive": (self.aggressiveflag, int),
             "rawflag": (self.rawflag, int),
+            "rescale_newblur": (self.rescale_newblur, int),
             "adductmass": (self.adductmass, float),
             "nativezub": (self.nativezub, float),
             "nativezlb": (self.nativezlb, float),
@@ -533,6 +535,7 @@ class UniDecConfig(object):
         self.peakcmap = u"rainbow"
         self.spectracmap = u"rainbow"
         self.rawflag = 0
+        self.rescale_newblur = 0
 
         # data prep
         self.minmz = ''
@@ -976,6 +979,8 @@ class UniDecConfig(object):
                             self.aggressiveflag = ud.string_to_int(line.split()[1])
                         if line.startswith("rawflag"):
                             self.rawflag = ud.string_to_int(line.split()[1])
+                        if line.startswith("rescale_newblur"):
+                            self.rescale_newblur = ud.string_to_int(line.split()[1])
                         if line.startswith("adductmass"):
                             self.adductmass = ud.string_to_value(line.split()[1])
                         if line.startswith("nativezub"):
@@ -1163,7 +1168,8 @@ class UniDecConfig(object):
             "normthresh": self.normthresh,
             "peakplotthresh": self.peakplotthresh, "plotsep": self.separation, "intthresh": self.intthresh,
             "reductionpercent": self.reductionpercent,
-            "aggressive": self.aggressiveflag, "rawflag": self.rawflag, "adductmass": self.adductmass,
+            "aggressive": self.aggressiveflag, "rawflag": self.rawflag,
+            "rescale_newblur": self.rescale_newblur, "adductmass": self.adductmass,
             "nativezub": self.nativezub, "nativezlb": self.nativezlb, "poolflag": self.poolflag,
             "accvol": self.detectoreffva, "peakshapeinflate": self.inflate, "noiseflag": self.noiseflag,
             "linflag": self.linflag, "cmap": self.cmap, "peakcmap": self.peakcmap, "spectracmap": self.spectracmap,
@@ -1271,6 +1277,7 @@ class UniDecConfig(object):
         self.reductionpercent = read_attr(self.reductionpercent, "reductionpercent", config_group)
         self.aggressiveflag = read_attr(self.aggressiveflag, "aggressiveflag", config_group)
         self.rawflag = read_attr(self.rawflag, "rawflag", config_group)
+        self.rescale_newblur = read_attr(self.rescale_newblur, "rescale_newblur", config_group)
         self.adductmass = read_attr(self.adductmass, "adductmass", config_group)
         self.nativezub = read_attr(self.nativezub, "nativezub", config_group)
         self.nativezlb = read_attr(self.nativezlb, "nativezlb", config_group)
