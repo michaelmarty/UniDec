@@ -72,7 +72,7 @@ def run_deconvolution(spectrum, massrange=[5000, 50000], sat=0, harm=0, topn=0, 
                       baseline_subtraction=0, beta=0, psig=10):
     eng = ud.UniDec()
     eng.pass_data_in(spectrum)
-    # eng.config.mzsig = 5
+    # eng.config.mzsig = 30
     eng.config.psig = psig
     eng.config.subbuff = baseline_subtraction
     eng.config.masslb = massrange[0]
@@ -82,6 +82,7 @@ def run_deconvolution(spectrum, massrange=[5000, 50000], sat=0, harm=0, topn=0, 
     eng.config.suppression_topn = topn
     eng.config.suppression_topx = topx
     eng.config.beta = beta
+    # eng.config.peakthresh = 0.01
     eng.autorun(auto_peak_width=True)
     # Print subscores for each peak
     for p in eng.pks.peaks:

@@ -9,6 +9,9 @@ from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
 
 
+SHOW_UNISCORE_LABELS = False
+
+
 CONFIG_FIELDS = (
     "masslb",
     "massub",
@@ -83,7 +86,9 @@ def _finite_number(value):
 
 
 def description_with_uniscore(description, score):
-    """Put an available spectrum score below a panel's description."""
+    """Optionally put an available spectrum score below a panel's description."""
+    if not SHOW_UNISCORE_LABELS:
+        return description
     score = _finite_number(score)
     if score is None:
         return description

@@ -7,10 +7,23 @@ import numpy as np
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 
+from PublicScripts.ArtifactSuppression import metrics
 from PublicScripts.ArtifactSuppression.metrics import panel_metrics, write_metrics_workbook
 
 
 class TestArtifactSuppressionMetrics(unittest.TestCase):
+    def test_uniscore_plot_labels_are_optional_and_off_by_default(self):
+        self.assertEqual(metrics.description_with_uniscore("Top 1", 0.75), "Top 1")
+
+        metrics.SHOW_UNISCORE_LABELS = True
+        try:
+            self.assertEqual(
+                metrics.description_with_uniscore("Top 1", 0.75),
+                "Top 1\nUniScore: 0.75",
+            )
+        finally:
+            metrics.SHOW_UNISCORE_LABELS = False
+
     def test_main_peak_metrics_and_nearest_reference(self):
         minor = SimpleNamespace(
             mass=100.0, centroid=101.0, height=2.0, integral=4.0,
