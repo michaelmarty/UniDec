@@ -1341,7 +1341,9 @@ class UniDec(UniDecEngine):
             print("Creating file:", path)
         np.savetxt(path, data)
 
-        # Open it
+        # The data was just overwritten, so ignore any stale *_conf.dat and cached *_input.dat in the
+        # _unidecfiles directory; refresh=True keeps the current config and reprocesses the new data.
+        kwargs.setdefault("refresh", True)
         self.open_file(fname, testdir, **kwargs)
         self.config.minmz, self.config.maxmz = np.amin(data[:, 0]), np.amax(data[:, 0])
         # self.config.default_isotopic_res()

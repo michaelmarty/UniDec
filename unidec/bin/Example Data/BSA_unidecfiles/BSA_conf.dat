@@ -1,4 +1,4 @@
-version 9.0.0
+version 9.0.1
 imflag 0
 cdmsflag 0
 input C:\Python\UniDecDev\public\UniDec\unidec\bin\Example Data\BSA_unidecfiles\BSA_input.dat
@@ -43,6 +43,7 @@ intthresh 0.0
 reductionpercent 0.0
 aggressive 0
 rawflag 0
+rescale_newblur 0
 adductmass 1.007276467
 nativezub 1000.0
 nativezlb -1000.0
@@ -68,8 +69,8 @@ doubledec False
 CDslope 0.2074
 CDzbins 1
 CDres 0.0
-CDScanStart 0.0
-CDScanEnd 0.0
+CDScanStart 0
+CDScanEnd 0
 CDprethresh 0.0
 HTksmooth 0.0
 CDScanCompress 0
@@ -97,7 +98,7 @@ subbufdt 0.0
 centroided 0
 verbose 0
 zout 0
-pusher 0
+pusher 0.0
 mindt -1.0
 maxdt -1.0
 ccsub 25000.0
