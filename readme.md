@@ -262,7 +262,7 @@ You can also just copy the data from XCalibur or MassLynx and then use Add Data 
 There are a few automated tools to parse single chromatograms directly into HDF5 files if you have all the data chromatograms 
 with predictable scans or times. You can batch process multiple files at once. 
 
-However, if you want to look at chromatography data directly, we now recommend UniChrom, which will plot the TIC and allow you to select specific scan ranges either manually or automatically.
+However, if you want to look at chromatography data directly, we now recommend UniChrom. Its top plot can display either the total ion chromatogram (TIC) or base peak chromatogram (BPC), and it allows you to select specific scan ranges either manually or automatically. Use the TIC/BPC choice at the bottom of the left panel to switch the plot and the chromatogram used for automatic peak detection and parsing; the selection is saved with the HDF5 configuration.
 
 
 ## Installing the Source Code

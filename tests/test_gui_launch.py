@@ -117,6 +117,15 @@ try:
             assert hasattr(app.view.controls, "ctlUCtype")
             assert app.view.controls.ctlUClineardecon.GetValue()
             assert app.view.controls.ctlUCtype.GetSelection() == 0
+            assert app.view.ctlchromatogram.GetStrings() == ["TIC", "BPC"]
+            assert app.view.ctlchromatogram.GetSelection() == 0
+            app.view.ctlchromatogram.SetSelection(1)
+            app.eng.ticdat = np.array([[0.0, 1.0]])
+            app.eng.bpcdat = np.array([[0.0, 0.5]])
+            with patch.object(app, "plot_chrom_shading") as replot:
+                app.on_chromatogram_type()
+                replot.assert_called_once_with()
+            assert app.eng.config.chromatogram_type == 1
             app.view.controls.ctldtsig.SetValue("2.5")
             app.view.controls.ctlUCtype.SetSelection(1)
             app.view.controls.on_uctype()

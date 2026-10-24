@@ -48,6 +48,14 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         label.SetFont(labelfont)
         self.ctlsizer.Add(label, 0)
 
+        self.ctlchromatogram = wx.RadioBox(
+            self.panel, label="Chromatogram Type", choices=["TIC", "BPC"],
+            majorDimension=2, style=wx.RA_SPECIFY_COLS
+        )
+        self.ctlchromatogram.SetSelection(self.config.chromatogram_type)
+        self.Bind(wx.EVT_RADIOBOX, self.pres.on_chromatogram_type, self.ctlchromatogram)
+        self.ctlsizer.Add(self.ctlchromatogram, 0, wx.EXPAND)
+
         self.manual_add_button = wx.Button(self.panel, label="Add From Manual Selection")
         self.Bind(wx.EVT_BUTTON, self.pres.on_manual_add, self.manual_add_button)
         self.ctlsizer.Add(self.manual_add_button)
@@ -217,7 +225,12 @@ class ChromWindow(mainwindow_base.MainwindowBase):
 
     def export_gui_to_config(self):
         self.controls.export_gui_to_config()
+        self.config.chromatogram_type = self.ctlchromatogram.GetSelection()
         self.pres.export_vars()
+
+    def import_config_to_gui(self):
+        self.controls.import_config_to_gui()
+        self.ctlchromatogram.SetSelection(self.config.chromatogram_type)
 
     def on_motion(self, xpos, ypos):
         try:

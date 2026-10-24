@@ -28,6 +28,8 @@ class ChromEngine(MetaUniDec):
         self.chromdat = None
         self.tic = None
         self.ticdat = None
+        self.bpc = None
+        self.bpcdat = None
         self.spectra = None
         self.massdat = None
         self.mzdata = None
@@ -106,8 +108,16 @@ class ChromEngine(MetaUniDec):
         self.polarity = self.chromdat.get_polarity()
         self.tic = self.chromdat.get_tic()
         self.ticdat = np.array(self.tic)
+        self.bpc = self.chromdat.get_bpc()
+        self.bpcdat = np.array(self.bpc)
         self.fullscans = self.chromdat.scans
         return hdf5
+
+    def get_selected_chromatogram(self):
+        """Return the cached chromatogram selected for plotting and parsing."""
+        if self.config.chromatogram_type == 1:
+            return self.bpcdat, "Base Peak Chromatogram"
+        return self.ticdat, "Total Ion Chromatogram"
 
     def get_data_from_scans(self, scan_range=None):
         self.mzdata = self.chromdat.get_avg_scan(scan_range=scan_range)
@@ -133,7 +143,8 @@ class ChromEngine(MetaUniDec):
         return self.mzdata
 
     def get_minmax_times(self):
-        return np.amin(self.ticdat[:, 0]), np.amax(self.ticdat[:, 0])
+        chromatogram, _ = self.get_selected_chromatogram()
+        return np.amin(chromatogram[:, 0]), np.amax(chromatogram[:, 0])
 
     def get_times(self):
         starts = []
@@ -152,34 +163,35 @@ class ChromEngine(MetaUniDec):
         self.data.import_vars(get_vnames=False)
 
     def get_chrom_peaks(self, window=None):
-        # Cleanup TIC Data
-        ticdat = deepcopy(self.ticdat)
-        ticdat = ud.gsmooth(ticdat, 2)
-        ticdat[:, 1] -= np.amin(ticdat[:, 1])
-        # ticdat = ud.gaussian_backgroud_subtract(ticdat, 100)
-        maxval = np.amax(ticdat[:, 1])
-        ticdat[:, 1] /= maxval
-        maxt = np.amax(ticdat[:, 0])
-        mint = np.amin(ticdat[:, 0])
+        # Clean up the selected TIC or BPC data.
+        chromatogram, _ = self.get_selected_chromatogram()
+        chromdat = deepcopy(chromatogram)
+        chromdat = ud.gsmooth(chromdat, 2)
+        chromdat[:, 1] -= np.amin(chromdat[:, 1])
+        # chromdat = ud.gaussian_backgroud_subtract(chromdat, 100)
+        maxval = np.amax(chromdat[:, 1])
+        chromdat[:, 1] /= maxval
+        maxt = np.amax(chromdat[:, 0])
+        mint = np.amin(chromdat[:, 0])
 
         # Set Window
         if window is None:
             window = self.config.chrom_peak_width
 
         # Set Threshold
-        noise = ud.noise_level2(ticdat, percent=0.50)
+        noise = ud.noise_level2(chromdat, percent=0.50)
         print("Noise Level:", noise, "Window:", window)
 
         # Detect Peaks
-        peaks = ud.peakdetect_nonlinear(ticdat, window=window, threshold=noise)
+        peaks = ud.peakdetect_nonlinear(chromdat, window=window, threshold=noise)
 
         # Filter Peaks
         goodpeaks = []
         tranges = []
-        diffs = np.diff(ticdat[:, 0])
+        diffs = np.diff(chromdat[:, 0])
         for p in peaks:
-            fwhm, fwhmrange = ud.calc_FWHM(p[0], ticdat)
-            index = ud.nearest(ticdat[:, 0], p[0])
+            fwhm, fwhmrange = ud.calc_FWHM(p[0], chromdat)
+            index = ud.nearest(chromdat[:, 0], p[0])
             if index >= len(diffs):
                 index = len(diffs) - 1
             localdiff = diffs[index]
@@ -199,10 +211,11 @@ class ChromEngine(MetaUniDec):
         self.data.add_data(self.mzdata, name=str(self.scans[2]), attrs=self.attrs, export=False)
 
     def add_regular_times(self):
-        times = np.arange(np.amin(self.ticdat[:, 0]), np.amax(self.ticdat[:, 0]), self.config.time_window)
+        chromatogram, _ = self.get_selected_chromatogram()
+        times = np.arange(np.amin(chromatogram[:, 0]), np.amax(chromatogram[:, 0]), self.config.time_window)
 
         if self.config.time_start is not None and self.config.time_end is not None:
-            times = np.arange(self.config.time_start, np.amax(self.ticdat[:, 0]), self.config.time_window)
+            times = np.arange(self.config.time_start, np.amax(chromatogram[:, 0]), self.config.time_window)
             boo1 = times >= self.config.time_start
             boo2 = times <= self.config.time_end
             boo3 = np.logical_and(boo1, boo2)
@@ -247,10 +260,11 @@ class ChromEngine(MetaUniDec):
     def add_sliding_window(self):
         if self.config.sw_scan_offset < 1:
             self.config.sw_scan_offset = 1
-        tindex = np.arange(0, len(self.ticdat), int(self.config.sw_scan_offset))
+        chromatogram, _ = self.get_selected_chromatogram()
+        tindex = np.arange(0, len(chromatogram), int(self.config.sw_scan_offset))
         self.data.clear()
         for i in tindex:
-            t = self.ticdat[i, 0]
+            t = chromatogram[i, 0]
 
             if self.config.time_start is not None:
                 if t < self.config.time_start:

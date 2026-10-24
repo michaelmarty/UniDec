@@ -115,6 +115,7 @@ class UniDecConfig(object):
 
         self.time_window = 2
         self.chrom_peak_width = 2
+        self.chromatogram_type = 0
         self.sw_time_window = 1
         self.sw_scan_offset = 10
         self.scan_window = 1
@@ -1193,6 +1194,7 @@ class UniDecConfig(object):
             "exthresh": self.exthresh,
             "exnorm": self.exnorm, "exnormz": self.exnormz, "metamode": self.metamode,
             "datanorm": self.datanorm, "chrom_time_window": self.time_window, "chrom_peak_width": self.chrom_peak_width,
+            "chromatogram_type": self.chromatogram_type,
             "sw_time_window": self.sw_time_window, "sw_scan_offset": self.sw_scan_offset, "time_start": self.time_start,
             "time_end": self.time_end, "scan_window": self.scan_window
         }
@@ -1347,6 +1349,7 @@ class UniDecConfig(object):
 
         self.time_window = read_attr(self.time_window, "chrom_time_window", config_group)
         self.chrom_peak_width = read_attr(self.chrom_peak_width, "chrom_peak_width", config_group)
+        self.chromatogram_type = read_attr(self.chromatogram_type, "chromatogram_type", config_group)
         self.sw_time_window = read_attr(self.sw_time_window, "sw_time_window", config_group)
         self.sw_scan_offset = read_attr(self.sw_scan_offset, "sw_scan_offset", config_group)
         self.scan_window = read_attr(self.scan_window, "scan_window", config_group)
