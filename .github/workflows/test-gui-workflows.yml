@@ -125,7 +125,7 @@ jobs:
 
       - name: Run GUI and workflow tests
         if: matrix.gui_tests
-        run: python -m unittest discover -s tests -p "test_*.py" -v
+        run: python tests/run_automatic_tests.py
 
       - name: Run headless engine and native tests
         if: ${{ !matrix.gui_tests }}
