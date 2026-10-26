@@ -68,7 +68,7 @@ class UniDecCDApp(UniDecApp):
             # self.on_dataprep_button(0)
             # self.on_auto(0)
 
-        if True and platform.node() == 'CHEM-A90237':
+        if not kwargs.get("ignore_args", False) and platform.node() == 'CHEM-A90237':
             path = "C:\\Python\\UniDecDev\\public\\UniDec\\unidec\\bin\\Example Data\\CDMS\\GroEL_CDMS_1.RAW"
             # path = "C:\\Data\\CDMS\\Replicates\\AAV8_IMID_CDMS_1.RAW"
             self.on_open_file(None, None, path=path)
@@ -158,6 +158,7 @@ class UniDecCDApp(UniDecApp):
         self.dataprep()
 
     def dataprep(self):
+        self.view.SetStatusText("", number=3)
         self.view.clear_all_plots()
         self.export_config(self.eng.config.confname)
         self.eng.process_data()
@@ -226,6 +227,7 @@ class UniDecCDApp(UniDecApp):
         self.view.plot1.plot_native_z(0, "b", self.eng.data.data2[:, 0], width=1, alpha=0.5, mode="mz")
 
     def on_unidec_button(self, e=None):
+        self.view.SetStatusText("", number=3)
         self.view.SetStatusText("Deconvolving", number=5)
         # self.view.clear_all_plots()
         self.export_config(self.eng.config.confname)
@@ -262,8 +264,9 @@ class UniDecCDApp(UniDecApp):
         self.view.SetStatusText("Peak Pick Done", number=5)
         try:
             self.on_score()
-        except Exception:
-            pass
+        except Exception as error:
+            self.view.SetStatusText("Scoring unavailable: " + str(error), number=3)
+            print("CD peak scoring failed:", error)
         pass
 
     def on_replot(self, e=None):

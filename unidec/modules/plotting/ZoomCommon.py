@@ -284,9 +284,11 @@ class ZoomCommon:
     def kill_labels(self, repaint=True):
         # print("Removing Labels", self.parent.labeltexts)
         for t in self.parent.labeltexts:
-            t.remove()
+            if t.axes is not None:
+                t.remove()
         for l in self.parent.labellines:
-            l.remove()
+            if l.axes is not None:
+                l.remove()
         self.parent.labeltexts = []
         self.parent.labellines = []
         if repaint:

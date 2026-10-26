@@ -1,7 +1,9 @@
 import os
+import platform
 import shutil
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
@@ -10,8 +12,14 @@ import wx
 from unidec.GUniDec import UniDecApp
 from unidec.UniDecIM import UniDecIMApp
 from unidec.modules.unidec_presbase import UniDecPres
+from UniDecImporter.ImporterFactory import VendorReaderUnavailableError
 
-from _test_support import copy_unidec_example, find_importer_test_data, has_gui_display
+from _test_support import copy_unidec_example, find_importer_test_data, has_gui_display, importer_fixture
+
+
+WINDOWS_X64 = platform.system() == "Windows" and platform.machine().lower() in {
+    "amd64", "x86_64", "x64"
+}
 
 
 @unittest.skipUnless(has_gui_display(), "wxPython requires a graphical display")
@@ -38,6 +46,16 @@ class TestUniDecWorkflows(unittest.TestCase):
         config = self.app.eng.config
         self.assertTrue(os.path.isfile(config.UniDecPath))
         self.assertTrue(os.path.isfile(config.cdcreaderpath))
+
+    @unittest.skipUnless(WINDOWS_X64, "pythonnet vendor bridge is used on Windows x86-64")
+    def test_pythonnet_provides_clr_bridge(self):
+        import clr
+
+        self.assertTrue(
+            callable(getattr(clr, "AddReference", None)),
+            "The imported 'clr' module is not pythonnet's CLR bridge. Uninstall the "
+            "unrelated PyPI 'clr' package and install 'pythonnet'.",
+        )
 
     def test_example_menu_excludes_imms_data(self):
         paths = [entry[1] for entry in self.app.view.menu.masterd2]
@@ -102,6 +120,64 @@ class TestUniDecWorkflows(unittest.TestCase):
         np.testing.assert_allclose(self.app.eng.data.massdat, expected_massdat, rtol=1e-6, atol=1e-6)
         np.testing.assert_allclose(
             [peak.mass for peak in self.app.eng.pks.peaks], expected_peak_masses, rtol=0, atol=1e-6)
+
+    def test_importer_file_types_open_in_gui(self):
+        fixtures = (
+            ("txt", ("SingleScan", "test_txt.txt")),
+            ("dat", ("SingleScan", "test_dat.dat")),
+            ("csv", ("SingleScan", "test_csv.csv")),
+            ("npz", ("CDMS", "test_npz_cdms.npz")),
+            ("dmt", ("CDMS", "test_dmt_cdms.dmt")),
+            ("mzml", ("test_mzml.mzML",)),
+            ("mzml-gz", ("test_mzmlgz.mzML.gz",)),
+            ("mzxml", ("test_mzxml.mzXML",)),
+        )
+        paths = [(name, importer_fixture(self, *parts)) for name, parts in fixtures]
+
+        for name, source in paths:
+            with self.subTest(format=name):
+                self.app.on_reset(0)
+                self.app.eng.outfile = str(Path(self.tempdir.name, f"open-{name}"))
+                try:
+                    self.app.on_open_file(str(source), clean=True, silent=True)
+                finally:
+                    self.app.eng.outfile = None
+
+                data = self.app.eng.data.rawdata
+                self.assertEqual(data.ndim, 2)
+                self.assertEqual(data.shape[1], 2)
+                self.assertGreater(len(data), 0)
+                self.assertTrue(np.isfinite(data).all())
+
+    @unittest.skipUnless(WINDOWS_X64, "vendor readers require Windows x86-64")
+    def test_thermo_raw_opens_in_gui_when_runtime_is_available(self):
+        self._open_vendor_fixture("test_thermo.RAW")
+
+    @unittest.skipUnless(WINDOWS_X64, "vendor readers require Windows x86-64")
+    def test_waters_raw_opens_in_gui_when_runtime_is_available(self):
+        self._open_vendor_fixture("test_waters.raw")
+
+    @unittest.skipUnless(WINDOWS_X64, "vendor readers require Windows x86-64")
+    def test_agilent_data_opens_in_gui_when_runtime_is_available(self):
+        self._open_vendor_fixture("test_agilent.d")
+
+    def _open_vendor_fixture(self, name):
+        source = importer_fixture(self, name, required=False)
+        self.app.on_reset(0)
+        self.app.eng.outfile = str(Path(self.tempdir.name, f"open-{name}"))
+        try:
+            try:
+                self.app.on_open_file(str(source), clean=True, silent=True)
+            except VendorReaderUnavailableError as error:
+                self.skipTest(str(error))
+        finally:
+            self.app.eng.outfile = None
+
+        data = self.app.eng.data.rawdata
+        self.assertEqual(data.ndim, 2)
+        self.assertEqual(data.shape[1], 2)
+        self.assertGreater(len(data), 0)
+        self.assertTrue(np.isfinite(data).all())
 
 
 @unittest.skipUnless(has_gui_display(), "wxPython requires a graphical display")
@@ -203,3 +279,25 @@ class TestUniDecIMWorkflows(unittest.TestCase):
         self.assertGreater(self.app.eng.data.massccs.size, 0)
         self.assertGreater(len(self.app.eng.pks.peaks), 0)
         self.assertTrue(np.isfinite(self.app.eng.config.error))
+
+    def test_importer_imms_text_opens_in_gui(self):
+        fixtures = (
+            ("txt", ("IMMS", "test_watersimms_txt.txt")),
+        )
+        paths = [(name, importer_fixture(self, *parts)) for name, parts in fixtures]
+
+        for name, source in paths:
+            with self.subTest(format=name):
+                self.app.on_reset(0)
+                self.app.eng.config.batchflag = 1
+                self.app.eng.outfile = str(Path(self.tempdir.name, f"open-imms-{name}"))
+                try:
+                    self.app.on_open_file(str(source), clean=True, silent=True)
+                finally:
+                    self.app.eng.outfile = None
+
+                data = self.app.eng.data.rawdata3
+                self.assertEqual(data.ndim, 2)
+                self.assertEqual(data.shape[1], 3)
+                self.assertGreater(len(data), 0)
+                self.assertTrue(np.isfinite(data).all())

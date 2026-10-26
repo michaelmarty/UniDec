@@ -53,6 +53,11 @@ class ChromApp(MetaUniDecBase):
             # self.eng.export_peaks_2d_apex()
             self.on_eic_integrate()
 
+    def on_pick_peaks(self, e=None):
+        super().on_pick_peaks(e)
+        if self.eng.config.calc_unichrom_scores:
+            self.view.SetStatusText("UniScore: " + str(round(self.eng.pks.uniscore * 100, 2)), number=3)
+
     def on_open(self, e=None):
         """
         Open dialog for file opening
@@ -158,6 +163,7 @@ class ChromApp(MetaUniDecBase):
                     print(e)
 
     def get_from_gui(self):
+        self.eng.config.chromatogram_type = self.view.ctlchromatogram.GetSelection()
         self.eng.config.time_window = float(self.view.ctlmin.GetValue())
         self.eng.config.chrom_peak_width = float(self.view.ctlcpeaks_param1.GetValue())
         self.eng.config.sw_time_window = float(self.view.ctlswwin.GetValue())
@@ -174,6 +180,7 @@ class ChromApp(MetaUniDecBase):
         pass
 
     def load_to_gui(self):
+        self.view.ctlchromatogram.SetSelection(self.eng.config.chromatogram_type)
         self.view.ctlmin.SetValue(str(self.eng.config.time_window))
         self.view.ctlcpeaks_param1.SetValue(str(self.eng.config.chrom_peak_width))
         self.view.ctlswwin.SetValue(str(self.eng.config.sw_time_window))
@@ -349,15 +356,22 @@ class ChromApp(MetaUniDecBase):
         self.makeplot2_mud()
         self.plot_chrom_shading()
 
+    def on_chromatogram_type(self, e=None):
+        self.eng.config.chromatogram_type = self.view.ctlchromatogram.GetSelection()
+        if self.eng.ticdat is not None:
+            self.plot_chrom_shading()
+
     def makeplotc(self, e=None):
-        self.view.plotc.plotrefreshtop(self.eng.ticdat[:, 0], self.eng.ticdat[:, 1], title="Total Ion Chromatogram",
+        chromatogram, title = self.eng.get_selected_chromatogram()
+        self.view.plotc.plotrefreshtop(chromatogram[:, 0], chromatogram[:, 1], title=title,
                                        xlabel="Time (min)", ylabel="Intensity", zoom="fixed_span")
 
     def plot_chrom_shading(self, e=None):
         print("Chrom Shading Plot")
         self.makeplotc()
-        min = np.amin(self.eng.ticdat[:, 1])
-        max = np.amax(self.eng.ticdat[:, 1])
+        chromatogram, _ = self.eng.get_selected_chromatogram()
+        min = np.amin(chromatogram[:, 1])
+        max = np.amax(chromatogram[:, 1])
         for s in self.eng.data.spectra:
             if s.ignore == 0:
                 tstart = s.attrs["timestart"]

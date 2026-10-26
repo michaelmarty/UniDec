@@ -75,7 +75,7 @@ float getfitdatspeedy(float *fitdat, const float *blur, const int lengthmz, cons
                       const int *starttab,
                       const int *endtab, const float *mzdist, const int speedyflag);
 
-float errfunspeedy(Config config, Decon decon, const float *dataInt, float *rsquared);
+float errfunspeedy(Config config, Decon decon, const float *dataInt, float *rsquared, float *fitdatnorm);
 
 void CalcMasses(const Config *config, Input *inp);
 void TestMassListWindowed(const Config config, Input *inp);

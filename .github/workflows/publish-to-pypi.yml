@@ -1,9 +1,6 @@
 name: Publish Python package
 
 on:
-  push:
-    tags:
-      - "*"
   workflow_dispatch:
     inputs:
       repository:
@@ -734,8 +731,8 @@ jobs:
     needs: [build, smoke-windows, smoke-windows-arm64, smoke-macos-arm64, smoke-linux-arm64]
     runs-on: ubuntu-latest
     environment:
-      name: ${{ github.event_name == 'workflow_dispatch' && inputs.repository || 'pypi' }}
-      url: ${{ (github.event_name == 'workflow_dispatch' && inputs.repository == 'testpypi') && 'https://test.pypi.org/p/UniDec' || 'https://pypi.org/p/UniDec' }}
+      name: ${{ inputs.repository }}
+      url: ${{ inputs.repository == 'testpypi' && 'https://test.pypi.org/p/UniDec' || 'https://pypi.org/p/UniDec' }}
     permissions:
       id-token: write
 
@@ -747,14 +744,120 @@ jobs:
           path: distpypi/
 
       - name: Publish distributions to TestPyPI
-        if: github.event_name == 'workflow_dispatch' && inputs.repository == 'testpypi'
+        if: inputs.repository == 'testpypi'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: distpypi/
           repository-url: https://test.pypi.org/legacy/
 
       - name: Publish distributions to PyPI
-        if: github.event_name != 'workflow_dispatch' || inputs.repository == 'pypi'
+        if: inputs.repository == 'pypi'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: distpypi/
+
+  create-tag:
+    name: Create version tag
+    if: inputs.repository == 'pypi'
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+
+    steps:
+      - name: Check out the published source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Create tag from the package version
+        id: tag
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(sed -nE 's/^__version__[[:space:]]*=[[:space:]]*"([^"]+)"$/\1/p' unidec/_version.py)
+          if [[ -z "$version" || "$version" == *$'\n'* ]]; then
+            echo "::error title=Invalid package version::Expected one __version__ value in unidec/_version.py."
+            exit 1
+          fi
+
+          release_tag="v.$version"
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$release_tag" > /dev/null 2>&1; then
+            echo "::error title=Tag already exists::The tag $release_tag already exists."
+            exit 1
+          fi
+
+          gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+            --field ref="refs/tags/$release_tag" \
+            --field sha="$GITHUB_SHA"
+          echo "tag=$release_tag" >> "$GITHUB_OUTPUT"
+
+  github-release:
+    name: Create GitHub release
+    needs: create-tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out the tagged source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.create-tag.outputs.tag }}
+          persist-credentials: false
+
+      - name: Download distributions
+        uses: actions/download-artifact@v8
+        with:
+          name: python-package-distributions
+          path: distpypi/
+
+      - name: Extract release notes from the changelog
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ needs.create-tag.outputs.tag }}
+        run: |
+          version="${RELEASE_TAG#v}"
+          version="${version#.}"
+          awk -v version="$version" '
+            { sub(/\r$/, "") }
+            $0 == "v." version || $0 == "v" version || $0 == "v. " version {
+              found = 1
+              next
+            }
+            found && /^v\.? ?[0-9]/ { exit }
+            found { print }
+            END { if (!found) exit 1 }
+          ' readme.md > release-notes.md
+          test -s release-notes.md
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.create-tag.outputs.tag }}
+        run: >-
+          gh release create "$RELEASE_TAG" distpypi/* --repo "$GITHUB_REPOSITORY"
+          --verify-tag --title "$RELEASE_TAG" --notes-file release-notes.md
+
+  documentation:
+    name: Build and deploy documentation
+    needs: github-release
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/deploy-documentation.yml
+
+  docker:
+    name: Build and publish Docker image
+    needs: [create-tag, github-release]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/publish-to-docker-hub.yml
+    with:
+      tag: ${{ needs.create-tag.outputs.tag }}
+    secrets:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

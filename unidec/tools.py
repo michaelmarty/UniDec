@@ -327,7 +327,7 @@ def nearest(array, target):
     i = bisect_left(array, target)
     if i <= 0:
         return 0
-    elif i >= len(array) - 1:
+    elif i >= len(array):
         return len(array) - 1
     if np.abs(array[i] - target) > np.abs(array[i - 1] - target):
         i -= 1
@@ -566,7 +566,7 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             end = x + window
             val, junk = center_of_mass(data, start, end)
         else:
-            val, junk = center_of_mass(data, data[0, 0], data[len(data) - 1, 0])
+            val, junk = center_of_mass(data)
             print("No window set for center of mass!\nUsing entire data range....")
 
     elif extract_method == 4:
@@ -576,7 +576,8 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             end = x + window
             val = localmaxpos(data, start, end)
         else:
-            val = localmaxpos(data, data[0, 0], data[len(data) - 1, 0])
+            val = localmaxpos(data, np.nextafter(data[0, 0], -np.inf),
+                              np.nextafter(data[-1, 0], np.inf))
             print("No window set for local max position!\nUsing entire data range....")
 
     elif extract_method == 5:
@@ -601,7 +602,7 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             cutdat = data[boo2]
 
             # Extract from cut data
-            val, junk = center_of_mass(cutdat, cutdat[0, 0], cutdat[len(data) - 1, 0])
+            val, junk = center_of_mass(cutdat)
             print("No window set for center of mass!\nUsing entire data range....")
 
     elif extract_method == 6:
@@ -626,7 +627,7 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             cutdat = data[boo2]
 
             # Extract from cut data
-            val, junk = center_of_mass(cutdat, cutdat[0, 0], cutdat[len(data) - 1, 0])
+            val, junk = center_of_mass(cutdat)
             print("No window set for center of mass!\nUsing entire data range....")
 
     elif extract_method == 7:
@@ -636,7 +637,7 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             end = x + window
             val, junk = center_of_mass(data, start, end, power=2)
         else:
-            val, junk = center_of_mass(data, data[0, 0], data[len(data) - 1, 0], power=2)
+            val, junk = center_of_mass(data, power=2)
             print("No window set for center of mass!\nUsing entire data range....")
 
     elif extract_method == 8:
@@ -646,7 +647,7 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             end = x + window
             val, junk = center_of_mass(data, start, end, power=3)
         else:
-            val, junk = center_of_mass(data, data[0, 0], data[len(data) - 1, 0], power=3)
+            val, junk = center_of_mass(data, power=3)
             print("No window set for center of mass!\nUsing entire data range....")
 
     elif extract_method == 9:
@@ -660,7 +661,7 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             end = x + window
             val, junk = center_of_mass(cutdat, start, end, power=2)
         else:
-            val, junk = center_of_mass(cutdat, cutdat[0, 0], cutdat[len(data) - 1, 0], power=2)
+            val, junk = center_of_mass(cutdat, power=2)
             print("No window set for center of mass!\nUsing entire data range....")
 
     elif extract_method == 10:
@@ -674,7 +675,7 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
             end = x + window
             val, junk = center_of_mass(cutdat, start, end, power=3)
         else:
-            val, junk = center_of_mass(cutdat, cutdat[0, 0], cutdat[len(data) - 1, 0], power=3)
+            val, junk = center_of_mass(cutdat, power=3)
             print("No window set for center of mass!\nUsing entire data range....")
 
     elif extract_method == 11:  # Estimate the peak area
@@ -707,16 +708,16 @@ def data_extract(data, x, extract_method, window=None, **kwargs):
     elif extract_method == 12:
         if window is not None:
             # Peak Area with 10% relative threshold
-            start = nearest(data[:, 0], (x - window))  # x values should be sorted
-            end = nearest(data[:, 0], (x + window))
-            data_slice = data[start:end]
+            start_index = nearest(data[:, 0], (x - window))  # x values should be sorted
+            end_index = nearest(data[:, 0], (x + window))
+            data_slice = data[start_index:end_index]
             max_index = np.argmax(data_slice[:, 1])
             local_height = data_slice[max_index, 1]
 
             boo2 = data[:, 1] > local_height * 0.1
             cutdat = data[boo2]
 
-            val, junk = integrate(cutdat, start, end)
+            val, junk = integrate(cutdat, x - window, x + window)
         else:
             boo2 = data[:, 1] > np.amax(data[:, 1]) * 0.1
             cutdat = data[boo2]
@@ -765,22 +766,30 @@ def normalize_extracts(grid, norm_method=0):
     # Max
     if norm_method == 1:
         for j in yarray:
-            grid[:, j] /= np.amax(grid[:, j])
+            maximum = np.amax(grid[:, j])
+            if maximum != 0:
+                grid[:, j] /= maximum
 
     # Sum
     if norm_method == 2:
         for j in yarray:
-            grid[:, j] /= np.sum(grid[:, j])
+            total = np.sum(grid[:, j])
+            if total != 0:
+                grid[:, j] /= total
 
     # Peak Max
     if norm_method == 3:
         for j in xarray:
-            grid[j] /= np.amax(grid[j])
+            maximum = np.amax(grid[j])
+            if maximum != 0:
+                grid[j] /= maximum
 
     # Peak Sum
     if norm_method == 4:
         for j in xarray:
-            grid[j] /= np.sum(grid[j])
+            total = np.sum(grid[j])
+            if total != 0:
+                grid[j] /= total
 
     return grid
 
@@ -1027,6 +1036,8 @@ def auto_peak_width(datatop, psfun=None, singlepeak=False):
         fwhm = fit[0, 0]
     else:
         fwhm = 0
+    if psfun is None:
+        psfun = 0
     fwhm = np.round(fwhm, 5)
     return fwhm, psfun, maxval
 
@@ -1217,7 +1228,7 @@ def savgol_background_subtract(datatop, width, cutoff_percent=0.25):
         gooddat = gooddat[good]
         # plt.plot(gooddat[:,0],gooddat[:,1],marker="o",linestyle="")
     sgsmooth = savgol(gooddat[:, 1], window=buff, order=sgorder)
-    f = interp1d(gooddat[:, 0], sgsmooth, kind="linear", fill_value=0, bounds_error=True)
+    f = interp1d(gooddat[:, 0], sgsmooth, kind="linear", fill_value="extrapolate", bounds_error=False)
     background = f(datatop[:, 0])
     background = savgol(background, window=buff, order=sgorder)
     background = np.clip(background, 0, starting_max)
@@ -1408,7 +1419,7 @@ def lintegrate(datatop, intx, fastmode=False):
         newdat = np.column_stack((intx, inty))
         return newdat
 
-    inty = np.zeros_like(intx)
+    inty = np.zeros_like(intx, dtype=float)
     for i in range(0, length):
         x = datatop[i, 0]
         y = datatop[i, 1]
@@ -1466,6 +1477,8 @@ def linearize(datatop, binsize, linflag):
     :return: Linearized data
     """
     length = len(datatop)
+    if length <= 1:
+        return np.array(datatop, copy=True)
     firstpoint = math.ceil(datatop[0, 0] / binsize) * binsize
     lastpoint = math.floor(datatop[length - 1, 0] / binsize) * binsize
     if linflag == 0 or linflag == 3:
@@ -1505,18 +1518,12 @@ def removeduplicates(datatop):
     :return: Data with unique x values
     """
     floatdata = np.array(datatop[:, 0], dtype=dtype)
-    testunique = np.unique(floatdata)
+    testunique, inverse = np.unique(floatdata, return_inverse=True)
     if len(testunique) != len(floatdata):
         print("Removing Duplicates")
-        num, start = np.histogram(floatdata, bins=testunique)
-        means = []
-        xvals = []
-        index = 0
-        for i in range(0, len(testunique) - 1):
-            xvals.append(np.mean(datatop[index:index + num[i], 0]))
-            means.append(np.sum(datatop[index:index + num[i], 1]))
-            index = index + num[i]
-        datatop = np.column_stack((xvals, means))
+        intensities = np.zeros(len(testunique), dtype=np.result_type(datatop[:, 1], float))
+        np.add.at(intensities, inverse, datatop[:, 1])
+        datatop = np.column_stack((testunique, intensities))
     return datatop
 
 
@@ -1532,7 +1539,8 @@ def normalize(datatop):
     """
     try:
         maxval = np.amax(datatop[:, 1])
-        datatop[:, 1] = datatop[:, 1] / maxval
+        if maxval != 0:
+            datatop[:, 1] = datatop[:, 1] / maxval
     except Exception as e:
         pass
     return datatop
@@ -1642,10 +1650,10 @@ def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
     linflag = config.linflag
     redper = config.reductionpercent
 
-    data2 = datatop
+    data2 = deepcopy(datatop)
     if type(newmin) != str and type(newmax) != str:
         # Crop Data
-        data2 = datachop(deepcopy(data2), newmin, newmax)
+        data2 = datachop(data2, newmin, newmax)
 
     if config.smashflag == 1:
         print("Smashing!:", config.smashlist)

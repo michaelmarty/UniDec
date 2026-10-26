@@ -245,6 +245,8 @@ def parse_fmoddf(fmoddf):
         for i, row in fmoddf.iterrows():
             try:
                 n = float(row["Number"])
+                if math.isnan(n):
+                    n = 1
             except:
                 n = 1
             modmass = row["Mass"]
@@ -680,7 +682,10 @@ def UPP_check_peaks(row, pks, tol, vmoddf=None, fmoddf=None, favor="Closest", in
     row["Total ignored Height"] = ignoreheight
 
     # Calculate the percentages
-    percents = np.array([correctint, incorrectint, unmatchedint]) / totalint * 100
+    if totalint != 0:
+        percents = np.array([correctint, incorrectint, unmatchedint]) / totalint * 100
+    else:
+        percents = np.array([0.0, 0.0, 0.0])
     # print(percents)
     if correctint + incorrectint > 0:
         percents2 = np.array([correctint, incorrectint]) / (correctint + incorrectint) * 100
@@ -718,6 +723,9 @@ def dar_calc(pks, protein_mass, drug_mass, min_drugs, max_drugs, tolerance, inte
     """
     # Get the peaks
     peak_masses = np.array([p.mass for p in pks.peaks])
+    if len(peak_masses) == 0:
+        print("Error in DAR calculation, no peaks available")
+        return -1
     if integrate:
         peak_heights = np.array([p.integral for p in pks.peaks])
     else:

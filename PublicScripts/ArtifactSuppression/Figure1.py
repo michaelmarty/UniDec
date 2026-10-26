@@ -5,7 +5,7 @@ from pathlib import Path
 import matplotlib
 import numpy as np
 
-UNIDEC_ROOT = Path(__file__).resolve().parents[3] / "public" / "UniDec"
+UNIDEC_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(UNIDEC_ROOT))
 
 import unidec.engine as ud
@@ -24,7 +24,11 @@ matplotlib.rcParams.update({
     "savefig.facecolor": "white",
 })
 
-FIGURE_DIR = r"C:\Users\mm96978\The University of Texas at Austin\MartyLab - General\Papers\Artifact Suppression\Figures"
+FIGURE_DIR = Path(os.environ.get(
+    "ARTIFACT_SUPPRESSION_FIGURE_DIR",
+    str(Path.home() / "The University of Texas at Austin" / "MartyLab - General"
+        / "Papers" / "Artifact Suppression" / "Figures"),
+))
 
 MASS_RANGE = (5000, 50000)
 MZ_LIMITS = (1500, 3000)
@@ -58,7 +62,7 @@ def run_deconvolution(spectrum, **suppression):
     mz = np.unique(mzgrid[:, 0])
     charge = np.unique(mzgrid[:, 1])
     intensity = mzgrid[:, 2].reshape(len(mz), len(charge))
-    return mz, charge, normalize(intensity), engine.config.cmap
+    return mz, charge, normalize(intensity), engine.config.cmap, engine
 
 
 def label_panel(axis, panel, description, color="black", rotate_description=False,
@@ -164,7 +168,7 @@ def make_figure():
         for _, options in settings
     ]
 
-    mz, charge, normal_grid, cmap = results[0]
+    mz, charge, normal_grid, cmap, _ = results[0]
     selected_mz_index, selected_charge_index = np.unravel_index(
         np.argmax(normal_grid), normal_grid.shape
     )
@@ -237,7 +241,31 @@ def make_figure():
         linestyle="--",
         zorder=10,
     )
+
+    selection_box2 = Rectangle(
+        (selected_mz - selection_width / 2, 0),
+        selection_width,
+        100,
+        fill=False,
+        edgecolor="red",
+        linewidth=1.2,
+        linestyle="--",
+        zorder=10,
+    )
     grid_axis.add_patch(selection_box)
+    raw_axis.add_patch(selection_box2)
+    raw_axis.annotate(
+        "Example\nData Point",
+        (selected_mz + selection_width / 2, 60),
+        xytext=(4, 0),
+        textcoords="offset points",
+        color="red",
+        fontsize=9,
+        va="top",
+        ha="left",
+    )
+
+
     grid_axis.plot(
         selected_mz,
         charge[selected_charge_index],
@@ -260,16 +288,15 @@ def make_figure():
     colorbar = fig.colorbar(contour, cax=colorbar_axis, ticks=[0, 50, 100])
     colorbar.set_ticklabels(["0", "%", "100"])
 
-    normal_vector = normal_grid[selected_mz_index, charge_mask]
     for index, (axis, (title, _), result) in enumerate(
         zip(vector_axes, settings, results)
     ):
         if result is None:
-            vector = normal_vector.copy()
-            vector[vector < 0.05 * np.max(normal_vector)] = 0
+            vector = normal_grid[selected_mz_index, charge_mask].copy()
+            vector[vector < 0.05 * np.max(vector)] = 0
             result_cmap = cmap
         else:
-            result_mz, result_charge, result_grid, result_cmap = result
+            result_mz, result_charge, result_grid, result_cmap, _ = result
             if not np.array_equal(mz, result_mz) or not np.array_equal(charge, result_charge):
                 raise ValueError("Suppression runs produced incompatible m/z-charge grids")
             vector = result_grid[selected_mz_index, charge_mask]
@@ -397,6 +424,6 @@ def make_figure():
 
 if __name__ == "__main__":
     figure = make_figure()
-    figure.savefig(FIGURE_DIR + r"\Figure1.png", dpi=300)
-    figure.savefig(FIGURE_DIR + r"\Figure1.pdf")
+    figure.savefig(FIGURE_DIR / "Figure1.png", dpi=300)
+    figure.savefig(FIGURE_DIR / "Figure1.pdf")
     plt.show()

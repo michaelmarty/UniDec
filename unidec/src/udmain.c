@@ -339,7 +339,8 @@ void SetupOutputs(const Config config, Decon * decon, const IntraDecon intra, co
 
 	//Calculate the fit data and error.
 	decon->fitdat = calloc(config.lengthmz, sizeof(float));
-	decon->error = errfunspeedy(config, *decon, inp.dataInt, &decon->rsquared);
+	float fitdatnorm = 1;
+	decon->error = errfunspeedy(config, *decon, inp.dataInt, &decon->rsquared, &fitdatnorm);
 
 	//Fix issues with fitdat and consecutive zero data points
 	//TODO: It might be possible to build this in to convolve_simp so that this isn't necessary but it would require a 1D barr.
@@ -376,6 +377,13 @@ void SetupOutputs(const Config config, Decon * decon, const IntraDecon intra, co
 		else
 		{
 			memcpy(decon->newblur, decon->blur, (size_t)intra.ln * sizeof(float));
+		}
+		if (config.rescale_newblur != 0) {
+			#pragma omp parallel for schedule(auto)
+			for (int i = 0; i < intra.ln; i++) {
+				decon->newblur[i] *= fitdatnorm;
+			}
+			newblurmax *= fitdatnorm;
 		}
 	}
 

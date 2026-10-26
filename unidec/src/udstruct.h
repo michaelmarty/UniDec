@@ -144,6 +144,7 @@ struct Config {
     int aggressiveflag;
     float adductmass;
     int rawflag;
+    int rescale_newblur;
     float nativezub;
     float nativezlb;
     int poolflag;

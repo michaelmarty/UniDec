@@ -7,7 +7,7 @@ __author__ = 'Michael.Marty'
 
 def make_mass_spectrum(array, zrange=(10, 50), mzrange=(2000, 10000), mz_bin_size=1,
                        adductmass=1.00727647, psfun=0,
-                       noise=0, baseline=0, **kwargs):
+                       noise=0, baseline=0, fix_undersampling=True, **kwargs):
     """
     Create a new mass spectrum.
 
@@ -24,6 +24,7 @@ def make_mass_spectrum(array, zrange=(10, 50), mzrange=(2000, 10000), mz_bin_siz
     :param psfun: Peak shape function integer code
     :param noise: Std deviation of random Gaussian noise to be added to normalized spectrum
     :param baseline: Peak intensity of sinusoidal baseline to be added to normalized spectrum
+    :param fix_undersampling: Preserve peak area when a peak is narrower than the m/z grid
     :param kwargs: Keyword catcher
     :return: Spectrum, ztab (new spectrum in N x 2 (m/z, intensity) and charge states allowed)
     """
@@ -52,7 +53,16 @@ def make_mass_spectrum(array, zrange=(10, 50), mzrange=(2000, 10000), mz_bin_siz
         mzsigs = msig / ztab
 
         for j in range(0, len(ztab)):
-            output += ud.make_peak_shape(mzaxis, psfun, mzsigs[j], mzvals[j], norm_area=True) * zint[j] * inten
+            peak = ud.make_peak_shape(mzaxis, psfun, mzsigs[j], mzvals[j], norm_area=True)
+            if fix_undersampling:
+                sampled_area = np.sum(peak) * mz_bin_size
+                if not np.isfinite(sampled_area):
+                    raise ValueError("Peak area is not finite")
+                if sampled_area > 0:
+                    peak /= sampled_area
+                else:
+                    peak[np.argmin(np.abs(mzaxis - mzvals[j]))] = 1 / mz_bin_size
+            output += peak * zint[j] * inten
     output /= np.amax(output)
 
     if baseline > 0:

@@ -147,7 +147,7 @@ class UniDec(UniDecEngine):
 
         file_path = os.path.join(file_directory, file_name)
 
-        if not os.path.isfile(file_path) and ('.d' not in file_directory or '.raw' not in file_directory):
+        if not os.path.exists(file_path):
             try:
                 file_path = file_directory
             except:
@@ -230,6 +230,8 @@ class UniDec(UniDecEngine):
                 self.export_config()
 
         self.auto_polarity(importer = curr_importer)
+        if isodeceng is None:
+            curr_importer.close()
 
         if load_results:
             self.unidec_imports(everything=True)
@@ -369,9 +371,14 @@ class UniDec(UniDecEngine):
                     pass
             except (IOError, FileNotFoundError) as err:
                 print("Could not open kernel file.\nPlease select a valid kernel file to use DoubleDec")
-                return 0
+                return 1
         # Export Config and Call
         self.export_config()
+        self.pks = peakstructure.Peaks()
+        self.data.massdat = np.array([])
+        self.data.massgrid = np.array([])
+        self.data.fitdat = np.array([])
+        self.data.mzgrid = np.array([])
         tstart = time.perf_counter()
 
         out = ud.unidec_call(self.config, silent=silent)
@@ -402,15 +409,20 @@ class UniDec(UniDecEngine):
 
         # Import Results
         self.pks = peakstructure.Peaks()
-        self.data.massdat = np.loadtxt(self.config.massdatfile)
+        try:
+            self.data.massdat = np.loadtxt(self.config.massdatfile)
+        except (OSError, ValueError) as error:
+            self.data.massdat = np.array([])
+            raise ValueError("UniDec mass output must contain at least two columns") from error
+        if self.data.massdat.size > 0:
+            self.data.massdat = np.atleast_2d(self.data.massdat)
+        if self.data.massdat.size == 0 or self.data.massdat.ndim != 2 or self.data.massdat.shape[1] < 2:
+            self.data.massdat = np.array([])
+            raise ValueError("UniDec mass output must contain at least two columns")
 
         self.data.ztab = np.arange(self.config.startz, self.config.endz + 1)
 
-        try:
-            self.config.massdatnormtop = np.amax(self.data.massdat[:, 1])
-        except Exception:
-            self.data.massdat = np.array([self.data.massdat])
-            self.config.massdatnormtop = np.amax(self.data.massdat[:, 1])
+        self.config.massdatnormtop = np.amax(self.data.massdat[:, 1])
         if not efficiency:
             try:
                 self.data.massgrid = np.fromfile(self.config.massgridfile, dtype=self.config.dtype)
@@ -1104,7 +1116,7 @@ class UniDec(UniDecEngine):
             p.cs_score = 1 - ud.safedivide1(badarea, zs)
             # print(badarea, zs, p.cs_score)
 
-    def get_mzstack(self, xfwhm=2):
+    def get_mzstack(self, xfwhm=2, fitdat=True):
         zarr = np.reshape(self.data.mzgrid[:, 2], (len(self.data.data2), len(self.data.ztab)))
         # zarr = zarr / np.amax(np.sum(zarr, axis=1)) * np.amax(self.data.data2[:, 1])
         for i, p in enumerate(self.pks.peaks):
@@ -1122,25 +1134,25 @@ class UniDec(UniDecEngine):
             interval = np.array([p.mass - interval[0], p.mass + interval[1]])
 
             stack = []
-            bvals = []
+            # bvals = []
+            intensities = self.data.fitdat if fitdat else self.data.data2[:, 1]
             for j, z in enumerate(self.data.ztab):
                 interval2 = (interval + z * self.config.adductmass) / z
                 boo1 = self.data.data2[:, 0] <= interval2[1]
                 boo2 = self.data.data2[:, 0] >= interval2[0]
                 boo3 = np.all([boo1, boo2], axis=0)
-                top = self.data.data2[boo3]
-                stack.append(np.transpose([top[:, 0], top[:, 1], zarr[boo3, j]]))
-                bvals.append(boo3)
-            btot = np.any(bvals, axis=0)
-            fit = self.data.fitdat[btot]
-            top = self.data.data2[btot]
-            sse = np.sum((fit - top[:, 1]) ** 2)
-            denom = np.sum((top[:, 1] - np.mean(top[:, 1])) ** 2)
-            p.rsquared = 1 - ud.safedivide1(sse, denom)
+                stack.append(np.transpose([self.data.data2[boo3, 0], intensities[boo3], zarr[boo3, j]]))
+                # bvals.append(boo3)
+            # btot = np.any(bvals, axis=0)
+            # fit = self.data.fitdat[btot]
+            # top = self.data.data2[btot]
+            # sse = np.sum((fit - top[:, 1]) ** 2)
+            # denom = np.sum((top[:, 1] - np.mean(top[:, 1])) ** 2)
+            # p.rsquared = 1 - ud.safedivide1(sse, denom)
             p.mzstack = np.array(stack, dtype='object')
 
-    def pks_uscore(self, xfwhm=2, power=1):
-        self.get_mzstack(xfwhm=xfwhm)
+    def pks_uscore(self, xfwhm=2, power=1, uscore_fitdat=True):
+        self.get_mzstack(xfwhm=xfwhm, fitdat=uscore_fitdat)
         for p in self.pks.peaks:
             rats = []
             weights = []
@@ -1230,7 +1242,7 @@ class UniDec(UniDecEngine):
         self.data.tscore = tscore
         return tscore'''
 
-    def dscore(self, xfwhm=2, power=2):
+    def dscore(self, xfwhm=2, power=2, uscore_fitdat=True):
         """
         Combined score should include:
 
@@ -1246,7 +1258,7 @@ class UniDec(UniDecEngine):
         """
         if len(self.pks.peaks) > 0:
             self.pks_mscore(xfwhm=xfwhm, power=power)
-            self.pks_uscore(power=power, xfwhm=xfwhm)
+            self.pks_uscore(power=power, xfwhm=xfwhm, uscore_fitdat=uscore_fitdat)
             self.pks_csscore(xfwhm=xfwhm)
             self.pks_fscore()
             # self.tscore()
@@ -1329,7 +1341,9 @@ class UniDec(UniDecEngine):
             print("Creating file:", path)
         np.savetxt(path, data)
 
-        # Open it
+        # The data was just overwritten, so ignore any stale *_conf.dat and cached *_input.dat in the
+        # _unidecfiles directory; refresh=True keeps the current config and reprocesses the new data.
+        kwargs.setdefault("refresh", True)
         self.open_file(fname, testdir, **kwargs)
         self.config.minmz, self.config.maxmz = np.amin(data[:, 0]), np.amax(data[:, 0])
         # self.config.default_isotopic_res()

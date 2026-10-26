@@ -372,6 +372,8 @@ def find_file(fname, folder, use_converted=True):
 
 
 def find_kernel_file(kernel_path):
+    if not os.path.isfile(kernel_path):
+        return None
     kernel_name = os.path.basename(kernel_path)
 
     if kernel_name.split('_')[-1] != "mass.txt":
@@ -388,8 +390,8 @@ def find_kernel_file(kernel_path):
     else:
         # If not a mass file, find the mass file
         bare_name = os.path.splitext(kernel_name)[0]
-        kernel_path2 = os.path.dirname(kernel_path) + "\\" + bare_name + "_unidecfiles\\" + \
-                       bare_name + "_mass.txt"
+        kernel_path2 = os.path.join(os.path.dirname(kernel_path), bare_name + "_unidecfiles",
+                                    bare_name + "_mass.txt")
 
         try:
             with open(kernel_path2, "r") as f:
@@ -496,38 +498,38 @@ def set_param_from_row(eng, row, dirname=""):
 
         if "Config Data Norm" in k:
             try:
-                eng.config.datanorm = int(val)
+                eng.config.datanorm = int(float(val))
             except Exception as e:
                 print("Error setting data norm", k, val, e)
 
         if "Config Data Subbuff" in k:
             try:
-                eng.config.subbuff = int(val)
+                eng.config.subbuff = int(float(val))
                 eng.config.subtype = 2
             except Exception as e:
                 print("Error setting data subbuff", k, val, e)
 
         if "Config Data Binevery" in k:
             try:
-                eng.config.mzbins = int(val)
+                eng.config.mzbins = int(float(val))
             except Exception as e:
                 print("Error setting data binevery", k, val, e)
 
         if "Config Data Lintype" in k:
             try:
-                eng.config.linflag = int(val)
+                eng.config.linflag = int(float(val))
             except Exception as e:
                 print("Error setting data lintype", k, val, e)
 
         if "Config Data Smoothing" in k:
             try:
-                eng.config.smooth = int(val)
+                eng.config.smooth = int(float(val))
             except Exception as e:
                 print("Error setting data smoothing", k, val, e)
 
         if "Config Peak Norm" in k:
             try:
-                eng.config.peaknorm = int(val)
+                eng.config.peaknorm = int(float(val))
             except Exception as e:
                 print("Error setting peak norm", k, val, e)
 
@@ -860,6 +862,7 @@ class UniDecBatchProcessor(object):
                 # When files are not found, print the error and add empty results
                 print("File not found:", path)
                 htmlfiles.append("")
+                npeaks.append(0)
 
         # Write the number of peaks IDed
         self.rundf["NumPeaks"] = npeaks

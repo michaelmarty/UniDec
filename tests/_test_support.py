@@ -37,6 +37,24 @@ def find_importer_test_data():
     return None
 
 
+def importer_fixture(test_case, *relative_parts, required=True):
+    """Return a real UniDecImporter fixture, rejecting missing Git LFS objects."""
+    root = find_importer_test_data()
+    path = None if root is None else root.joinpath(*relative_parts)
+    available = path is not None and path.exists()
+    if available and path.is_file():
+        with path.open("rb") as fixture:
+            available = not fixture.read(64).startswith(b"version https://git-lfs.github.com/spec/")
+    if available:
+        return path
+
+    relative = os.path.join(*relative_parts)
+    message = f"UniDecImporter fixture is missing or is only a Git LFS pointer: {relative}"
+    if required and os.environ.get("UNIDEC_REQUIRE_IMPORTER_TEST_DATA") == "1":
+        test_case.fail(message)
+    test_case.skipTest(message)
+
+
 def copy_workflow_spectra(destination):
     """Prefer importer fixtures, falling back to examples in the UniDec wheel."""
     importer_data = find_importer_test_data()

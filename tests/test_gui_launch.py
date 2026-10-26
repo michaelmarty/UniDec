@@ -117,6 +117,15 @@ try:
             assert hasattr(app.view.controls, "ctlUCtype")
             assert app.view.controls.ctlUClineardecon.GetValue()
             assert app.view.controls.ctlUCtype.GetSelection() == 0
+            assert app.view.ctlchromatogram.GetStrings() == ["TIC", "BPC"]
+            assert app.view.ctlchromatogram.GetSelection() == 0
+            app.view.ctlchromatogram.SetSelection(1)
+            app.eng.ticdat = np.array([[0.0, 1.0]])
+            app.eng.bpcdat = np.array([[0.0, 0.5]])
+            with patch.object(app, "plot_chrom_shading") as replot:
+                app.on_chromatogram_type()
+                replot.assert_called_once_with()
+            assert app.eng.config.chromatogram_type == 1
             app.view.controls.ctldtsig.SetValue("2.5")
             app.view.controls.ctlUCtype.SetSelection(1)
             app.view.controls.on_uctype()
@@ -132,6 +141,35 @@ try:
         assert all("UniDec API Shell" not in label for label in labels)
         im_button = next(button for button in buttons if button.GetLabel().startswith("UniDec IM"))
         assert im_button.GetParent().GetSizer().GetItemPosition(im_button) == (5, 1)
+        import wx
+        file_menu = app.view.GetMenuBar().GetMenu(0)
+        menu_item_ids = [item.GetId() for item in file_menu.GetMenuItems() if not item.IsSeparator()]
+        assert menu_item_ids == [app.view.run_tests_item.GetId(), wx.ID_ABOUT, wx.ID_EXIT]
+        from unidec import gui_self_test
+        report = {{
+            "report_path": "report.json",
+            "success": True,
+            "summary": {{status: 0 for status in (
+                "pass", "skip", "failure", "timeout", "cancelled")}},
+        }}
+        with patch.object(gui_self_test, "run_controller", return_value=report) as run_controller, \
+                patch.object(wx, "ProgressDialog"), \
+                patch.object(wx, "MessageBox") as message_box:
+            app.view.on_run_tests()
+            test_thread = app.view.test_thread
+            test_thread.join(timeout=5)
+            assert not test_thread.is_alive()
+            app.wx_app.Yield()
+            run_controller.assert_called_once()
+            message_box.assert_called_once()
+            run_controller.reset_mock()
+        with patch.object(wx, "MessageBox") as message_box:
+            app.view.on_about()
+            assert str(app.view.eng.version) in message_box.call_args.args[0]
+            message_box.reset_mock()
+        with patch.object(app, "on_close") as on_close:
+            app.view.on_exit()
+            on_close.assert_called_once_with()
     if {has_lazy_workflows!r}:
         import unidec
         import unidec.modules
@@ -156,6 +194,15 @@ try:
         grid_module.GridDeconWindow.assert_called_once_with(
             app.view, app.eng.data.data2, config=app.eng.config)
     if {has_chrom_spectrum_menu!r}:
+        app.view.SetStatusText("Existing status", number=3)
+        with patch.object(module.MetaUniDecBase, "on_pick_peaks"):
+            app.on_pick_peaks()
+        assert app.view.GetStatusBar().GetStatusText(3) == "Existing status"
+        with patch.object(module.MetaUniDecBase, "on_pick_peaks"):
+            app.eng.config.calc_unichrom_scores = True
+            app.eng.pks.uniscore = .678
+            app.on_pick_peaks()
+        assert app.view.GetStatusBar().GetStatusText(3) == "UniScore: 67.8"
         assert not hasattr(app.view, "open_ud_button")
         assert not hasattr(app.view, "run_ud_button")
         assert not hasattr(app.view, "pick_peaks_button_individual")
@@ -189,6 +236,7 @@ try:
             start.assert_called_once_with()
             launched.view.Destroy()
             launched.wx_app.Yield()
+            del launched
 finally:
     app.view.Destroy()
     app.wx_app.Yield()

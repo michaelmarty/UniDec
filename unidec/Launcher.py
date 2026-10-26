@@ -10,10 +10,12 @@ if __package__ in (None, ""):
 import wx
 import wx.html
 import multiprocessing
+import threading
 
 from unidec.modules.unidec_presbase import UniDecPres
 from unidec.modules.unidec_enginebase import UniDecEngine
 
+from unidec.IsoDecGUI import IsoDecPres
 from unidec.UniDecCD import UniDecCDApp
 from unidec.GUniDec import UniDecApp
 from unidec.UniDecIM import UniDecIMApp
@@ -27,7 +29,6 @@ from unidec.UniChrom import ChromApp
 from unidec.UPP import UPPApp
 from unidec.modules import unidecstructure
 from unidec.UniChromCD import UniChromCDApp
-from unidec.IsoDecGUI import IsoDecPres
 import locale
 
 locale.setlocale(locale.LC_ALL, 'C')
@@ -83,6 +84,9 @@ class UniDecLauncher(UniDecPres):
             self.view.button8()
 
     def on_close(self, e=None):
+        cancel_event = getattr(self.view, "test_cancel_event", None)
+        if cancel_event is not None:
+            cancel_event.set()
         self.quit_application()
         self.view.Destroy()
         sys.exit()
@@ -90,8 +94,28 @@ class UniDecLauncher(UniDecPres):
 
 class Lview(wx.Frame):
     def __init__(self, parent):
+        self.presenter = parent
         self.eng = UniDecEngine()
         wx.Frame.__init__(self, None, title="UniDec Launcher Version " + str(self.eng.version))
+
+        self.test_thread = None
+        self.test_cancel_event = None
+        self.test_dialog = None
+        self.test_timer = None
+        self.test_completed = 0
+        self.test_message = "Starting GUI smoke tests"
+
+        menu_bar = wx.MenuBar()
+        file_menu = wx.Menu()
+        self.run_tests_item = file_menu.Append(wx.ID_ANY, "Run Tests")
+        file_menu.AppendSeparator()
+        about_item = file_menu.Append(wx.ID_ABOUT, "About")
+        exit_item = file_menu.Append(wx.ID_EXIT, "Exit")
+        menu_bar.Append(file_menu, "File")
+        self.SetMenuBar(menu_bar)
+        self.Bind(wx.EVT_MENU, self.on_run_tests, self.run_tests_item)
+        self.Bind(wx.EVT_MENU, self.on_about, about_item)
+        self.Bind(wx.EVT_MENU, self.on_exit, exit_item)
 
         try:
             if os.path.isfile(self.eng.config.iconfile):
@@ -167,6 +191,93 @@ class Lview(wx.Frame):
         self.Centre()
         self.Show(True)
 
+    def on_about(self, e=None):
+        wx.MessageBox(
+            "UniDec Launcher\nVersion " + str(self.eng.version),
+            "About UniDec",
+            wx.OK | wx.ICON_INFORMATION,
+            self,
+        )
+
+    def on_exit(self, e=None):
+        self.presenter.on_close()
+
+    def on_run_tests(self, e=None):
+        if self.test_thread is not None and self.test_thread.is_alive():
+            return
+
+        from unidec import gui_self_test
+
+        self.run_tests_item.Enable(False)
+        self.test_cancel_event = threading.Event()
+        self.test_completed = 0
+        self.test_message = "Starting GUI smoke tests"
+        self.test_dialog = wx.ProgressDialog(
+            "UniDec GUI Tests",
+            self.test_message,
+            maximum=len(gui_self_test.WORKERS),
+            parent=self,
+            style=wx.PD_CAN_ABORT | wx.PD_ELAPSED_TIME | wx.PD_REMAINING_TIME,
+        )
+        self.test_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self._on_test_timer, self.test_timer)
+        self.test_timer.Start(250)
+
+        def progress(completed, result):
+            wx.CallAfter(self._set_test_progress, completed, result)
+
+        def run():
+            try:
+                report = gui_self_test.run_controller(
+                    callback=progress,
+                    cancel_event=self.test_cancel_event,
+                )
+                wx.CallAfter(self._finish_tests, report, None)
+            except Exception as error:
+                wx.CallAfter(self._finish_tests, None, str(error))
+
+        self.test_thread = threading.Thread(target=run, name="UniDec GUI self-test", daemon=True)
+        self.test_thread.start()
+
+    def _set_test_progress(self, completed, result):
+        self.test_completed = completed
+        self.test_message = result["label"] + ": " + result["status"]
+
+    def _on_test_timer(self, e=None):
+        if self.test_dialog is None:
+            return
+        keep_going, _ = self.test_dialog.Update(self.test_completed, self.test_message)
+        if not keep_going and self.test_cancel_event is not None:
+            self.test_cancel_event.set()
+            self.test_message = "Cancelling current test"
+
+    def _finish_tests(self, report, error):
+        if self.test_timer is not None:
+            self.test_timer.Stop()
+            self.test_timer.Destroy()
+            self.test_timer = None
+        if self.test_dialog is not None:
+            self.test_dialog.Destroy()
+            self.test_dialog = None
+        self.run_tests_item.Enable(True)
+        self.test_thread = None
+
+        if error:
+            message = "Unable to run GUI tests:\n" + error
+            style = wx.OK | wx.ICON_ERROR
+        else:
+            summary = report["summary"]
+            message = (
+                f"Passed: {summary['pass']}\n"
+                f"Skipped: {summary['skip']}\n"
+                f"Failed: {summary['failure']}\n"
+                f"Timed out: {summary['timeout']}\n"
+                f"Cancelled: {summary['cancelled']}\n\n"
+                f"Report: {report['report_path']}"
+            )
+            style = wx.OK | (wx.ICON_INFORMATION if report["success"] else wx.ICON_ERROR)
+        wx.MessageBox(message, "UniDec GUI Tests", style, self)
+
     def button1(self, e=None):
         print("Launching UniDec")
         app = UniDecApp()
@@ -237,9 +348,12 @@ class Lview(wx.Frame):
 
 def run_launcher(*args, **kwargs):
     multiprocessing.freeze_support()
+    if "--gui-self-test" in sys.argv or "--gui-self-test-worker" in sys.argv:
+        from unidec import gui_self_test
+        return gui_self_test.main(sys.argv[1:])
     app = UniDecLauncher(sys.argv[1:])
     app.start()
 
 
 if __name__ == '__main__':
-    run_launcher()
+    raise SystemExit(run_launcher())

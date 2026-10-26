@@ -5,19 +5,28 @@ from pathlib import Path
 import matplotlib
 import numpy as np
 
-UNIDEC_ROOT = Path(__file__).resolve().parents[3] / "public" / "UniDec"
+UNIDEC_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(UNIDEC_ROOT))
 
 import unidec.engine as ud
 import unidec.modules.MassSpecBuilder as msb
+from PublicScripts.ArtifactSuppression.metrics import (
+    description_with_uniscore, panel_metrics, write_metrics_workbook,
+)
 
-matplotlib.use('WxAgg')
+matplotlib.use(os.environ.get("MPLBACKEND", "WxAgg"))
 import matplotlib.pyplot as plt
 
 matplotlib.rcParams.update({
     'font.family': 'Arial',
     'font.size': 11,
 })
+
+FIGURE_DIR = Path(os.environ.get(
+    "ARTIFACT_SUPPRESSION_FIGURE_DIR",
+    str(Path.home() / "The University of Texas at Austin" / "MartyLab - General"
+        / "Papers" / "Artifact Suppression" / "Figures"),
+))
 
 
 def normalize(data):
@@ -48,18 +57,20 @@ def run_deconvolution(spectrum, massrange, sat=0, topn=0, psig=10):
     eng.config.suppression_topn = topn
     eng.config.suppression_topx = 0
     eng.config.beta = 0
+    eng.config.rescale_newblur = 1
+    eng.config.uscore_fitdat = 1
     eng.autorun(auto_peak_width=True)
 
-    return eng.data.massdat
+    return eng
 
 
 np.random.seed(42)
 
 masses = [150000, 600000]
 resolutions = [150, 250]
-satellite_1_mass_datasets = []
-top_2_mass_datasets = []
-top_1_mass_datasets = []
+satellite_1_engines = []
+top_2_engines = []
+top_1_engines = []
 
 for mass, resolution in zip(masses, resolutions):
     spectrum, params = msb.simple_spectrum2(
@@ -73,15 +84,19 @@ for mass, resolution in zip(masses, resolutions):
     spectrum, ztab = spectrum
     massrange = [mass * 0.25, mass * 2.5]
 
-    satellite_1_mass_datasets.append(
+    satellite_1_engines.append(
         run_deconvolution(spectrum, massrange, sat=1)
     )
-    top_2_mass_datasets.append(
+    top_2_engines.append(
         run_deconvolution(spectrum, massrange, topn=2)
     )
-    top_1_mass_datasets.append(
+    top_1_engines.append(
         run_deconvolution(spectrum, massrange, topn=1)
     )
+
+satellite_1_mass_datasets = [engine.data.massdat for engine in satellite_1_engines]
+top_2_mass_datasets = [engine.data.massdat for engine in top_2_engines]
+top_1_mass_datasets = [engine.data.massdat for engine in top_1_engines]
 
 fig, axes = plt.subplots(3, 2, figsize=(6.5, 4.8))
 
@@ -106,12 +121,13 @@ for column, mass in enumerate(masses):
     axes[-1, column].set_xlabel('Mass (kDa)')
 
 row_labels = ['Top 1', 'Top 2', 'Satellite 1']
+method_engines = [top_1_engines, top_2_engines, satellite_1_engines]
 for row, label in enumerate(row_labels):
-    for axis in axes[row]:
+    for column, axis in enumerate(axes[row]):
         axis.text(
             0.95,
             0.95,
-            label,
+            description_with_uniscore(label, method_engines[row][column].pks.uniscore),
             transform=axis.transAxes,
             va='top',
             ha='right',
@@ -150,11 +166,22 @@ for row, column in red_bar_panels:
 
 plt.tight_layout()
 
-os.chdir(
-    r"C:\Users\mm96978\The University of Texas at Austin"
-    r"\MartyLab - General\Papers\Artifact Suppression\Figures"
-)
+os.chdir(FIGURE_DIR)
 plt.savefig('FigureS2.png', dpi=300)
 plt.savefig('FigureS2.pdf')
+metric_rows = []
+for row, (label, engines_for_method) in enumerate(zip(row_labels, method_engines)):
+    for column, (mass, engine) in enumerate(zip(masses, engines_for_method)):
+        settings = {
+            "reference_basis": "synthetic input mass",
+            "simulation_resolution": resolutions[column],
+            "simulation_baseline": 0.03,
+            "simulation_noise": 0.01,
+            "simulation_zwidth": 1,
+            "random_seed": 42,
+        }
+        metric_rows.append(panel_metrics(chr(ord('A') + row * 2 + column), label, engine,
+                                         reference_mass=mass, settings=settings))
+write_metrics_workbook('FigureS2.xlsx', metric_rows)
 
 plt.show()

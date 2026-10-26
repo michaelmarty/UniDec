@@ -289,6 +289,9 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 
 	//Make Peak Shape Kernel
 	MakeKernel2D(peakshape, size, mzext, zext, config.mzsig, config.csig, config.psfun, config.zpsfun);
+	// Richardson-Lucy omits the H^T(1) denominator and therefore requires
+	// a unit-area response kernel to conserve the input signal.
+	NormSum(peakshape, lines);
 	// Precompute FFTs
 	precompute_fft2D(peakshape, size, peakshape_FFT);
 	complex_conjugate(peakshape_FFT, inverse_peakshape_FFT, lines);
@@ -435,6 +438,8 @@ int run_unidec_CD(int argc, char* argv[], Config config) {
 	//Reconvolve if necessary
 	if (config.rawflag == 0) {
 		MakeKernel2D(mkernel, size, mzext, zext, config.mzsig, 0, config.psfun, config.zpsfun);
+		// Profile reconvolution must not change the total deconvolved signal.
+		NormSum(mkernel, lines);
 		precompute_fft2D(mkernel, size, mkernel_FFT);
 
 		memcpy(newblur, blur, matsize);

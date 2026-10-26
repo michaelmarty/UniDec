@@ -541,7 +541,9 @@ def compare_classes_plot(
         venn_legend_loc="upper right",
         venn_legend_bbox_to_anchor=None,
         venn_legend_ncol=1,
-        id_status_label="Confirmed"
+        id_status_label="Confirmed",
+        panel_labels=None,
+        show_titles=True
 ):
     df = df.copy()
     if datasets is None:
@@ -664,6 +666,17 @@ def compare_classes_plot(
         raise ValueError(
             "overlap_style must be 'venn', 'upset', or 'shared_unique'"
         )
+
+    if not show_titles:
+        for ax in fig.axes:
+            ax.set_title("")
+
+    if panel_labels is not None:
+        for label, ax in zip(panel_labels, [fig.axes[0], fig.axes[-1]]):
+            ax.text(
+                0.02, 0.98, label, transform=ax.transAxes,
+                fontsize=10, fontweight="bold", ha="left", va="top"
+            )
 
     if overlap_style == "venn":
         fig.tight_layout()

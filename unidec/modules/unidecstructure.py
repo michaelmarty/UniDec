@@ -115,6 +115,8 @@ class UniDecConfig(object):
 
         self.time_window = 2
         self.chrom_peak_width = 2
+        self.chromatogram_type = 0
+        self.calc_unichrom_scores = False
         self.sw_time_window = 1
         self.sw_scan_offset = 10
         self.scan_window = 1
@@ -138,6 +140,7 @@ class UniDecConfig(object):
         self.peakcmap = u"rainbow"
         self.spectracmap = u"rainbow"
         self.rawflag = 0
+        self.rescale_newblur = 1
 
         # data prep
         self.minmz = ''
@@ -196,6 +199,7 @@ class UniDecConfig(object):
         # Data Prep
         self.detectoreffva = 0
         self.mzbins = 0
+        self.linflag = 2 # Options:
         self.smooth = 0
         self.subbuff = 0
         self.subtype = 2
@@ -245,7 +249,6 @@ class UniDecConfig(object):
         self.nativezub = 1000
         self.nativezlb = -1000
         self.inflate = 1
-        self.linflag = 2
         self.integratelb = ""
         self.integrateub = ""
         self.filterwidth = 20
@@ -384,6 +387,7 @@ class UniDecConfig(object):
             "reductionpercent": (self.reductionpercent, float),
             "aggressive": (self.aggressiveflag, int),
             "rawflag": (self.rawflag, int),
+            "rescale_newblur": (self.rescale_newblur, int),
             "adductmass": (self.adductmass, float),
             "nativezub": (self.nativezub, float),
             "nativezlb": (self.nativezlb, float),
@@ -410,8 +414,8 @@ class UniDecConfig(object):
             "CDslope": (self.CDslope, float),
             "CDzbins": (self.CDzbins, int),
             "CDres": (self.CDres, float),
-            "CDScanStart": (self.CDScanStart, float),
-            "CDScanEnd": (self.CDScanEnd, float),
+            "CDScanStart": (self.CDScanStart, int),
+            "CDScanEnd": (self.CDScanEnd, int),
             "CDprethresh": (self.CDprethresh, float),
             "HTksmooth": (self.HTksmooth, float),
             "CDScanCompress": (self.CDScanCompress, int),
@@ -439,7 +443,7 @@ class UniDecConfig(object):
             "centroided": (self.centroided, bool),
             "verbose": (self.verbose, bool),
             "zout": (self.zout, int),
-            "pusher": (self.pusher, int),
+            "pusher": (self.pusher, float),
             "mindt": (self.mindt, float),
             "maxdt": (self.maxdt, float),
             "ccsub": (self.ccsub, float),
@@ -533,6 +537,7 @@ class UniDecConfig(object):
         self.peakcmap = u"rainbow"
         self.spectracmap = u"rainbow"
         self.rawflag = 0
+        self.rescale_newblur = 1
 
         # data prep
         self.minmz = ''
@@ -816,6 +821,10 @@ class UniDecConfig(object):
                 if len(line.split()) > 1:
                     if line.startswith("version"):
                         self.inputversion = line.split()[1]
+                    if line.startswith("imflag"):
+                        self.imflag = ud.string_to_int(line.split()[1])
+                    if line.startswith("cdmsflag"):
+                        self.cdmsflag = ud.string_to_int(line.split()[1])
                     if line.startswith("minmz"):
                         self.minmz = ud.string_to_value(line.split()[1])
                     if line.startswith("maxmz"):
@@ -972,6 +981,8 @@ class UniDecConfig(object):
                             self.aggressiveflag = ud.string_to_int(line.split()[1])
                         if line.startswith("rawflag"):
                             self.rawflag = ud.string_to_int(line.split()[1])
+                        if line.startswith("rescale_newblur"):
+                            self.rescale_newblur = ud.string_to_int(line.split()[1])
                         if line.startswith("adductmass"):
                             self.adductmass = ud.string_to_value(line.split()[1])
                         if line.startswith("nativezub"):
@@ -1153,12 +1164,14 @@ class UniDecConfig(object):
             "psfun": self.psfun, "psfunz": self.psfunz, "discreteplot": self.discreteplot, "massub": self.massub,
             "masslb": self.masslb,
             "msig": self.msig, "molig": self.molig, "massbins": self.massbins, "mtabsig": self.mtabsig,
-            "minmz": self.minmz, "maxmz": self.maxmz, "subbuff": self.subbuff, "smooth": self.smooth,
+            "minmz": self.minmz, "maxmz": self.maxmz, "subbuff": self.subbuff, "subtype": self.subtype,
+            "smooth": self.smooth,
             "mzbins": self.mzbins, "peakwindow": self.peakwindow, "peakthresh": self.peakthresh,
             "normthresh": self.normthresh,
             "peakplotthresh": self.peakplotthresh, "plotsep": self.separation, "intthresh": self.intthresh,
             "reductionpercent": self.reductionpercent,
-            "aggressive": self.aggressiveflag, "rawflag": self.rawflag, "adductmass": self.adductmass,
+            "aggressive": self.aggressiveflag, "rawflag": self.rawflag,
+            "rescale_newblur": self.rescale_newblur, "adductmass": self.adductmass,
             "nativezub": self.nativezub, "nativezlb": self.nativezlb, "poolflag": self.poolflag,
             "accvol": self.detectoreffva, "peakshapeinflate": self.inflate, "noiseflag": self.noiseflag,
             "linflag": self.linflag, "cmap": self.cmap, "peakcmap": self.peakcmap, "spectracmap": self.spectracmap,
@@ -1168,7 +1181,8 @@ class UniDecConfig(object):
             "maxdt": self.maxdt, "ccsub": self.ccsub, "ccslb": self.ccslb, "dtsig": self.dtsig,
             "UClineardecon": self.UClineardecon,
             "UCtype": self.UCtype,
-            "unichromzeropad": self.unichromzeropad, "csig": self.csig,
+            "unichromzeropad": self.unichromzeropad,
+            "calc_unichrom_scores": self.calc_unichrom_scores, "csig": self.csig,
             "ccsbins": self.ccsbins, "subbufdt": self.subbufdt, "smoothdt": self.smoothdt,
             "ubnativeccs": self.nativeccsub, "lbnativeccs": self.nativeccslb, "twaveflag": self.twaveflag,
             "temp": self.temp, "pressure": self.pressure, "volt": self.volt,
@@ -1182,6 +1196,7 @@ class UniDecConfig(object):
             "exthresh": self.exthresh,
             "exnorm": self.exnorm, "exnormz": self.exnormz, "metamode": self.metamode,
             "datanorm": self.datanorm, "chrom_time_window": self.time_window, "chrom_peak_width": self.chrom_peak_width,
+            "chromatogram_type": self.chromatogram_type,
             "sw_time_window": self.sw_time_window, "sw_scan_offset": self.sw_scan_offset, "time_start": self.time_start,
             "time_end": self.time_end, "scan_window": self.scan_window
         }
@@ -1254,6 +1269,7 @@ class UniDecConfig(object):
         self.massbins = read_attr(self.massbins, "massbins", config_group)
         self.mtabsig = read_attr(self.mtabsig, "mtabsig", config_group)
         self.subbuff = read_attr(self.subbuff, "subbuff", config_group)
+        self.subtype = read_attr(self.subtype, "subtype", config_group)
         self.smooth = read_attr(self.smooth, "smooth", config_group)
         self.mzbins = read_attr(self.mzbins, "mzbins", config_group)
         self.peakwindow = read_attr(self.peakwindow, "peakwindow", config_group)
@@ -1265,6 +1281,7 @@ class UniDecConfig(object):
         self.reductionpercent = read_attr(self.reductionpercent, "reductionpercent", config_group)
         self.aggressiveflag = read_attr(self.aggressiveflag, "aggressiveflag", config_group)
         self.rawflag = read_attr(self.rawflag, "rawflag", config_group)
+        self.rescale_newblur = read_attr(self.rescale_newblur, "rescale_newblur", config_group)
         self.adductmass = read_attr(self.adductmass, "adductmass", config_group)
         self.nativezub = read_attr(self.nativezub, "nativezub", config_group)
         self.nativezlb = read_attr(self.nativezlb, "nativezlb", config_group)
@@ -1292,6 +1309,8 @@ class UniDecConfig(object):
         self.UClineardecon = read_attr(self.UClineardecon, "UClineardecon", config_group)
         self.UCtype = read_attr(self.UCtype, "UCtype", config_group)
         self.unichromzeropad = read_attr(self.unichromzeropad, "unichromzeropad", config_group)
+        self.calc_unichrom_scores = read_attr(
+            self.calc_unichrom_scores, "calc_unichrom_scores", config_group)
         self.csig = read_attr(self.csig, "csig", config_group)
         self.ccsbins = read_attr(self.ccsbins, "ccsbins", config_group)
         self.subbufdt = read_attr(self.subbufdt, "subbufdt", config_group)
@@ -1314,7 +1333,7 @@ class UniDecConfig(object):
         self.integratelb = read_attr(self.integratelb, "integratelb", config_group)
         self.integrateub = read_attr(self.integrateub, "integrateub", config_group)
         self.filterwidth = read_attr(self.filterwidth, "filterwidth", config_group)
-        self.zerolog = read_attr(self.zerolog, "zerolog, config_group", config_group)
+        self.zerolog = read_attr(self.zerolog, "zerolog", config_group)
         self.mfileflag = read_attr(self.mfileflag, "mfileflag", config_group)
         self.manualfileflag = read_attr(self.manualfileflag, "manualfileflag", config_group)
         self.imflag = read_attr(self.imflag, "imflag", config_group)
@@ -1334,6 +1353,7 @@ class UniDecConfig(object):
 
         self.time_window = read_attr(self.time_window, "chrom_time_window", config_group)
         self.chrom_peak_width = read_attr(self.chrom_peak_width, "chrom_peak_width", config_group)
+        self.chromatogram_type = read_attr(self.chromatogram_type, "chromatogram_type", config_group)
         self.sw_time_window = read_attr(self.sw_time_window, "sw_time_window", config_group)
         self.sw_scan_offset = read_attr(self.sw_scan_offset, "sw_scan_offset", config_group)
         self.scan_window = read_attr(self.scan_window, "scan_window", config_group)

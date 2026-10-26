@@ -948,7 +948,8 @@ class UniDecApp(MetaUniDecBase):
         self.view.ypanel.list.populate(self.eng.data)
         # print("3: %.2gs" % (time.perf_counter() - tstart))
         # self.on_auto_peak_width(set=False)
-        self.eng.get_auto_peak_width(set_it=False)
+        if not ud.isempty(self.eng.data.data2):
+            self.eng.get_auto_peak_width(set_it=False)
         # print("4: %.2gs" % (time.perf_counter() - tstart))
         self.makeplot1()
         self.makeplot2_mud()

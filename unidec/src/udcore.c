@@ -979,15 +979,16 @@ float getfitdatspeedy(float *fitdat, const float *blur, const int lengthmz, cons
     return fitmax;
 }
 
-float errfunspeedy(Config config, Decon decon, const float *dataInt, float *rsquared) {
+float errfunspeedy(Config config, Decon decon, const float *dataInt, float *rsquared, float *fitdatnorm) {
     //Get max intensity
     float maxint = 0;
     for (int i = 0; i < config.lengthmz; i++) {
         if (dataInt[i] > maxint) { maxint = dataInt[i]; }
     }
 
-    getfitdatspeedy(decon.fitdat, decon.blur, config.lengthmz, config.numz, decon.maxlength,
-                    maxint, decon.starttab, decon.endtab, decon.mzdist, config.speedyflag);
+    const float fitmax = getfitdatspeedy(decon.fitdat, decon.blur, config.lengthmz, config.numz, decon.maxlength,
+                                         maxint, decon.starttab, decon.endtab, decon.mzdist, config.speedyflag);
+    *fitdatnorm = fitmax != 0 ? maxint / fitmax : 1;
 
     if (config.baselineflag == 1) {
         #pragma omp parallel for schedule(auto)
@@ -1723,8 +1724,18 @@ void SmartTransform(const Config config, Decon *decon, const Input *inp) {
                             edge = 2;
                         }
 
+                        if (edge == 2) {
+                            if (index2 == 0) {
+                                index = 0;
+                                index2 = 1;
+                            }
+                            if (index == config.lengthmz - 1) {
+                                index = config.lengthmz - 1;
+                                index2 = config.lengthmz - 2;
+                            }
+                        }
 
-                        if (index2 > index && (inp->dataMZ[index2] - inp->dataMZ[index]) != 0 && edge == 0) {
+                        if (edge == 0 && index2 > index && (inp->dataMZ[index2] - inp->dataMZ[index]) != 0) {
                             float mu = (mztest - inp->dataMZ[index]) / (inp->dataMZ[index2] - inp->dataMZ[index]);
                             float y0 = blur[index2D(config.numz, index - 1, j)];
                             float y1 = blur[index2D(config.numz, index, j)];
@@ -1745,14 +1756,6 @@ void SmartTransform(const Config config, Decon *decon, const Input *inp) {
                             if (massgrid != NULL) { massgrid[index2D(config.numz, i, j)] = newval; }
                             //printf("1 %d %d %f %f %f\n", index, index2, mztest, imz, newval, massaxis[i]);
                         } else if (edge == 2 && (inp->dataMZ[index2] - inp->dataMZ[index]) != 0) {
-                            if (index2 == 0) {
-                                index = 0;
-                                index2 = 1;
-                            }
-                            if (index == config.lengthmz - 1) {
-                                index = config.lengthmz - 1;
-                                index2 = config.lengthmz - 2;
-                            }
                             float mu = (mztest - inp->dataMZ[index]) / (inp->dataMZ[index] - inp->dataMZ[index2]);
                             float y1 = blur[index2D(config.numz, index, j)];
                             float y2 = 0;

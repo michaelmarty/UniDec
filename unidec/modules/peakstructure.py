@@ -72,6 +72,9 @@ class Peak:
         self.cs_score = 0
         self.rsquared = 0
         self.fscore = 0
+        self.base_dscore = 0
+        self.chrom_symmetry_score = 0
+        self.chrom_monotonicity_score = 0
         self.dscore = 0
         self.lscore = 0
         self.mdist = None

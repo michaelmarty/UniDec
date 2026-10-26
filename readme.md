@@ -11,6 +11,90 @@ Detailed descriptions of the algorithm are provided in the paper and subsequent 
 
 Please contact mtmarty@email.arizona.edu for questions, suggestions, or with any bugs.
 
+## UniDecCD peak scoring
+
+After single-histogram CD-MS deconvolution, peak picking calculates DScore for
+each peak and displays UniScore in the status bar. The Experimental menu provides
+the peak score window, score labels, and filtering. Peak parameter exports retain
+the existing DScore column.
+
+CD scoring preserves the processed input and reconvolved fit as aligned
+`[charge, m/z]` histograms. Each peak's mass window is reconstructed with the CD
+response kernel, accounting for the m/z convolution already present in profile
+output. Its fit/uniqueness component is the response-weighted product of local
+fit agreement (`min(observed, fitted) / max(observed, fitted)`) and purity
+(`peak response / total fitted response`, bounded to 0–1). Charge rows are
+averaged with predicted intensity raised to the scoring power. This rewards
+isolated, well-fitted responses and penalizes overlapping responses.
+
+The CD Python engine also provides two alternative UScore modes. Set
+`eng.uscore_method` before `eng.pick_peaks()` or `eng.dscore()`:
+
+```python
+eng.uscore_method = 1  # Default: existing convolution-based response score
+eng.uscore_method = 2  # Local window-area score, with enclosed-kernel correction
+eng.uscore_method = 0  # Skip UScore: set every peak's UScore to one
+```
+
+For a single scoring call, use `eng.dscore(uscore_method=2)` instead. These are
+Python scoring selections, not serialized deconvolution configuration settings.
+Method 2 evaluates each peak at `m/z = mass / charge + adductmass`, rounded to
+the nearest histogram bin. X is the observed rectangle within plus/minus one
+configured m/z FWHM (`mzsig`) and charge FWHM (`csig`). Y is the output strip
+within the same m/z limits at that single charge bin. Zero widths select only
+the central bin. Output is first put on the observed total-signal scale, then Y
+is multiplied by the fraction of the sampled charge kernel enclosed by the
+rectangle. Centroid output also receives the enclosed m/z-kernel correction;
+profile output already contains m/z broadening. The local score is
+`clip(1 - abs(sum(X) - corrected_sum(Y)) / sum(X), 0, 1)`; empty evidence scores
+zero. Charge scores are averaged using output-strip intensity raised to the
+scoring power. Prefix sums provide window areas without additional convolutions.
+The correction gives unit UScore for an ideal isolated impulse; finite source
+width, neighboring charge signals, and overlapping peaks can change local areas.
+This area score measures local signal balance rather than pointwise fit shape.
+Skipping UScore leaves the other DScore components and global fit R-squared
+penalty active. The default response mode is unchanged.
+
+DScore multiplies this component by the existing mass-shape, charge-distribution,
+and FWHM components. UniScore is the peak-height-squared weighted mean DScore
+multiplied by the 2D fit R², bounded to 0–1. Empty evidence scores zero; a perfect
+nonzero constant fit has R² of one. Undefined sparse-data components score zero.
+Before R² and local agreement are calculated, one nonnegative least-squares
+amplitude aligns the fitted histogram with the observed histogram. This removes
+global gain from older native binaries while preserving local fit errors. Current
+native single-histogram kernels are normalized to unit area so Richardson-Lucy and
+profile reconvolution conserve signal directly. Both integration and interpolation
+m/z-to-mass transforms also preserve the summed deconvolved intensity. Python
+rescales unnormalized native output to the processed input sum as a compatibility
+measure for older packaged executables.
+Python and native single-histogram deconvolution both supply fit evidence.
+Chromatographic full-stack output currently lacks the fit evidence required for
+this calculation. Processing new data invalidates previous scores.
+
+These CD-specific scores have not been calibrated against experimental quality
+labels; validate filtering cutoffs on representative CD-MS data before using
+the standard UniDec thresholds.
+
+## UniChrom peak scoring
+
+UniChrom can extend each native DScore with two components calculated from the
+extracted chromatographic trace. The FWHM symmetry score is the smaller left or
+right apex-to-half-height width divided by the larger width. The monotonicity
+score penalizes integrated rises while walking away from the apex on either side
+within the FWHM interval. Both components range from zero to one and multiply
+the native DScore.
+
+This development feature is disabled by default to preserve existing scores.
+Enable it before peak picking with `eng.config.calc_unichrom_scores = True`.
+
+UniScore is the peak-height-squared weighted mean of the resulting DScores.
+Empty, non-finite, truncated, or unresolved chromatographic peaks score zero.
+The final DScore remains in the existing third column of `/peaks/peakdata`;
+`/peaks/unichrom_scores` stores mass, native DScore, symmetry, monotonicity, and
+final DScore, and the `/peaks` group stores UniScore as an attribute. Older HDF5
+files remain readable and gain these values when the flag is enabled and peaks
+are picked again in UniChrom.
+
 ## Installation
 
 ### Binary download 
@@ -198,7 +282,7 @@ You can also just copy the data from XCalibur or MassLynx and then use Add Data 
 There are a few automated tools to parse single chromatograms directly into HDF5 files if you have all the data chromatograms 
 with predictable scans or times. You can batch process multiple files at once. 
 
-However, if you want to look at chromatography data directly, we now recommend UniChrom, which will plot the TIC and allow you to select specific scan ranges either manually or automatically.
+However, if you want to look at chromatography data directly, we now recommend UniChrom. Its top plot can display either the total ion chromatogram (TIC) or base peak chromatogram (BPC), and it allows you to select specific scan ranges either manually or automatically. Use the TIC/BPC choice at the bottom of the left panel to switch the plot and the chromatogram used for automatic peak detection and parsing; the selection is saved with the HDF5 configuration.
 
 
 ## Installing the Source Code
@@ -314,6 +398,23 @@ Contributions that appear to be generated by AI without review and testing may b
 
 
 ## Change Log
+
+v.9.0.1
+
+Updated UniDecImporter to 1.0.4 to add in BPC support. Added this to UniChrom as an option.
+
+Improved DScore calculations. First, comparing against the fitdat rather than the raw data avoids UScore duplicating the fit R^2 penalty. Second, it fixed a bug where the fit data was being normalized but the charge data was not. Options are available to drop back to the older version of DScore if you would like, but the GUI does not have this option. The new DScore is better to my eyes and should be used going forward.
+
+Work developing scores for UniDecCD and UniChrom. This is still in development.
+
+Added many additional unit tests.
+
+Fixes to bug with clearing plots.
+
+Fixes to Thermo centroiding loading. Fixed in UniDecImporter 1.0.3 version.
+
+Fixes small additional bugs that were discovered along the way. Removed default.hdf5 creation upon launch.
+
 
 v.9.0.0
 

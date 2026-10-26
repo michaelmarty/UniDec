@@ -151,6 +151,7 @@ void SetDefaultConfig(Config *config) {
     config->aggressiveflag = 0;
     config->adductmass = 1.007276467f;
     config->rawflag = 1;
+    config->rescale_newblur = 1;
     config->nativezub = 100;
     config->nativezlb = -200;
     config->poolflag = 1;
@@ -324,6 +325,7 @@ Config LoadConfig(Config config, const char *filename) {
             if (strstr(x, "aggressive") != NULL) { config.aggressiveflag = strtol(y, &endptr, 10); } //  printf(" aggressive"); }
             if (strstr(x, "adductmass") != NULL) { config.adductmass = strtof(y, &endptr); } //  printf(" adductmass"); }
             if (strstr(x, "rawflag") != NULL) { config.rawflag = strtol(y, &endptr, 10); } // printf(" rawflag"); }
+            if (strstr(x, "rescale_newblur") != NULL) { config.rescale_newblur = strtol(y, &endptr, 10); }
             if (strstr(x, "nativezub") != NULL) { config.nativezub = strtof(y, &endptr); } // printf(" nativezub"); }
             if (strstr(x, "nativezlb") != NULL) { config.nativezlb = strtof(y, &endptr); } // printf(" nativezlb"); }
             if (strstr(x, "poolflag") != NULL) { config.poolflag = strtol(y, &endptr, 10); } // printf(" poolflag"); }
@@ -435,7 +437,7 @@ void PrintHelp() {
     printf("\t\t\t\t0=Integration\n");
     printf("\t\t\t\t1=Interpolation\n");
     printf("\t\t\t\t2=Smart blend of interpolation and integration\n");
-    printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@utexas.edu) commit date 10/1/2026\n");
+    printf("\nEnjoy! Please report bugs to Michael Marty (mtmarty@utexas.edu) build date " __DATE__ "\n");
     //printf("\nsize of: %d",sizeof(char));
 
     /*

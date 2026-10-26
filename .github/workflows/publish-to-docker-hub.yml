@@ -1,9 +1,15 @@
 name: Publish Docker image
 
 on:
-  push:
-    tags:
-      - "*"
+  workflow_call:
+    inputs:
+      tag:
+        description: Docker image tag to publish
+        required: true
+        type: string
+    secrets:
+      DOCKERHUB_TOKEN:
+        required: true
   workflow_dispatch:
     inputs:
       tag:
@@ -39,9 +45,7 @@ jobs:
         with:
           images: ${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=tag
-            type=raw,value=${{ inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' }}
-            type=raw,value=latest,enable=${{ github.event_name == 'push' }}
+            type=raw,value=${{ inputs.tag }}
 
       - name: Validate Docker Hub credentials
         env:

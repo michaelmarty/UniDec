@@ -1921,12 +1921,12 @@ def create_msms_score_matrix(df, mz_tol=0.01):
         nlspectra.append(nlspec)
 
     score_matrix = mms.calculate_scores(references=spectra, queries=spectra,
-                                        similarity_function=mms.similarity.CosineGreedy(),
+                                        similarity_function=mms.similarity.CosineGreedy(tolerance=mz_tol),
                                         is_symmetric=True, ).scores.to_array()
     score_matrix = np.array(score_matrix.tolist())[:, :, 0]
 
     nlscore_matrix = mms.calculate_scores(references=nlspectra, queries=nlspectra,
-                                          similarity_function=mms.similarity.CosineGreedy(),
+                                          similarity_function=mms.similarity.CosineGreedy(tolerance=mz_tol),
                                           is_symmetric=True).scores.to_array()
     nlscore_matrix = np.array(nlscore_matrix.tolist())[:, :, 0]
 

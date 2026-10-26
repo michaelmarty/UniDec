@@ -65,7 +65,20 @@ jobs:
           ref: 5f9be263edb0d148751c2b3916bf4efaffe17fbd
           path: UniDecImporter
           sparse-checkout: |
+            TestData/CDMS/test_csv_cdms.csv
+            TestData/CDMS/test_dmt_cdms.dmt
+            TestData/CDMS/test_npz_cdms.npz
+            TestData/CDMS/test_raw_cdms.RAW
             TestData/IMMS/test_watersimms_txt.txt
+            TestData/SingleScan/test_csv.csv
+            TestData/SingleScan/test_dat.dat
+            TestData/SingleScan/test_txt.txt
+            TestData/test_agilent.d/
+            TestData/test_mzml.mzML
+            TestData/test_mzmlgz.mzML.gz
+            TestData/test_mzxml.mzXML
+            TestData/test_thermo.RAW
+            TestData/test_waters.raw/
           sparse-checkout-cone-mode: false
           persist-credentials: false
 
@@ -112,7 +125,7 @@ jobs:
 
       - name: Run GUI and workflow tests
         if: matrix.gui_tests
-        run: python -m unittest discover -s tests -p "test_*.py" -v
+        run: python tests/run_automatic_tests.py
 
       - name: Run headless engine and native tests
         if: ${{ !matrix.gui_tests }}

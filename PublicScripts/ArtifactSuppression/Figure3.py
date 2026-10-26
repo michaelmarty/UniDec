@@ -5,19 +5,28 @@ from pathlib import Path
 import matplotlib
 import numpy as np
 
-UNIDEC_ROOT = Path(__file__).resolve().parents[3] / "public" / "UniDec"
+UNIDEC_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(UNIDEC_ROOT))
 
 import unidec.engine as ud
 import unidec.modules.MassSpecBuilder as msb
+from PublicScripts.ArtifactSuppression.metrics import (
+    description_with_uniscore, panel_metrics, write_metrics_workbook,
+)
 
-matplotlib.use('TkAgg')
+matplotlib.use(os.environ.get("MPLBACKEND", "TkAgg"))
 import matplotlib.pyplot as plt
 
 matplotlib.rcParams.update({
     'font.family': 'Arial',
     'font.size': 11,
 })
+
+FIGURE_DIR = Path(os.environ.get(
+    "ARTIFACT_SUPPRESSION_FIGURE_DIR",
+    str(Path.home() / "The University of Texas at Austin" / "MartyLab - General"
+        / "Papers" / "Artifact Suppression" / "Figures"),
+))
 
 
 def normalize(data):
@@ -64,9 +73,11 @@ def run_deconvolution(spectrum, massrange, sat=0, topx=0, psig=10):
     eng.config.suppression_topn = 0
     eng.config.suppression_topx = topx
     eng.config.beta = 0
+    eng.config.rescale_newblur = 1
+    eng.config.uscore_fitdat = 1
     eng.autorun(auto_peak_width=True)
 
-    return eng.data.massdat
+    return eng
 
 
 np.random.seed(42)
@@ -74,10 +85,10 @@ np.random.seed(42)
 masses = [150000, 600000]
 resolutions = [150, 250]
 spectra = []
-default_mass_datasets = []
-top_05_mass_datasets = []
-top_09_mass_datasets = []
-satellite_2_mass_datasets = []
+default_engines = []
+top_05_engines = []
+top_09_engines = []
+satellite_2_engines = []
 
 for i, mass in enumerate(masses):
     spectrum, params = msb.simple_spectrum2(
@@ -92,16 +103,21 @@ for i, mass in enumerate(masses):
     massrange = [mass * 0.25, mass * 2.5]
 
     spectra.append(spectrum)
-    default_mass_datasets.append(run_deconvolution(spectrum, massrange))
-    top_05_mass_datasets.append(
+    default_engines.append(run_deconvolution(spectrum, massrange))
+    top_05_engines.append(
         run_deconvolution(spectrum, massrange, topx=0.5)
     )
-    top_09_mass_datasets.append(
+    top_09_engines.append(
         run_deconvolution(spectrum, massrange, topx=0.9)
     )
-    satellite_2_mass_datasets.append(
+    satellite_2_engines.append(
         run_deconvolution(spectrum, massrange, sat=2)
     )
+
+default_mass_datasets = [engine.data.massdat for engine in default_engines]
+top_05_mass_datasets = [engine.data.massdat for engine in top_05_engines]
+top_09_mass_datasets = [engine.data.massdat for engine in top_09_engines]
+satellite_2_mass_datasets = [engine.data.massdat for engine in satellite_2_engines]
 
 fig = plt.figure(figsize=(6.5, 8))
 outer_grid = fig.add_gridspec(
@@ -162,12 +178,14 @@ row_labels = [
     'Top 0.9',
     'Satellite 2',
 ]
+method_engines = [default_engines, top_05_engines, top_09_engines, satellite_2_engines]
 for row, label in enumerate(row_labels):
-    for axis in axes[row]:
+    for column, axis in enumerate(axes[row]):
         axis.text(
             0.95,
             0.95,
-            label,
+            description_with_uniscore(label, method_engines[row - 1][column].pks.uniscore)
+            if row > 0 else label,
             transform=axis.transAxes,
             va='top',
             ha='right',
@@ -213,11 +231,35 @@ for row, column in red_bar_panels:
 
 fig.subplots_adjust(left=0.1, right=0.98, bottom=0.08, top=0.96)
 
-os.chdir(
-    r"C:\Users\mm96978\The University of Texas at Austin"
-    r"\MartyLab - General\Papers\Artifact Suppression\Figures"
-)
+os.chdir(FIGURE_DIR)
 plt.savefig('Figure3.png', dpi=300)
 plt.savefig('Figure3.pdf')
+metric_rows = []
+for column, mass in enumerate(masses):
+    settings = {
+        "reference_basis": "synthetic input mass",
+        "simulation_resolution": resolutions[column],
+        "simulation_baseline": 0.03,
+        "simulation_noise": 0.01,
+        "simulation_zwidth": 1,
+        "random_seed": 42,
+    }
+    metric_rows.append(panel_metrics(chr(ord('A') + column), 'Data',
+                                     panel_type="input m/z spectrum",
+                                     reference_mass=mass, settings=settings))
+for row, (label, engines_for_method) in enumerate(zip(row_labels[1:], method_engines), start=1):
+    for column, (mass, engine) in enumerate(zip(masses, engines_for_method)):
+        panel_index = row * 2 + column
+        settings = {
+            "reference_basis": "synthetic input mass",
+            "simulation_resolution": resolutions[column],
+            "simulation_baseline": 0.03,
+            "simulation_noise": 0.01,
+            "simulation_zwidth": 1,
+            "random_seed": 42,
+        }
+        metric_rows.append(panel_metrics(chr(ord('A') + panel_index), label, engine,
+                                         reference_mass=mass, settings=settings))
+write_metrics_workbook('Figure3.xlsx', metric_rows)
 
 plt.show()

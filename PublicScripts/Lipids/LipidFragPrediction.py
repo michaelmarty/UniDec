@@ -153,7 +153,7 @@ LPC	[M+HCOO]-	negative	224.07	60.02
 LPC	[M+H]+	positive	184.07,104.1070	18.01
 LPC	[M+Na]+	positive	86.1,104.11	59.07
 LPE	[M+H]+	positive		141.02
-LPE	[M-H]-	negative	196.04	
+LPE	[M-H]-	negative	196.04,214.0482	
 LPG	[M-H]-	negative	152.995834,227.03,245.04	228.04
 LPI	[M-H]-	negative	78.96,152.995834,241.01,315.05	316.06
 LPS	[M-H]-	negative	78.96,152.995834	87.03,241.04

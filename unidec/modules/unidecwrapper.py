@@ -180,6 +180,7 @@ struct Config {
     int aggressiveflag;
     float adductmass;
     int rawflag;
+    int rescale_newblur;
     float nativezub;
     float nativezlb;
     int poolflag;
@@ -248,7 +249,14 @@ struct Config {
     int silent;
     int cdmsflag;
     int variablepw;
+    float minratio;
     int normthresh;
+    int suppression_topn;
+    float suppression_topx;
+    int suppression_harmonic;
+    int suppression_satellite;
+    float suppression_percent;
+    int suppression_startit;
 };
 """
 
@@ -283,6 +291,7 @@ class Config(ctypes.Structure):
         ("aggressiveflag", ctypes.c_int),
         ("adductmass", ctypes.c_float),
         ("rawflag", ctypes.c_int),
+        ("rescale_newblur", ctypes.c_int),
         ("nativezub", ctypes.c_float),
         ("nativezlb", ctypes.c_float),
         ("poolflag", ctypes.c_int),
@@ -349,6 +358,12 @@ class Config(ctypes.Structure):
         ("variablepw", ctypes.c_int),
         ("minratio", ctypes.c_float),
         ("normthresh", ctypes.c_int),
+        ("suppression_topn", ctypes.c_int),
+        ("suppression_topx", ctypes.c_float),
+        ("suppression_harmonic", ctypes.c_int),
+        ("suppression_satellite", ctypes.c_int),
+        ("suppression_percent", ctypes.c_float),
+        ("suppression_startit", ctypes.c_int),
     ]
 
 

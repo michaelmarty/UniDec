@@ -511,7 +511,7 @@ static void write_outputs_UniChrom(const Config config, const float *cube,
         char group[1024];
         char path[1024];
         snprintf(group, sizeof(group), "/ms_dataset/%d", scan);
-        snprintf(path, sizeof(path), "%s/mass_data", group);
+        snprintf(path, sizeof(path), "/ms_dataset/%d/mass_data", scan);
         mh5writefile2d(config.file_id, path, mass_count, mass_axis,
                        mass_grid + (size_t)scan * mass_count);
         write_attr_int(config.file_id, group, "length_mz", mz_count);

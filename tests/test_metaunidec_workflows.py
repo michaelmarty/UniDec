@@ -2,7 +2,8 @@ import atexit
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 import h5py
 import numpy as np
@@ -15,6 +16,29 @@ from _test_support import copy_workflow_spectra, has_gui_display
 
 
 UNIDEC_ROOT = Path(__file__).resolve().parents[1]
+
+
+class TestMetaUniDecConfigPersistence(unittest.TestCase):
+    def test_implicit_config_writes_require_an_active_dataset(self):
+        presenter = UniDecPres.__new__(UniDecPres)
+        presenter.view = Mock()
+        presenter.eng = SimpleNamespace(
+            config=SimpleNamespace(filetype=1, write_hdf5=Mock()),
+            data=SimpleNamespace(filename=None),
+            update_history=Mock(),
+        )
+
+        presenter.import_config()
+        presenter.export_config()
+        presenter.eng.config.write_hdf5.assert_not_called()
+
+        presenter.export_config("chosen.hdf5")
+        presenter.eng.config.write_hdf5.assert_called_once_with("chosen.hdf5")
+
+        presenter.eng.data.filename = "active.hdf5"
+        presenter.import_config()
+        presenter.export_config()
+        self.assertEqual(presenter.eng.config.write_hdf5.call_count, 3)
 
 
 @unittest.skipUnless(has_gui_display(), "wxPython requires a graphical display")

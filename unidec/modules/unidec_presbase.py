@@ -82,7 +82,7 @@ class UniDecPres(object):
             else:
                 self.eng.config.config_import(file_name)
         self.view.import_config_to_gui()
-        if self.eng.config.filetype == 1:
+        if self.eng.config.filetype == 1 and self.eng.data.filename is not None:
             self.eng.config.write_hdf5()
         self.eng.update_history()
 
@@ -102,7 +102,7 @@ class UniDecPres(object):
             else:
                 self.eng.config.config_export(file_name)
         else:
-            if self.eng.config.filetype == 1:
+            if self.eng.config.filetype == 1 and self.eng.data.filename is not None:
                 self.eng.config.write_hdf5()
                 pass
         self.eng.update_history()
