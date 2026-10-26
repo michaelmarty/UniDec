@@ -28,11 +28,11 @@ engine.config.masslb = 5000
 engine.config.massub = 50000
 engine.config.suppression_topn = 1
 engine.config.beta = 0
-engine.config.rescale_newblur = 0
-engine.config.mzsig = 30
+engine.config.rescale_newblur = 1
+# engine.config.mzsig = 30
 # engine.config.endz=11
 # engine.config.startz =5
-engine.autorun(auto_peak_width=False)
+engine.autorun(auto_peak_width=True)
 
 
 peak = max(engine.pks.peaks, key=lambda item: item.height)

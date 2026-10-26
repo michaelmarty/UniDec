@@ -8,6 +8,82 @@ from copy import deepcopy
 chrom_file_exts = [".raw", ".Raw", ".RAW", ".d", ".mzML.gz", ".mzML"]
 
 
+def chromatographic_peak_scores(xvalues, intensities):
+    """Return FWHM symmetry and within-FWHM monotonicity scores."""
+    xvalues = np.asarray(xvalues, dtype=float)
+    intensities = np.asarray(intensities, dtype=float)
+    if (xvalues.ndim != 1 or intensities.ndim != 1 or len(xvalues) != len(intensities)
+            or len(xvalues) < 3 or not np.all(np.isfinite(xvalues))
+            or not np.all(np.isfinite(intensities)) or np.any(np.diff(xvalues) <= 0)):
+        return 0., 0.
+
+    intensities = np.maximum(intensities, 0)
+    height = np.max(intensities)
+    if height <= 0:
+        return 0., 0.
+
+    apex_start = int(np.argmax(intensities))
+    apex_end = apex_start
+    while apex_start > 0 and intensities[apex_start - 1] == height:
+        apex_start -= 1
+    while apex_end < len(intensities) - 1 and intensities[apex_end + 1] == height:
+        apex_end += 1
+    apex_x = (xvalues[apex_start] + xvalues[apex_end]) / 2.
+    half_height = height / 2.
+
+    left_index = apex_start - 1
+    while left_index >= 0 and intensities[left_index] > half_height:
+        left_index -= 1
+    right_index = apex_end + 1
+    while right_index < len(intensities) and intensities[right_index] > half_height:
+        right_index += 1
+    if left_index < 0 or right_index >= len(intensities):
+        return 0., 0.
+
+    def crossing(index1, index2):
+        y1, y2 = intensities[index1], intensities[index2]
+        if y1 == half_height:
+            return xvalues[index1]
+        return xvalues[index1] + (half_height - y1) * (xvalues[index2] - xvalues[index1]) / (y2 - y1)
+
+    left_x = crossing(left_index, left_index + 1)
+    right_x = crossing(right_index, right_index - 1)
+    left_width = apex_x - left_x
+    right_width = right_x - apex_x
+    if left_width <= 0 or right_width <= 0:
+        return 0., 0.
+    symmetry = min(left_width, right_width) / max(left_width, right_width)
+
+    left_mask = np.logical_and(xvalues < apex_x, xvalues > left_x)
+    left_trace_x = np.concatenate(([apex_x], xvalues[left_mask][::-1], [left_x]))
+    left_trace_y = np.concatenate(([height], intensities[left_mask][::-1], [half_height]))
+    right_mask = np.logical_and(xvalues > apex_x, xvalues < right_x)
+    right_trace_x = np.concatenate(([apex_x], xvalues[right_mask], [right_x]))
+    right_trace_y = np.concatenate(([height], intensities[right_mask], [half_height]))
+
+    def side_areas(side_x, side_y):
+        distance = np.abs(side_x - apex_x)
+        minimum = side_y[0]
+        violations = np.zeros(len(side_y))
+        for i, value in enumerate(side_y[1:], 1):
+            if value > minimum:
+                violations[i] = value - minimum
+            else:
+                minimum = value
+        widths = np.diff(distance) / 2.
+        violation_area = np.sum((violations[:-1] + violations[1:]) * widths)
+        trace_area = np.sum((side_y[:-1] + side_y[1:]) * widths)
+        return violation_area, trace_area
+
+    left_violation, left_area = side_areas(left_trace_x, left_trace_y)
+    right_violation, right_area = side_areas(right_trace_x, right_trace_y)
+    total_area = left_area + right_area
+    if total_area <= 0 or not np.isfinite(total_area):
+        return 0., 0.
+    monotonicity = np.clip(1. - (left_violation + right_violation) / total_area, 0., 1.)
+    return float(np.clip(symmetry, 0., 1.)), float(monotonicity)
+
+
 class ChromEngine(MetaUniDec):
     """
     UniChrom Engine.
@@ -49,6 +125,40 @@ class ChromEngine(MetaUniDec):
                 self.update_history()
             return self.out
         return 1
+
+    def pick_peaks(self, refresh=True):
+        super().pick_peaks(refresh=refresh)
+        if not self.config.calc_unichrom_scores:
+            return
+        current_peaks = np.asarray(self.data.peaks)
+        base_scores = np.array([p.dscore for p in self.pks.peaks], dtype=float)
+        saved_scores = np.asarray(self.data.unichrom_scores)
+        if (not refresh and saved_scores.ndim == 2 and saved_scores.shape == (len(base_scores), 5)
+                and current_peaks.ndim == 2 and current_peaks.shape[1] >= 3
+                and np.allclose(saved_scores[:, 0], current_peaks[:, 0])
+                and np.allclose(saved_scores[:, 4], current_peaks[:, 2])):
+            base_scores = saved_scores[:, 1]
+
+        score_rows = []
+        dscores = []
+        weights = []
+        for i, peak in enumerate(self.pks.peaks):
+            peak.base_dscore = float(np.clip(base_scores[i], 0., 1.)) if np.isfinite(base_scores[i]) else 0.
+            peak.chrom_symmetry_score, peak.chrom_monotonicity_score = chromatographic_peak_scores(
+                self.data.var1, peak.extracts)
+            peak.dscore = (peak.base_dscore * peak.chrom_symmetry_score
+                           * peak.chrom_monotonicity_score)
+            if current_peaks.ndim == 2 and current_peaks.shape[1] >= 3:
+                current_peaks[i, 2] = peak.dscore
+            score_rows.append([peak.mass, peak.base_dscore, peak.chrom_symmetry_score,
+                               peak.chrom_monotonicity_score, peak.dscore])
+            if np.isfinite(peak.height) and peak.height > 0:
+                dscores.append(peak.dscore)
+                weights.append(peak.height ** 2)
+
+        self.pks.uniscore = float(np.clip(np.average(dscores, weights=weights), 0., 1.)) if weights else 0.
+        self.data.peaks = current_peaks
+        self.data.export_unichrom_scores(np.asarray(score_rows).reshape((-1, 5)), self.pks.uniscore)
 
     def open_chrom(self, path, load_hdf5=True, refresh=False):
         if os.path.splitext(path)[1] == ".hdf5":

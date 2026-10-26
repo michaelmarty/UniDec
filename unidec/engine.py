@@ -1116,7 +1116,7 @@ class UniDec(UniDecEngine):
             p.cs_score = 1 - ud.safedivide1(badarea, zs)
             # print(badarea, zs, p.cs_score)
 
-    def get_mzstack(self, xfwhm=2, fitdat=False):
+    def get_mzstack(self, xfwhm=2, fitdat=True):
         zarr = np.reshape(self.data.mzgrid[:, 2], (len(self.data.data2), len(self.data.ztab)))
         # zarr = zarr / np.amax(np.sum(zarr, axis=1)) * np.amax(self.data.data2[:, 1])
         for i, p in enumerate(self.pks.peaks):

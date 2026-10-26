@@ -191,6 +191,15 @@ try:
         grid_module.GridDeconWindow.assert_called_once_with(
             app.view, app.eng.data.data2, config=app.eng.config)
     if {has_chrom_spectrum_menu!r}:
+        app.view.SetStatusText("Existing status", number=3)
+        with patch.object(module.MetaUniDecBase, "on_pick_peaks"):
+            app.on_pick_peaks()
+        assert app.view.GetStatusBar().GetStatusText(3) == "Existing status"
+        with patch.object(module.MetaUniDecBase, "on_pick_peaks"):
+            app.eng.config.calc_unichrom_scores = True
+            app.eng.pks.uniscore = .678
+            app.on_pick_peaks()
+        assert app.view.GetStatusBar().GetStatusText(3) == "UniScore: 67.8"
         assert not hasattr(app.view, "open_ud_button")
         assert not hasattr(app.view, "run_ud_button")
         assert not hasattr(app.view, "pick_peaks_button_individual")

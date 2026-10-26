@@ -25,6 +25,8 @@ class MetaDataSet:
         self.exgrid = []
         self.exvals = []
         self.peaks = []
+        self.unichrom_scores = []
+        self.uniscore = 0
         self.var1 = []
         self.var2 = []
         self.v1name = "Variable 1"
@@ -159,7 +161,27 @@ class MetaDataSet:
         pdataset = hdf.require_group("/peaks")
         self.peaks = get_dataset(pdataset, "peakdata")
         self.exgrid = get_dataset(pdataset, "extracts").transpose()
+        self.unichrom_scores = get_dataset(pdataset, "unichrom_scores")
+        self.uniscore = float(pdataset.attrs.get("uniscore", 0))
         self.exvals = self.peaks[:, 0]
+        hdf.close()
+
+    def export_unichrom_scores(self, scores, uniscore):
+        self.unichrom_scores = np.asarray(scores, dtype=float)
+        self.uniscore = float(uniscore)
+        if self.filename is None:
+            return
+        hdf = h5py.File(self.filename, 'a')
+        pdataset = hdf.require_group("/peaks")
+        if np.asarray(self.peaks).ndim == 2:
+            replace_dataset(pdataset, "peakdata", self.peaks)
+        if len(self.unichrom_scores) > 0:
+            replace_dataset(pdataset, "unichrom_scores", self.unichrom_scores)
+        else:
+            if "unichrom_scores" in pdataset:
+                del pdataset["unichrom_scores"]
+            pdataset.create_dataset("unichrom_scores", data=np.empty((0, 5)))
+        pdataset.attrs["uniscore"] = self.uniscore
         hdf.close()
 
     def export_fits(self):

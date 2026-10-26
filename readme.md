@@ -75,6 +75,26 @@ These CD-specific scores have not been calibrated against experimental quality
 labels; validate filtering cutoffs on representative CD-MS data before using
 the standard UniDec thresholds.
 
+## UniChrom peak scoring
+
+UniChrom can extend each native DScore with two components calculated from the
+extracted chromatographic trace. The FWHM symmetry score is the smaller left or
+right apex-to-half-height width divided by the larger width. The monotonicity
+score penalizes integrated rises while walking away from the apex on either side
+within the FWHM interval. Both components range from zero to one and multiply
+the native DScore.
+
+This development feature is disabled by default to preserve existing scores.
+Enable it before peak picking with `eng.config.calc_unichrom_scores = True`.
+
+UniScore is the peak-height-squared weighted mean of the resulting DScores.
+Empty, non-finite, truncated, or unresolved chromatographic peaks score zero.
+The final DScore remains in the existing third column of `/peaks/peakdata`;
+`/peaks/unichrom_scores` stores mass, native DScore, symmetry, monotonicity, and
+final DScore, and the `/peaks` group stores UniScore as an attribute. Older HDF5
+files remain readable and gain these values when the flag is enabled and peaks
+are picked again in UniChrom.
+
 ## Installation
 
 ### Binary download 

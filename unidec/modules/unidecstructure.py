@@ -116,6 +116,7 @@ class UniDecConfig(object):
         self.time_window = 2
         self.chrom_peak_width = 2
         self.chromatogram_type = 0
+        self.calc_unichrom_scores = False
         self.sw_time_window = 1
         self.sw_scan_offset = 10
         self.scan_window = 1
@@ -1180,7 +1181,8 @@ class UniDecConfig(object):
             "maxdt": self.maxdt, "ccsub": self.ccsub, "ccslb": self.ccslb, "dtsig": self.dtsig,
             "UClineardecon": self.UClineardecon,
             "UCtype": self.UCtype,
-            "unichromzeropad": self.unichromzeropad, "csig": self.csig,
+            "unichromzeropad": self.unichromzeropad,
+            "calc_unichrom_scores": self.calc_unichrom_scores, "csig": self.csig,
             "ccsbins": self.ccsbins, "subbufdt": self.subbufdt, "smoothdt": self.smoothdt,
             "ubnativeccs": self.nativeccsub, "lbnativeccs": self.nativeccslb, "twaveflag": self.twaveflag,
             "temp": self.temp, "pressure": self.pressure, "volt": self.volt,
@@ -1307,6 +1309,8 @@ class UniDecConfig(object):
         self.UClineardecon = read_attr(self.UClineardecon, "UClineardecon", config_group)
         self.UCtype = read_attr(self.UCtype, "UCtype", config_group)
         self.unichromzeropad = read_attr(self.unichromzeropad, "unichromzeropad", config_group)
+        self.calc_unichrom_scores = read_attr(
+            self.calc_unichrom_scores, "calc_unichrom_scores", config_group)
         self.csig = read_attr(self.csig, "csig", config_group)
         self.ccsbins = read_attr(self.ccsbins, "ccsbins", config_group)
         self.subbufdt = read_attr(self.subbufdt, "subbufdt", config_group)

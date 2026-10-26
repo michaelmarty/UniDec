@@ -18,25 +18,31 @@ class TestUniChromWorkflow(unittest.TestCase):
             self.assertEqual(config.UClineardecon, 1)
             self.assertEqual(config.UCtype, 0)
             self.assertEqual(config.chromatogram_type, 0)
+            self.assertFalse(config.calc_unichrom_scores)
             config.UClineardecon = 0
             config.UCtype = 1
             config.chromatogram_type = 1
+            config.calc_unichrom_scores = True
             config.write_hdf5(str(path))
             with h5py.File(path, "r") as hdf:
                 self.assertEqual(hdf["config"].attrs["UClineardecon"], 0)
                 self.assertEqual(hdf["config"].attrs["UCtype"], 1)
                 self.assertEqual(hdf["config"].attrs["chromatogram_type"], 1)
+                self.assertTrue(hdf["config"].attrs["calc_unichrom_scores"])
             restored = UniDecConfig()
             restored.read_hdf5(str(path))
             self.assertEqual(restored.UClineardecon, 0)
             self.assertEqual(restored.UCtype, 1)
             self.assertEqual(restored.chromatogram_type, 1)
+            self.assertTrue(restored.calc_unichrom_scores)
 
             with h5py.File(path, "a") as hdf:
                 del hdf["config"].attrs["chromatogram_type"]
+                del hdf["config"].attrs["calc_unichrom_scores"]
             legacy = UniDecConfig()
             legacy.read_hdf5(str(path))
             self.assertEqual(legacy.chromatogram_type, 0)
+            self.assertFalse(legacy.calc_unichrom_scores)
 
     def test_selected_chromatogram_uses_configured_cache(self):
         engine = object.__new__(ChromEngine)

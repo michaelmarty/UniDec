@@ -53,6 +53,11 @@ class ChromApp(MetaUniDecBase):
             # self.eng.export_peaks_2d_apex()
             self.on_eic_integrate()
 
+    def on_pick_peaks(self, e=None):
+        super().on_pick_peaks(e)
+        if self.eng.config.calc_unichrom_scores:
+            self.view.SetStatusText("UniScore: " + str(round(self.eng.pks.uniscore * 100, 2)), number=3)
+
     def on_open(self, e=None):
         """
         Open dialog for file opening
