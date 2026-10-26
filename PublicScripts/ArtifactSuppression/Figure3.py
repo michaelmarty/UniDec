@@ -73,6 +73,8 @@ def run_deconvolution(spectrum, massrange, sat=0, topx=0, psig=10):
     eng.config.suppression_topn = 0
     eng.config.suppression_topx = topx
     eng.config.beta = 0
+    eng.config.rescale_newblur = 1
+    eng.config.uscore_fitdat = 1
     eng.autorun(auto_peak_width=True)
 
     return eng

@@ -191,12 +191,15 @@ class TestPeakScoreComponents(unittest.TestCase):
         peak = engine.pks.peaks[0]
         peak.intervalFWHM = [4.0, 6.0]
 
-        engine.get_mzstack(xfwhm=1, fitdat=True)
-        with patch.object(engine, "get_mzstack"):
+        with patch.object(engine, "get_mzstack", wraps=engine.get_mzstack) as get_mzstack:
             engine.pks_uscore(xfwhm=1)
 
+        get_mzstack.assert_called_once_with(xfwhm=1, fitdat=True)
         np.testing.assert_allclose(np.asarray(peak.mzstack[0][:, 1], dtype=float), engine.data.fitdat)
         self.assertEqual(peak.uscore, 1.0)
+
+        engine.pks_uscore(xfwhm=1, uscore_fitdat=False)
+        np.testing.assert_allclose(np.asarray(peak.mzstack[0][:, 1], dtype=float), engine.data.data2[:, 1])
 
     def test_hand_computable_score_components_and_combined_score(self):
         engine = UniDec(silent=True)

@@ -1151,8 +1151,8 @@ class UniDec(UniDecEngine):
             # p.rsquared = 1 - ud.safedivide1(sse, denom)
             p.mzstack = np.array(stack, dtype='object')
 
-    def pks_uscore(self, xfwhm=2, power=1):
-        self.get_mzstack(xfwhm=xfwhm)
+    def pks_uscore(self, xfwhm=2, power=1, uscore_fitdat=True):
+        self.get_mzstack(xfwhm=xfwhm, fitdat=uscore_fitdat)
         for p in self.pks.peaks:
             rats = []
             weights = []
@@ -1242,7 +1242,7 @@ class UniDec(UniDecEngine):
         self.data.tscore = tscore
         return tscore'''
 
-    def dscore(self, xfwhm=2, power=2):
+    def dscore(self, xfwhm=2, power=2, uscore_fitdat=True):
         """
         Combined score should include:
 
@@ -1258,7 +1258,7 @@ class UniDec(UniDecEngine):
         """
         if len(self.pks.peaks) > 0:
             self.pks_mscore(xfwhm=xfwhm, power=power)
-            self.pks_uscore(power=power, xfwhm=xfwhm)
+            self.pks_uscore(power=power, xfwhm=xfwhm, uscore_fitdat=uscore_fitdat)
             self.pks_csscore(xfwhm=xfwhm)
             self.pks_fscore()
             # self.tscore()

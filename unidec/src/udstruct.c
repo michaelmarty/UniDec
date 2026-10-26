@@ -151,7 +151,7 @@ void SetDefaultConfig(Config *config) {
     config->aggressiveflag = 0;
     config->adductmass = 1.007276467f;
     config->rawflag = 1;
-    config->rescale_newblur = 0;
+    config->rescale_newblur = 1;
     config->nativezub = 100;
     config->nativezlb = -200;
     config->poolflag = 1;

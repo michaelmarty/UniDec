@@ -242,57 +242,45 @@ float mscore(Config config, const int mlen, const float* massaxis, const float* 
 		int lindex = nearfast(massaxis, mlow, mlen);
 		int hindex = nearfast(massaxis, mhigh, mlen);
 
-		if (massaxis[lindex] < mlow) { lindex += 1; }
-		if (massaxis[hindex] > mhigh) { hindex -= 1; }
-		//printf("%f %f\n", massaxis[lindex], massaxis[hindex]);
+		if (massaxis[lindex] <= mlow) { lindex += 1; }
+		if (massaxis[hindex] >= mhigh) { hindex -= 1; }
 
-		float mmax = 0;
-		float msum = 0;
-		for (int j = lindex; j <= hindex; j++)
-		{
-			float data = masssum[j];
-			if (data > mmax) { mmax = data; }
-			msum += data;
+		const int window = hindex - lindex + 1;
+		if (window <= 0) { return 0; }
+		float* summed = calloc(window, sizeof(float));
+		if (summed == NULL) {
+			printf("Error allocating memory for MScore.\n");
+			exit(1);
 		}
 
-
-		for (int i = 0; i < config.numz; i++)
-		{
-			float sumdecon = 0;
-			for (int j = lindex; j <= hindex; j++)
-			{
-				float decon = massgrid[index2D(config.numz, j, i)];
-				sumdecon += decon;
+		float sumall = 0;
+		for (int j = lindex; j <= hindex; j++) {
+			for (int i = 0; i < config.numz; i++) {
+				summed[j - lindex] += massgrid[index2D(config.numz, j, i)];
 			}
+			sumall += summed[j - lindex];
+		}
 
-			//float sumdecon2 = 0;
-			if (sumdecon > 0)
-			{
-				float power = 2.f;
-				float sumerrors = 0;
-				float sumdata = 0;
-				for (int j = lindex; j <= hindex; j++)
-				{
-					float data = masssum[j];
-					float decon = massgrid[index2D(config.numz, j, i)] / sumdecon * msum;
-					sumerrors += fabsf(data - decon);
-					sumdata += data;
-					//sumdecon2 += decon;
+		if (sumall > 0) {
+			for (int i = 0; i < config.numz; i++) {
+				float sumdecon = 0;
+				for (int j = lindex; j <= hindex; j++) {
+					sumdecon += massgrid[index2D(config.numz, j, i)];
 				}
 
-				float per = 0;
-				if (sumdata > 0)
-				{
-					per = 1 - (sumerrors / sumdata);
+				if (sumdecon > 0) {
+					float sumerrors = 0;
+					for (int j = lindex; j <= hindex; j++) {
+						float expected = summed[j - lindex] * sumdecon / sumall;
+						sumerrors += fabsf(massgrid[index2D(config.numz, j, i)] - expected);
+					}
+					const float weight = sumdecon * sumdecon;
+					numerator += weight * (1 - sumerrors / sumdecon);
+					denominator += weight;
 				}
-
-				//printf("%f %f\n", mzgrid[index2D(config.numz, lindex, i)], mzgrid[index2D(config.numz, hindex, i)]);
-				//printf("%f %f %f %f %f\n", z, sumerrors, per, sumdecon, sumdata);
-				sumdecon = powf(sumdecon, power);
-				numerator += sumdecon * per;
-				denominator += sumdecon;
 			}
 		}
+		free(summed);
 	}
 	if (denominator != 0)
 	{
@@ -482,7 +470,7 @@ float score_from_peaks(const int plen, const float *peakx, const float *peaky, f
 		int index = nearfast(decon->massaxis, m, decon->mlen);
 		float height = decon->massaxisval[index];
 
-		float usc = uscore(config, inp.dataMZ, inp.dataInt, decon->newblur, inp.nztab, l, h, m);
+		float usc = uscore(config, inp.dataMZ, decon->fitdat, decon->newblur, inp.nztab, l, h, m);
 		float msc = mscore(config, decon->mlen, decon->massaxis, decon->massaxisval, decon->massgrid, l, h, m);
 		float cssc = csscore(config, decon->mlen, decon->massaxis, decon->massaxisval, decon->massgrid, l, h, m);
 		float fsc = fscore(config, plen, decon->mlen, decon->massaxis, decon->massaxisval, peakx, height, fwhmlow[i], fwhmhigh[i], m, badfwhm[i]);

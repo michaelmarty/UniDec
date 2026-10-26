@@ -79,8 +79,8 @@ class TestUniDecConfigSerialization(unittest.TestCase):
         "demultiplexmode": "MRS",
     }
 
-    def test_newblur_rescaling_defaults_off(self):
-        self.assertEqual(UniDecConfig().rescale_newblur, 0)
+    def test_newblur_rescaling_defaults_on(self):
+        self.assertEqual(UniDecConfig().rescale_newblur, 1)
 
     def test_text_and_hdf5_round_trip(self):
         with tempfile.TemporaryDirectory(prefix="unidec-config-") as directory:

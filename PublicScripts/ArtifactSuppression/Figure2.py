@@ -82,6 +82,7 @@ def run_deconvolution(spectrum, massrange=[5000, 50000], sat=0, harm=0, topn=0, 
     eng.config.suppression_topn = topn
     eng.config.suppression_topx = topx
     eng.config.beta = beta
+    eng.config.rescale_newblur = 1
     # eng.config.peakthresh = 0.01
     eng.autorun(auto_peak_width=True)
     # Print subscores for each peak

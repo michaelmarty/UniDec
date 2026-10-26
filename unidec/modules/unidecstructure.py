@@ -140,7 +140,7 @@ class UniDecConfig(object):
         self.peakcmap = u"rainbow"
         self.spectracmap = u"rainbow"
         self.rawflag = 0
-        self.rescale_newblur = 0
+        self.rescale_newblur = 1
 
         # data prep
         self.minmz = ''
@@ -537,7 +537,7 @@ class UniDecConfig(object):
         self.peakcmap = u"rainbow"
         self.spectracmap = u"rainbow"
         self.rawflag = 0
-        self.rescale_newblur = 0
+        self.rescale_newblur = 1
 
         # data prep
         self.minmz = ''
