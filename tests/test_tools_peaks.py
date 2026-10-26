@@ -5,6 +5,15 @@ import numpy as np
 from unidec import tools
 
 
+class TestNearest(unittest.TestCase):
+    def test_upper_interval_chooses_closest_point(self):
+        array = np.array([0.0, 1.0, 2.0])
+
+        self.assertEqual(tools.nearest(array, 1.1), 1)
+        self.assertEqual(tools.nearest(array, 1.9), 2)
+        self.assertEqual(tools.nearest(array, 2.1), 2)
+
+
 class TestPeakDetection(unittest.TestCase):
     def test_isolated_peaks_and_edges(self):
         data = np.array([[0.0, 3.0], [1.0, 0.0], [2.0, 2.0], [3.0, 0.0], [4.0, 4.0]])

@@ -327,7 +327,7 @@ def nearest(array, target):
     i = bisect_left(array, target)
     if i <= 0:
         return 0
-    elif i >= len(array) - 1:
+    elif i >= len(array):
         return len(array) - 1
     if np.abs(array[i] - target) > np.abs(array[i - 1] - target):
         i -= 1
