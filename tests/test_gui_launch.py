@@ -153,6 +153,7 @@ try:
                 "pass", "skip", "failure", "timeout", "cancelled")}},
         }}
         with patch.object(gui_self_test, "run_controller", return_value=report) as run_controller, \
+                patch.object(wx, "ProgressDialog"), \
                 patch.object(wx, "MessageBox") as message_box:
             app.view.on_run_tests()
             test_thread = app.view.test_thread
@@ -161,9 +162,11 @@ try:
             app.wx_app.Yield()
             run_controller.assert_called_once()
             message_box.assert_called_once()
+            run_controller.reset_mock()
         with patch.object(wx, "MessageBox") as message_box:
             app.view.on_about()
             assert str(app.view.eng.version) in message_box.call_args.args[0]
+            message_box.reset_mock()
         with patch.object(app, "on_close") as on_close:
             app.view.on_exit()
             on_close.assert_called_once_with()
@@ -233,6 +236,7 @@ try:
             start.assert_called_once_with()
             launched.view.Destroy()
             launched.wx_app.Yield()
+            del launched
 finally:
     app.view.Destroy()
     app.wx_app.Yield()

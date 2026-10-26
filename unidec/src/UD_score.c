@@ -470,7 +470,8 @@ float score_from_peaks(const int plen, const float *peakx, const float *peaky, f
 		int index = nearfast(decon->massaxis, m, decon->mlen);
 		float height = decon->massaxisval[index];
 
-		float usc = uscore(config, inp.dataMZ, decon->fitdat, decon->newblur, inp.nztab, l, h, m);
+		const float *uscore_data = decon->fitdat != NULL ? decon->fitdat : inp.dataInt;
+		float usc = uscore(config, inp.dataMZ, uscore_data, decon->newblur, inp.nztab, l, h, m);
 		float msc = mscore(config, decon->mlen, decon->massaxis, decon->massaxisval, decon->massgrid, l, h, m);
 		float cssc = csscore(config, decon->mlen, decon->massaxis, decon->massaxisval, decon->massgrid, l, h, m);
 		float fsc = fscore(config, plen, decon->mlen, decon->massaxis, decon->massaxisval, peakx, height, fwhmlow[i], fwhmhigh[i], m, badfwhm[i]);

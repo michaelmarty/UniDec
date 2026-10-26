@@ -241,7 +241,31 @@ def make_figure():
         linestyle="--",
         zorder=10,
     )
+
+    selection_box2 = Rectangle(
+        (selected_mz - selection_width / 2, 0),
+        selection_width,
+        100,
+        fill=False,
+        edgecolor="red",
+        linewidth=1.2,
+        linestyle="--",
+        zorder=10,
+    )
     grid_axis.add_patch(selection_box)
+    raw_axis.add_patch(selection_box2)
+    raw_axis.annotate(
+        "Example\nData Point",
+        (selected_mz + selection_width / 2, 60),
+        xytext=(4, 0),
+        textcoords="offset points",
+        color="red",
+        fontsize=9,
+        va="top",
+        ha="left",
+    )
+
+
     grid_axis.plot(
         selected_mz,
         charge[selected_charge_index],

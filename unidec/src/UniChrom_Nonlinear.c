@@ -584,7 +584,7 @@ static int write_outputs_UC(const Config config, const UCRaggedData *data,
         if (point_count == 0) {
             char group[1024], path[1024];
             snprintf(group, sizeof(group), "/ms_dataset/%d", scan);
-            snprintf(path, sizeof(path), "%s/mass_data", group);
+            snprintf(path, sizeof(path), "/ms_dataset/%d/mass_data", scan);
             mh5writefile2d(config.file_id, path, mass_count, mass_axis, mass_values);
             write_attr_int(config.file_id, group, "length_mz", 0);
             write_attr_int(config.file_id, group, "length_mass", mass_count);
@@ -612,7 +612,7 @@ static int write_outputs_UC(const Config config, const UCRaggedData *data,
                                      mass_count, mass_values);
         char group[1024], path[1024];
         snprintf(group, sizeof(group), "/ms_dataset/%d", scan);
-        snprintf(path, sizeof(path), "%s/mass_data", group);
+        snprintf(path, sizeof(path), "/ms_dataset/%d/mass_data", scan);
         mh5writefile2d(config.file_id, path, mass_count, mass_axis, mass_values);
         write_attr_int(config.file_id, group, "length_mz", point_count);
         write_attr_int(config.file_id, group, "length_mass", mass_count);

@@ -1724,8 +1724,18 @@ void SmartTransform(const Config config, Decon *decon, const Input *inp) {
                             edge = 2;
                         }
 
+                        if (edge == 2) {
+                            if (index2 == 0) {
+                                index = 0;
+                                index2 = 1;
+                            }
+                            if (index == config.lengthmz - 1) {
+                                index = config.lengthmz - 1;
+                                index2 = config.lengthmz - 2;
+                            }
+                        }
 
-                        if (index2 > index && (inp->dataMZ[index2] - inp->dataMZ[index]) != 0 && edge == 0) {
+                        if (edge == 0 && index2 > index && (inp->dataMZ[index2] - inp->dataMZ[index]) != 0) {
                             float mu = (mztest - inp->dataMZ[index]) / (inp->dataMZ[index2] - inp->dataMZ[index]);
                             float y0 = blur[index2D(config.numz, index - 1, j)];
                             float y1 = blur[index2D(config.numz, index, j)];
@@ -1746,14 +1756,6 @@ void SmartTransform(const Config config, Decon *decon, const Input *inp) {
                             if (massgrid != NULL) { massgrid[index2D(config.numz, i, j)] = newval; }
                             //printf("1 %d %d %f %f %f\n", index, index2, mztest, imz, newval, massaxis[i]);
                         } else if (edge == 2 && (inp->dataMZ[index2] - inp->dataMZ[index]) != 0) {
-                            if (index2 == 0) {
-                                index = 0;
-                                index2 = 1;
-                            }
-                            if (index == config.lengthmz - 1) {
-                                index = config.lengthmz - 1;
-                                index2 = config.lengthmz - 2;
-                            }
                             float mu = (mztest - inp->dataMZ[index]) / (inp->dataMZ[index] - inp->dataMZ[index2]);
                             float y1 = blur[index2D(config.numz, index, j)];
                             float y2 = 0;

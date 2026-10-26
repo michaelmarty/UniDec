@@ -403,6 +403,8 @@ v.9.0.1
 
 Updated UniDecImporter to 1.0.4 to add in BPC support. Added this to UniChrom as an option.
 
+Improved DScore calculations. First, comparing against the fitdat rather than the raw data avoids UScore duplicating the fit R^2 penalty. Second, it fixed a bug where the fit data was being normalized but the charge data was not. Options are available to drop back to the older version of DScore if you would like, but the GUI does not have this option. The new DScore is better to my eyes and should be used going forward.
+
 Work developing scores for UniDecCD and UniChrom. This is still in development.
 
 Added many additional unit tests.
