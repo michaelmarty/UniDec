@@ -1,3 +1,4 @@
+import importlib.util
 import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, call
@@ -5,7 +6,6 @@ from unittest.mock import Mock, call
 import numpy as np
 
 from unidec.modules.HTEng import UniChromCDEng
-from unidec.UniChromCD import UniChromCDApp
 
 
 class TestUniChromCDStackShapes(unittest.TestCase):
@@ -95,7 +95,10 @@ class TestUniChromCDStackShapes(unittest.TestCase):
                 np.testing.assert_array_equal(tic, [[0.0, 3.0], [1.0, 7.0]])
                 np.testing.assert_array_equal(engine.fulltic, [3.0, 7.0])
 
+    @unittest.skipUnless(importlib.util.find_spec("wx"), "UniChromCDApp requires wxPython")
     def test_eic_demultiplex_transforms_full_stack_once_for_mass_eics(self):
+        from unidec.UniChromCD import UniChromCDApp
+
         tic = SimpleNamespace(label="TIC", massmode=False)
         mass_eic = SimpleNamespace(
             label="Mass: 145000-152000", massmode=True,
