@@ -9,7 +9,7 @@ It was originally published in: [M. T. Marty, A. J. Baldwin, E. G. Marklund, G. 
 
 Detailed descriptions of the algorithm are provided in the paper and subsequent papers. Please cite us if you use UniDec in your research.
 
-Please contact mtmarty@email.arizona.edu for questions, suggestions, or with any bugs.
+Please contact mtmarty@utexas.edu for questions, suggestions, or with any bugs.
 
 ## UniDecCD peak scoring
 
@@ -103,7 +103,7 @@ UniDec may be downloaded from [https://github.com/michaelmarty/UniDec/releases](
 
 This compiled version is compatible with 64-bit Windows. It a portable binary, so it does not need a conventional installation.
 Just unzip the folder, put it somewhere convenient, if you are still having issues 
-run the INSTALLER.cmd as administrator,(only have to do this once)
+run `installer.bat` as administrator,(only have to do this once)
 then click the GUI_UniDec.exe file in the folder to launch. 
 
 **If you are seeing issues loading Thermo data or having other bugs,** first delete the folder, then right click on the zip file. Select "Properties" and click "Unblock". Finally, unzip it again and launch it.
