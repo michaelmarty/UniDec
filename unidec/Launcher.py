@@ -3,6 +3,8 @@ import os
 import sys
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
+# psims warns about optional Blosc support for mzMLb writing, which UniDec does not use.
+warnings.filterwarnings("ignore", message="hdf5plugin is missing", category=UserWarning)
 
 if __package__ in (None, ""):
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
