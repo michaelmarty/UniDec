@@ -101,9 +101,10 @@ target_include_directories(unidec PRIVATE ${HDF5_INCLUDE_DIRS})
 target_include_directories(unideclib PRIVATE ${HDF5_INCLUDE_DIRS})
 
 # The Python package launches the executable from unidec/bin. Emit the target
-# there directly so IDE run configurations also launch beside its runtime DLLs.
+# there directly; the generator expression prevents multi-config generators
+# from appending a configuration subdirectory.
 set_target_properties(unidec PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${INSTALL_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY "$<1:${INSTALL_DIR}>"
 )
 
 # The ctypes wrapper loads the shared library from unidec/bin. Deploy it next
