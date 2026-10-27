@@ -348,12 +348,21 @@ class UniChromCDApp(UniDecCDApp):
         self.export_config(self.eng.config.confname)
         self.showccs = False
         self.showht = True
+        mass_eics = [c for c in self.eng.cc.chromatograms if "TIC" not in c.label and c.massmode]
+        if mass_eics:
+            self.eng.run_all_ht()
+            self.eng.transform_stacks()
+
         for c in self.eng.cc.chromatograms:
             if "TIC" not in c.label:
-                htdata, eicdata = self.eng.eic_ht(c.mzrange, c.zrange,
-                                                  normalize=self.eng.config.datanorm, sarray=c.sarray)
-                c.chromdat = eicdata
-                c.decondat = htdata
+                if c.massmode:
+                    c.chromdat = self.eng.get_mass_eic(c.massrange, c.zrange)
+                    c.decondat = self.eng.get_mass_eic(c.massrange, c.zrange, ht=True)
+                else:
+                    htdata, eicdata = self.eng.eic_ht(c.mzrange, c.zrange,
+                                                      normalize=self.eng.config.datanorm, sarray=c.sarray)
+                    c.chromdat = eicdata
+                    c.decondat = htdata
         self.plot_chromatograms()
 
     def run_tic_ht(self):
@@ -362,7 +371,6 @@ class UniChromCDApp(UniDecCDApp):
         :return: None
         """
 
-        self.eng.get_tic(normalize=self.eng.config.datanorm)
         htdata = self.eng.tic_ht(normalize=self.eng.config.datanorm)
         ticdata = np.transpose(np.vstack((self.eng.fulltime, self.eng.fulltic)))
         self.eng.cc.add_chromatogram(ticdata, decondat=htdata, color="black", label="TIC",

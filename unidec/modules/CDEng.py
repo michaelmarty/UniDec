@@ -855,9 +855,11 @@ class UniDecCD(engine.UniDec):
         return harray
 
     def hist_datareduction(self, harray, red_per):
-        sdat = np.sort(np.ravel(harray))
-        index = round(len(sdat) * red_per / 100.)
-        cutoff = sdat[index]
+        sdat = np.sort(harray[harray > 0])
+        remove_count = min(max(round(len(sdat) * red_per / 100.), 0), len(sdat))
+        if remove_count == 0:
+            return harray
+        cutoff = sdat[remove_count - 1]
         harray = self.hist_int_threshold(harray, cutoff)
         return harray
 

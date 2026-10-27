@@ -1070,10 +1070,14 @@ class UniChromCDEng(HTEng, UniDecCD):
         :param kwargs: Keywords to be passed down to create_chrom
         :return: 2D array of TIC (time, intensity)
         """
-        self.prep_time_domain()
-        if farray is None:
-            farray = self.farray
-        fulltic = self.create_chrom(farray, **kwargs)
+        if farray is None and (self.config.intthresh > 0 or self.config.reductionpercent > 0):
+            self.process_data_scans()
+            fulltic = self.create_chrom_from_hstack(self.fullhstack, **kwargs)
+        else:
+            self.prep_time_domain()
+            if farray is None:
+                farray = self.farray
+            fulltic = self.create_chrom(farray, **kwargs)
         self.fulltic = fulltic[:, 1]
         return fulltic
 
@@ -1466,8 +1470,7 @@ class UniChromCDEng(HTEng, UniDecCD):
         """
         if self.massaxis is None:
             self.process_data(transform=True)
-        if self.fullhstack is None:
-            self.process_data_scans(transform=True)
+        self._ensure_full_histogram_stack()
 
         self.ccsstack_ht = None
 

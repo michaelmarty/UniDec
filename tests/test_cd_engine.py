@@ -86,6 +86,23 @@ class TestCDHistogramAndTransform(unittest.TestCase):
         self.assertEqual(engine.histogram(x=np.array([]), y=np.array([])), 0)
         self.assertEqual(engine.harray, [])
 
+    def test_data_reduction_uses_only_occupied_histogram_bins(self):
+        engine = self._engine()
+        harray = np.array([[0.0, 1.0, 0.0], [2.0, 0.0, 3.0], [0.0, 4.0, 0.0]])
+
+        result = engine.hist_datareduction(harray, 50)
+
+        np.testing.assert_array_equal(result, [[0.0, 0.0, 0.0], [0.0, 0.0, 3.0], [0.0, 4.0, 0.0]])
+
+    def test_data_reduction_handles_empty_and_boundary_percentages(self):
+        engine = self._engine()
+        empty = np.zeros((2, 2))
+        np.testing.assert_array_equal(engine.hist_datareduction(empty, 100), empty)
+
+        harray = np.array([[0.0, 1.0], [2.0, 3.0]])
+        np.testing.assert_array_equal(engine.hist_datareduction(harray.copy(), 0), harray)
+        np.testing.assert_array_equal(engine.hist_datareduction(harray.copy(), 100), np.zeros((2, 2)))
+
     def test_mass_transform_uses_mz_minus_adduct_times_charge(self):
         engine = self._engine()
         engine.mz = np.array([11.0, 21.0])
