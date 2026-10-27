@@ -254,7 +254,7 @@ class ChromDropTarget(wx.FileDropTarget):
         """
         if len(filenames) == 1:
             path = filenames[0]
-            if path[-9:] == "_conf.dat":
+            if os.path.basename(path) == "conf.dat" or path.endswith("_conf.dat"):
                 print("Importing Configuration File:", path)
                 self.window.pres.import_config(path)
             else:

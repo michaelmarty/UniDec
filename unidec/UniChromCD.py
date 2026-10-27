@@ -1022,7 +1022,7 @@ class UniChromCDApp(UniDecCDApp):
         :return: None
         """
         # Export Kernel Array
-        np.savetxt(self.eng.config.outfname + "_htkernel.txt", self.eng.htkernel)
+        np.savetxt(self.eng.config.output_file("htkernel.txt"), self.eng.htkernel)
         # Export Chromatograms
         for c in self.eng.cc.chromatograms:
             if c.ignore:

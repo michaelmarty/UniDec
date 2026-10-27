@@ -440,7 +440,7 @@ class NativeZ(wx.Dialog):
             else:
                 self.plot2.plotadd(z.extract[:, 0], z.extract[:, 1], np.array(z.color) / 255, "Offset=" + str(z.offset))
             # Write each extract out
-            fileout = self.config.outfname + "_extracted_intensities" + str(i) + ".txt"
+            fileout = self.config.output_file("extracted_intensities" + str(i) + ".txt")
             np.savetxt(fileout, z.extract)
         tend = time.perf_counter()
         print("Extraction Time: %.2gs" % (tend - tstart))
@@ -524,12 +524,12 @@ class NativeZ(wx.Dialog):
 
             # Save total outputs for extracted peaks
             try:
-                np.savetxt(self.config.outfname + "_extracted_heights.txt", peakextracts)
-                np.savetxt(self.config.outfname + "_total_extracted_heights.txt",
+                np.savetxt(self.config.output_file("extracted_heights.txt"), peakextracts)
+                np.savetxt(self.config.output_file("total_extracted_heights.txt"),
                            np.transpose([self.pks.masses, xvals, sum1]))
                 if np.amax(sum2) != 0:
-                    np.savetxt(self.config.outfname + "_extracted_areas.txt", peakextractsarea)
-                    np.savetxt(self.config.outfname + "_total_extracted_areas.txt",
+                    np.savetxt(self.config.output_file("extracted_areas.txt"), peakextractsarea)
+                    np.savetxt(self.config.output_file("total_extracted_areas.txt"),
                                np.transpose([self.pks.masses, xvals, sum2]))
             except Exception as e:
                 print("Error saving files", e)
@@ -541,28 +541,29 @@ class NativeZ(wx.Dialog):
         :return: None
         """
         extraheader = "_NativeZ"
-        name1 = self.config.outfname + extraheader + "_Figure1.pdf"
+        prefix = extraheader.strip("_") + "_" if extraheader.strip("_") else ""
+        name1 = self.config.output_file(prefix + "Figure1.pdf")
         if self.plot1.flag:
             self.plot1.on_save_fig(e, name1)
-        name2 = self.config.outfname + extraheader + "_Figure2.pdf"
+        name2 = self.config.output_file(prefix + "Figure2.pdf")
         if self.plot2.flag:
             self.plot2.on_save_fig(e, name2)
-        name3 = self.config.outfname + extraheader + "_Figure3.pdf"
+        name3 = self.config.output_file(prefix + "Figure3.pdf")
         if self.plot3.flag:
             self.plot3.on_save_fig(e, name3)
-        name4 = self.config.outfname + extraheader + "_Figure4.pdf"
+        name4 = self.config.output_file(prefix + "Figure4.pdf")
         if self.plot4.flag:
             self.plot4.on_save_fig(e, name4)
-        name5 = self.config.outfname + extraheader + "_Figure5.pdf"
+        name5 = self.config.output_file(prefix + "Figure5.pdf")
         if self.plot5.flag:
             self.plot5.on_save_fig(e, name5)
-        name6 = self.config.outfname + extraheader + "_Figure6.pdf"
+        name6 = self.config.output_file(prefix + "Figure6.pdf")
         if self.plot6.flag:
             self.plot6.on_save_fig(e, name6)
-        name7 = self.config.outfname + extraheader + "_Figure7.pdf"
+        name7 = self.config.output_file(prefix + "Figure7.pdf")
         if self.plot7.flag:
             self.plot7.on_save_fig(e, name7)
-        print("Saved to:", self.config.outfname + extraheader)
+        print("Saved to:", self.config.udir)
 
     def on_close(self, e):
         """

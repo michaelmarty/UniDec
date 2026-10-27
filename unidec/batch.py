@@ -1,7 +1,7 @@
 from unidec.engine import UniDec
 from unidec.modules.matchtools import *
 from unidec.modules import peakstructure
-from unidec.tools import strip_char_from_string
+from unidec.tools import get_unidec_output_path, strip_char_from_string
 import os
 import numpy as np
 import time
@@ -389,9 +389,7 @@ def find_kernel_file(kernel_path):
         return kernel_path
     else:
         # If not a mass file, find the mass file
-        bare_name = os.path.splitext(kernel_name)[0]
-        kernel_path2 = os.path.join(os.path.dirname(kernel_path), bare_name + "_unidecfiles",
-                                    bare_name + "_mass.txt")
+        kernel_path2 = get_unidec_output_path(kernel_path, "mass.txt")
 
         try:
             with open(kernel_path2, "r") as f:

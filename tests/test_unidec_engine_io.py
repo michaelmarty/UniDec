@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+import os
 from pathlib import Path
 
 import h5py
@@ -81,6 +82,65 @@ class TestUniDecConfigSerialization(unittest.TestCase):
 
     def test_newblur_rescaling_defaults_on(self):
         self.assertEqual(UniDecConfig().rescale_newblur, 1)
+
+    def test_managed_output_names_support_short_and_legacy_modes(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-names-") as directory:
+            config = UniDecConfig()
+            config.outfname = str(Path(directory, "sample"))
+            config.default_file_names()
+            self.assertEqual(config.output_file("mass.txt"), str(Path(directory, "sample_mass.txt")))
+
+            config.outfname = os.path.join(directory, "")
+            config.default_file_names(s="")
+            self.assertEqual(config.output_file("mass.txt"), str(Path(directory, "mass.txt")))
+
+    def test_text_config_uses_relative_managed_paths_and_preserves_provenance(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-relative-config-") as directory:
+            run = Path(directory, "sample_unidecfiles")
+            run.mkdir()
+            source = UniDecConfig()
+            source.udir = str(run)
+            source.outfname = os.path.join(str(run), "")
+            source.default_file_names(s="")
+            source.original_file = "sample with spaces.raw"
+            source.config_export(source.confname)
+
+            text = Path(source.confname).read_text(encoding="utf-8")
+            self.assertIn("input input.dat\n", text)
+            self.assertIn("output ./\n", text)
+            self.assertIn("original_file sample with spaces.raw\n", text)
+
+            restored = UniDecConfig()
+            restored.config_import(source.confname)
+            self.assertEqual(restored.original_file, "sample with spaces.raw")
+
+            restored.original_file = "destination.raw"
+            restored.config_import(source.confname)
+            self.assertEqual(restored.original_file, "destination.raw")
+
+
+    def test_new_run_uses_short_names_and_versioned_npz_cache(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-short-run-") as directory:
+            spectrum = Path(directory, "sample.txt")
+            np.savetxt(spectrum, [[500.0, 1.0], [501.0, 2.0], [502.0, 1.0]])
+
+            engine = UniDec(ignore_args=True, silent=True)
+            engine.open_file(spectrum.name, directory, silent=True)
+            output = Path(directory, "sample_unidecfiles")
+
+            self.assertEqual(Path(engine.config.confname), output / "conf.dat")
+            self.assertEqual(Path(engine.config.infname), output / "input.dat")
+            self.assertFalse((output / "sample_conf.dat").exists())
+            with np.load(output / "rawdata.npz", allow_pickle=False) as cache:
+                np.testing.assert_allclose(cache["data"], engine.data.rawdata)
+                self.assertEqual(int(cache["unidec_rawdata_version"]), 1)
+                self.assertEqual(str(cache["mode"]), "ms")
+                self.assertEqual(str(cache["original_file"]), spectrum.name)
+
+            restored = UniDec(ignore_args=True, silent=True)
+            restored.open_file("rawdata.npz", str(output), silent=True)
+            self.assertEqual(restored.config.original_file, spectrum.name)
+            np.testing.assert_allclose(restored.data.rawdata, engine.data.rawdata)
 
     def test_text_and_hdf5_round_trip(self):
         with tempfile.TemporaryDirectory(prefix="unidec-config-") as directory:

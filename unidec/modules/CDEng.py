@@ -515,26 +515,19 @@ class UniDecCD(engine.UniDec):
         # Create the npz file of the extracted values if it doens't exist
         if not os.path.isfile(self.config.cdrawextracts) or refresh:
             try:
-                np.savez_compressed(self.config.cdrawextracts, data=self.darray)
+                np.savez_compressed(
+                    self.config.cdrawextracts,
+                    data=self.darray,
+                    unidec_rawdata_version=np.array(1),
+                    mode=np.array("cdms"),
+                    original_file=np.array(self.config.original_file),
+                )
             except Exception as e:
                 pass
 
         self.config.cdmsflag = 1
-        # Load the config if you can find it. Fall back to the legacy files,
-        # but restore the short names after importing their configuration and
-        # companion lists so subsequent writes do not hit Windows MAX_PATH.
         if os.path.isfile(self.config.confname):
             self.load_config(self.config.confname)
-        elif os.path.isfile(self.legacy_confname):
-            short_outfname = self.config.outfname
-            try:
-                self.config.outfname = self.legacy_outfname
-                self.config.default_file_names()
-                self.load_config(self.config.confname)
-            finally:
-                self.config.outfname = short_outfname
-                self.config.default_file_names(s="")
-                self.config.confname = os.path.join(self.config.udir, "conf.dat")
         else:
             self.export_config()
 
@@ -556,30 +549,45 @@ class UniDecCD(engine.UniDec):
         # Handle Paths
         self.config.filename = self.path
         self.config.dirname = file_directory
+        self.config.original_file = file_name
+        if os.path.splitext(self.path)[1].lower() == ".npz":
+            try:
+                with np.load(self.path, allow_pickle=False) as cache:
+                    if "original_file" in cache:
+                        self.config.original_file = str(cache["original_file"])
+            except (OSError, ValueError, KeyError):
+                pass
 
         # Change paths to unidecfiles folder
         dirnew = os.path.splitext(self.path)[0] + "_unidecfiles"
         if not os.path.isdir(dirnew):
             os.mkdir(dirnew)
         self.config.udir = dirnew
-        # Use bare file names inside the already unique _unidecfiles directory.
-        # Keep the old paths available for loading existing results and caches.
         basename = os.path.split(os.path.splitext(file_name)[0])[1]
         self.legacy_outfname = os.path.join(self.config.udir, basename)
         self.legacy_confname = self.legacy_outfname + "_conf.dat"
-        legacy_cdrawextracts = self.legacy_outfname + "_rawdata.npz"
-        self.config.outfname = os.path.join(self.config.udir, "")
+        short_confname = os.path.join(self.config.udir, "conf.dat")
+        use_short_names = os.path.isfile(short_confname) or not os.path.isfile(self.legacy_confname)
+        self.config.outfname = (os.path.join(self.config.udir, "") if use_short_names
+                                else self.legacy_outfname)
         self.config.extension = os.path.splitext(self.config.filename)[1]
-        self.config.default_file_names(s="")
-        self.config.confname = os.path.join(self.config.udir, "conf.dat")
+        self.config.default_file_names(s="" if use_short_names else "_")
 
         # Look for already processed data in the form of an npz file and load it if it exists for speed.
         raw_extracts = self.config.cdrawextracts
-        if not os.path.isfile(raw_extracts) and os.path.isfile(legacy_cdrawextracts):
-            raw_extracts = legacy_cdrawextracts
         if os.path.isfile(self.path) and os.path.isfile(raw_extracts) and not refresh:
-            print("Raw data found:", raw_extracts)
-            self.path = raw_extracts
+            cache_matches = True
+            try:
+                with np.load(raw_extracts, allow_pickle=False) as cache:
+                    if "mode" in cache and str(cache["mode"]) != "cdms":
+                        cache_matches = False
+                    if "original_file" in cache and str(cache["original_file"]) != self.config.original_file:
+                        cache_matches = False
+            except (OSError, ValueError, KeyError):
+                cache_matches = False
+            if cache_matches:
+                print("Raw data found:", raw_extracts)
+                self.path = raw_extracts
 
 
     def process_data(self, transform=True):

@@ -14,7 +14,7 @@ from unidec.UniDecIM import UniDecIMApp
 from unidec.modules.unidec_presbase import UniDecPres
 from UniDecImporter.ImporterFactory import VendorReaderUnavailableError
 
-from _test_support import copy_unidec_example, find_importer_test_data, has_gui_display, importer_fixture
+from tests._test_support import copy_unidec_example, find_importer_test_data, has_gui_display, importer_fixture
 
 
 WINDOWS_X64 = platform.system() == "Windows" and platform.machine().lower() in {

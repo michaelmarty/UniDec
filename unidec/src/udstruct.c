@@ -4,6 +4,36 @@
 
 #include "udstruct.h"
 
+static int path_is_absolute(const char *path) {
+    return path[0] == '/' || path[0] == '\\' ||
+           (strlen(path) > 2 && path[1] == ':' && (path[2] == '/' || path[2] == '\\'));
+}
+
+static void config_directory(const char *filename, char *directory, const size_t length) {
+    const char *slash = strrchr(filename, '/');
+    const char *backslash = strrchr(filename, '\\');
+    const char *separator = slash;
+    if (backslash != NULL && (separator == NULL || backslash > separator)) { separator = backslash; }
+    if (separator == NULL) {
+        snprintf(directory, length, ".");
+        return;
+    }
+    const size_t count = (size_t)(separator - filename);
+    snprintf(directory, length, "%.*s", (int)count, filename);
+}
+
+static void resolve_config_path(char *path, const size_t length, const char *directory, const int output) {
+    if (path[0] == '\0' || path_is_absolute(path)) { return; }
+    char resolved[500];
+    const char separator = strchr(directory, '\\') != NULL ? '\\' : '/';
+    if (output && strcmp(path, ".") == 0) {
+        snprintf(resolved, sizeof(resolved), "%s%c", directory, separator);
+    } else {
+        snprintf(resolved, sizeof(resolved), "%s%c%s", directory, separator, path);
+    }
+    snprintf(path, length, "%s", resolved);
+}
+
 
 Input InitInputs() {
     Input inp;
@@ -386,6 +416,14 @@ Config LoadConfig(Config config, const char *filename) {
         //printf("\n\n");
     }
     fclose(file);
+
+    char directory[500];
+    config_directory(filename, directory, sizeof(directory));
+    resolve_config_path(config.infile, sizeof(config.infile), directory, 0);
+    resolve_config_path(config.outfile, sizeof(config.outfile), directory, 1);
+    if (config.mflag) { resolve_config_path(config.mfile, sizeof(config.mfile), directory, 0); }
+    if (config.manualflag) { resolve_config_path(config.manualfile, sizeof(config.manualfile), directory, 0); }
+    if (config.kernel[0] != '\0') { resolve_config_path(config.kernel, sizeof(config.kernel), directory, 0); }
 
     PostImport(&config);
 

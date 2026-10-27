@@ -228,8 +228,12 @@ class UniDecApp(UniDecPres):
         :return: None
         """
         if filenew is None:
+            default_state = os.path.join(
+                self.eng.config.dirname,
+                os.path.splitext(self.eng.config.original_file or "unidec_state")[0] + ".zip",
+            )
             filenew = FileDialogs.save_file_dialog(message="Save to UniDec Zip File", file_types="*.zip",
-                                                   default_file=self.eng.config.outfname + ".zip")
+                                                   default_file=default_state)
         if filenew is not None:
             self.view.SetStatusText("Saving", number=5)
             self.eng.save_state(filenew)
@@ -523,7 +527,7 @@ class UniDecApp(UniDecPres):
 
             self.view.plot4.plotadd(self.eng.data.data2[:, 0], self.eng.pks.composite, "b", "useless label")
             self.view.plot4.repaint()
-            np.savetxt(self.eng.config.outfname + "_composite_spectrum.dat",
+            np.savetxt(self.eng.config.output_file("composite_spectrum.dat"),
                        np.transpose([self.eng.data.data2[:, 0], self.eng.pks.composite]))
         except ValueError:
             print("Need to hit Plot Peaks button first")
@@ -614,7 +618,7 @@ class UniDecApp(UniDecPres):
         # Normalize and write
         self.eng.normalize_peaks()
         areas = [[p.mass, p.integral] for p in self.eng.pks.peaks]
-        np.savetxt(self.eng.config.outfname + "_peak_areas.dat", areas)
+        np.savetxt(self.eng.config.output_file("peak_areas.dat"), areas)
 
         # Plot
         if plot:
@@ -1105,11 +1109,12 @@ class UniDecApp(UniDecPres):
         peaklabels = [p.label for p in self.eng.pks.peaks]
         peakcolors = [p.color for p in self.eng.pks.peaks]
         peaks = np.array([[p.mass, p.height] for p in self.eng.pks.peaks])
-        texmaker.MakeTexReport(self.eng.config.outfname + '_report.tex', self.eng.config, self.eng.config.udir,
+        report_path = self.eng.config.output_file('report.tex')
+        texmaker.MakeTexReport(report_path, self.eng.config, self.eng.config.udir,
                                peaks, textmarkertab, peaklabels, peakcolors, figureflags)
         self.view.SetStatusText("TeX file Written", number=5)
         try:
-            texmaker.PDFTexReport(self.eng.config.outfname + '_report.tex')
+            texmaker.PDFTexReport(report_path)
             self.view.SetStatusText("PDF Report Finished", number=5)
         except Exception as ex:
             self.view.SetStatusText("PDF Report Failed", number=5)

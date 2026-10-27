@@ -73,6 +73,7 @@ class UniDecConfig(object):
         self.dirname = ''
         self.udir = ''
         self.filename = ''
+        self.original_file = ''
         self.extension = ''
         self.deconfile = ''
         self.errorfile = ''
@@ -345,6 +346,7 @@ class UniDecConfig(object):
             "cdmsflag": (self.cdmsflag, int),
             "input": (self.infname, str),
             "output": (self.outfname, str),
+            "original_file": (self.original_file, str),
             "numit": (self.numit, int),
             "numz": (self.numz, int),
             "endz": (self.endz, int),
@@ -723,6 +725,7 @@ class UniDecConfig(object):
         self.numz = self.endz - self.startz + 1
         self.get_dict()
 
+        config_dir = os.path.dirname(os.path.abspath(name))
         f = open(name, 'w+')
         ignorelist = ["mfile", "manualfile", "smashfile", "ofile", "matchfile", "peaksfile", "kernel"]
         for key in self.namedict.keys():
@@ -747,23 +750,27 @@ class UniDecConfig(object):
                         else:
                             raise ValueError(f"Value for {key} is not a valid int: {value}")
 
+                if key in ("input", "output"):
+                    value = self._path_for_config(value, config_dir)
+                    if key == "output" and value == ".":
+                        value = "./"
                 outstring = str(value)
                 if outstring != "" and outstring != " ":
                     f.write(key + " " + outstring + "\n")
 
         if self.mfileflag:
             if not ud.isempty(self.masslist):
-                f.write("mfile " + str(self.mfile) + "\n")
+                f.write("mfile " + self._path_for_config(self.mfile, config_dir) + "\n")
             else:
                 print("Need to specify mass list. Running without mass list.")
         if self.manualfileflag:
             if not ud.isempty(self.manuallist):
-                f.write("manualfile " + str(self.manualfile) + "\n")
+                f.write("manualfile " + self._path_for_config(self.manualfile, config_dir) + "\n")
             else:
                 print("Need to specify manual assignments. Running without assignments.")
 
         if self.kernel != "":
-            f.write("kernel " + str(self.kernel) + "\n")
+            f.write("kernel " + self._path_for_config(self.kernel, config_dir) + "\n")
 
         # Add IsoDec Config to File
         self.idconfig.config_export(f)
@@ -819,6 +826,8 @@ class UniDecConfig(object):
             self.mfileflag = 0
             for line in f:
                 if len(line.split()) > 1:
+                    if line.startswith("original_file") and not self.original_file:
+                        self.original_file = line.partition(" ")[2].strip()
                     if line.startswith("version"):
                         self.inputversion = line.split()[1]
                     if line.startswith("imflag"):
@@ -1400,6 +1409,24 @@ class UniDecConfig(object):
         self.reportfile = self.outfname + s + "report.html"
         if self.filetype == 0:
             self.hdf_file = self.outfname + ".hdf5"
+
+    def output_file(self, name):
+        """Return a managed output path for the active short or legacy naming mode."""
+        separator = "" if self.outfname.endswith(("/", "\\")) else "_"
+        return self.outfname + separator + name
+
+    @staticmethod
+    def _path_for_config(path, config_dir):
+        """Serialize managed paths relative to the config file when possible."""
+        if not path:
+            return str(path)
+        absolute = os.path.abspath(path)
+        try:
+            if os.path.commonpath((absolute, config_dir)) == config_dir:
+                return os.path.relpath(absolute, config_dir)
+        except ValueError:
+            pass
+        return str(path)
 
     def check_badness(self):
         """

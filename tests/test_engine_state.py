@@ -11,6 +11,30 @@ from tests._test_support import copy_unidec_example
 
 
 class TestEngineState(unittest.TestCase):
+    def test_short_name_state_restores_from_npz_cache(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-short-state-") as directory:
+            root = Path(directory)
+            spectrum = root / "sample.txt"
+            np.savetxt(spectrum, [[500.0, 1.0], [501.0, 2.0], [502.0, 1.0]])
+
+            source = UniDec(ignore_args=True, silent=True)
+            source.open_file(spectrum.name, directory, silent=True)
+            source.config.startz = 4
+            source.process_data(silent=True)
+            expected = source.data.data2.copy()
+            state = root / "sample_state.zip"
+            source.save_state(str(state))
+
+            spectrum.unlink()
+            shutil.rmtree(root / "sample_unidecfiles")
+
+            restored = UniDec(ignore_args=True, silent=True)
+            self.assertTrue(restored.load_state(str(state)))
+            self.assertEqual(restored.config.startz, 4)
+            self.assertEqual(restored.config.procflag, 1)
+            self.assertTrue((root / "sample_unidecfiles" / "rawdata.npz").is_file())
+            np.testing.assert_allclose(restored.data.data2, expected)
+
     def test_headless_state_restores_processed_data_and_nondefault_config(self):
         """A fresh engine restores values from the ZIP after the staged source tree is removed."""
         with tempfile.TemporaryDirectory(prefix="unidec-engine-state-") as directory:

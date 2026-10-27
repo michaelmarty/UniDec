@@ -1324,9 +1324,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                 kernel_diff = np.diff(kernel_dat[:, 0])
                 is_mass = np.all(kernel_diff == kernel_diff[0])
             if not is_mass:  # If not a mass file, find the mass file
-                bare_name = os.path.splitext(kernel_name)[0]
-                kernel_path2 = os.path.dirname(kernel_path) + "\\" + bare_name + "_unidecfiles\\" + \
-                               bare_name + "_mass.txt"
+                kernel_path2 = ud.get_unidec_output_path(kernel_path, "mass.txt")
 
             try:
                 with open(kernel_path2, "r") as f:

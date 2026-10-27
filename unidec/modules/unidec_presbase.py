@@ -112,7 +112,7 @@ class UniDecPres(object):
         Save the configuration to a text file
         """
         # Create a save dialog
-        file_path = FileDialogs.save_file_dialog(message="Save Config Dat File", file_types="Dat (*_conf.dat)|*_conf.dat")
+        file_path = FileDialogs.save_file_dialog(message="Save Config Dat File", file_types="Dat (conf.dat)|*.dat")
         if file_path is not None:
             self.export_config()
             self.eng.config.config_export(file_path)
@@ -176,11 +176,11 @@ class UniDecPres(object):
 
     def on_load_conf_file(self, e=None):
         """
-        Opens a file dialog and then imports a new _conf.dat config file
+        Opens a file dialog and then imports a conf.dat or legacy _conf.dat config file
         :param e: unused space for event
         :return: None
         """
-        cfilename = FileDialogs.open_file_dialog("Open Configuration File (_conf.dat)", file_types="*.*")
+        cfilename = FileDialogs.open_file_dialog("Open Configuration File (conf.dat)", file_types="*.*")
         if cfilename is not None:
             self.import_config(cfilename)
         pass

@@ -888,6 +888,20 @@ def solve_for_mass(mz1, mz2, adductmass=1.007276467):
 # .........................................
 
 
+def get_unidec_output_path(source_path, name):
+    """Return a short-name run artifact, falling back to its legacy path."""
+    return get_unidec_output_path_from_header(os.path.splitext(source_path)[0], name)
+
+
+def get_unidec_output_path_from_header(header, name):
+    """Resolve a run artifact when the caller already removed the source extension."""
+    folder = header + "_unidecfiles"
+    short_path = os.path.join(folder, name)
+    if os.path.exists(short_path):
+        return short_path
+    return os.path.join(folder, os.path.basename(header) + "_" + name)
+
+
 def zipdir(path, zip_handle):
     """
     Zips all the files in the path into the zip_handle
@@ -1750,7 +1764,7 @@ def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
 # ............................................................................
 
 
-def exe_call(call, silent=False):
+def exe_call(call, silent=False, cwd=None):
     """
     Run the  binary specified in the call.
     If silent is False (default), the output from exepath will be printed to the standard out.
@@ -1762,7 +1776,7 @@ def exe_call(call, silent=False):
     """
     if not silent:
         print("System Call:", call)
-    result = subprocess.run(call, shell=False, capture_output=True, text=True)
+    result = subprocess.run(call, shell=False, capture_output=True, text=True, cwd=cwd)
     out = result.returncode
     if not silent:
         print(result.stdout)
@@ -1794,7 +1808,7 @@ def unidec_call(config, silent=False, conv=False, **kwargs):
     if conv:
         call.append("-conv")
 
-    out = exe_call(call, silent=silent)
+    out = exe_call(call, silent=silent, cwd=os.path.dirname(os.path.abspath(config.confname)))
     return out
 
 
