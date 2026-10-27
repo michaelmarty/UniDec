@@ -95,7 +95,7 @@ class HelpDlg(wx.Frame):
                                                  ".HDF5 file. Ex: C:\\HDF5-location\\UniDec_Figures_and_Files\\Fig1.pdf</p>"
                                                  "<h2>Importing Configs</h2>"
                                                  "<p>File->Load External Config will load the parameters from a previous run."
-                                                 " This can either be a _conf.dat file from UniDec of an HDF5 file from MetaUniDec.  "
+                                                 " This can be a conf.dat (or legacy _conf.dat) file from UniDec or an HDF5 file from MetaUniDec.  "
                                                  "Advanced->Reset Factory Default will restore all settings to the program defaults.<p>"
                                                  "</body></html>"
         )

@@ -125,8 +125,8 @@ config_parameters = [
         "that are also in the list. "
         "If you want to use a kernel file from your list, "
         "first deconvolve it, "
-        "then copy the _mass.txt file out to a separate folder. "
-        "Then, add that _mass.txt file as the path. Otherwise, "
+        "then copy the mass.txt (or legacy *_mass.txt) file out to a separate folder. "
+        "Then, add that mass file as the path. Otherwise, "
         "you will be overwriting "
         "the kernel each time, which can cause unstable results.",
     ],

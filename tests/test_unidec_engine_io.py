@@ -142,6 +142,12 @@ class TestUniDecConfigSerialization(unittest.TestCase):
             self.assertEqual(restored.config.original_file, spectrum.name)
             np.testing.assert_allclose(restored.data.rawdata, engine.data.rawdata)
 
+            (output / "rawdata.npz").write_bytes(b"truncated")
+            repaired = UniDec(ignore_args=True, silent=True)
+            repaired.open_file(spectrum.name, directory, silent=True)
+            with np.load(output / "rawdata.npz", allow_pickle=False) as cache:
+                np.testing.assert_allclose(cache["data"], engine.data.rawdata)
+
     def test_text_and_hdf5_round_trip(self):
         with tempfile.TemporaryDirectory(prefix="unidec-config-") as directory:
             for extension in ("dat", "hdf5"):

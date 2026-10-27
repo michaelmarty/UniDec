@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import scipy.fft as fft
 from unidec.modules import unidecstructure, peakstructure, IM_functions, fitting
 import time
+import tempfile
 from unidec import engine
 from scipy.optimize import curve_fit
 from UniDecImporter import ImportTools as IT
@@ -513,17 +514,24 @@ class UniDecCD(engine.UniDec):
         self.config.maxmz = np.amax(mz)
 
         # Create the npz file of the extracted values if it doens't exist
-        if not os.path.isfile(self.config.cdrawextracts) or refresh:
+        if not os.path.isfile(self.config.cdrawextracts) or refresh or getattr(self, "_rewrite_raw_cache", False):
             try:
+                handle = tempfile.NamedTemporaryFile(dir=self.config.udir, suffix=".npz", delete=False)
+                temp_path = handle.name
+                handle.close()
                 np.savez_compressed(
-                    self.config.cdrawextracts,
+                    temp_path,
                     data=self.darray,
                     unidec_rawdata_version=np.array(1),
                     mode=np.array("cdms"),
                     original_file=np.array(self.config.original_file),
                 )
+                os.replace(temp_path, self.config.cdrawextracts)
             except Exception as e:
                 pass
+            finally:
+                if "temp_path" in locals() and os.path.exists(temp_path):
+                    os.remove(temp_path)
 
         self.config.cdmsflag = 1
         if os.path.isfile(self.config.confname):
@@ -575,6 +583,7 @@ class UniDecCD(engine.UniDec):
 
         # Look for already processed data in the form of an npz file and load it if it exists for speed.
         raw_extracts = self.config.cdrawextracts
+        self._rewrite_raw_cache = False
         if os.path.isfile(self.path) and os.path.isfile(raw_extracts) and not refresh:
             cache_matches = True
             try:
@@ -588,6 +597,8 @@ class UniDecCD(engine.UniDec):
             if cache_matches:
                 print("Raw data found:", raw_extracts)
                 self.path = raw_extracts
+            else:
+                self._rewrite_raw_cache = True
 
 
     def process_data(self, transform=True):

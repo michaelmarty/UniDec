@@ -111,7 +111,7 @@ def merge_files(rawlist, dmtlist, outfile, parent_dir=None):
     print("Final Scan:", start_scan)
     print("Final Time:", start_time)
 
-    # Write a _conf.dat text file that has
+    # Write a conf.dat text file that has
     HTanalysistime = start_time
     HTmaxscans = start_scan
 
@@ -126,7 +126,7 @@ def merge_files(rawlist, dmtlist, outfile, parent_dir=None):
 
     os.makedirs(unidec_folder, exist_ok=True)
 
-    confout = os.path.join(unidec_folder, outfile + "_conf.dat")
+    confout = os.path.join(unidec_folder, "conf.dat")
     with open(confout, "w") as f:
         f.write(f"HTanalysistime {HTanalysistime}\n")
         f.write(f"HTmaxscans {HTmaxscans}\n")

@@ -144,6 +144,18 @@ class UniDec(UniDecEngine):
         self.data.rawdata = data
         return original_file
 
+    def _raw_cache_matches(self, path):
+        try:
+            with np.load(path, allow_pickle=False) as cache:
+                return (
+                    int(cache["unidec_rawdata_version"]) == 1
+                    and str(cache["mode"]) == ("imms" if self.config.imflag else "ms")
+                    and str(cache["original_file"]) == self.config.original_file
+                    and np.asarray(cache["data"]).ndim == 2
+                )
+        except (OSError, ValueError, KeyError, TypeError):
+            return False
+
     def _restore_processed_data(self, refresh=False):
         """Restore cached one-dimensional processed data when available."""
         if os.path.isfile(self.config.infname) and not refresh:
@@ -254,7 +266,8 @@ class UniDec(UniDecEngine):
             print("Likely an error with data conversion")
             raise ImportError
 
-        if not os.path.isfile(newname):
+        if (not os.path.isfile(newname) or refresh or
+                (self.simple_output and not self._raw_cache_matches(newname))):
             try:
                 self._write_raw_cache(newname, outputdata)
             except Exception as e:

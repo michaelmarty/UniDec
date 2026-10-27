@@ -11,6 +11,23 @@ from tests._test_support import copy_unidec_example
 
 
 class TestBundledCDProcessing(unittest.TestCase):
+    def test_new_cd_run_uses_standard_names_and_versioned_cache(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-bundled-cd-short-") as directory:
+            root = Path(directory)
+            data_path = copy_unidec_example(root, "CDMS", "BgalGroEL.dmt")
+            engine = UniDecCD()
+            try:
+                engine.open_file(str(data_path), refresh=True)
+                output = root / "BgalGroEL_unidecfiles"
+                self.assertEqual(Path(engine.config.confname), output / "conf.dat")
+                with np.load(output / "rawdata.npz", allow_pickle=False) as cache:
+                    self.assertEqual(int(cache["unidec_rawdata_version"]), 1)
+                    self.assertEqual(str(cache["mode"]), "cdms")
+                    self.assertEqual(str(cache["original_file"]), data_path.name)
+            finally:
+                if getattr(engine, "importer", None) is not None:
+                    engine.importer.close()
+
     def test_bundled_mixture_has_finite_native_cd_scores(self):
         with tempfile.TemporaryDirectory(prefix="unidec-bundled-cd-score-") as directory:
             root = Path(directory)

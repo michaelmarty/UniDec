@@ -279,6 +279,10 @@ class TestUniDecIMWorkflows(unittest.TestCase):
         self.assertGreater(self.app.eng.data.massccs.size, 0)
         self.assertGreater(len(self.app.eng.pks.peaks), 0)
         self.assertTrue(np.isfinite(self.app.eng.config.error))
+        with np.load(Path(config.udir, "rawdata.npz"), allow_pickle=False) as cache:
+            self.assertEqual(str(cache["mode"]), "imms")
+            self.assertEqual(str(cache["original_file"]), source.name)
+            self.assertEqual(cache["data"].shape[1], 3)
 
     def test_importer_imms_text_opens_in_gui(self):
         fixtures = (

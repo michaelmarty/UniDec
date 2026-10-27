@@ -11,6 +11,24 @@ Detailed descriptions of the algorithm are provided in the paper and subsequent 
 
 Please contact mtmarty@utexas.edu for questions, suggestions, or with any bugs.
 
+## Run files
+
+New analyses keep managed files under a dedicated `<input-stem>_unidecfiles`
+folder and use standard names such as `conf.dat`, `input.dat`, `mass.txt`, and
+`peaks.dat`. MetaUniDec and UniChrom use an adjacent
+`<project-name>.hdf5_unidecfiles` sidecar so projects in the same directory do
+not share external outputs.
+
+Managed paths in `conf.dat` are relative to the config file by default;
+explicit absolute paths remain valid overrides. `original_file` records the
+source basename. The extracted raw-data checkpoint is `rawdata.npz`, containing
+the numeric data, workflow mode, format version, and original filename. It is a
+checkpoint of the extracted spectrum, not a copy of the full vendor data.
+
+Existing folders containing basename-prefixed files such as
+`sample_conf.dat` remain in legacy naming mode when reopened. UniDec does not
+mix or automatically rename the two layouts.
+
 ## UniDecCD peak scoring
 
 After single-histogram CD-MS deconvolution, peak picking calculates DScore for

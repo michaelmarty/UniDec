@@ -1,4 +1,5 @@
 import os
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -12,6 +13,26 @@ from tests._test_support import copy_unidec_example
 
 
 class TestBundledNativeWorkflows(unittest.TestCase):
+    def test_native_resolves_relative_config_paths_from_config_directory(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-native-relative-") as directory:
+            root = Path(directory)
+            spectrum = copy_unidec_example(root, "BSA.txt")
+            engine = UniDec(ignore_args=True, silent=True)
+            if not os.path.isfile(engine.config.UniDecPath):
+                self.skipTest(f"Packaged native executable is unavailable: {engine.config.UniDecPath}")
+            engine.open_file(spectrum.name, directory, silent=True)
+            engine.process_data(silent=True)
+
+            result = subprocess.run(
+                [engine.config.UniDecPath, engine.config.confname],
+                cwd=root,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertTrue(Path(engine.config.udir, "mass.txt").is_file())
+
     def test_bsa_native_outputs_match_imported_axis_dimensions(self):
         """A second conventional spectrum exercises native execution without duplicating ADH assertions."""
         with tempfile.TemporaryDirectory(prefix="unidec-native-ms-") as directory:
