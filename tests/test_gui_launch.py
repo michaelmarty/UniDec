@@ -228,7 +228,7 @@ try:
                 launched = app.on_open_ud(0)
             spectrum_path = os.path.join(directory, "sample_spectrum_1.txt")
             config_path = os.path.join(
-                directory, "sample_spectrum_1_unidecfiles", "sample_spectrum_1_conf.dat")
+                directory, "sample_spectrum_1_unidecfiles", "conf.dat")
             assert np.allclose(np.loadtxt(spectrum_path), raw_data)
             assert os.path.isfile(config_path)
             assert launched.eng.config.rawflag == 1
