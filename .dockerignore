@@ -1,0 +1,13 @@
+.git
+.github
+.idea
+.venv
+__pycache__
+*.pyc
+build
+dist
+unidec_doc/build
+unidec/src/.vs
+unidec/src/CMakeFiles
+unidec/src/cmake-build*
+unidec/src/x64

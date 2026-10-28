@@ -1,0 +1,1618 @@
+import platform
+import struct
+import numpy as np
+import os
+import scipy
+import unidec.tools as ud
+
+from unidec.modules.unidec_enginebase import UniDecEngine
+from UniDecImporter.ImporterFactory import ImporterFactory
+from copy import deepcopy
+import matplotlib.pyplot as plt
+import scipy.fft as fft
+from unidec.modules import unidecstructure, peakstructure, IM_functions, fitting
+import time
+import tempfile
+from unidec import engine
+from scipy.optimize import curve_fit
+from UniDecImporter import ImportTools as IT
+
+cdeng_types = [".mzml", ".raw", ".mzxml", ".gz"]
+
+UCCD_BINARY_MAGIC = b"UCCDBIN1"
+UCCD_BINARY_HEADER = struct.Struct("<8sIIIQ")
+UCCD_BINARY_RECORD = np.dtype([("index", "<u4"), ("intensity", "<f4")])
+
+
+def write_uccd_binary(filename, chromaxis, mzaxis, zaxis, hstack):
+    """Write a nonnegative sparse UCCD cube in [chromatography, m/z, charge] order.
+
+    Richardson-Lucy deconvolution requires nonnegative observations. HT/MRS
+    demultiplexing can leave small negative sidelobes in a histogram stack, so
+    omit those values rather than allowing negative correction ratios to grow
+    into large positive spikes during iteration.
+    """
+    chromaxis = np.asarray(chromaxis, dtype="<f4")
+    mzaxis = np.asarray(mzaxis, dtype="<f4")
+    zaxis = np.asarray(zaxis, dtype="<f4")
+    hstack = np.asarray(hstack)
+    expected_shape = (len(chromaxis), len(zaxis), len(mzaxis))
+    if hstack.shape != expected_shape:
+        raise ValueError(f"UCCD stack must have shape {expected_shape}; got {hstack.shape}")
+
+    total_size = int(np.prod(expected_shape, dtype=np.int64))
+    if total_size > np.iinfo(np.uint32).max:
+        raise ValueError("UCCD cube is too large for 32-bit sparse indexes")
+
+    nonzero_count = int(np.count_nonzero(hstack > 0))
+    negative_count = int(np.count_nonzero(hstack < 0))
+    if negative_count:
+        print(f"Clipping {negative_count} negative UCCD input values to zero")
+    with open(filename, "wb") as outfile:
+        outfile.write(UCCD_BINARY_HEADER.pack(
+            UCCD_BINARY_MAGIC, len(chromaxis), len(mzaxis), len(zaxis), nonzero_count
+        ))
+        outfile.write(chromaxis.tobytes())
+        outfile.write(mzaxis.tobytes())
+        outfile.write(zaxis.tobytes())
+
+        # Process one chromatographic slice at a time so the sparse index
+        # arrays do not become another cube-sized allocation.
+        for chromindex, scan in enumerate(hstack):
+            zindex, mzindex = np.nonzero(scan > 0)
+            records = np.empty(len(zindex), dtype=UCCD_BINARY_RECORD)
+            records["index"] = (
+                (chromindex * len(mzaxis) + mzindex) * len(zaxis) + zindex
+            )
+            records["intensity"] = scan[zindex, mzindex]
+            outfile.write(records.tobytes())
+
+
+def read_uccd_binary(filename, expected_axes=None, sum_mz=False):
+    """Read a sparse UCCD cube into Python's [time, charge, m/z] order."""
+    with open(filename, "rb") as infile:
+        header = infile.read(UCCD_BINARY_HEADER.size)
+        if len(header) != UCCD_BINARY_HEADER.size:
+            raise ValueError(f"Incomplete UCCD header in {filename}")
+        magic, nchrom, nmz, nz, nonzero_count = UCCD_BINARY_HEADER.unpack(header)
+        if magic != UCCD_BINARY_MAGIC:
+            raise ValueError(f"Invalid UCCD binary file: {filename}")
+
+        axis_count = nchrom + nmz + nz
+        axis_bytes = infile.read(axis_count * np.dtype("<f4").itemsize)
+        if len(axis_bytes) != axis_count * np.dtype("<f4").itemsize:
+            raise ValueError(f"Incomplete UCCD axes in {filename}")
+        axes = np.frombuffer(axis_bytes, dtype="<f4")
+        chromaxis = axes[:nchrom]
+        mzaxis = axes[nchrom:nchrom + nmz]
+        zaxis = axes[nchrom + nmz:]
+
+        if expected_axes is not None:
+            for name, actual, expected in zip(
+                    ("chromatography", "m/z", "charge"),
+                    (chromaxis, mzaxis, zaxis), expected_axes):
+                try:
+                    # UCCD axes are serialized as little-endian float32. Compare
+                    # against that same representation so object/string-backed
+                    # numeric axes do not reach np.allclose as dtype=object.
+                    expected = np.asarray(expected, dtype=actual.dtype)
+                except (TypeError, ValueError) as exc:
+                    raise ValueError(
+                        f"Expected UCCD {name} axis cannot be converted to {actual.dtype}"
+                    ) from exc
+                if actual.shape != expected.shape or not np.allclose(actual, expected):
+                    raise ValueError(f"UCCD {name} axis does not match the input stack")
+
+        if sum_mz:
+            output = np.zeros(nmz, dtype=np.float32)
+        else:
+            output = np.zeros((nchrom, nz, nmz), dtype=np.float32)
+        chunk_size = 1000000
+        records_left = nonzero_count
+        while records_left:
+            count = min(chunk_size, records_left)
+            record_bytes = infile.read(count * UCCD_BINARY_RECORD.itemsize)
+            if len(record_bytes) != count * UCCD_BINARY_RECORD.itemsize:
+                raise ValueError(f"Incomplete UCCD sparse data in {filename}")
+            records = np.frombuffer(record_bytes, dtype=UCCD_BINARY_RECORD)
+            indexes = records["index"].astype(np.int64)
+            if np.any(indexes >= nchrom * nmz * nz):
+                raise ValueError(f"Out-of-range sparse index in {filename}")
+            chromindex, remainder = divmod(indexes, nmz * nz)
+            mzindex, zindex = divmod(remainder, nz)
+            if sum_mz:
+                np.add.at(output, mzindex, records["intensity"])
+            else:
+                output[chromindex, zindex, mzindex] = records["intensity"]
+            records_left -= count
+
+    return output, (chromaxis, mzaxis, zaxis)
+
+
+
+def Gmax2(darray):
+    ints = darray[:, 1]
+    boo1 = ints < np.median(ints) * 2
+
+    noisedata = darray[boo1]
+
+    hist, edges = np.histogram(noisedata[:, 1], bins=100)
+    edges = edges[1:] - (edges[1] - edges[0]) / 2.
+
+    smoothhist = scipy.ndimage.gaussian_filter1d(hist, 1)
+
+    grad = np.gradient(smoothhist)
+    grad2 = np.gradient(grad)
+
+    # gradmin = edges[np.argmin(grad)]
+
+    maxindex = np.argmax(hist)
+    grad2maxindex = np.argmax(grad2[maxindex:])
+    gradmax2 = edges[maxindex + grad2maxindex]
+    # fit = np.polyfit(noisedata[:, 0], noisedata[:, 1], 1)
+    # print(fit)
+    print("Gradmax2:", gradmax2)
+    return gradmax2
+
+
+def fft_fun(a):
+    return fft.rfft2(a)
+
+
+def ifft_fun(A, shape):
+    return fft.irfft2(A, shape)
+
+
+def safedivide(a, b):
+    return ud.safedivide(a, b)
+
+
+def ndis(x, y, s):
+    return np.exp(-(x - y) * (x - y) / (2.0 * s * s))
+
+
+def cconv2D_preB(a, B):
+    A = fft_fun(a)
+    C = A * B
+    c = ifft_fun(C, a.shape)
+    return np.abs(c)
+
+
+def softmax(I, beta):
+    numz = len(I)
+    E = np.exp(beta * I)
+    Min2 = np.amin(E, axis=0)
+    Sum1 = np.sum(I, axis=0)
+    Sum2 = np.sum(E, axis=0)
+    factor = safedivide(Sum1, Sum2 - Min2 * numz)
+    I = (E - Min2) * factor
+    return I
+
+
+def filter_centroid_const(d, mz_threshold=1):
+    """
+    """
+    try:
+        boo1 = np.diff(d[:, 0]) > mz_threshold
+        boo2 = np.append(boo1[0], boo1)
+        boo3 = np.append(boo1, boo1[-1])
+        boo1 = np.logical_and(boo2, boo3)
+    except:
+        print("No Centroid Overlaps Found")
+        return d
+    return d[boo1]
+
+
+def slopefunc(x, slope):
+    return slope * x
+
+
+def linearmodel(x, slope, intercept):
+    return slope * x + intercept
+
+
+def quadraticmodel(x, a, b, c):
+    return a * x ** 2 + b * x + c
+
+
+class UniDecCD(engine.UniDec):
+    def __init__(self):
+        """
+        UniDecCD Engine
+
+        Consists of three main subclasses: Config, DataContiner, Peaks
+
+        :return: None
+        """
+        UniDecEngine.__init__(self)
+        # Creates the initial array objects
+        self.darray = None
+        self.farray = None
+        self.zarray = None
+        self.thermodata = False
+        self.harray = []
+        # Sets a few default config parameters
+        self.config.cdms_defaults()
+        self.exemode = True
+        self.massaxis = None
+        self.invinjtime = None
+        self.res = None
+        self.uscore_method = 1
+        self._clear_scores()
+        pass
+
+    def _clear_scores(self):
+        """Invalidate fit evidence whenever the input histogram changes."""
+        self.observed = None
+        self.fit2d = None
+        self.fit_scale = 0
+        self.data.fitdat = np.array([])
+        self.config.error = 0
+        self.pks.uniscore = 0
+        for p in self.pks.peaks:
+            for name in ("dscore", "lscore", "uscore", "mscore", "cs_score", "fscore"):
+                setattr(p, name, 0)
+
+    def _set_fit(self, observed, fitted):
+        """Store aligned [charge, m/z] evidence on the measured intensity scale."""
+        self._clear_scores()
+        observed = np.asarray(observed, dtype=float)
+        fitted = np.asarray(fitted, dtype=float)
+        if (observed.shape != (len(self.ztab), len(self.mz))
+                or fitted.shape != observed.shape or observed.size == 0
+                or not np.isfinite(observed).all() or not np.isfinite(fitted).all()
+                or np.any(observed < 0)):
+            raise ValueError("CD scoring requires finite, nonnegative, aligned 2D histograms")
+        fitted = np.maximum(fitted, 0)
+        fit_power = np.sum(fitted ** 2)
+        # Fit one nonnegative amplitude so R-squared is robust to output from
+        # older native binaries with non-unit response kernels and to small
+        # numerical gain differences in regularized fits.
+        self.fit_scale = float(np.sum(observed * fitted) / fit_power) if fit_power > 0 else 0
+        fitted *= self.fit_scale
+        self.observed = observed.copy()
+        self.fit2d = fitted.copy()
+        self.data.fitdat = fitted.sum(axis=0)
+        sse = np.sum((observed - fitted) ** 2)
+        variance = np.sum((observed - observed.mean()) ** 2)
+        # An empty signal has no evidence; a perfect nonzero constant fit does.
+        self.config.error = (float(np.clip(1 - sse / variance, 0, 1)) if variance > 0
+                             else float(sse == 0 and np.any(observed > 0)))
+
+    def _preserve_total_signal(self, array, target_sum):
+        """Put unnormalized deconvolution output on the input's discrete-sum scale."""
+        array = np.asarray(array)
+        if self.config.datanorm == 0:
+            output_sum = np.sum(array)
+            if target_sum > 0 and output_sum > 0:
+                array *= target_sum / output_sum
+            elif target_sum == 0:
+                array.fill(0)
+        return array
+
+    def pks_uscore(self, xfwhm=2, power=1, uscore_method=None):
+        """Select CD uniqueness scoring: 0=unity, 1=response, 2=window area."""
+        method = self.uscore_method if uscore_method is None else uscore_method
+        if method not in (0, 1, 2):
+            raise ValueError("CD UScore method must be 0 (skip), 1 (response), or 2 (area)")
+        if method == 0:
+            for p in self.pks.peaks:
+                p.uscore = 1.0
+                p.mzstack = np.array([])
+            return
+        if method == 2:
+            return self._pks_uscore_area(xfwhm=xfwhm, power=power)
+        return self._pks_uscore_response(xfwhm=xfwhm, power=power)
+
+    def _pks_uscore_area(self, xfwhm=2, power=1):
+        """Compare observed rectangles with single-charge output strips.
+
+        Windows extend +/- one response FWHM. Correct the output strip by
+        the enclosed charge-kernel fraction (and m/z fraction for centroid
+        output). This is exact for an isolated impulse; finite-width sources
+        and neighboring signals can change the enclosed fractions.
+        """
+        if self.observed is None or self.fit2d is None:
+            raise ValueError("Run CD deconvolution before calculating peak scores")
+        self.make_kernel()
+        nz, nm = self.observed.shape
+        mzwidth = max(self.config.mzsig, 0)
+        zwidth = max(self.config.csig, 0)
+        ml = np.searchsorted(self.mz, self.mz - mzwidth, side="left")
+        mr = np.searchsorted(self.mz, self.mz + mzwidth, side="right")
+        zl = np.searchsorted(self.ztab, self.ztab - zwidth, side="left")
+        zr = np.searchsorted(self.ztab, self.ztab + zwidth, side="right")
+        integral = np.pad(self.observed, ((1, 0), (1, 0))).cumsum(0).cumsum(1)
+        xarea = (integral[zr[:, None], mr] - integral[zl[:, None], mr]
+                 - integral[zr[:, None], ml] + integral[zl[:, None], ml])
+        output = np.asarray(self.harray, dtype=float)
+        output_sum = output.sum()
+        scale = self.observed.sum() / output_sum if output_sum > 0 else 0
+        rows = np.pad(output, ((0, 0), (1, 0))).cumsum(1)
+        strips = (rows[:, mr] - rows[:, ml]) * scale
+        yarea = strips.copy()
+        # The FFT response uses circular offsets. Sum exactly those sampled
+        # offsets falling inside each clipped window, including edge effects.
+        zk = self.kernel.sum(axis=1)
+        zfraction = np.array([zk[(np.arange(lo, hi) - i) % nz].sum()
+                              for i, (lo, hi) in enumerate(zip(zl, zr))])
+        yarea *= zfraction[:, None]
+        if self.config.rawflag != 0:
+            mk = self.kernel.sum(axis=0)
+            mfraction = np.array([mk[(np.arange(lo, hi) - i) % nm].sum()
+                                  for i, (lo, hi) in enumerate(zip(ml, mr))])
+            yarea *= mfraction[None, :]
+        agreement = np.zeros_like(xarea)
+        np.divide(np.abs(xarea - yarea), xarea, out=agreement, where=xarea > 0)
+        agreement = np.where(xarea > 0, np.clip(1 - agreement, 0, 1), 0)
+        for p in self.pks.peaks:
+            centers = np.divide(p.mass, self.ztab, out=np.zeros_like(self.ztab, dtype=float),
+                                where=self.ztab != 0) + self.config.adductmass
+            indices = np.array([ud.nearest(self.mz, center) for center in centers])
+            valid = ((self.ztab != 0) & (centers >= self.mz[0])
+                     & (centers <= self.mz[-1]))
+            scores = agreement[np.arange(nz), indices]
+            rowweights = np.where(valid, strips[np.arange(nz), indices] ** power, 0)
+            # With power=0, rows with no predicted signal still carry no evidence.
+            rowweights[strips[np.arange(nz), indices] <= 0] = 0
+            p.uscore = float(np.average(scores, weights=rowweights)) if rowweights.sum() > 0 else 0
+            # No response reconstruction is available in area mode.
+            p.mzstack = np.array([])
+
+    def _pks_uscore_response(self, xfwhm=2, power=1):
+        """CD fit/uniqueness: response-weighted local fit agreement times purity.
+
+        Reconstruct each mass window with the CD response kernel. Purity is its
+        fraction of the total predicted response in each measured histogram bin.
+        Agreement is min(observed, fitted)/max(observed, fitted). Thus a perfectly
+        fitted isolated peak scores one; overlapping responses lose uniqueness.
+        Charge rows are combined using predicted intensity ** power.
+        """
+        if self.observed is None or self.fit2d is None:
+            raise ValueError("Run CD deconvolution before calculating peak scores")
+        # Profile output already contains the m/z convolution.
+        self.make_kernel()
+        response_kernel = self.kernel
+        if self.config.rawflag == 0:
+            response_kernel = np.zeros_like(self.kernel)
+            response_kernel[:, 0] = self.kernel.sum(axis=1)
+        kernel = fft_fun(response_kernel)
+        total = np.maximum(cconv2D_preB(self.harray, kernel), 0)
+        scale = self.fit2d.sum() / total.sum() if total.sum() > 0 else 0
+        agreement = safedivide(np.minimum(self.observed, self.fit2d),
+                               np.maximum(self.observed, self.fit2d))
+        mass = (self.mz[None, :] - self.config.adductmass) * self.ztab[:, None]
+        for p in self.pks.peaks:
+            widths = np.maximum(np.abs(np.asarray(p.intervalFWHM) - p.mass),
+                                self.config.massbins) * xfwhm
+            window = (mass >= p.mass - widths[0]) & (mass <= p.mass + widths[1])
+            response = np.maximum(cconv2D_preB(np.where(window, self.harray, 0), kernel), 0) * scale
+            purity = np.clip(safedivide(response, self.fit2d), 0, 1)
+            weights = response.sum(axis=1)
+            rows = safedivide(np.sum(response * purity * agreement, axis=1), weights)
+            rowweights = weights ** power
+            p.uscore = float(np.average(rows, weights=rowweights)) if rowweights.sum() > 0 else 0
+            p.mzstack = np.array([np.column_stack((self.mz, obs, fit))
+                                  for obs, fit in zip(self.observed, response)])
+
+    def dscore(self, xfwhm=2, power=2, uscore_method=None):
+        self.pks.uniscore = 0
+        if not self.pks.peaks:
+            return
+        if self.observed is None or self.fit2d is None:
+            raise ValueError("Run CD deconvolution before calculating peak scores")
+        if power < 0 or not np.isfinite(power) or xfwhm <= 0 or not np.isfinite(xfwhm):
+            raise ValueError("Scoring requires a positive window and nonnegative finite power")
+        with np.errstate(divide="ignore", invalid="ignore"):
+            self.pks_mscore(xfwhm=xfwhm, power=power)
+            self.pks_uscore(xfwhm=xfwhm, power=power, uscore_method=uscore_method)
+            self.pks_csscore(xfwhm=xfwhm)
+            self.pks_fscore()
+        # Sparse CD histograms can leave a mass-shape component undefined.
+        for p in self.pks.peaks:
+            for name in ("mscore", "uscore", "fscore", "cs_score"):
+                value = getattr(p, name)
+                setattr(p, name, float(np.clip(value, 0, 1)) if np.isfinite(value) else 0)
+            p.lscore = p.mscore * p.uscore * p.fscore
+            p.dscore = p.lscore * p.cs_score
+        weights = np.array([p.height for p in self.pks.peaks]) ** power
+        if np.isfinite(weights).all() and weights.sum() > 0:
+            self.pks.uniscore = float(np.average([p.dscore for p in self.pks.peaks], weights=weights)
+                                     * self.config.error)
+
+    def get_zstack(self, xfwhm=1):
+        super().get_zstack(xfwhm=xfwhm)
+        for p in self.pks.peaks:
+            if p.zstack.shape[1] == 0:
+                index = ud.nearest(self.data.massdat[:, 0], p.mass)
+                grid = np.reshape(self.data.massgrid, (len(self.data.massdat), len(self.data.ztab)))
+                p.zstack = np.concatenate(([self.data.massdat[index, 0]], grid[index]))[:, None]
+
+    def exe_mode(self, exemode=True):
+        self.exemode = exemode
+
+    def open_file(self, path, refresh=False):
+        """
+        Passthrough function for opening CD-MS files. Calls self.open_cdms_file.
+        :param path: File path
+        :param refresh: Whether to refresh file
+        :return: None
+        """
+        self.open_cdms_file(path, refresh=refresh)
+
+    def open_cdms_file(self, path, refresh=False):
+        """
+        Main function for opening CD-MS files. Supports Thermo Raw and DMT, mzML, text, binary, and numpy compressed.
+
+        Calls self.before_open() first to setup UniDec files and directories. Searches first for previously opened
+        numpy compressed data. Switches path to that if found. Otherwise it opens the specified path.
+
+        Thermo Data via .Raw or .mzML needs to be corrected first by multiplying by the injection times in units of s.
+
+        Text, binary, and numpy files are opened assuming the first column is m/z, the second is intensity, the third is scans.
+        If no third column is provided, it assigns a scan number of 1 to each.
+        The m/z, intensity, and scan data is saved in self.darray (the raw data array).
+
+        Next, it filters out any data with intensities of zero.
+        The noise is calculated as the maximum of the second derivative of the intensity distribution, also known as the Gmax2.
+        The self.farray (filtered array) is created from self.darray.
+
+        An Import Error is raised if the darray is empty
+
+        The min and max m/z values are set from the darray.
+
+        Then, saves a numpy compressed file if it doesn't exist for faster imports in the future.
+        Finally, it opens the config file if found in the _unidecfiles folder.
+
+        :param path: File path to open.
+        :return: None
+        """
+        self._clear_scores()
+        if platform.system() != "Windows" and path.split(".")[-1].lower() == "raw":
+            print("Error: Thermo Raw files are only supported on Windows")
+            raise ImportError
+
+        # Setup
+        starttime = time.perf_counter()
+        self.path = path
+        if os.path.isdir(self.path):
+            print("Error: Path is a directory")
+            raise ImportError
+        if not os.path.isfile(self.path):
+            print("Error: File not found:", self.path)
+            raise ImportError
+
+        # Set up unidec paths
+        self.before_open(refresh=refresh)
+
+        self.importer = ImporterFactory.create_importer(self.path, silent=False)
+        self.darray = self.importer.get_cdms_data()
+        if self.importer.thermo_support:
+            self.res = IT.get_resolution(self.importer.get_single_scan(1))
+
+        # Correct Thermo Data
+
+        # Filter out only the data with positive intensities
+        boo1 = self.darray[:, 1] > 0
+        self.darray = self.darray[boo1]
+        print("Filtered 0 intensity values. Length: ", len(self.darray))
+        # Define the noise level as the median of the data intensities
+        self.noise = Gmax2(self.darray)
+        # Create the filtered array (farray) object
+        self.farray = deepcopy(self.darray)
+        self.data.rawdata = self.darray[:, :2]
+
+        # Check for empty data
+        if ud.isempty(self.darray):
+            print("Error: Data Array is Empty")
+            print("Likely an error with data conversion")
+            raise ImportError
+        mz = self.darray[:, 0]
+        # Get the min and max m/z value
+        # self.darray is the mz from the transposed array
+        self.config.minmz = np.amin(mz)
+        self.config.maxmz = np.amax(mz)
+
+        # Create the npz file of the extracted values if it doens't exist
+        if not os.path.isfile(self.config.cdrawextracts) or refresh or getattr(self, "_rewrite_raw_cache", False):
+            try:
+                handle = tempfile.NamedTemporaryFile(dir=self.config.udir, suffix=".npz", delete=False)
+                temp_path = handle.name
+                handle.close()
+                np.savez_compressed(
+                    temp_path,
+                    data=self.darray,
+                    unidec_rawdata_version=np.array(1),
+                    mode=np.array("cdms"),
+                    original_file=np.array(self.config.original_file),
+                )
+                os.replace(temp_path, self.config.cdrawextracts)
+            except Exception as e:
+                pass
+            finally:
+                if "temp_path" in locals() and os.path.exists(temp_path):
+                    os.remove(temp_path)
+
+        self.config.cdmsflag = 1
+        if os.path.isfile(self.config.confname):
+            self.load_config(self.config.confname)
+        else:
+            self.export_config()
+
+        print("Read File Length: ", len(self.farray), "Noise: ", self.noise, "Time:", time.perf_counter() - starttime)
+
+    def before_open(self, refresh=False):
+        """
+        Creates the initial blank self.pks and self.data objects. Creates the _unidecfiles folder if needed.
+        Sets the default file names. If it finds raw data already in the numpy compressed format, it switches the path to that.
+        :return: None
+        """
+        # Create blank peaks and data objects
+        self.pks = peakstructure.Peaks()
+        self.data = unidecstructure.DataContainer()
+
+        # Get the directory and file names
+        file_directory = os.path.dirname(self.path)
+        file_name = os.path.basename(self.path)
+        # Handle Paths
+        self.config.filename = self.path
+        self.config.dirname = file_directory
+        self.config.original_file = file_name
+        if os.path.splitext(self.path)[1].lower() == ".npz":
+            try:
+                with np.load(self.path, allow_pickle=False) as cache:
+                    if "original_file" in cache:
+                        self.config.original_file = str(cache["original_file"])
+            except (OSError, ValueError, KeyError):
+                pass
+
+        # Change paths to unidecfiles folder
+        dirnew = os.path.splitext(self.path)[0] + "_unidecfiles"
+        if not os.path.isdir(dirnew):
+            os.mkdir(dirnew)
+        self.config.udir = dirnew
+        basename = os.path.split(os.path.splitext(file_name)[0])[1]
+        self.legacy_outfname = os.path.join(self.config.udir, basename)
+        self.legacy_confname = self.legacy_outfname + "_conf.dat"
+        short_confname = os.path.join(self.config.udir, "conf.dat")
+        use_short_names = os.path.isfile(short_confname) or not os.path.isfile(self.legacy_confname)
+        self.config.outfname = (os.path.join(self.config.udir, "") if use_short_names
+                                else self.legacy_outfname)
+        self.config.extension = os.path.splitext(self.config.filename)[1]
+        self.config.default_file_names(s="" if use_short_names else "_")
+
+        # Look for already processed data in the form of an npz file and load it if it exists for speed.
+        raw_extracts = self.config.cdrawextracts
+        self._rewrite_raw_cache = False
+        if os.path.isfile(self.path) and os.path.isfile(raw_extracts) and not refresh:
+            cache_matches = True
+            try:
+                with np.load(raw_extracts, allow_pickle=False) as cache:
+                    if "mode" in cache and str(cache["mode"]) != "cdms":
+                        cache_matches = False
+                    if "original_file" in cache and str(cache["original_file"]) != self.config.original_file:
+                        cache_matches = False
+            except (OSError, ValueError, KeyError):
+                cache_matches = False
+            if cache_matches:
+                print("Raw data found:", raw_extracts)
+                self.path = raw_extracts
+            else:
+                self._rewrite_raw_cache = True
+
+
+    def process_data(self, transform=True):
+        """
+        Main function for processing CDMS data, includes filtering, converting intensity to charge, histogramming,
+        processing the histograms, and transforming (if specified). Transforming is sometimes unnecessary, which is why
+        it can be turned off for speed.
+
+        :param transform: Sets whether to transform the data from m/z to mass. Default True.
+        :return: None
+        """
+        self._clear_scores()
+        starttime = time.perf_counter()
+        # Copy filtered array and delete peaks.
+        self.farray = deepcopy(self.darray)
+        self.pks = peakstructure.Peaks()
+
+        print("Scan start from GUI", self.config.CDScanStart)
+        print("Scan end from GUI", self.config.CDScanEnd)
+        print("Scan and Time Min/Max", np.amin(self.farray[:, 2]), np.amax(self.farray[:, 2]),
+              np.amin(self.farray[:, 4]), np.amax(self.farray[:, 4]))
+        # Filter Scans
+        try:
+            if int(self.config.CDScanStart) > 0:
+                self.farray = self.farray[self.farray[:, 2] >= self.config.CDScanStart]
+        except:
+            pass
+        try:
+            if int(self.config.CDScanEnd) > 0:
+                self.farray = self.farray[self.farray[:, 2] <= self.config.CDScanEnd]
+        except:
+            pass
+
+        # Compress Scans
+        if self.config.CDScanCompress > 1:
+            self.farray[:, 2] = np.floor(self.farray[:, 2] / self.config.CDScanCompress)
+
+        # Filter m/z
+        print("Filtering m/z range:", self.config.minmz, self.config.maxmz, "Start Length:", len(self.farray))
+        self.filter_mz(mzrange=np.abs([self.config.minmz, self.config.maxmz]))
+
+        # Filter Centroids
+        print("Filtering centroids:", self.config.CDres, "Start Length:", len(self.farray))
+        self.filter_centroid_all(self.config.CDres)
+
+        # Filter Charge States
+        print("Filtering Charge range:", self.config.startz, self.config.endz, "Start Length:", len(self.farray))
+        self.filter_z(zrange=np.abs([self.config.startz, self.config.endz + 1]))
+
+        # Convert intensity to charge
+        print("Converting From Intensity to Charge. Slope:", self.config.CDslope, "Start Length:", len(self.farray))
+        self.convert(slope=self.config.CDslope)
+
+        # Create Histogram
+        print("Creating Histogram Bins:", self.config.mzbins, self.config.CDzbins, "Start Length:", len(self.farray))
+        self.histogram(mzbins=self.config.mzbins, zbins=self.config.CDzbins)
+
+        if len(self.harray) > 0:
+            self.harray = self.hist_data_prep()
+            self.harray_process(transform=transform)
+            print("Histogram Shape:", self.harray.shape)
+            return 1
+        else:
+            print("ERROR: Empty histogram array on process")
+            return 0
+        print("Process Time:", time.perf_counter() - starttime)
+
+    def harray_process(self, transform=True):
+        self.data.data2 = np.transpose([self.mz, np.sum(self.harray, axis=0)])
+        np.savetxt(self.config.infname, self.data.data2)
+
+        print("Transforming m/z to mass:", self.config.massbins, "Start Length:", len(self.farray))
+        if transform:
+            self.transform()
+            np.savetxt(self.config.massdatfile, self.data.massdat)
+            self.unprocessed = deepcopy(self.data.massdat)
+
+    def filter_int(self, int_range):
+        """
+        Filter the self.farray to include only intensities within the int_range.
+
+        :param int_range: list or array with int_range[0] as the minimum intensity and int_range[1] as the maximum
+        :return: None
+        """
+        if int_range is not None:
+            boo1 = self.farray[:, 1] > int_range[0]
+            boo2 = self.farray[:, 1] < int_range[1]
+            boo3 = np.logical_and(boo1, boo2)
+            self.farray = self.farray[boo3]
+        return self.farray
+
+    def filter_z(self, zrange, slope=None):
+        """
+        Function to filter intensities based on their eventual charge state. Calculates int_range from zrange based on the slope.
+        Calls self.filter_int from the calculated int_range.
+
+        :param zrange: list or array with zrange[0] as the minimum charge state and zrange[1] as the maximum.
+        :param slope: Optional parameter to specify the slope. If None (default), will use self.config.CDslope
+        :return: None
+        """
+        if slope is not None:
+            self.config.CDslope = slope
+        else:
+            slope = self.config.CDslope
+
+        # If slope is negative (old dev settings) or subtype is 0, multiply the slope by the noise ratio.
+        if slope < 0 or self.config.subtype == 0:
+            slope = np.abs(slope) * self.noise
+        # The int_range is the zrange * the slope
+        int_range = np.array(zrange) * slope
+        # Run filter_int with the int_range calculated from zrange
+        self.filter_int(int_range=int_range)
+
+    def filter_mz(self, mzrange=None):
+        """
+        Filter the self.farray to include only m/z value within the mzrange.
+
+        :param mzrange: list or array with mzrange[0] as the minimum m/z and mzrange[1] as the maximum
+        :return: self.farray, the filtered data array
+        """
+        if mzrange is not None:
+            boo1 = self.farray[:, 0] > mzrange[0]
+            boo2 = self.farray[:, 0] < mzrange[1]
+            boo3 = np.logical_and(boo1, boo2)
+            self.farray = self.farray[boo3]
+        return self.farray
+
+    def filter_centroid_all(self, mz_threshold=1):
+        """
+        Filter the self.farray to remove ions with nearby ions. See Worner et Al., Nat. Methods, 2020.
+
+        Removed all the resolution settings of Worner et Al in favor of a simple single mz_threshold.
+
+        :param mz_threshold: Distance cutoff. Two points in the same scan closer than this will be removed.
+        :return: None
+        """
+        if mz_threshold > 0:
+            # farray2 = []
+            # for i, s in enumerate(self.scans):
+            #    sbool = self.farray[:, 2] == s
+            #    farray2.append(filter_centroid_scan(self.farray[sbool], mz_threshold=mz_threshold))
+            # self.farray = np.concatenate(farray2)
+            self.farray = filter_centroid_const(self.farray, mz_threshold=mz_threshold)
+        return self.farray
+
+    def get_scan_range(self):
+        return self.importer.get_scan_range()
+
+    def simp_convert(self, y):
+        if self.config.CDslope > 0 and self.config.subtype == 1:
+            y = y / self.config.CDslope
+        elif self.config.CDslope < 0 or self.config.subtype == 0:
+            y = y / (np.abs(self.config.CDslope) * self.noise)
+        return y
+
+    def convert(self, slope=None):
+        if slope is not None:
+            self.config.CDslope = slope
+        else:
+            slope = self.config.CDslope
+
+        if slope > 0 and self.config.subtype == 1:
+            self.zarray = self.farray[:, 1] / slope
+        elif slope < 0 or self.config.subtype == 0:
+            self.zarray = self.farray[:, 1] / (np.abs(slope) * self.noise)
+
+    def set_up_hist_axes(self, x=None, y=None, mzbins=1, zbins=1, mzrange=None, zrange=None):
+        if x is None:
+            x = self.farray[:, 0]
+
+        if y is None:
+            y = self.zarray
+
+        if len(x) == 0:
+            print("ERROR: Empty Filtered Array, check settings")
+            self.harray = []
+            return [], []
+
+        if mzrange is None:
+            mzrange = np.array([self.config.minmz, self.config.maxmz])
+            if np.any(mzrange < 0):
+                mzrange = np.abs(mzrange)
+            else:
+                mzrange = [np.floor(np.amin(x)), np.amax(x)]
+        if zrange is None:
+            zrange = np.array([self.config.startz, self.config.endz + 1])
+            if np.any(zrange < 0):
+                zrange = np.abs(zrange)
+            else:
+                zrange = np.array([np.floor(np.amin(y)), np.ceil(np.amax(y))])
+
+        mzaxis = np.arange(mzrange[0] - mzbins / 2., mzrange[1] + mzbins / 2, mzbins)
+        zaxis = np.arange(zrange[0] - zbins / 2., zrange[1] + zbins / 2, zbins)
+        return mzaxis, zaxis
+
+    def histogram(self, mzbins=1, zbins=1, x=None, y=None, mzrange=None, zrange=None):
+        if mzbins < 0.001:
+            print("Error, mzbins too small. Changing to 1", mzbins)
+            mzbins = 1
+            self.config.mzbins = 1
+        self.config.mzbins = mzbins
+        self.config.CDzbins = zbins
+
+        if x is None:
+            x = self.farray[:, 0]
+
+        if y is None:
+            y = self.zarray
+
+        if len(x) == 0:
+            print("ERROR: Empty Filtered Array, check settings")
+            self.harray = []
+            return 0
+
+        mzaxis, zaxis = self.set_up_hist_axes(x=x, y=y, mzbins=mzbins, zbins=zbins, mzrange=mzrange, zrange=zrange)
+
+        if self.config.CDiitflag and self.invinjtime is not None:
+            weights = self.farray[:, 3]
+            print("Using weighted hist", np.mean(weights), np.amin(weights), np.amax(weights))
+        else:
+            weights = None
+
+        self.harray, self.mz, self.ztab = np.histogram2d(x, y, [mzaxis, zaxis], weights=weights)
+
+        self.mz = self.mz[1:] - mzbins / 2.
+        self.ztab = self.ztab[1:] - zbins / 2.
+        self.data.ztab = self.ztab
+        self.harray = np.transpose(self.harray)
+
+        if self.config.datanorm == 1:
+            maxval = np.amax(self.harray)
+            if maxval > 0:
+                self.harray /= maxval
+
+        self.X, self.Y = np.meshgrid(self.mz, self.ztab, indexing='xy')
+
+        self.mass = (self.X - self.config.adductmass) * self.Y
+
+        self.data.data3 = np.transpose([np.ravel(self.X, order="F"), np.ravel(self.Y, order="F"),
+                                        np.ravel(self.harray, order="F")])
+
+    def hist_data_prep(self, harray=None):
+        if harray is None:
+            harray = self.harray
+        if self.config.smooth > 0 or self.config.smoothdt > 0:
+            print("Histogram Smoothing:", self.config.smooth, self.config.smoothdt)
+            harray = IM_functions.smooth_2d(harray, self.config.smoothdt, self.config.smooth)
+
+        if self.config.intthresh > 0:
+            print("Histogram Intensity Threshold:", self.config.intthresh)
+            harray = self.hist_int_threshold(harray, self.config.intthresh)
+        if self.config.reductionpercent > 0:
+            print("Histogram Data Reduction:", self.config.reductionpercent)
+            harray = self.hist_datareduction(harray, self.config.reductionpercent)
+
+        if self.config.subbuff > 0 or self.config.subbufdt > 0:
+            print("Histogram Background Subtraction:", self.config.subbuff, self.config.subbufdt)
+            harray = IM_functions.subtract_complex_2d(harray.transpose(), self.config).transpose()
+
+        harray = self.hist_filter_smash(harray)
+        return harray
+
+    def hist_int_threshold(self, harray, int_threshold):
+        """
+        Filter the harray to include only intensities above the int_threshold.
+
+        :param harray: 2D numpy array to be filtered
+        :param int_threshold: Intensity threshold
+        :return: harray, the filtered 2D numpy array
+        """
+        boo1 = harray > int_threshold
+        harray *= boo1
+        return harray
+
+    def hist_datareduction(self, harray, red_per):
+        sdat = np.sort(harray[harray > 0])
+        remove_count = min(max(round(len(sdat) * red_per / 100.), 0), len(sdat))
+        if remove_count == 0:
+            return harray
+        cutoff = sdat[remove_count - 1]
+        harray = self.hist_int_threshold(harray, cutoff)
+        return harray
+
+    def hist_mass_filter(self, harray, massrange=None):
+        # Get values from config if not supplied
+        if massrange is None:
+            massrange = [self.config.masslb, self.config.massub]
+
+        # Filter values
+        boo1 = self.mass < massrange[0]
+        boo2 = self.mass > massrange[1]
+        boo3 = np.logical_or(boo1, boo2)
+        # Set values outside range to 0
+        harray[..., boo3] = 0
+        return harray
+
+    def hist_filter_smash(self, harray, smashrange=None):
+        """
+        Smashes the range region to 0. Used to eliminate unwanted peaks.
+        :return: None
+        """
+        if smashrange is None:
+            smashrange = self.config.smashrange
+        else:
+            self.config.smashrange = smashrange
+
+        if not ud.isempty(smashrange):
+            print("Smashing: ", smashrange)
+            # Filter values
+            boo1 = self.X > smashrange[0]
+            boo2 = self.X < smashrange[1]
+            boo3 = np.logical_and(boo1, boo2)
+            print(boo3.shape)
+            # Set values outside range to 0
+            harray[..., boo3] = 0
+
+        if not ud.isempty(self.config.smashlist) and self.config.smashflag == 1:
+            #print("Smashing: ", self.config.smashlist)
+            for i in range(len(self.config.smashlist)):
+                smashrange = self.config.smashlist[i]
+                # Filter values
+                boo1 = self.X > smashrange[0] - smashrange[1]
+                boo2 = self.X < smashrange[0] + smashrange[1]
+                boo3 = np.logical_and(boo1, boo2)
+
+                boo1 = self.Y > smashrange[2] - smashrange[3]
+                boo2 = self.Y < smashrange[2] + smashrange[3]
+                boo4 = np.logical_and(boo1, boo2)
+
+                boo3 = np.logical_and(boo3, boo4)
+
+                # Set values outside range to 0
+                harray[..., boo3] = 0
+        return harray
+
+    def hist_nativeZ_filter(self, nativeZrange=None, harray=None):
+        if harray is None:
+            harray = self.harray
+        # Get values from config if not supplied
+        if nativeZrange is None:
+            nativeZrange = [self.config.nativezlb, self.config.nativezub]
+
+        if nativeZrange != [-1000, 1000]:
+            # Find predicted native charge state
+            nativeZ = ud.predict_charge(self.mass)
+            # Find distance from predicted charge state
+            offset = self.Y - nativeZ
+
+            # Filter values
+            boo1 = offset < nativeZrange[0]
+            boo2 = offset > nativeZrange[1]
+            boo3 = np.logical_or(boo1, boo2)
+            # Set values outside range to 0
+            harray[..., boo3] = 0
+        return harray
+
+    def create_mass_axis(self, harray=None, mass=None):
+        if harray is None:
+            harray = self.harray
+        if mass is None:
+            mass = self.mass
+
+        # filter out zeros
+        harray = np.array(harray)
+        boo1 = harray > 0
+        mass = mass[boo1]
+
+        # Test for if array is empty and error if so
+        if ud.isempty(mass):
+            print("ERROR: Empty histogram array on transform")
+            return 0
+        # Find the max and min and create the new linear mass axis
+        minval = np.amax([np.amin(mass) - self.config.massbins * 3, self.config.masslb])
+        maxval = np.amin([np.amax(mass) + self.config.massbins * 3, self.config.massub])
+        minval = round(minval / self.config.massbins) * self.config.massbins  # To prevent weird decimals
+        massaxis = np.arange(minval, maxval, self.config.massbins)
+        return massaxis
+
+    def transform(self, harray=None, dataobj=None, ztab=None, mass=None, mz=None):
+        if harray is None:
+            harray = self.harray
+        if dataobj is None:
+            dataobj = self.data
+            flag = True
+        else:
+            flag = False
+        if ztab is None:
+            ztab = self.ztab
+        if mass is None:
+            mass = self.mass
+        if mz is None:
+            mz = self.mz
+        # Test for if array is empty and error if so
+        if len(harray) == 0:
+            print("ERROR: Empty histogram array on transform")
+            return 0
+
+        massaxis = self.create_mass_axis(harray, mass=mass)
+
+        # Create the mass grid
+        dataobj.massgrid = []
+        for i in range(len(ztab)):
+            d = harray[i]
+            if self.config.poolflag == 1:
+                newdata = np.atleast_2d(np.transpose([mass[i], d]))
+                massdata = ud.linterpolate(newdata, massaxis)
+                input_sum = np.sum(d)
+                output_sum = np.sum(massdata[:, 1])
+                if output_sum > 0:
+                    massdata[:, 1] *= input_sum / output_sum
+            else:
+                boo1 = d > 0
+                newdata = np.transpose([mass[i][boo1], d[boo1]])
+                if len(newdata) < 2:
+                    massdata = np.transpose([massaxis, massaxis * 0])
+                else:
+                    massdata = ud.lintegrate(newdata, massaxis)
+
+            dataobj.massgrid.append(massdata[:, 1])
+        dataobj.massgrid = np.transpose(dataobj.massgrid)
+        # Create the linearized mass data by integrating everything into the new linear axis
+        dataobj.massdat = np.transpose([massaxis, np.sum(dataobj.massgrid, axis=1)])
+        if flag and not ud.isempty(dataobj.massdat):
+            self.config.massdatnormtop = np.amax(dataobj.massdat[:, 1])
+        # Ravel the massgrid to make the format match unidec
+        dataobj.massgrid = np.ravel(dataobj.massgrid)
+        # Create the data2 and mzgrid objects from the histogram array for compatiblity with unidec functions
+        dataobj.data2 = np.transpose([mz, np.sum(harray, axis=0)])
+        dataobj.zdat = np.transpose([ztab, np.sum(harray, axis=1)])
+        if self.X.shape != harray.shape:
+            X, Y = np.meshgrid(mz, ztab, indexing='xy')
+        else:
+            X = self.X
+            Y = self.Y
+
+        dataobj.mzgrid = np.transpose(
+            [np.ravel(X.transpose()), np.ravel(Y.transpose()), np.ravel(harray.transpose())])
+        if flag:
+            self.massaxis = massaxis
+        return dataobj
+
+    def transform_mzmass(self):
+        # Test for if array is empty and error if so
+        if len(self.harray) == 0:
+            print("ERROR: Empty histogram array on transform")
+            return 0
+        massaxis = self.data.massdat[:, 0]
+        print("m/z Length:", len(self.mz))
+        print("Mass Length:", len(massaxis))
+        # Create the mass grid
+        self.data.mzmassgrid = []
+        for i in range(len(self.mz)):
+            d = self.harray[:, i]
+            boo1 = d >= 0
+            newdata = np.transpose([self.mass[:, i][boo1], d[boo1]])
+            # if :
+            #    self.data.mzmassgrid.append(massaxis * 0)
+            # else:
+            if self.config.poolflag == 1 and len(newdata) >= 2:
+                massdata = ud.linterpolate(newdata, massaxis)
+                input_sum = np.sum(d)
+                output_sum = np.sum(massdata[:, 1])
+                if output_sum > 0:
+                    massdata[:, 1] *= input_sum / output_sum
+            else:
+                massdata = ud.lintegrate(newdata, massaxis)
+            self.data.mzmassgrid.append(massdata[:, 1])
+        self.data.mzmassgrid = np.transpose(self.data.mzmassgrid)
+        print("Created m/z vs. Mass: ", self.data.mzmassgrid.shape)
+        pass
+
+    def make_kernel(self, mzsig=None, zsig=None):
+        """
+        Sets up the deconvolution kernels based on the provided mzsig and zsig values, which specify the peak FWHM in m/z and z.
+        :param mzsig: FWHM for m/z in units of Th.
+        :param zsig: FWHM for charge. This is also the uncertainty for the charge assignment.
+        :return: None
+        """
+        if mzsig is not None:
+            self.config.mzsig = mzsig
+        else:
+            mzsig = self.config.mzsig
+        if zsig is not None:
+            self.config.csig = zsig
+        else:
+            zsig = self.config.csig
+
+        X, Y = np.meshgrid(self.mz, self.ztab, indexing='xy')
+        self.kernel = np.zeros_like(X)
+        self.kernel[0, 0] = 1
+        if mzsig > 0:
+            self.mkernel = np.zeros_like(X)
+            self.mkernel[0] = fitting.psfit(X[0], mzsig, np.amin(self.mz), psfun=self.config.psfun) \
+                              + fitting.psfit(X[0], mzsig, np.amax(self.mz) + self.config.mzbins,
+                                              psfun=self.config.psfun)
+            if zsig > 0:
+                self.kernel = fitting.psfit(X, mzsig, np.amin(self.mz), psfun=self.config.psfun) \
+                              + fitting.psfit(X, mzsig, np.amax(self.mz) + self.config.mzbins, psfun=self.config.psfun)
+                self.kernel *= fitting.psfit(-Y, zsig, -np.amin(self.ztab), psfun=self.config.psfunz) \
+                               + fitting.psfit(-Y, zsig, -(np.amax(self.ztab) + self.config.CDzbins),
+                                               psfun=self.config.psfunz)
+            else:
+                self.kernel = deepcopy(self.mkernel)
+        elif zsig > 0 >= mzsig:
+            self.mkernel = None
+            self.kernel[:, 0] = fitting.psfit(-Y[:, 0], zsig, -np.amin(self.ztab), psfun=self.config.psfunz) \
+                                + fitting.psfit(-Y[:, 0], zsig, -(np.amax(self.ztab) + self.config.CDzbins),
+                                                psfun=self.config.psfunz)
+        else:
+            self.mkernel = None
+
+        if self.config.psig > 0:
+            self.mkernel2 = np.zeros_like(X)
+            self.mkernel2[0] = fitting.psfit(X[0], self.config.psig, np.amin(self.mz), psfun=self.config.psfun) \
+                               + fitting.psfit(X[0], self.config.psig, np.amax(self.mz) + self.config.mzbins,
+                                               psfun=self.config.psfun)
+            self.mkernel2 /= np.sum(self.mkernel2)
+
+        self.kernel /= np.sum(self.kernel)
+        # Create the flipped kernel for the correlation. Roll so that the 0,0 point is still the highest
+        self.ckernel = np.roll(np.flip(self.kernel), (1, 1), axis=(0, 1))
+
+        if mzsig > 0:
+            self.mkernel /= np.sum(self.mkernel)
+
+    def setup_zsmooth(self):
+        # Setup Grids for  Z+1, and Z-1
+        X, uY = np.meshgrid(self.mz, self.ztab + 1, indexing='xy')
+        X, lY = np.meshgrid(self.mz, self.ztab - 1, indexing='xy')
+
+        # Calculate m/z values for Z+1 and Z-1
+        uppermz = (self.mass + uY * self.config.adductmass) / uY
+        lowermz = ud.safedivide((self.mass + lY * self.config.adductmass), lY)  # In case the starting charge state is 1
+
+        # Calculate the indexes for where to find the Z+1 and Z-1 m/z values
+        m1 = self.mz[0]
+        m2 = self.mz[-1]
+        lm = len(self.mz)
+
+        # Calculate normal indexes
+        indexes = np.arange(0, lm)
+        normindexes = np.array([indexes for i in self.ztab]).astype(int)
+
+        # Calculate upperindexes for Z+1
+        upperindex = np.round(((uppermz - m1) / (m2 - m1)) * (lm - 1))
+        upperindex[-1] = normindexes[-1]
+        upperindex[upperindex < 0] = normindexes[upperindex < 0]
+        upperindex[upperindex >= lm] = normindexes[upperindex >= lm]
+
+        # Calculate lowerindexes for Z-1
+        lowerindex = np.round(((lowermz - m1) / (m2 - m1)) * (lm - 1))
+        lowerindex[0] = normindexes[0]
+        lowerindex[lowerindex < 0] = normindexes[lowerindex < 0]
+        lowerindex[lowerindex >= lm] = normindexes[lowerindex >= lm]
+        # For both, use the normal index if it is out of range
+
+        self.upperindex = np.array(upperindex, dtype=int)
+        self.lowerindex = np.array(lowerindex, dtype=int)
+
+    def filter_zdist(self, I, setup=True):
+        if setup:
+            self.setup_zsmooth()
+
+        # Get the intensities of the Z+1 values
+        upperints = np.zeros_like(I)
+        for i, row in enumerate(self.upperindex):
+            if i + 1 != len(I):
+                upperints[i] = I[i + 1, row]
+            else:
+                upperints[i] = I[i, row]
+
+        # Get the intensities of the Z-1 values
+        lowerints = np.zeros_like(I)
+        for i, row in enumerate(self.lowerindex):
+            if i != 0:
+                lowerints[i] = I[i - 1, row]
+            else:
+                lowerints[i] = I[i, row]
+
+        floor = self.config.zzsig
+        if floor > 0:
+            I = np.clip(np.exp(
+                np.mean(np.asarray([np.log(upperints + floor), np.log(lowerints + floor), np.log(I + floor)]), axis=0))
+                        - floor, 0, None)
+        else:
+            ratio = np.abs(floor)
+            I = (upperints * ratio + I + lowerints * ratio) / 3.
+        return I
+
+    def setup_msmooth(self):
+        mzoffsets = self.config.molig / self.ztab
+        indexoffsets = np.round(mzoffsets / self.config.mzbins)
+        lmz = len(self.mz)
+        indexes = np.arange(0, lmz)
+        upperindexes = np.array([indexes + i for i in indexoffsets]).astype(int)
+        lowerindexes = np.array([indexes - i for i in indexoffsets]).astype(int)
+        normindexes = np.array([indexes for i in indexoffsets]).astype(int)
+
+        upperindexes[upperindexes < 0] = normindexes[upperindexes < 0]
+        lowerindexes[lowerindexes < 0] = normindexes[lowerindexes < 0]
+        upperindexes[upperindexes >= lmz] = normindexes[upperindexes >= lmz]
+        lowerindexes[lowerindexes >= lmz] = normindexes[lowerindexes >= lmz]
+
+        self.mupperindexes = upperindexes
+        self.mlowerindexes = lowerindexes
+
+    def filter_mdist(self, I, setup=True):
+        if setup:
+            self.setup_msmooth()
+
+        upperints = np.array([d[self.mupperindexes[i]] for i, d in enumerate(I)])
+        lowerints = np.array([d[self.mlowerindexes[i]] for i, d in enumerate(I)])
+
+        floor = self.config.msig
+        if floor > 0:
+            I = np.clip(np.exp(
+                np.mean(np.array([np.log(upperints + floor), np.log(lowerints + floor), np.log(I + floor)]),
+                        axis=0)) - floor,
+                        0, None)
+        else:
+            ratio = np.abs(floor)
+            I = (upperints * ratio + I + lowerints * ratio) / 3.
+
+        return I
+
+    def decon_core(self):
+        """
+        Core unidec deconvolution function. Needs kernels already in place.
+        :return: self.harray, the intensity array.
+        """
+        self._clear_scores()
+        # Create a working array of intensity values
+        I = deepcopy(self.harray)
+        D = deepcopy(self.harray)
+
+        # Perform the FFTs for convolution and correlation kernels
+        ftk = fft_fun(self.kernel)
+        ftck = fft_fun(self.ckernel)
+        if self.config.psig != 0:
+            ftmk = fft_fun(self.mkernel2)
+
+        # Set up the while loop
+        i = 0
+        diff = 1
+        # Continue until i = max number of iterations or the relative difference is less than 0.0001
+        while i < self.config.numit and diff > 0.0001:
+            # If beta is not 0, add in Softmax with beta value
+            if self.config.beta > 0:
+                I = softmax(I, self.config.beta)
+
+            # Point Smoothing
+            if self.config.psig > 0:
+                I = cconv2D_preB(I, ftmk)
+
+            # Run the smooth charge state filter and smooth mass filter. Set up the dist if needed.
+            if i == 0:
+                setup = True
+            else:
+                setup = False
+
+            if self.config.zzsig != 0:
+                if self.config.CDzbins == 1:  # Zdist smoothing currently only defined for unit charge bins
+                    I = self.filter_zdist(I, setup)
+                else:
+                    print("Error: Charge Bins Size must be 1 for Charge State Smoothing")
+            if self.config.msig != 0:
+                I = self.filter_mdist(I, setup)
+
+            # Classic Richardson-Lucy Algorithm here. Most the magic happens in this one line...
+            if self.config.mzsig != 0 or self.config.csig != 0:
+                newI = I * cconv2D_preB(safedivide(D, cconv2D_preB(I, ftk)), ftck)
+                # newI = I * safedivide(D, cconv2D_preB(I, ftk))
+
+                if i > 10:
+                    # Calculate the difference and increment the counter to halt the while loop if needed
+                    diff = np.sum((I - newI) ** 2) / np.sum(I)
+                I = newI
+            i += 1
+            # print(i)
+        print("Deconvolution iterations: ", i)
+        if self.config.datanorm == 1 and np.amax(I) > 0:
+            # Normalize the final array
+            I /= np.amax(I)
+
+        # Get the reconvolved data
+        recon = cconv2D_preB(I, ftk)
+
+        if self.config.datanorm == 1 and np.amax(recon) > 0:
+            recon *= np.amax(D) / np.amax(recon)
+        self._set_fit(D, recon)
+
+        if self.config.mzsig > 0 and self.config.rawflag == 0:
+            # Reconvolved/Profile: Reconvolves with the peak shape in the mass dimension only
+            ftmk = fft_fun(self.mkernel)
+            recon2 = cconv2D_preB(I, ftmk)
+            self.harray = recon2
+        else:
+            # Raw/Centroid: Takes the deconvolved data straight
+            self.harray = I
+
+        self._preserve_total_signal(self.harray, np.sum(D))
+
+        return self.harray
+
+    def run_deconvolution(self, process_data=True):
+        """
+        Function for running the full deconvolution sequence, including setup, pre-, and post-processing.
+
+        :return: None
+        """
+        self._clear_scores()
+        if process_data:
+            # Process data but don't transform
+            output = self.process_data(transform=False)
+            if output == 0:
+                return 0
+        # Filter histogram to remove masses that are not allowed
+        self.harray = self.hist_mass_filter(self.harray)
+        # Filter histogram to remove charge states that aren't allowed based on the native charge state filter
+        self.hist_nativeZ_filter()
+
+        if len(self.harray) == 0:
+            print("ERROR: Empty Histogram Array on Run")
+            return 0
+
+        print("Running Deconvolution", self.config.mzsig, self.config.csig)
+        starttime = time.perf_counter()
+        if self.exemode:
+            # Run the deconvolution core by calling on C external
+            self.decon_external_call()
+        else:
+            # Make kernels for convolutions based on peak shapes
+            self.make_kernel(self.config.mzsig, self.config.csig)
+            # Run deconvolution
+            self.decon_core()
+        print("Deconvolution Time:", time.perf_counter() - starttime)
+        # Transform m/z to mass
+        self.transform()
+        np.savetxt(self.config.massdatfile, self.data.massdat)
+
+    def decon_external_call(self):
+        self._clear_scores()
+        self.config.cdmsflag = 1
+        self.export_config()
+        # Check for this
+        if self.config.CDzbins != 1 and self.config.zzsig != 0:
+            print("ERROR: Charge smoothing is only define for when charges are binned to unit charge")
+            self.harray = [[]]
+            return
+        # Output input data
+        self.harray = np.array(self.harray)
+        observed = self.harray.copy()
+        X, Y = np.meshgrid(self.mz, self.ztab, indexing='ij')
+        outarray = self.harray.transpose()
+        startdims = np.shape(outarray)
+        outdat = np.transpose([np.ravel(X), np.ravel(Y), np.ravel(outarray)])
+        np.savetxt(self.config.infname, outdat)
+        print("Saved Input File:", self.config.infname)#, outdat.shape, startdims)
+
+        # Make the call
+        result = ud.unidec_call(self.config)
+        if result != 0:
+            raise RuntimeError(f"CD deconvolution failed with exit code {result}")
+
+        # Load in deconvolved data
+        self.harray = np.loadtxt(self.config.deconfile)
+        print("Loaded Output File:", self.config.deconfile)
+        self.harray = self.harray.reshape(startdims).transpose()
+        self._preserve_total_signal(self.harray, np.sum(observed))
+
+        # Load in fit data, needed for scoring
+        fitted = np.fromfile(self.config.fitdatfile, dtype=self.config.dtype)
+        self._set_fit(observed, fitted.reshape(startdims).transpose())
+        print("Loaded Fit File:", self.config.fitdatfile)
+
+    def decon_external_call_sequential(self, harray):
+        # Check for this
+        if self.config.CDzbins != 1 and self.config.zzsig != 0:
+            print("ERROR: Charge smoothing is only define for when charges are binned to unit charge")
+            return
+        # Output input data
+        X, Y = np.meshgrid(self.mz, self.ztab, indexing='ij')
+        outarray = harray.transpose()
+        startdims = np.shape(outarray)
+        outdat = np.transpose([np.ravel(X), np.ravel(Y), np.ravel(outarray)])
+        np.savetxt(self.config.infname, outdat)
+
+        # Make the call
+        ud.unidec_call(self.config, silent=True)
+
+        # Load in deconvolved data
+        harray = np.loadtxt(self.config.deconfile)
+        harray = harray.reshape(startdims).transpose()
+
+        return harray
+
+
+    def decon_external_call_all(self, hstack, chromaxis=None):
+        """Run the external UniDec deconvolution on a chromatography stack."""
+        self._clear_scores()
+        if self.config.CDzbins != 1 and self.config.zzsig != 0:
+            print("ERROR: Charge smoothing is only define for when charges are binned to unit charge")
+            return
+
+        if chromaxis is None:
+            chromaxis = self.fulltime
+        chromaxis = np.asarray(chromaxis)
+        hstack = np.asarray(hstack)
+        expected_shape = (len(chromaxis), len(self.ztab), len(self.mz))
+        if hstack.shape != expected_shape:
+            raise ValueError(
+                "Chromatographic CDMS stack must have shape "
+                f"(time, charge, m/z)={expected_shape}; got {hstack.shape}"
+            )
+
+        input_scan_sums = np.sum(hstack, axis=(1, 2), dtype=np.float64)
+        write_uccd_binary(self.config.uccdfile, chromaxis, self.mz, self.ztab, hstack)
+        print("Saved Sparse Binary UCCD Input:", self.config.uccdfile)
+
+        # cdmsflag=2 selects the chromatographic CDMS entry point. Restore the
+        # normal CDMS mode afterward so later single-scan calls remain valid.
+        old_cdmsflag = self.config.cdmsflag
+        try:
+            self.config.cdmsflag = 2
+            self.export_config()
+            result = ud.unidec_call(self.config)
+        finally:
+            self.config.cdmsflag = old_cdmsflag
+            self.export_config()
+        if result != 0:
+            raise RuntimeError(f"Chromatographic UniDec failed with exit code {result}")
+
+        decon, _ = read_uccd_binary(
+            self.config.uccddeconfile,
+            expected_axes=(chromaxis, self.mz, self.ztab),
+        )
+        if self.config.datanorm == 0:
+            output_scan_sums = np.sum(decon, axis=(1, 2), dtype=np.float64)
+            input_sum = np.sum(input_scan_sums)
+            output_sum = np.sum(output_scan_sums)
+            relative_change = (output_sum - input_sum) / input_sum if input_sum != 0 else np.nan
+            nonzero_scans = input_scan_sums != 0
+            if np.any(nonzero_scans):
+                scan_ratios = output_scan_sums[nonzero_scans] / input_scan_sums[nonzero_scans]
+                max_scan_change = np.max(np.abs(scan_ratios - 1))
+            else:
+                max_scan_change = np.nan
+            print(
+                "UCCD signal conservation: input=%.9g output=%.9g "
+                "relative_change=%.3g max_scan_change=%.3g"
+                % (input_sum, output_sum, relative_change, max_scan_change)
+            )
+        # UCCD fit output is temporarily disabled in UCCD_Main.c.
+        # self.data.fitdat, _ = read_uccd_binary(
+        #     self.config.uccdfitfile,
+        #     expected_axes=(self.fulltime, self.mz, self.ztab),
+        #     sum_mz=True,
+        # )
+        self.data.fitdat = None
+        print("Loaded Sparse Binary UCCD Output:", self.config.uccddeconfile)
+        return decon
+
+    def extract_intensities(self, mass, minz, maxz, window=25, sdmult=2, noise_mult=0):
+        ztab = np.arange(minz, maxz + 1)
+        mztab = (mass + ztab * self.config.adductmass) / ztab
+        extracts = []
+        windows = [-window, window]
+        for i, z in enumerate(ztab):
+            self.farray = deepcopy(self.darray)
+            self.filter_mz(mzrange=windows + mztab[i])
+            # ext = self.filter_centroid_all(1)
+            int_range = [self.noise * noise_mult, 100000000000000]
+            ext = self.filter_int(int_range)
+            if not ud.isempty(self.farray):
+                median = np.median(self.farray[:, 1])
+                stddev = np.std(self.farray[:, 1]) * sdmult
+                # stddev = median * medrange
+                int_range = np.array([-stddev, stddev]) + median
+                ext = self.filter_int(int_range)
+
+                ext = ext[:, 1]
+                ext = np.transpose([np.ones_like(ext) * z, ext])
+                if i == 0:
+                    extracts = ext
+                else:
+                    try:
+                        extracts = np.concatenate((extracts, ext), axis=0)
+                    except:
+                        print("Error in extraction. Likely no data extracted.", z, len(ext))
+                pass
+                print("Filtering mz: ", mztab[i], len(ext))
+        snextracts = deepcopy(extracts)
+        try:
+            snextracts[:, 1] = snextracts[:, 1] / self.noise
+        except:
+            print("No Intensity Found", snextracts)
+        return extracts, snextracts
+
+    def get_fit(self, extracts):
+        fits = curve_fit(slopefunc, extracts[:, 0], extracts[:, 1])[0]
+        x = np.unique(extracts[:, 0])
+        fitdat = x * fits[0]
+        return fits, np.transpose([x, fitdat])
+
+    def get_fit_linear(self, extracts):
+        fits = curve_fit(linearmodel, extracts[:, 0], extracts[:, 1])[0]
+        x = np.unique(extracts[:, 0])
+        fitdat = linearmodel(x, *fits)
+        return fits, np.transpose([x, fitdat])
+
+    def get_fit_quadratic(self, extracts):
+        fits = curve_fit(quadraticmodel, extracts[:, 0], extracts[:, 1])[0]
+        x = np.unique(extracts[:, 0])
+        fitdat = quadraticmodel(x, *fits)
+        return fits, np.transpose([x, fitdat])
+
+    def plot_add(self):
+        plt.subplot(132)
+        plt.plot(self.mz, np.sum(self.harray, axis=0) / np.amax(np.sum(self.harray, axis=0)))
+        plt.subplot(133)
+        plt.plot(self.ztab, np.sum(self.harray, axis=1) / np.amax(np.sum(self.harray, axis=1)))
+
+    def plot_hist(self):
+        plt.subplot(131)
+        plt.contourf(self.mz, self.ztab, self.harray, 100)
+        plt.subplot(132)
+        plt.plot(self.mz, np.sum(self.harray, axis=0) / np.amax(np.sum(self.harray, axis=0)))
+        plt.subplot(133)
+        plt.plot(self.ztab, np.sum(self.harray, axis=1) / np.amax(np.sum(self.harray, axis=1)))
+        plt.show()
+
+    def plot_mzmass_hist(self):
+        plt.subplot(131)
+        plt.contourf(self.mz, self.data.massdat[:, 0], self.data.mzmassgrid, 100)
+        plt.subplot(132)
+        plt.plot(self.mz, np.sum(self.data.mzmassgrid, axis=0) / np.amax(np.sum(self.data.mzmassgrid, axis=0)))
+        plt.subplot(133)
+        plt.plot(self.data.massdat[:, 0],
+                 np.sum(self.data.mzmassgrid, axis=1) / np.amax(np.sum(self.data.mzmassgrid, axis=1)))
+        plt.show()
+
+    def sim_dist(self):
+        self.config.mzsig = 1000
+        self.config.csig = 0.2
+        self.config.rawflag = 1
+        mzmean = self.mz[round(len(self.mz) / 2)]
+        zmean = self.ztab[round(len(self.ztab) / 2)]
+        mzsig = self.config.mzsig
+        zsig = self.config.csig
+        X, Y = np.meshgrid(self.mz, self.ztab, indexing='ij')
+        self.harray = fitting.psfit(X, mzsig, mzmean, psfun=self.config.psfun)
+        self.harray *= fitting.psfit(Y, zsig, zmean, psfun=self.config.psfunz)
+        self.harray = np.transpose(self.harray)
+        self.harray /= np.amax(self.harray)
+
+
+
+if __name__ == '__main__':
+    eng = UniDecCD()
+    #path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\test_thermo.RAW"
+    path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\test_mzxml.mzXML"
+
+    eng.open_file(path, refresh=True)
+    exit()
+    # eng.process_data()
+    # eng.run_deconvolution()
+    # eng.sim_dist()
+    # eng.plot_add()
+    # maxtup = np.unravel_index(np.argmax(eng.harray, axis=None), eng.harray.shape)
+    # print(maxtup)
+    # eng.make_kernel(eng.config.mzsig, eng.config.csig)
+    # eng.harray = np.roll(eng.ckernel, maxtup, axis=(0, 1))
+    # eng.plot_hist()
+    # exit()
+    # eng.decon_core()
+    # print(np.unravel_index(np.argmax(eng.harray, axis=None), eng.harray.shape))
+    # eng.plot_mzmass_hist()
+    # eng.plot_hist()
+    exit()
+
+    eng = UniDecCD()
+    eng.mz = np.array([5000, 6000, 7000, 8000, 9000])
+    eng.ztab = np.array([12, 13, 14])
+    eng.make_kernel(10, 2)
+    print(eng.kernel)
+
+    exit()
+    path = "Z:\\Group Share\\JGP\\DiverseDataExamples\\DataTypeCollection\\test_mzxml.mzXML"
+    eng = UniDecCD()
+    eng.open_file(path)
+
+    extracts, snextracts = eng.extract_intensities(147720, 21, 27)
+
+    fits, fitdat = eng.get_fit(extracts)
+    print(fits)
+    snfits, snfitdat = eng.get_fit(snextracts)
+    print(snfits)
+
+    plt.subplot(121)
+    plt.hist2d(extracts[:, 0], extracts[:, 1], cmap="nipy_spectral")
+    plt.plot(fitdat[:, 0], fitdat[:, 1], color="red")
+    plt.subplot(122)
+    plt.hist2d(snextracts[:, 0], snextracts[:, 1], cmap="nipy_spectral")
+    plt.plot(snfitdat[:, 0], snfitdat[:, 1], color="red")
+    plt.show()
+
+    # eng.run_deconvolution()
+
+    exit()
+    eng = UniDecCD()
+    eng.mz = np.array([5000, 6000, 7000, 8000, 9000])
+    eng.ztab = np.array([12, 13, 14])
+    eng.config.mzbins = 1000
+    eng.setup_zsmooth()
+    eng.harray = eng.mass
+    # eng.filter_zdist()
+    exit()

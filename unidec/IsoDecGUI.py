@@ -1,0 +1,820 @@
+from pathlib import Path
+import sys
+
+_local_isodec = Path(__file__).resolve().parents[2] / "IsoDec"
+if (_local_isodec / "isodec" / "__init__.py").is_file():
+    sys.path.insert(0, str(_local_isodec))
+_local_isogen = _local_isodec / "extern" / "IsoGen"
+if (_local_isogen / "isogen" / "__init__.py").is_file():
+    sys.path.insert(0, str(_local_isogen))
+
+import unidec.tools as ud
+from unidec.modules.unidec_presbase import UniDecPres
+from isodec.runtime import IsoDecRuntime
+from isodec import match_fragments
+from isodec.fragment_matching import summarize_assigned_fragments
+from unidec.modules.gui_elements.IsoDecView import IsoDecView
+from unidec.engine import UniDec
+import os
+import wx
+import time
+from unidec.modules.peakstructure import Peaks
+from isodec.datatools import check_spacings, get_all_centroids
+import numpy as np
+from unidec.modules.isolated_packages import FileDialogs
+import platform
+from copy import deepcopy
+
+
+class IsoDecPres(UniDecPres):
+    def __init__(self):
+        super().__init__()
+        self.isodeceng = IsoDecRuntime()
+        self.eng = UniDec()
+        self.match_source_ready = False
+        self.sequence_path = None
+
+        self.view = IsoDecView(self, "IsoDec", self.eng.config, iconfile=None)
+        self.recent_files = self.read_recent()
+        self.view.menu.update_recent()
+        try:
+            if (platform.node() == 'CHEM-A90237' or platform.node() == 'Aurora25') and True:
+                # self.on_ex()
+                file = "C:\\Data\\Volker noisy protein spectra\\Protein+cov-binder_#212#141.txt"
+                # file = "C:\\Data\\Yuri\\CA2_Sim_a_y_c_z_34+_LTQ-FT 21T_100k_Charge Reduction-yes_adduct_N-term_MP2_pi200_IntGaus_NoP_N3.csv"
+                file = "C:\\Python\\UniDecDev\\unidec\\bin\\Example Data\\IsoDec\\test2.txt"
+                self.on_open_file(file)
+                self.on_unidec_button()
+                self.on_plot_peaks()
+                # self.on_plot_dists()
+
+        except:
+            pass
+        #self.on_remove_assigned_peaks()
+
+    def on_init_config(self, e=None):
+        self.isodeceng.config.__init__()
+        self.eng.config.initialize()
+        self.view.import_config_to_gui()
+
+    def on_open(self, e=None):
+        """
+        Open dialog for file opening
+        :param e: unused space for event
+        :return: None
+        """
+        dlg = wx.FileDialog(self.view, "Choose a data file in x y list, mzML, or Thermo Raw format", '', "", "*.*")
+        if dlg.ShowModal() == wx.ID_OK:
+            self.view.SetStatusText("Opening", number=5)
+            filename = dlg.GetFilename()
+            print("Opening: ", filename)
+            if os.path.splitext(filename)[1] == ".zip":
+                print("Can't open zip, try Load State.")
+                return
+            dirname = dlg.GetDirectory()
+            self.on_open_file(filename, dirname)
+        dlg.Destroy()
+
+    def on_open_file(self, filename, directory=None, skipengine=False, refresh=False, **kwargs):
+        """
+        Opens a file. Run self.eng.open_file.
+        :param filename: File name
+        :param directory: Directory containing file
+        :param skipengine: Boolean, Whether to skip running the engine (used when loading state)
+        :return: None
+        """
+        # tstart =time.perf_counter()
+        self._save_sequence()
+        self.export_config()
+        # Clear other plots and panels
+        self.view.peakpanel.clear_list()
+        self.view.clear_all_plots()
+        self.match_source_ready = False
+        if directory is None:
+            directory = os.path.dirname(os.path.abspath(filename))
+            filename = os.path.basename(filename)
+
+        if not skipengine:
+            # Open File in Engine
+            self.top_path = os.path.join(directory, filename)
+            self.eng.open_file(filename, directory, refresh=refresh, isodeceng=self.isodeceng,
+                               simple_output=True, **kwargs)
+
+        self.sequence_path = Path(self.eng.config.udir) / "seq.fasta" if self.eng.config.udir else None
+        self._load_sequence()
+
+        # Set Status Bar Text Values
+        self.view.SetStatusText("File: " + filename, number=1)
+        # print self.view.imflag, self.eng.config.imflag
+
+        self.view.SetStatusText("Data Length: " + str(len(self.eng.data.data2)), number=2)
+        # self.view.SetStatusText("R\u00B2 ", number=3)
+
+        # Plot 1D
+        if self.eng.config.batchflag == 0:
+            self.makeplot1(imfit=False)
+
+        self.import_config()
+        self.view.SetStatusText("Ready", number=5)
+
+        self.write_to_recent()
+        self.view.menu.update_recent()
+
+    def on_raw_open(self, evt=None, dirname=None):
+        # Export configuration file
+        self.export_config(self.eng.config.confname)
+
+        # If dirname is not passed, open the dialog and get the path
+        if dirname is None:
+            # This will open the dialog and get the directory path as a string
+            self.eng.config.dirname = FileDialogs.open_single_dir_dialog("Choose a raw file", '')
+        else:
+            # If dirname is passed directly, use that
+            self.eng.config.dirname = dirname
+
+        # Ensure the directory is a valid string
+        if self.eng.config.dirname is None:
+            print("No directory selected.")
+            return
+
+        # Check if the directory exists and handle accordingly
+        binsize = None
+
+        # Process the raw file if a valid directory is chosen
+        if self.eng.config.dirname:
+            self.view.SetStatusText("Converting", number=5)
+
+            # Ensure that the dirname is a valid path (avoid passing CommandEvent object)
+            self.eng.config.dirname = os.path.abspath(self.eng.config.dirname)  # This should now be a valid string
+
+            print("Loading Raw File: ", self.eng.config.dirname)
+
+            # Call the raw processing function
+            self.eng.config.filename, self.eng.config.dirname = self.eng.raw_process(self.eng.config.dirname, True,
+                                                                                     binsize=binsize)
+
+            if self.eng.config.filename is not None:
+                self.on_open_file(self.eng.config.filename, self.eng.config.dirname)
+
+    def makeplot1(self, e=None, intthresh=False, imfit=True):
+        """
+        Plot data and fit in self.view.plot1 and optionally in plot1fit
+        :param e: unused event
+        :return: None
+        """
+        self.view.plot1.centroid_plot(self.eng.data.data2, xlabel="m/z", ylabel="Intensity", color="k")
+        axes = self.view.plot1.subplot1
+        self._spectrum_plot_artists = tuple(len(artists) for artists in
+                                            (axes.lines, axes.texts, axes.collections, axes.patches))
+        # self.eng.makeplot1(plot=self.view.plot1, intthresh=intthresh, imfit=imfit)
+
+    def makeplot2(self, e=None):
+        """
+        Plot mass spectrum in
+        :param e: unused event
+        :return: None
+        """
+        self.view.plot2.centroid_plot(self.eng.data.massdat, xlabel="Mass", ylabel="Intensity", color="k")
+
+    def on_dataprep_button(self, e=None):
+        """
+        Run data preparation
+        :param e: unused event
+        :return: None
+        """
+        self.view.SetStatusText("Data Prep", number=5)
+        self.match_source_ready = False
+        self._save_sequence()
+        self.fix_parameters()
+        self.translate_config()
+        self.export_config(self.eng.config.confname)
+        self.eng.config.smooth = 0
+        self.eng.config.subbuff = 0
+        self.eng.config.detectoreffva = 0
+        self.eng.config.mzbins = 0
+
+        if not self.eng.config.centroided:
+            print("Centroiding Data")
+            path = self.top_path.split(".")
+            #Everything going through IsoDec should be centroided
+            if path[-1].lower() == 'raw' and not os.path.isdir(self.top_path):
+                self.eng.data.data2 = self.isodeceng.reader.grab_all_centroid_dat()
+                if self.eng.config.idconfig.background_subtraction>0:
+                    self.eng.data.data2 = ud.datacompsub(self.eng.data.data2, self.eng.config.idconfig.background_subtraction)
+            else:
+                self.eng.data.data2 = get_all_centroids(self.eng.data.rawdata, background=self.eng.config.idconfig.background_subtraction)
+            # self.eng.config.centroided = True
+        else:
+            # If the data is already centroided, just use the raw data
+            self.eng.data.data2 = self.eng.data.rawdata
+            if self.eng.config.idconfig.background_subtraction > 0:
+                self.eng.data.data2 = ud.datacompsub(self.eng.data.data2,
+                                                     self.eng.config.idconfig.background_subtraction)
+        self.eng.process_data(centroid=True)
+
+        self.import_config()
+        self.view.clear_all_plots()
+        self.view.peakpanel.clear_list()
+        self.makeplot1(imfit=False, intthresh=True)
+        self.view.SetStatusText("Data Length: " + str(len(self.eng.data.data2)), number=2)
+        self.view.SetStatusText("Data Prep Done", number=5)
+        pass
+
+    def translate_config(self):
+        self.isodeceng.config = self.eng.config.idconfig
+        self.isodeceng.config.adductmass = self.eng.config.adductmass
+        self.isodeceng.config.verbose = self.eng.config.verbose
+
+    def on_unidec_button(self, e=None):
+        """
+        Run IsoDec
+        :param e: unused event
+        :return: None
+        """
+        self.view.export_gui_to_config()
+        self.match_source_ready = False
+        self.view.clear_fragment_plot()
+        self.view.peakpanel.clear_list()
+        self._save_sequence()
+
+        tstart = time.perf_counter()
+        self.view.SetStatusText("Running IsoDec...", number=5)
+        self.fix_parameters()
+        self.translate_config()
+        self.export_config(self.eng.config.confname)
+        self.isodeceng.config = self.eng.config.idconfig
+        self.isodeceng.config.activescan = 1
+        self.isodeceng.config.activescanorder = 2
+        self.isodeceng.config.activescanrt = 0
+
+        data = self.eng.data.data2
+        # Run IsoDec
+        self.isodeceng.batch_process_spectrum(data, centroided=True, refresh=True, type=self.isodeceng.analyte_type)
+        # Convert to mass
+        self.eng.data.massdat = self.isodeceng.pks_to_mass(self.eng.config.massbins)
+
+        if len(self.isodeceng.pks.masses) == 0:
+            print("No Peaks Found")
+            self.view.SetStatusText("No Peaks Found", number=5)
+            return
+
+        self.match_source_ready = True
+        # Translate Pks
+        self.translate_pks()
+
+        self.import_config()
+        self.view.clear_all_plots()
+        self.makeplot1()
+        self.makeplot2()
+        self.view.SetStatusText("IsoDec Done: " + str(len(self.isodeceng.pks.peaks)), number=5)
+        tend = time.perf_counter()
+        print("IsoDec Done. Time: %.2gs" % (tend - tstart))
+        self.export_results()
+        pass
+
+    def on_match_sequence(self, e=None):
+        if not self.match_source_ready:
+            wx.MessageBox("Run IsoDec before matching a sequence.", "Sequence Matching",
+                          wx.OK | wx.ICON_INFORMATION)
+            return
+
+        controls = self.view.controls
+        sequence = self._sequence_text()
+        if not sequence:
+            wx.MessageBox("Enter a sequence to match.", "Sequence Matching", wx.OK | wx.ICON_ERROR)
+            return
+        try:
+            ppm_tolerance = float(controls.ctlfragmentppm.GetValue())
+            if not np.isfinite(ppm_tolerance) or ppm_tolerance < 0:
+                raise ValueError("Tolerance must be a non-negative number.")
+            pks = match_fragments(
+                self.isodeceng.pks, sequence, fragmentation_type=controls.ctlfragmentation.GetValue(),
+                monoisotopic=not controls.ctlavgpeakmasses.GetValue(), ppm_tolerance=ppm_tolerance,
+                match_multiple_monoisotopics=controls.ctlmultiplemonoisotopics.GetValue())
+        except (ValueError, TypeError, KeyError) as error:
+            wx.MessageBox(str(error), "Sequence Matching", wx.OK | wx.ICON_ERROR)
+            return
+
+        self.view.show_fragment_matches(sequence, pks)
+        self.translate_pks()
+        self.update_peak_panel()
+        self._save_sequence()
+        self.view.SetStatusText("Sequence coverage: {:.1%}".format(pks.sequence_coverage), number=5)
+
+    def on_brute_force_match(self, e=None):
+        controls = self.view.controls
+        sequence = self._sequence_text()
+        if not sequence:
+            wx.MessageBox("Enter a sequence to match.", "Brute Force Match", wx.OK | wx.ICON_ERROR)
+            return
+        if controls.ctlavgpeakmasses.GetValue():
+            wx.MessageBox("Brute Force Match requires monoisotopic masses. Turn off Average Mass.",
+                          "Brute Force Match", wx.OK | wx.ICON_ERROR)
+            return
+
+        try:
+            ppm_tolerance = float(controls.ctlfragmentppm.GetValue())
+            if not np.isfinite(ppm_tolerance) or ppm_tolerance < 0:
+                raise ValueError("Tolerance must be a non-negative number.")
+            self.view.export_gui_to_config()
+            self.translate_config()
+            config = deepcopy(self.isodeceng.config)
+            config.matchtol = ppm_tolerance
+            tstart = time.perf_counter()
+            data = np.asarray(self.eng.data.data2)
+            if data.ndim != 2 or data.shape[1] != 2 or len(data) == 0:
+                raise ValueError("Run Data Prep before running Brute Force Match.")
+            if len(data) > 2 and check_spacings(data) <= config.meanpeakspacing_thresh:
+                # Some saved configurations mark profile data as centroided.
+                # IsoDec's normal run accepts data2 as-is, but this search
+                # needs one centroid per isotope peak for envelope scoring.
+                data = get_all_centroids(data)
+            self.view.SetStatusText("Running Brute Force Match...", number=5)
+            pks = self.isodeceng.brute_force_pep_match(
+                sequence, data, fragmentation_type=controls.ctlfragmentation.GetValue(),
+                centroided=True, config=config)
+            if pks.peaks:
+                summarize_assigned_fragments(pks, sequence)
+            print("Brute Force Match Done. Time: %.2fs" % (time.perf_counter() - tstart))
+        except (ValueError, TypeError, KeyError) as error:
+            wx.MessageBox(str(error), "Brute Force Match", wx.OK | wx.ICON_ERROR)
+            self.view.SetStatusText("Brute Force Match failed", number=5)
+            return
+
+        self._save_sequence()
+        self.match_source_ready = bool(pks.peaks)
+        self.view.peakpanel.clear_list()
+        spectrum_plot = self.view.plot1
+        axes = getattr(spectrum_plot, "subplot1", None)
+        artist_counts = (tuple(len(artists) for artists in
+                               (axes.lines, axes.texts, axes.collections, axes.patches))
+                         if axes is not None else None)
+        clean_spectrum_plot = (
+            getattr(spectrum_plot, "flag", False)
+            and getattr(spectrum_plot, "data", None) is self.eng.data.data2
+            and axes is not None
+            and artist_counts == getattr(self, "_spectrum_plot_artists", None)
+        )
+        if not clean_spectrum_plot:
+            self.makeplot1(imfit=False)
+        if pks.peaks:
+            self.eng.data.massdat = self.isodeceng.pks_to_mass(self.eng.config.massbins)
+            self.translate_pks()
+            self.update_peak_panel()
+            self.makeplot2()
+            self.view.show_fragment_matches(sequence, pks, show_match_percent=False)
+            self.view.SetStatusText("Brute Force Match: {} peaks, {:.1%} coverage".format(
+                len(pks.peaks), pks.sequence_coverage), number=5)
+        else:
+            self.eng.pks = Peaks()
+            self.eng.data.massdat = np.empty((0, 2))
+            self.view.plot2.clear_plot()
+            self.view.clear_fragment_plot()
+            self.view.SetStatusText("Brute Force Match: no peaks found", number=5)
+
+    def _sequence_text(self):
+        return "".join(line.strip() for line in self.view.controls.ctlsequence.GetValue().splitlines()
+                       if line.strip() and not line.lstrip().startswith(">"))
+
+    def _save_sequence(self, path=None):
+        path = path or self.sequence_path
+        if path is None:
+            return
+        sequence = self._sequence_text()
+        if sequence or path.exists():
+            try:
+                path.write_text(f">IsoDec sequence\n{sequence}\n", encoding="utf-8")
+            except OSError as error:
+                wx.MessageBox(str(error), "Unable to save seq.fasta", wx.OK | wx.ICON_ERROR)
+
+    def _load_sequence(self):
+        sequence = ""
+        if self.sequence_path is not None and self.sequence_path.is_file():
+            try:
+                sequence = "".join(line.strip() for line in self.sequence_path.read_text(
+                    encoding="utf-8").splitlines() if line.strip() and not line.lstrip().startswith(">"))
+            except (OSError, UnicodeError) as error:
+                wx.MessageBox(str(error), "Unable to load seq.fasta", wx.OK | wx.ICON_ERROR)
+        self.view.controls.ctlsequence.SetValue(sequence)
+
+    def translate_pks(self):
+        idpks = self.isodeceng.pks
+        if len(idpks.masses) == 0:
+            print("No Peaks Found")
+            self.view.SetStatusText("No Peaks Found", number=5)
+            return
+        udpks = Peaks()
+        udpks.merge_isodec_pks(idpks, self.eng.config)
+        for displayed, group in zip(udpks.peaks, sorted(idpks.masses, key=lambda p: p.monoiso)):
+            labels = []
+            for peak in group.clusters:
+                match = getattr(peak, "sequence_match", None)
+                for label in ([match] if isinstance(match, str) else match or []):
+                    if label and label not in labels:
+                        labels.append(label)
+            if labels:
+                displayed.label = ", ".join(labels)
+        self.eng.pks = udpks
+        # Send pks to structure
+
+    def on_full(self, evt=None):
+        maxmz = np.amax(self.eng.data.rawdata[:, 0])
+        minmz = np.amin(self.eng.data.rawdata[:, 0])
+        self.view.controls.ctlminmz.SetValue(str(minmz))
+        self.view.controls.ctlmaxmz.SetValue(str(maxmz))
+        self.on_dataprep_button()
+
+    def on_plot_peaks(self, evt=None):
+        self.view.export_gui_to_config()
+        print("Plotting Peaks")
+        self.translate_pks()
+        self.plot_mass_peaks()
+        self.plot_mz_peaks()
+        self.update_peak_panel()
+
+    def update_peak_panel(self):
+        if self.eng.config.idconfig.avgpeakmasses == 1:
+            self.view.peakpanel.add_data(self.eng.pks, show="mass", collab1="Avg Mass")
+            self.isodeceng.showavg = True
+        else:
+            self.view.peakpanel.add_data(self.eng.pks, show="zs")
+
+    def plot_mass_peaks(self, evt=None):
+        print("Plotting Mass Peaks")
+        self.makeplot2()
+        for p in self.eng.pks.peaks:
+            norm = self.eng.pks.norm
+            if not p.ignore:
+                newmass = ud.round_to_nearest(p.mass, self.eng.config.massbins)
+                self.view.plot2.plotadddot(newmass, p.height * norm, p.color, p.marker)
+        self.view.plot2.repaint()
+
+    def plot_mz_peaks(self, evt=None):
+        print("Plotting m/z Peaks")
+        self.makeplot1()
+        for p in self.eng.pks.peaks:
+            if not p.ignore:
+                for d in p.mztab:
+                    self.view.plot1.plotadddot(d[0], d[1], p.color, p.marker)
+        self.view.plot1.repaint()
+
+    def on_plot_dists(self, evt=None):
+        print("Plotting Distributions")
+        for p in self.eng.pks.peaks:
+            if not p.ignore:
+                isodist = deepcopy(p.stickdat)
+                if len(isodist) == 0:
+                    continue
+                isodist[:, 1] = isodist[:, 1] * -1
+                self.view.plot1.add_centroid(isodist, color=p.color, repaint=False)
+                self.view.plot1.subplot1.lines[-1].set_gid("isodec_isotope")
+        self.view.plot1.repaint()
+        pass
+
+    def on_delete(self, evt=None):
+        axes = self.view.plot1.subplot1
+        show_isotopes = axes is not None and any(
+            line.get_gid() == "isodec_isotope" for line in axes.lines)
+        self.plot_mass_peaks()
+        self.plot_mz_peaks()
+        if show_isotopes:
+            self.on_plot_dists()
+
+    def on_replot(self, evt=None):
+        self.view.export_gui_to_config()
+        self.on_plot_peaks()
+
+    def on_charge_states(self, e=None, mass=None, plot=None, peakpanel=None, data=None):
+        """
+        Triggered by right click "plot charge states" on self.view.peakpanel.
+        Plots a line with text listing the charge states of a specific peak.
+        :param e: unused event
+        :return: None
+        """
+        if plot is None:
+            plot = self.view.plot1
+
+        if self.eng.config.adductmass > 0:
+            sign = "+"
+        else:
+            sign = "-"
+        charges = np.arange(self.eng.config.startz, self.eng.config.endz + 1)
+        if mass is None:
+            if peakpanel is None:
+                peaksel = self.view.peakpanel.selection2[0]
+            else:
+                peaksel = peakpanel.selection2[0]
+        else:
+            peaksel = mass
+
+        for p in self.isodeceng.pks.masses:
+            if p.monoiso == peaksel:
+                mzs = p.mzs
+                zs = p.zs
+                ints = p.mzints
+
+                print("Showing Charge States for Mass: ", peaksel)
+                print(zs)
+
+                plot.textremove()
+                if data is None:
+                    data = self.eng.data.data2
+                for i, mz in enumerate(mzs):
+                    z = zs[i]
+                    int = ints[i]
+                    plot.addtext(sign + str(z), mz, int + np.amax(data[:, 1]) * 0.06, nopaint=True)
+                plot.repaint()
+
+                break
+
+    def on_label_integral(self, e=None, peakpanel=None, pks=None, plot=None, dataobj=None):
+        """
+        Triggered by right click "Label Masses" on self.view.peakpanel.
+        Plots a line with text listing the mass of each specific peak.
+        Updates the peakpanel to show the masses.
+        :param e: unused event
+        :return: None
+        """
+        if peakpanel is None:
+            peakpanel = self.view.peakpanel
+        if pks is None:
+            pks = self.eng.pks
+        if plot is None:
+            plot = self.view.plot2
+        if dataobj is None:
+            dataobj = self.eng.data
+
+        peaksel = peakpanel.selection2
+        pmasses = np.array([p.mass for p in pks.peaks])
+        if ud.isempty(peaksel):
+            peaksel = pmasses
+        pint = np.array([p.height for p in pks.peaks])
+        mval = np.amax(dataobj.massdat[:, 1])
+
+        plot.textremove()
+        for i, d in enumerate(pmasses):
+            if d in peaksel:
+                label = str(np.round(pint[i], 2))
+                plot.addtext(label, pmasses[i], mval * 0.06 + pint[i], vlines=False, nopaint=True)
+        plot.repaint()
+
+    def on_paste_spectrum(self, e=None):
+        """
+        Gets spectum from the clipboard, writes it to a new file, and then opens that new file.
+        :param e: unused space for event
+        :return: None
+        """
+        try:
+            wx.TheClipboard.Open()
+            do = wx.TextDataObject()
+            wx.TheClipboard.GetData(do)
+            wx.TheClipboard.Close()
+            text = do.GetText()
+            text = text.splitlines()
+            data = []
+            fname = "PastedSpectrum_" + str(time.strftime("%Y_%b_%d_%H_%M_%S")) + ".txt"
+            for t in text:
+                if ".RAW" in t:
+                    print(t)
+                    fname = os.path.splitext(t)[0] + ".txt"
+                line = t.split()
+                if len(line) == 2:
+                    try:
+                        mz = float(line[0])
+                        i = float(line[1])
+                        data.append([mz, i])
+                    except (ValueError, TypeError):
+                        pass
+            data = np.array(data)
+            if len(data) > 0:
+                if os.getcwd() == self.eng.config.UniDecDir:
+                    topdir = os.path.dirname(os.getcwd())
+                else:
+                    topdir = os.path.dirname(os.path.dirname(os.getcwd()))
+                newdir = os.path.join(topdir, "UniDecPastedSpectra")
+                if not os.path.isdir(newdir):
+                    os.mkdir(newdir)
+                np.savetxt(os.path.join(newdir, fname), data)
+                print("Saved Pasted Spectrum as File:", fname, " in directory:", newdir)
+                self.on_open_file(fname, newdir, refresh=True)
+            else:
+                print("Paste failed, got: ", data)
+        except Exception as e:
+            print(e)
+            wx.MessageBox("Unable to open the clipboard", "Error")
+
+    def on_batch(self, e=None):
+        print("Batch Processing")
+        dlg = wx.FileDialog(self.view, "Choose a data file mzML or Thermo Raw format", '', "", "*.*")
+        if dlg.ShowModal() == wx.ID_OK:
+            self.view.SetStatusText("Opening", number=5)
+            path = dlg.GetPath()
+            self.batch_process(path)
+        dlg.Destroy()
+
+    def on_run_all(self, e=None):
+        """
+        Run the whole process automatically
+        """
+        self.on_dataprep_button(e)
+        self.on_unidec_button(e)
+        self.on_pick_peaks(e)
+        self.on_plot_peaks(e)
+        self.on_plot_dists(e)
+        if self._sequence_text() and self.match_source_ready:
+            self.on_match_sequence(e)
+
+    def batch_process(self, path):
+        """
+        Batch process a file
+        :param path: File name
+        :return: None
+        """
+        print("Batch Processing:", path)
+        self.isodeceng.pks = None
+        self.view.export_gui_to_config()
+        self.isodeceng.process_file(path)
+        # The output directory should be a directory with the same name as the input file + _unidecfiles
+        outdir = os.path.splitext(path)[0] + "_unidecfiles"
+        # Check of the outdirectory exists
+        if not os.path.exists(outdir):
+            os.makedirs(outdir)
+        self._save_sequence(Path(outdir) / "seq.fasta")
+
+        result_prefix = os.path.join(outdir, "results")
+        if self.eng.config.idconfig.write_msalign == 1:
+            self.isodeceng.export_peaks("msalign", filename=result_prefix,
+                                        reader=self.isodeceng.reader)
+
+        if self.eng.config.idconfig.write_tsv == 1:
+            self.isodeceng.export_peaks("tsv", result_prefix + ".tsv")
+        pass
+
+    def export_results(self):
+        result_prefix = os.path.join(self.eng.config.udir, "results")
+        if self.eng.config.idconfig.write_msalign == 1:
+            self.isodeceng.export_peaks("msalign", filename=result_prefix,
+                                        reader=self.isodeceng.reader, max_precursors=1)
+            print("Exported MSAlign File: ", result_prefix)
+
+        if self.eng.config.idconfig.write_tsv == 1:
+            self.isodeceng.export_peaks("tsv", filename=result_prefix + ".tsv")
+            print("Exported TSV File: ", result_prefix + ".tsv")
+
+    def on_remove_assigned_peaks(self, e=None):
+        print(self.isodeceng.config)
+        data, isodists = self.isodeceng.remove_assigned_peaks(self.eng.data.data2)
+        self.eng.data.data2 = data
+        self.view.plot1.plotadd(data[:, 0], data[:, 1], colval="r", nopaint=False)
+
+    def fix_parameters(self):
+        print("Checking for Bad Parameters")
+        self.view.export_gui_to_config()
+        found_problem = False
+        found_warning = False
+        self.eng.config.isomode = 0
+        # min and maxmz cannot be negative
+        try:
+            if self.eng.config.minmz < 0:
+                print("Min m/z cannot be negative")
+                self.eng.config.minmz = ""
+                found_problem = True
+        except:
+            pass
+        try:
+            if self.eng.config.maxmz < 0:
+                print("Max m/z cannot be negative")
+                self.eng.config.maxmz = ""
+                found_problem = True
+        except:
+            pass
+
+        # Data reduction should be between 0 and 100
+        if self.eng.config.reductionpercent < 0:
+            print("Data Reduction cannot be negative")
+            self.eng.config.reductionpercent = 0
+            found_problem = True
+        elif self.eng.config.reductionpercent > 100:
+            print("Data Reduction cannot be greater than 100")
+            self.eng.config.reductionpercent = 80
+            found_problem = True
+
+        # Baseline subtraction should not be less than 0
+        if self.eng.config.subbuff < 0:
+            print("Baseline Subtraction cannot be negative")
+            self.eng.config.subbuff = 0
+            found_problem = True
+
+        # Mass bins size should not be 0 or negative
+        if self.eng.config.massbins <= 0:
+            print("Mass Bins cannot be negative or 0")
+            self.eng.config.massbins = 1
+            found_problem = True
+
+        # CSS should be between 0 and 1 inclusive
+        if self.eng.config.idconfig.css_thresh < 0:
+            print("CSS Threshold cannot be negative")
+            self.eng.config.idconfig.css_thresh = 0
+            found_problem = True
+        elif self.eng.config.idconfig.css_thresh > 1:
+            print("CSS Threshold cannot be greater than 1")
+            self.eng.config.idconfig.css_thresh = 0.99
+            found_problem = True
+        elif self.eng.config.idconfig.css_thresh < 0.25:
+            print("CSS Threshold is pretty low. Are you sure about this?")
+            found_warning = True
+
+        # Match Tolerance should be greater than 0
+        if float(self.eng.config.idconfig.matchtol) <= 0:
+            print("Match Tolerance cannot be negative")
+            self.eng.config.idconfig.matchtol = 5.0
+            found_problem = True
+        # Warn if it is greater than 1000
+        if self.eng.config.idconfig.matchtol > 1000:
+            print("Match Tolerance is very high. Are you sure? This is ppm we are talking about...")
+            found_warning = True
+
+        # Max shift should not be negative
+        if self.eng.config.idconfig.maxshift < 0:
+            print("Max Shift cannot be negative")
+            self.eng.config.idconfig.maxshift = 0
+            found_problem = True
+        elif 10 > self.eng.config.idconfig.maxshift > 5:
+            print("Max Shift is very high. Are you sure?")
+            found_warning = True
+        elif self.eng.config.idconfig.maxshift > 8:
+            print("Max Shift is too high. We're concerned about you. "
+                  "If you need us to let it go this high, send an email to the developers.")
+            self.eng.config.idconfig.maxshift = 3
+            found_problem = True
+
+        # Knockdown rounds should not be 0 or lower
+        if self.eng.config.idconfig.knockdown_rounds <= 0:
+            print("Knockdown Rounds cannot be 0 or negative")
+            self.eng.config.idconfig.knockdown_rounds = 1
+            found_problem = True
+        elif 20 > self.eng.config.idconfig.knockdown_rounds > 10:
+            print("Knockdown Rounds is very high. Are you sure?")
+            found_warning = True
+        elif self.eng.config.idconfig.knockdown_rounds > 20:
+            print("Knockdown Rounds is too high. We're concerned about you. "
+                  "If you need us to let it go this high, send an email to the developers.")
+            self.eng.config.idconfig.knockdown_rounds = 5
+            found_problem = True
+
+        # Adduct mass should be close to 1.007276 or its negative
+        if abs(abs(self.eng.config.adductmass) - 1.007276) > 0.01:
+            print("Adduct Mass is not close to 1.007276. Are you sure?")
+            found_warning = True
+
+        # Data encoding threshold should be between 0 and 1 inclusive
+        if self.eng.config.idconfig.datathreshold < 0:
+            print("Data Encoding Threshold cannot be negative")
+            self.eng.config.idconfig.datathreshold = 0
+            found_problem = True
+        elif self.eng.config.idconfig.datathreshold > 1:
+            print("Data Encoding Threshold cannot be greater than 1")
+            self.eng.config.idconfig.datathreshold = 0.05
+            found_problem = True
+        elif self.eng.config.idconfig.datathreshold > 0.5:
+            print("Data Encoding Threshold may be too high. Are you sure about this?")
+            found_warning = True
+
+        # Warn if either the mz window values are greater than 4
+        if np.abs(self.eng.config.idconfig.mzwindowlb) < -6.5:
+            print("Lower m/z window is very high. Are you sure?")
+            found_warning = True
+        if np.abs(self.eng.config.idconfig.mzwindowub) > 6.5:
+            print("Upper m/z window is very high. Are you sure?")
+            found_warning = True
+
+        # Peak detection window needs to be above 3
+        if self.eng.config.idconfig.peakwindow < 3:
+            print("Peak Detection Window needs to be at least 3")
+            self.eng.config.idconfig.peakwindow = 3
+            found_problem = True
+
+        # Peak detection threshold needs to be above 0
+        if self.eng.config.idconfig.peakthresh < 0:
+            print("Peak Detection Threshold needs to be 0 or above")
+            self.eng.config.idconfig.peakthresh = 0.0000001
+            found_problem = True
+
+        number = 1
+        self.view.SetStatusText("", number=number)
+        if found_problem:
+            print("Problems were found in the parameters. Values have been automatically reset. "
+                  "Please check the output above.")
+            self.view.SetStatusText("Problems found in parameters. Values have been reset.", number=number)
+            self.view.import_config_to_gui()
+
+        if found_warning:
+            print("Warnings were found in the parameters. Please check the output above.")
+            self.view.SetStatusText("Warnings found in parameters. Check the console output.", number=number)
+
+
+
+
+if __name__ == "__main__":
+    app = IsoDecPres()
+    app.start()

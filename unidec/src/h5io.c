@@ -1,0 +1,435 @@
+//
+// Created by mm96978 on 7/8/2025.
+//
+/*
+* UD_H5_IO.h
+*
+*  Created on : 19 December 2016
+* Author : Michael.Marty
+*/
+
+//
+//
+// Copyright 2016 University of Arizona
+//
+//
+
+#include "h5io.h"
+
+
+int check_group(const hid_t file_id, char *dataname)
+{
+	const int status = H5Lexists(file_id, dataname, H5P_DEFAULT);
+	if (status == 0) { printf("Dataset %s does not exist. Error.\n", dataname); exit(12); }
+	return status;
+}
+
+int check_group_noexit(const hid_t file_id, char* dataname, const int silent)
+{
+	const int status = H5Lexists(file_id, dataname, H5P_DEFAULT);
+	if (status == 0 && silent==0) { printf("Dataset %s does not exist.\n", dataname);}
+	return status;
+}
+
+void delete_group(const hid_t file_id, const char* dataname)
+{
+	if (H5LTpath_valid(file_id, dataname, 1)) {
+		H5Ldelete(file_id, dataname, H5P_DEFAULT);
+	}
+}
+
+
+int mh5getfilelength(const hid_t file_id, char *dataname)
+{
+	check_group(file_id, dataname);
+	hsize_t     dims[2];
+	H5LTget_dataset_info(file_id, dataname, dims, NULL, NULL);
+	// printf("%d %d\n", dims[0], dims[1]);
+	return (int) dims[0];
+}
+
+int mh5readfile2d_axis_bounds(const hid_t file_id, const char *dataname, int *length, float *first, float *last)
+{
+	hid_t dataset_id = H5Dopen2(file_id, dataname, H5P_DEFAULT);
+	if (dataset_id < 0) { return 0; }
+	hid_t dataspace_id = H5Dget_space(dataset_id);
+	if (dataspace_id < 0) {
+		H5Dclose(dataset_id);
+		return 0;
+	}
+
+	hsize_t dims[2] = {0, 0};
+	const int rank = H5Sget_simple_extent_ndims(dataspace_id);
+	H5Sget_simple_extent_dims(dataspace_id, dims, NULL);
+	if (rank != 2 || dims[0] == 0 || dims[1] == 0 || dims[0] > INT_MAX) {
+		H5Sclose(dataspace_id);
+		H5Dclose(dataset_id);
+		return 0;
+	}
+
+	const hsize_t count[2] = {1, 1};
+	hid_t memory_space_id = H5Screate_simple(2, count, NULL);
+	hid_t file_type_id = H5Dget_type(dataset_id);
+	hid_t memory_type_id = file_type_id >= 0 ? H5Tget_native_type(file_type_id, H5T_DIR_DEFAULT) : -1;
+	const size_t value_size = memory_type_id >= 0 ? H5Tget_size(memory_type_id) : 0;
+	unsigned char first_value[sizeof(double)] = {0};
+	unsigned char last_value[sizeof(double)] = {0};
+	int success = memory_space_id >= 0 && memory_type_id >= 0 &&
+		H5Tget_class(memory_type_id) == H5T_FLOAT &&
+		(value_size == sizeof(float) || value_size == sizeof(double));
+	if (success) {
+		hsize_t offset[2] = {0, 0};
+		success = H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL) >= 0 &&
+			H5Dread(dataset_id, memory_type_id, memory_space_id, dataspace_id, H5P_DEFAULT, first_value) >= 0;
+		offset[0] = dims[0] - 1;
+		if (success) {
+			success = H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL) >= 0 &&
+				H5Dread(dataset_id, memory_type_id, memory_space_id, dataspace_id, H5P_DEFAULT, last_value) >= 0;
+		}
+	}
+	if (success && value_size == sizeof(float)) {
+		memcpy(first, first_value, sizeof(float));
+		memcpy(last, last_value, sizeof(float));
+	}
+	else if (success) {
+		double first_double = 0;
+		double last_double = 0;
+		memcpy(&first_double, first_value, sizeof(double));
+		memcpy(&last_double, last_value, sizeof(double));
+		*first = (float)first_double;
+		*last = (float)last_double;
+	}
+	if (memory_type_id >= 0) { H5Tclose(memory_type_id); }
+	if (file_type_id >= 0) { H5Tclose(file_type_id); }
+	if (memory_space_id >= 0) { H5Sclose(memory_space_id); }
+
+	H5Sclose(dataspace_id);
+	H5Dclose(dataset_id);
+	if (success) { *length = (int)dims[0]; }
+	return success;
+}
+
+void mh5readfile2dcolumn(const hid_t file_id, char* dataname, float* outdata, const int col)
+{
+	check_group(file_id, dataname);
+	hsize_t     dims[2];
+	int ndims=0;
+	H5LTget_dataset_ndims(file_id, dataname, &ndims);
+	if (ndims == 1) {
+		H5LTread_dataset_float(file_id, dataname, outdata);
+		return;
+	}
+	H5LTget_dataset_info(file_id, dataname, dims, NULL, NULL);
+	//printf("%d %d %d %s\n", dims[0], dims[1], ndims, dataname);
+
+	float *data = calloc(dims[0] * dims[1], sizeof(float));
+	H5LTread_dataset_float(file_id, dataname, data);
+	for (int i = 0; i < dims[0]; i++)
+	{
+		outdata[i] = data[i * dims[1] + col];
+	}
+	free(data);
+}
+
+
+
+void mh5readfile2d(const hid_t file_id, char *dataname, const int lengthmz, float *dataMZ, float *dataInt)
+{
+	check_group(file_id, dataname);
+	const int newlen = lengthmz * 2;
+	float *data = calloc(newlen, sizeof(float));
+	H5LTread_dataset_float(file_id, dataname, data);
+	for (int i = 0; i<lengthmz; i++)
+	{
+		dataMZ[i] = data[i * 2];
+		dataInt[i] = data[i * 2 + 1];
+	}
+	free(data);
+}
+
+void mh5readfile3d(const hid_t file_id, char *dataname, const int lengthmz, float *dataMZ, float *dataInt, float *data3)
+{
+	check_group(file_id, dataname);
+	const int newlen = lengthmz * 3;
+	float *data = calloc(newlen, sizeof(float));
+	H5LTread_dataset_float(file_id, dataname, data);
+	for (int i = 0; i<lengthmz; i++)
+	{
+		dataMZ[i] = data[i * 3];
+		dataInt[i] = data[i * 3 + 1];
+		data3[i] = data[i * 3 + 2];
+	}
+	free(data);
+}
+
+void mh5readfile1d(const hid_t file_id, char *dataname, float *data)
+{
+	check_group(file_id, dataname);
+	H5LTread_dataset_float(file_id, dataname, data);
+}
+
+// Reuse an existing dataset when its rank and dimensions already match. This
+// avoids HDF5 metadata churn and file fragmentation during repeated runs.
+static int overwrite_float_dataset(const hid_t file_id, const char *dataname, const int rank,
+	const hsize_t *dims, const float *data)
+{
+	if (!H5LTpath_valid(file_id, dataname, 1)) { return 0; }
+
+	hid_t dataset_id = H5Dopen2(file_id, dataname, H5P_DEFAULT);
+	if (dataset_id < 0) { return 0; }
+	hid_t dataspace_id = H5Dget_space(dataset_id);
+	if (dataspace_id < 0) {
+		H5Dclose(dataset_id);
+		return 0;
+	}
+
+	hsize_t existing_dims[2] = {0, 0};
+	const int existing_rank = H5Sget_simple_extent_ndims(dataspace_id);
+	int same_shape = existing_rank == rank;
+	if (same_shape) {
+		H5Sget_simple_extent_dims(dataspace_id, existing_dims, NULL);
+		for (int i = 0; i < rank; i++) {
+			if (existing_dims[i] != dims[i]) {
+				same_shape = 0;
+				break;
+			}
+		}
+	}
+
+	int overwritten = 0;
+	if (same_shape) {
+		hid_t file_type_id = H5Dget_type(dataset_id);
+		const int is_float32 = file_type_id >= 0 && H5Tget_class(file_type_id) == H5T_FLOAT &&
+			H5Tget_size(file_type_id) == sizeof(float);
+		hid_t memory_type_id = is_float32 ? H5Tget_native_type(file_type_id, H5T_DIR_DEFAULT) : -1;
+		if (memory_type_id >= 0) {
+			overwritten = H5Dwrite(dataset_id, memory_type_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, data) >= 0;
+			H5Tclose(memory_type_id);
+		}
+		if (file_type_id >= 0) { H5Tclose(file_type_id); }
+	}
+	H5Sclose(dataspace_id);
+	H5Dclose(dataset_id);
+	return overwritten;
+}
+
+void mh5writefile1d(const hid_t file_id, const char *dataname, const int length, const float *data1)
+{
+	const hsize_t length2[1] = { length};
+	if (overwrite_float_dataset(file_id, dataname, 1, length2, data1)) { return; }
+	if (H5LTpath_valid(file_id, dataname, 1)){
+		H5Ldelete(file_id, dataname, H5P_DEFAULT);
+	}
+	H5LTmake_dataset_float(file_id, dataname, 1, length2, data1);
+}
+
+void mh5writefile2d(const hid_t file_id, const char *dataname, const int length, const float *data1, const float *data2)
+{
+	const hsize_t length2[2] = { length ,2};
+	const int len2 = length * 2;
+	float *data = calloc(len2, sizeof(float));
+	for (int i = 0; i<length; i++)
+	{
+		data[2*i] = data1[i];
+		data[2*i+1] = data2[i];
+	}
+	if (overwrite_float_dataset(file_id, dataname, 2, length2, data)) {
+		free(data);
+		return;
+	}
+	if (H5LTpath_valid(file_id, dataname, 1)){
+		H5Ldelete(file_id, dataname, H5P_DEFAULT);
+	}
+	H5LTmake_dataset_float(file_id, dataname, 2, length2, data);
+	free(data);
+}
+
+void mh5writefile2d_grid(const hid_t file_id, const char *dataname, const int length1, const int length2, const float *data1)
+{
+	const hsize_t length[2] = { length1 ,length2 };
+	if (overwrite_float_dataset(file_id, dataname, 2, length, data1)) { return; }
+	if (H5LTpath_valid(file_id, dataname, 1)) {
+		H5Ldelete(file_id, dataname, H5P_DEFAULT);
+	}
+	H5LTmake_dataset_float(file_id, dataname, 2, length, data1);
+}
+
+int int_attr(const hid_t file_id, const char *gname, char * attr_name, int value)
+{
+	const hid_t dset_id = H5Gopen1(file_id, gname);
+	const herr_t x = H5LTfind_attribute(dset_id, attr_name);
+	int attr[1] = { 0 };
+	if (x == 1){
+		const herr_t y = H5LTget_attribute_int(file_id, gname, attr_name, attr);
+		if (y < 0) { printf("Error with: %s\n", attr_name); }
+		else{ value = attr[0]; }
+	}
+	H5Gclose(dset_id);
+	return value;
+}
+
+float float_attr(const hid_t file_id, const char *gname, char * attr_name, float value)
+{
+	const hid_t dset_id = H5Gopen1(file_id, gname);
+	const herr_t x = H5LTfind_attribute(dset_id, attr_name);
+	float attr[1] = { 0 };
+	if (x == 1){
+		const herr_t y = H5LTget_attribute_float(file_id, gname, attr_name, attr);
+		if (y < 0) { printf("Error with: %s\n", attr_name); }
+		else { value = attr[0]; }
+	}
+	H5Gclose(dset_id);
+	return value;
+}
+
+void write_attr_int(const hid_t file_id, const char *gname, const char *attr_name, const int value)
+{
+	const int buff[1] = { value };
+	H5LTset_attribute_int(file_id, gname, attr_name, buff, 1);
+}
+
+void write_attr_float(const hid_t file_id, const char *gname, const char *attr_name, const float value)
+{
+	const float buff[1] = { value };
+	H5LTset_attribute_float(file_id, gname, attr_name, buff, 1);
+}
+
+Config mh5LoadConfig(Config config, hid_t file_id)
+{
+
+	config.numit=int_attr(file_id, "/config", "numit", config.numit);
+	config.endz=int_attr(file_id, "/config", "endz", config.endz);
+	config.startz=int_attr(file_id, "/config", "startz", config.startz);
+	config.psfun=int_attr(file_id, "/config", "psfun", config.psfun);
+	config.linflag=int_attr(file_id, "/config", "linflag", config.linflag);
+	config.aggressiveflag=int_attr(file_id, "/config", "aggressive", config.aggressiveflag);
+	config.rawflag=int_attr(file_id, "/config", "rawflag", config.rawflag);
+	config.rescale_newblur = int_attr(file_id, "/config", "rescale_newblur", config.rescale_newblur);
+	config.poolflag=int_attr(file_id, "/config", "poolflag", config.poolflag);
+	config.isotopemode=int_attr(file_id, "/config", "isotopemode", config.isotopemode);
+	config.orbimode = int_attr(file_id, "/config", "orbimode", config.orbimode);
+	config.manualflag=int_attr(file_id, "/config", "manualfileflag", config.manualflag);
+	config.mflag = int_attr(file_id, "/config", "mfileflag", config.mflag);
+
+	config.zsig=float_attr(file_id, "/config", "zzsig", config.zsig);
+	config.psig = float_attr(file_id, "/config", "psig", config.psig);
+	config.beta = float_attr(file_id, "/config", "beta", config.beta);
+	config.suppression_topn = int_attr(file_id, "/config", "suppression_topn", config.suppression_topn);
+	config.suppression_topx = float_attr(file_id, "/config", "suppression_topx", config.suppression_topx);
+	config.suppression_percent = float_attr(file_id, "/config", "suppression_percent", config.suppression_percent);
+	config.suppression_startit = int_attr(file_id, "/config", "suppression_startit", config.suppression_startit);
+	config.suppression_harmonic = int_attr(file_id, "/config", "suppression_harmonic", config.suppression_harmonic);
+	config.suppression_satellite = int_attr(file_id, "/config", "suppression_satellite", config.suppression_satellite);
+	config.mzsig=float_attr(file_id, "/config", "mzsig", config.mzsig);
+	config.msig=float_attr(file_id, "/config", "msig", config.msig);
+	config.molig=float_attr(file_id, "/config", "molig", config.molig);
+	config.massub=float_attr(file_id, "/config", "massub", config.massub);
+	config.masslb=float_attr(file_id, "/config", "masslb", config.masslb);
+	config.mtabsig=float_attr(file_id, "/config", "mtabsig", config.mtabsig);
+	config.psthresh=float_attr(file_id, "/config", "psthresh", config.psthresh);
+	config.massbins=float_attr(file_id, "/config", "massbins", config.massbins);
+	config.adductmass=float_attr(file_id, "/config", "adductmass", config.adductmass);
+	config.nativezub=float_attr(file_id, "/config", "nativezub", config.nativezub);
+	config.nativezlb=float_attr(file_id, "/config", "nativezlb", config.nativezlb);
+	config.intthresh=float_attr(file_id, "/config", "intthresh", config.intthresh);
+	config.peakshapeinflate=float_attr(file_id, "/config", "peakshapeinflate", config.peakshapeinflate);
+	//IM Parameters
+	config.csig =float_attr(file_id, "/config", "csig", config.csig);
+	// Shared chromatography peak width used by UCCD and HDF5 UniChrom.
+	config.dtsig = float_attr(file_id, "/config", "dtsig", config.dtsig);
+	config.UClineardecon = int_attr(file_id, "/config", "UClineardecon", 1);
+	config.UCtype = int_attr(file_id, "/config", "UCtype", 0);
+	config.ccsub = float_attr(file_id, "/config", "ccsub", config.ccsub);
+	config.ccslb = float_attr(file_id, "/config", "ccslb", config.ccslb);
+	config.ccsbins = float_attr(file_id, "/config", "ccsbins", config.ccsbins);
+	config.temp = float_attr(file_id, "/config", "temp", config.temp);
+	config.press = float_attr(file_id, "/config", "pressure", config.press);
+	config.volt = float_attr(file_id, "/config", "volt", config.volt);
+	config.hmass = float_attr(file_id, "/config", "gasmass", config.hmass);
+	config.to = float_attr(file_id, "/config", "tnaught", config.to);
+	config.tcal1 = float_attr(file_id, "/config", "tcal1", config.tcal1);
+	config.tcal2 = float_attr(file_id, "/config", "tcal2", config.tcal2);
+	config.tcal3 = float_attr(file_id, "/config", "tcal3", config.tcal3);
+	config.tcal4 = float_attr(file_id, "/config", "tcal4", config.tcal4);
+	config.edc = float_attr(file_id, "/config", "edc", config.edc);
+	config.nativeccsub = float_attr(file_id, "/config", "ubnativeccs", config.nativeccsub);
+	config.nativeccslb = float_attr(file_id, "/config", "lbnativeccs", config.nativeccslb);
+	config.len = float_attr(file_id, "/config", "driftlength", config.len);
+
+	config.zout = int_attr(file_id, "/config", "zout", config.zout);
+	config.twaveflag = int_attr(file_id, "/config", "twaveflag", config.twaveflag);
+	config.baselineflag = int_attr(file_id, "/config", "baselineflag", config.baselineflag);
+	config.noiseflag = int_attr(file_id, "/config", "noiseflag", config.noiseflag);
+
+	config.metamode = int_attr(file_id, "/config", "metamode", config.metamode);
+	config.minmz = float_attr(file_id, "/config", "minmz", config.minmz);
+	config.maxmz = float_attr(file_id, "/config", "maxmz", config.maxmz);
+	config.mzbins = float_attr(file_id, "/config", "mzbins", config.mzbins);
+	config.bsub = float_attr(file_id, "/config", "subbuff", config.bsub);
+	config.datareduction = float_attr(file_id, "/config", "reductionpercent", config.datareduction);
+
+	config.peakwin = float_attr(file_id, "/config", "peakwindow", config.peakwin);
+	config.peakthresh = float_attr(file_id, "/config", "peakthresh", config.peakthresh);
+
+	config.exwindow = float_attr(file_id, "/config", "exwindow", config.exwindow);
+	config.exchoice = int_attr(file_id, "/config", "exchoice", config.exchoice);
+	config.exchoicez = int_attr(file_id, "/config", "exchoicez", config.exchoicez);
+	config.exthresh = float_attr(file_id, "/config", "exthresh", config.exthresh);
+	config.exnorm = int_attr(file_id, "/config", "exnorm", config.exnorm);
+	config.exnormz = int_attr(file_id, "/config", "exnormz", config.exnormz);
+	config.peaknorm = int_attr(file_id, "/config", "peaknorm", config.peaknorm);
+	config.datanorm = int_attr(file_id, "/config", "datanorm", config.datanorm);
+	config.normthresh = int_attr(file_id, "/config", "normthresh", config.normthresh);
+
+	//Experimental
+	config.filterwidth = int_attr(file_id, "/config", "filterwidth", config.filterwidth);
+	config.zerolog = float_attr(file_id, "/config", "zerolog", config.zerolog);
+
+	PostImport(&config);
+
+	return config;
+
+}
+
+void strjoin(const char *s1, const char *s2, char *newstring)
+{
+	strcpy(newstring,  s1);
+	strcat(newstring,  s2);
+}
+
+void makegroup(const hid_t file_id, const char *dataset)
+{
+	const htri_t status = H5Lexists(file_id, dataset, H5P_DEFAULT);
+	if (status == 0) {
+		const hid_t group_id = H5Gcreate2(file_id, dataset, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+		H5Gclose(group_id);
+		//printf("Peaks Group not found. Creating...\n");
+	}
+}
+
+void set_needs_grids(const hid_t file_id)
+{
+	write_attr_int(file_id, "/config", "gridsflag", 0);
+}
+
+void set_got_grids(const hid_t file_id)
+{
+	write_attr_int(file_id, "/config", "gridsflag", 1);
+}
+
+int question_grids(const hid_t file_id)
+{
+	//int status = check_group(file_id, "/ms_dataset/mass_axis");
+	const int status = H5Lexists(file_id, "/ms_dataset/mass_axis", H5P_DEFAULT);
+	if (status == 0) { write_attr_int(file_id, "/config", "gridsflag", 0); }//printf("Grids not found %d\n", status);}
+	return int_attr(file_id, "/config", "gridsflag", 0);
+}
+
+int question_rawgrid(const hid_t file_id)
+{
+	//int status = check_group(file_id, "/ms_dataset/mass_axis");
+	const int status = H5Lexists(file_id, "/ms_dataset/raw_axis", H5P_DEFAULT);
+	if (status == 0) { write_attr_int(file_id, "/config", "gridsflag", 0); }//printf("Grids not found %d\n", status);}
+	return int_attr(file_id, "/config", "gridsflag", 0);
+}
+

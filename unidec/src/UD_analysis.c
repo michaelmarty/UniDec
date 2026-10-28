@@ -1,0 +1,962 @@
+//
+// Created by mm96978 on 7/8/2025.
+//
+
+#include "UD_analysis.h"
+
+
+void interpolate_merge(const float *massaxis, float *outint, const float *tempaxis, const float *tempint, const int mlen, const int templen)
+{
+	const float start = tempaxis[0];
+	const float end = tempaxis[templen - 1];
+
+	for (int i = 0; i < mlen; i++)
+	{
+		const float pos = massaxis[i];
+		if (pos >= start && pos <= end)
+		{
+			int index = nearfast(tempaxis, pos, templen);
+			int index2 = index;
+			if (tempaxis[index] == pos)
+			{
+				outint[i] = tempint[index];
+			}
+			else
+			{
+				if (tempaxis[index]>pos&&index>1 && index<templen - 1)
+				{
+					index2 = index;
+					index = index - 1;
+				}
+				else if (tempaxis[index]<pos&&index<templen - 2 && index>0)
+				{
+					index2 = index + 1;
+				}
+				if (index2>index && (tempaxis[index2] - tempaxis[index]) != 0)
+				{
+					const float mu = (pos - tempaxis[index]) / (tempaxis[index2] - tempaxis[index]);
+					const float y0 = tempint[index - 1];
+					const float y1 = tempint[index];
+					const float y2 = tempint[index2];
+					const float y3 = tempint[index2 + 1];
+					const float newval = clip(CubicInterpolate(y0, y1, y2, y3, mu), 0);
+					//newval=CRSplineInterpolate(y0,y1,y2,y3,mu);
+					//newval=LinearInterpolate(y1,y2,mu);
+					outint[i] = newval;
+				}
+			}
+		}
+	}
+
+}
+
+static int merge_aligned_mass_axis(const float *massaxis, float *outint, const float *tempaxis,
+	const float *tempint, const int mlen, const int templen, const float binval)
+{
+	if (mlen < 1 || templen < 2 || binval <= 0) { return 0; }
+	const float max_axis_value = fmaxf(fabsf(massaxis[mlen - 1]), fabsf(tempaxis[templen - 1]));
+	const float axis_ulp = nextafterf(max_axis_value, INFINITY) - max_axis_value;
+	const float tolerance = fmaxf(fabsf(binval) * 0.001f, axis_ulp);
+
+	const float offset_value = (tempaxis[0] - massaxis[0]) / binval;
+	const int offset = (int)lroundf(offset_value);
+	if (offset < 0 || offset + templen > mlen || fabsf(offset_value - (float)offset) > 0.001f) {
+		return 0;
+	}
+	if (fabsf(massaxis[offset] - tempaxis[0]) > tolerance ||
+		fabsf(massaxis[offset + templen - 1] - tempaxis[templen - 1]) > tolerance) {
+		return 0;
+	}
+	for (int i = 1; i < templen - 1; i++) {
+		if (fabsf(massaxis[offset + i] - tempaxis[i]) > tolerance) { return 0; }
+	}
+
+	memcpy(outint + offset, tempint, (size_t)templen * sizeof(float));
+	return 1;
+}
+
+Config get_global_min_max(int argc, char* argv[], Config config, const char* dtype)
+{
+	char dataset[1024];
+	char outdat[1024];
+	char strval[1024];
+
+	int num = 0;
+	num = int_attr(config.file_id, "/ms_dataset", "num", num);
+
+	float minval = 1000000000.f;
+	float maxval = 0;
+	float minres = minval;
+
+	for (int i = 0; i < num; i++)
+	{
+		strcpy(dataset, "/ms_dataset");
+		sprintf(strval, "/%d", i);
+		strcat(dataset, strval);
+		strjoin(dataset, dtype, outdat);
+
+		int templen = 0;
+		float newmin = 0;
+		float newmax = 0;
+		if (!mh5readfile2d_axis_bounds(config.file_id, outdat, &templen, &newmin, &newmax)) {
+			int fallback_len = mh5getfilelength(config.file_id, outdat);
+			float* temp = calloc(fallback_len, sizeof(float));
+			float* tempaxis = calloc(fallback_len, sizeof(float));
+			if (temp == NULL || tempaxis == NULL) {
+				printf("Error allocating memory for %s bounds\n", outdat);
+				exit(1);
+			}
+			mh5readfile2d(config.file_id, outdat, fallback_len, tempaxis, temp);
+			templen = fallback_len;
+			newmin = Min(tempaxis, templen);
+			newmax = Max(tempaxis, templen);
+			free(temp);
+			free(tempaxis);
+		}
+		float newres = (newmax - newmin) / (float) templen;
+
+		if (newmin < minval) { minval = newmin; }
+		if (newmax > maxval) { maxval = newmax; }
+		if (newres < minres) { minres = newres; }
+
+	}
+
+	if (strcmp(dtype, "/mass_data") == 0) {
+		config.masslb = minval;
+		config.massub = maxval;
+	}
+	if (strcmp(dtype, "/processed_data") == 0) {
+		config.minmz = minval;
+		config.maxmz = maxval;
+		config.mzres = minres;
+	}
+
+	return config;
+}
+
+
+void make_grid(int argc, char *argv[], Config config, const char *dtype, const char *out1, const char *out2, const char *out3)
+{
+	clock_t starttime;
+	starttime = clock();
+	config = get_global_min_max(argc, argv, config, dtype);
+
+	char dataset[1024];
+	char outdat[1024];
+	char strval[1024];
+
+	int num = 0;
+	num = int_attr(config.file_id, "/ms_dataset", "num", num);
+
+	float minval = 1000000000.f;
+	float maxval = 0;
+	float binval = 0;
+
+	if (strcmp(dtype, "/mass_data")==0) {
+		minval = config.masslb;
+		maxval = config.massub;
+		binval = config.massbins;
+	}
+	if (strcmp(dtype, "/processed_data") == 0) {
+		minval = config.minmz;
+		maxval = config.maxmz;
+		binval = config.mzres;
+	}
+	printf("Template: %f to %f by %f\n", minval, maxval, binval);
+
+	int mlen = 1 + (int)((maxval - minval) / binval);
+
+	float *massgrid = NULL;
+	float *massaxis = NULL;
+	float *masssum = NULL;
+	const int newlen = mlen * num;
+	massgrid = calloc((size_t)newlen, sizeof(float));
+	massaxis = calloc(mlen, sizeof(float));
+	masssum = calloc(mlen, sizeof(float));
+	if (massgrid == NULL || massaxis == NULL || masssum == NULL)
+	{
+		printf("Error allocating memory for mass grid, axis, or sum\n");
+		exit(1);
+	}
+
+	for (int i = 0; i < mlen; i++)
+	{
+		massaxis[i] = minval + (float) i * binval;
+	}
+
+	for (int i = 0; i < num; i++)
+	{
+		strcpy(dataset, "/ms_dataset");
+		sprintf(strval, "/%d", i);
+		strcat(dataset, strval);
+		//printf("Processing HDF5 Data Set: %s\n", dataset);
+		strjoin(dataset, dtype, outdat);
+
+		int templen = mh5getfilelength(config.file_id, outdat);
+
+		float *temp = NULL;
+		float *tempaxis = NULL;
+		temp = calloc(templen, sizeof(float));
+		tempaxis = calloc(templen, sizeof(float));
+		if (temp == NULL || tempaxis == NULL)
+		{
+			printf("Error allocating memory for %s\n", outdat);
+			exit(1);
+		}
+
+		mh5readfile2d(config.file_id, outdat, templen, tempaxis, temp);
+
+		float *outint = massgrid + (size_t)i * mlen;
+		const int aligned = strcmp(dtype, "/mass_data") == 0 &&
+			merge_aligned_mass_axis(massaxis, outint, tempaxis, temp, mlen, templen, binval);
+		if (!aligned) { interpolate_merge(massaxis, outint, tempaxis, temp, mlen, templen); }
+
+		for (int j = 0; j < mlen; j++)
+		{
+			masssum[j] += outint[j];
+		}
+
+		free(temp);
+		free(tempaxis);
+	}
+
+	//Write data to processed_data
+	strcpy(dataset, "/ms_dataset");
+	strjoin(dataset, out1, outdat);
+	printf("\tWriting to: %s\n", outdat);
+	mh5writefile1d(config.file_id, outdat, mlen*num, massgrid);
+
+	strjoin(dataset, out2, outdat);
+	printf("\tWriting to: %s\n", outdat);
+	mh5writefile1d(config.file_id, outdat, mlen, massaxis);
+
+	strjoin(dataset, out3, outdat);
+	printf("\tWriting to: %s\n", outdat);
+	if(config.datanorm ==1){
+		norm1d(masssum, mlen);
+	}
+	else {
+		float max1 = Max(massgrid, mlen*num);
+		float max2 = Max(masssum, mlen);
+		if(max2>0){
+			for (int i = 0; i<mlen; i++)
+			{
+				masssum[i] = masssum[i] / max2 * max1;
+			}
+		}
+	}
+	mh5writefile1d(config.file_id, outdat, mlen, masssum);
+	free(massgrid);
+	free(massaxis);
+	free(masssum);
+
+	clock_t end = clock();
+	float totaltime = (float)(end - starttime) / CLOCKS_PER_SEC;
+	printf("Done in %f seconds\n", totaltime);
+
+}
+
+int is_peak(const float *dataMZ, const float *dataInt, const int lengthmz, const float window, const float thresh, const int index)
+{
+	const float xval = dataMZ[index];
+	const float yval = dataInt[index];
+	//Check if below threshold
+	if (yval < thresh) { return 0; }
+	//Check if local max
+	for (int i = 0; i < lengthmz; i++)
+	{
+		const float temp = dataMZ[i];
+		if (fabsf(temp - xval) <= window)
+		{
+			const float tempy = dataInt[i];
+			//printf("%f %f %f %f\n", temp, tempy, xval, yval);
+			if (tempy > yval)
+			{
+				return 0;
+			}
+			if (tempy == yval && i < index)
+			{
+				return 0;
+			}
+		}
+	}
+
+	return 1;
+}
+
+
+int peak_detect(const float *dataMZ, const float *dataInt, const int lengthmz, const float window, const float thresh,
+	const int normthresh, float * peakx, float *peaky)
+{
+	//printf("Detecting Peaks %d %f %f\n", lengthmz, window, thresh);
+	int plen = 0;
+	const float max = Max(dataInt, lengthmz);
+	// Normalize threshold if flagged that way (default)
+	float threshval = 0;
+	if (normthresh ==1) {
+		if (thresh <= 1){
+			threshval = thresh * max;
+		}
+		else {
+			// Sort the dataInt values from low to high
+			float *sorted = malloc(lengthmz * sizeof(float));
+			memcpy(sorted, dataInt, lengthmz * sizeof(float));
+			qsort(sorted, lengthmz, sizeof(float), compare_function);
+			// Determine the index corresponding to the threshold percentage, ignoring zeros
+			const float percentage = 0.9f; // 90% threshold
+			int threshold_index = 0;
+			for (int i = 0; i < lengthmz; i++) {
+				if (sorted[i] > 0) {
+					threshold_index = i + (int)((lengthmz - i) * percentage);
+					break;
+				}
+			}
+			// Get intensity at the threshold index
+			if (threshold_index < lengthmz) {
+				threshval = sorted[threshold_index] * thresh;
+			}
+			free(sorted);
+		}
+	}
+	else {
+		threshval = thresh;
+		// printf("Threshval %f max %f\n", threshval, max);
+	}
+
+
+
+	for (int i = 0; i < lengthmz; i++)
+	{
+		if (is_peak(dataMZ, dataInt, lengthmz, window, threshval, i) == 1)
+		{
+			//printf("Peak %d: %f %f\n", plen, dataMZ[i], dataInt[i]);//
+			peakx[plen] = dataMZ[i];
+			peaky[plen] = dataInt[i];
+			plen++;
+		}
+	}
+	return plen;
+}
+
+
+void peak_norm(float *peaky, int plen, int peaknorm)
+{
+	float norm = 0;
+	if (peaknorm==1){norm= Max(peaky, plen);}
+	if (peaknorm==2){norm= Sum(peaky, plen);}
+	if (norm != 0)
+	{
+		for (int i = 0; i < plen; i++)
+		{
+			peaky[i] /= norm;
+		}
+	}
+}
+
+float extract_height(Config config, const float peak, const float *xvals, const float *yvals, const int length)
+{
+	if (peak < xvals[0]) { return 0; }
+	if (peak > xvals[length - 1]) { return 0; }
+	int pos = nearfast(xvals, peak, length);
+	return yvals[pos];
+}
+
+float extract_localmax(Config config, const float peak, const float *xvals, const float *yvals, const int length)
+{
+	if (peak < xvals[0]) { return 0; }
+	if (peak > xvals[length - 1]) { return 0; }
+
+	int pos1 = nearfast(xvals, peak - config.exwindow, length);
+	int pos2 = nearfast(xvals, peak + config.exwindow, length);
+
+	float localmax = 0;
+	for (int i = pos1; i <= pos2; i++)
+	{
+		if (yvals[i] > localmax) { localmax = yvals[i]; }
+	}
+
+	return localmax;
+}
+
+float extract_localmax_position(Config config, const float peak, const float *xvals, const float *yvals, const int length)
+{
+	if (peak < xvals[0]) { return 0; }
+	if (peak > xvals[length - 1]) { return 0; }
+
+	int pos1 = nearfast(xvals, peak - config.exwindow, length);
+	int pos2 = nearfast(xvals, peak + config.exwindow, length);
+
+	float localmax = 0;
+	int localmaxpos = 0;
+	for (int i = pos1; i <= pos2; i++)
+	{
+		if (yvals[i] > localmax) { localmax = yvals[i]; localmaxpos = i; }
+	}
+
+	return xvals[localmaxpos];
+}
+
+float extract_integral(Config config, const float peak, const float *xvals, const float *yvals, const int length, const float thresh)
+{
+	if (peak < xvals[0]) { return 0; }
+	if (peak > xvals[length - 1]) { return 0; }
+
+	float thresh2 = 0;
+	if (thresh > 0) {
+		float max = Max(yvals, length);
+		thresh2 = thresh * max;
+	}
+	//printf("thresh %f\n", thresh2);
+
+	int pos1 = nearfast(xvals, peak - config.exwindow, length);
+	int pos2 = nearfast(xvals, peak + config.exwindow, length);
+
+	float integral = 0;
+	for (int i = pos1+1; i <= pos2; i++)
+	{
+		float b = xvals[i];
+		float a = xvals[i - 1];
+		float fb = yvals[i];
+		float fa = yvals[i - 1];
+		if (fa > thresh2 && fb > thresh2) {
+			integral += (b - a) * ((fa + fb) / 2.0f);
+		}
+	}
+
+	return integral;
+}
+
+
+float extract_center_of_mass(Config config, const float peak, const float *xvals, const float *yvals, const int length, const float thresh)
+{
+	if (peak < xvals[0]) { return 0; }
+	if (peak > xvals[length - 1]) { return 0; }
+
+	float thresh2 = 0;
+	if (thresh > 0) {
+		float max = Max(yvals, length);
+		thresh2 = thresh * max;
+	}
+	//printf("thresh %f\n", thresh2);
+
+	int pos1 = nearfast(xvals, peak - config.exwindow, length);
+	int pos2 = nearfast(xvals, peak + config.exwindow, length);
+	float sum = 0;
+	float sum_masses = 0;
+	for (int i = pos1; i <= pos2; i++)
+	{
+		float x = xvals[i];
+		float y = yvals[i];
+		if (y > thresh2)
+		{
+			sum_masses += y;
+			sum += x*y;
+		}
+	}
+	if (sum_masses > 0) { sum /= sum_masses; }
+
+	return sum;
+}
+
+
+float extract_estimated_area(Config config, const float peak, const float* xvals, const float* yvals, const int length)
+{
+	int pos1 = nearfast(xvals, peak - config.exwindow, length);
+	// printf("Position of left bound is %d\n", pos1);
+	int pos2 = nearfast(xvals, peak + config.exwindow, length);
+	// printf("Position of right bound is %d\n", pos2);
+	int mlen = pos2 - pos1 + 1;
+	const float* xwin = xvals + pos1;
+	// printf("xvals is %p, xwin is %p\n", xvals, xwin);
+	const float* ywin = yvals + pos1;
+
+	int index = nearfast(xwin, peak, mlen);
+	float height = ywin[index];
+	float fwhm = single_fwhm(config, mlen, xwin, ywin, peak, index, height);
+
+	float pi = 3.14159265358979323846f;
+	float gauss_coeff = sqrtf(pi / logf(2.0f)) / 2.0f;
+	float adjusted_coeff = ((0.5f * gauss_coeff) + (pi / 4.0f));
+	float area = 0;
+	if (config.psfun == 0) { // Gaussian
+		area = height * fwhm * gauss_coeff;
+	}
+	else if (config.psfun == 1) { // Lorentzian
+		area = height * fwhm * pi / 2.0f;
+	}
+	else if (config.psfun == 2) { // Split G/L
+		area = height * fwhm * adjusted_coeff;
+	}
+
+	return area;
+}
+
+
+float extract_switch(Config config, const float peak, const float* xvals, const float* yvals, const int length)
+{
+	float output = 0;
+	if (config.exwindow == 0) { config.exchoice = 0;
+	printf("Window is set to 0, defaulting to the height extraction.\n");
+	}
+// 	if (config.exchoice == 0 && config.exwindow > 0) { printf("Window > 0, but choice set to height. Ignoring window.\n"); }
+
+	float thresh = config.exthresh / 100;
+
+	switch (config.exchoice)
+	{
+	case 0:
+		//printf("Extracting Height\n");
+		output = extract_height(config, peak, xvals, yvals, length);
+		break;
+	case 1:
+		//printf("Extracting Local Max. Window: %f\n", config.exwindow);
+		output = extract_localmax(config, peak, xvals, yvals, length);
+		break;
+	case 2:
+		//printf("Extracting Integral. Window: %f\n", config.exwindow);
+		output = extract_integral(config, peak, xvals, yvals, length, thresh);
+		break;
+	case 3:
+		//printf("Extracting Center of Mass 0. Window: %f\n", config.exwindow);
+		output = extract_center_of_mass(config, peak, xvals, yvals, length, thresh);
+		break;
+	case 4:
+		//printf("Extracting Local Max. Window: %f\n", config.exwindow);
+		output = extract_localmax_position(config, peak, xvals, yvals, length);
+		break;
+	/*
+	case 5:
+		//printf("Extracting Center of Mass 50. Window: %f\n", config.exwindow);
+		output = extract_center_of_mass(config, peak, xvals, yvals, length, 0.5*max);
+		break;
+	case 6:
+		//printf("Extracting Center of Mass 10. Window: %f\n", config.exwindow);
+		output = extract_center_of_mass(config, peak, xvals, yvals, length, 0.1*max);
+		break;
+	case 7:
+		//printf("Extracting Integral. Window: %f\n", config.exwindow);
+		output = extract_integral(config, peak, xvals, yvals, length, 0.5 * max);
+		break;
+	case 8:
+		//printf("Extracting Integral. Window: %f\n", config.exwindow);
+		output = extract_integral(config, peak, xvals, yvals, length, 0.1 * max);
+		break;
+	case 9:
+		//printf("Extracting Integral. Window: %f\n", config.exwindow);
+		output = extract_integral(config, peak, xvals, yvals, length, 0.05 * max);
+	   	break;
+	case 10:
+		//printf("Extracting Integral. Window: %f\n", config.exwindow);
+		output = extract_integral(config, peak, xvals, yvals, length, 0.025 * max);
+		break;*/
+	case 5: // 11
+		// printf("Extracting Estimated Area. Window: %f\n", config.exwindow);
+		output = extract_estimated_area(config, peak, xvals, yvals, length);
+		break;
+	default:
+		printf("Invalid Extraction Choice: %d\n", config.exchoice);
+		output = 0;
+	}
+	return output;
+}
+
+
+void peak_extracts(Config config, const float *peakx, hid_t file_id, const char *dtype, int plen, int ultra)
+{
+	char dataset[1024];
+	char outdat[1024];
+	char strval[1024];
+
+	int num = 0;
+	num = int_attr(file_id, "/ms_dataset", "num", num);
+
+	float *extracts = NULL;
+	int newlen = plen * num;
+	extracts = calloc(newlen, sizeof(float));
+	if (extracts == NULL) {
+		printf("Error allocating memory for peak extracts\n");
+		exit(11);
+	}
+
+	float *merged_axis = NULL;
+	float *merged_grid = NULL;
+	int merged_len = 0;
+	int use_merged_grid = 0;
+	char merged_axis_path[1024];
+	char merged_grid_path[1024];
+	strcpy(merged_axis_path, "/ms_dataset/mass_axis");
+	strcpy(merged_grid_path, "/ms_dataset/mass_grid");
+	if (strcmp(dtype, "/mass_data") == 0 &&
+		H5LTpath_valid(file_id, merged_axis_path, 1) && H5LTpath_valid(file_id, merged_grid_path, 1)) {
+		merged_len = mh5getfilelength(file_id, merged_axis_path);
+		const int merged_grid_len = mh5getfilelength(file_id, merged_grid_path);
+		if (merged_len > 0 && merged_grid_len == merged_len * num) {
+			merged_axis = calloc(merged_len, sizeof(float));
+			merged_grid = calloc((size_t)merged_grid_len, sizeof(float));
+			if (merged_axis != NULL && merged_grid != NULL) {
+				mh5readfile1d(file_id, merged_axis_path, merged_axis);
+				mh5readfile1d(file_id, merged_grid_path, merged_grid);
+				use_merged_grid = 1;
+			}
+		}
+	}
+
+	for (int i = 0; i < num; i++)
+	{
+		int templen = merged_len;
+		float *temp = use_merged_grid ? merged_grid + (size_t)i * merged_len : NULL;
+		float *tempaxis = use_merged_grid ? merged_axis : NULL;
+		strcpy(dataset, "/ms_dataset");
+		sprintf(strval, "/%d", i);
+		strcat(dataset, strval);
+		strjoin(dataset, dtype, outdat);
+		if (use_merged_grid) {
+			int source_len = 0;
+			float source_first = 0;
+			float source_last = 0;
+			if (mh5readfile2d_axis_bounds(file_id, outdat, &source_len, &source_first, &source_last)) {
+				const int first_index = nearfast(merged_axis, source_first, merged_len);
+				const int last_index = nearfast(merged_axis, source_last, merged_len);
+				if (first_index >= 0 && last_index >= first_index && last_index < merged_len) {
+					templen = last_index - first_index + 1;
+					tempaxis += first_index;
+					temp += first_index;
+				}
+			}
+		}
+		else {
+			//printf("Processing HDF5 Data Set: %s\n", dataset);
+
+			templen = mh5getfilelength(file_id, outdat);
+			temp = calloc(templen, sizeof(float));
+			tempaxis = calloc(templen, sizeof(float));
+			if (temp == NULL || tempaxis == NULL)
+			{
+				printf("Error allocating memory for %s\n", outdat);
+				exit(11);
+			}
+			mh5readfile2d(file_id, outdat, templen, tempaxis, temp);
+		}
+
+		float sum = 0;
+		float max = 0;
+		for (int j = 0; j < plen; j++)
+		{
+			float peak = peakx[j];
+			float val = extract_switch(config, peak, tempaxis, temp, templen);
+			extracts[index2D(plen, i, j)] = val;
+			sum += val;
+			if (val > max) {max = val;}
+			//printf("Extracts %d %d %f %f %f\n", i, j, max, val, sum);
+		}
+
+		//Normalize
+		if (max > 0 && config.exnorm == 1)
+		{
+			for (int j = 0; j < plen; j++)
+			{
+				extracts[index2D(plen, i, j)] /= max;
+				//printf("Extracts %d %d %f %f\n", i, j, extracts[index2D(plen, i, j)], max);
+			}
+		}
+		if (sum > 0 && config.exnorm == 2)
+		{
+			for (int j = 0; j < plen; j++)
+			{
+				extracts[index2D(plen, i, j)] /= sum;
+				//printf("Extracts %d %d %f\n", i, j, extracts[index2D(plen, i, j)]);
+			}
+		}
+
+		if (!use_merged_grid) {
+			free(temp);
+			free(tempaxis);
+		}
+	}
+	free(merged_axis);
+	free(merged_grid);
+
+	if (config.exnorm == 3|| config.exnorm==4)
+	{
+		for (int j = 0; j < plen; j++)
+		{
+			float max = 0;
+			float sum = 0;
+			for (int i = 0; i < num; i++)
+			{
+				if (extracts[index2D(plen, i, j)] > max) { max = extracts[index2D(plen, i, j)]; }
+				sum += extracts[index2D(plen, i, j)];
+			}
+			if (config.exnorm == 4) { max = sum; }
+			if (max > 0)
+			{
+				for (int i = 0; i < num; i++)
+				{
+					extracts[index2D(plen, i, j)] /= max;
+				}
+			}
+		}
+	}
+
+	strcpy(dataset, "/peaks");
+	makegroup(file_id, dataset);
+	if (ultra)
+		strjoin(dataset, "/ultraextracts", outdat);
+	else
+		strjoin(dataset, "/extracts", outdat);
+	printf("\tWriting Extracts to: %s\t%d %d %f %f\n", outdat, config.exchoice, config.exnorm, config.exwindow, config.exthresh);
+	mh5writefile2d_grid(file_id, outdat, num, plen, extracts);
+
+	free(extracts);
+}
+
+
+void get_all_peaks(int argc, char *argv[], Config config)
+{
+	char dataset[1024];
+	char outdat[1024];
+	char strval[1024];
+
+	int num = 0;
+	num = int_attr(config.file_id, "/ms_dataset", "num", num);
+
+	for (int i = 0; i < num; i++) {
+		//Read In Data
+		strcpy(dataset, "/ms_dataset");
+		sprintf(strval, "/%d", i);
+		strcat(dataset, strval);
+
+		strjoin(dataset, "/mass_data", outdat);
+		if (config.silent == 0) { printf("Processing HDF5 Data: %s\n", outdat); }
+
+		int mlen = mh5getfilelength(config.file_id, outdat);
+
+		float *massaxis = NULL;
+		float *masssum = NULL;
+
+		massaxis = calloc(mlen, sizeof(float));
+		masssum = calloc(mlen, sizeof(float));
+		if (massaxis == NULL || masssum == NULL)
+		{
+			printf("Error allocating memory for mass axis or sum\n");
+			exit(11);
+		}
+
+		mh5readfile2d(config.file_id, outdat, mlen, massaxis, masssum);
+
+		float *peakx = NULL;
+		float *peaky = NULL;
+		peakx = calloc(mlen, sizeof(float));
+		peaky = calloc(mlen, sizeof(float));
+		if (peakx == NULL || peaky == NULL)
+		{
+			printf("Error allocating memory for peak x or y values\n");
+			exit(11);
+		}
+
+		int plen = peak_detect(massaxis, masssum, mlen, config.peakwin,
+			config.peakthresh, config.normthresh, peakx, peaky);
+
+		float * px = realloc(peakx, plen * sizeof(float));
+		float * py = realloc(peaky, plen * sizeof(float));
+		if (px == NULL || py == NULL)
+		{
+			printf("Error reallocating memory for peak x or y values\n");
+			exit(11);
+		}
+		peakx = px;
+		peaky = py;
+
+		peak_norm(peaky, plen, config.peaknorm);
+
+		strjoin(dataset, "/peakdata", outdat);
+		if (config.silent == 0) { printf("\tWriting %d Peaks to: %s\n", plen, outdat); }
+		mh5writefile2d(config.file_id, outdat, plen, peakx, peaky);
+
+		free(peakx);
+		free(peaky);
+		free(massaxis);
+		free(masssum);
+	}
+}
+
+void get_peaks(int argc, char *argv[], Config config, int ultra)
+{
+	char dataset[1024];
+	char outdat[1024];
+
+	if (!ultra){
+		//Read In Data
+		strcpy(dataset, "/ms_dataset");
+		strjoin(dataset, "/mass_axis", outdat);
+		if (config.silent == 0) {
+			printf("Processing HDF5 Data: %s\n", outdat);
+		}
+
+		int mlen = mh5getfilelength(config.file_id, outdat);
+
+		float *massaxis = NULL;
+		float *masssum = NULL;
+
+		massaxis = calloc(mlen, sizeof(float));
+		masssum = calloc(mlen, sizeof(float));
+		if (massaxis == NULL || masssum == NULL)
+		{
+			printf("Error allocating memory for mass axis or sum\n");
+			exit(11);
+		}
+
+		mh5readfile1d(config.file_id, outdat, massaxis);
+		strcpy(dataset, "/ms_dataset");
+		strjoin(dataset, "/mass_sum", outdat);
+		mh5readfile1d(config.file_id, outdat, masssum);
+
+		float *peakx=NULL;
+		float *peaky=NULL;
+		peakx = calloc(mlen, sizeof(float));
+		peaky = calloc(mlen, sizeof(float));
+		if (peakx == NULL || peaky == NULL)
+		{
+			printf("Error allocating memory for peak x or y values\n");
+			exit(11);
+		}
+		float* dscores = NULL;
+		float* numerators = NULL;
+		float* denominators = NULL;
+
+		int plen = peak_detect(massaxis, masssum, mlen, config.peakwin,
+			config.peakthresh, config.normthresh, peakx, peaky);
+
+		float *px = realloc(peakx, plen*sizeof(float));
+		float *py = realloc(peaky, plen*sizeof(float));
+		dscores = calloc(plen, sizeof(float));
+		if (config.rawflag <= 1) {
+			numerators = calloc(plen, sizeof(float));
+			denominators = calloc(plen, sizeof(float));
+		}
+		if (px == NULL || py == NULL || dscores == NULL ||
+			(config.rawflag <= 1 && (numerators == NULL || denominators == NULL)))
+		{
+			printf("Error allocating memory for peak x, y, scores, numerators, or denominators\n");
+			exit(11);
+		}
+		peakx = px;
+		peaky = py;
+
+		peak_norm(peaky, plen, config.peaknorm);
+
+		int num = 0;
+		num = int_attr(config.file_id, "/ms_dataset", "num", num);
+
+		// Fast modes intentionally omit the charge-resolved grids needed for scores.
+		// Do not read every scan only to discover that those grids are absent.
+		if (config.rawflag <= 1) {
+			for (int i = 0; i < num; i++) {
+				//Create a temp array
+				float* tempdscores = calloc(plen, sizeof(float));
+				if (tempdscores == NULL) {
+					printf("Error allocating memory for temporary peak scores\n");
+					exit(11);
+				}
+
+				//Import everything
+				config.metamode = i;
+				Decon decon = InitDecon();
+				Input inp = InitInputs();
+
+				ReadInputs(&config, &inp);
+
+				int status = ReadDecon(&config, inp, &decon);
+
+				//Check to make sure key deconvolution grids are there
+				if (status == 1) {
+					//Get the scores for each peak
+					//score(config, &decon, inp, 0);
+					Config score_config = config;
+					score_config.silent = 1;
+					score_from_peaks(plen, peakx, peaky, tempdscores, score_config, &decon, inp, 0);
+
+					//Average In Dscores
+					for (int j = 0; j < plen; j++)
+					{
+						//Get the peaky value locally
+						int index = nearfast(decon.massaxis, peakx[j], decon.mlen);
+						float yval = decon.massaxisval[index];
+						numerators[j] += yval * tempdscores[j];
+						denominators[j] += yval;
+					}
+				}
+				else if (config.silent == 0) {
+					printf("Missing deconvolution outputs. No scores will be provided. To get scores, turn off Fast Profile/Fast Centroid and try deconvolving again.");
+				}
+
+				//Free things
+				FreeDecon(decon);
+				FreeInputs(inp);
+				free(tempdscores);
+			}
+			//Average In Dscores
+			for (int j = 0; j < plen; j++)
+			{
+				if(denominators[j] != 0){dscores[j] = numerators[j]/denominators[j];}
+			}
+		}
+
+		//Write the outputs
+		strcpy(dataset, "/peaks");
+		makegroup(config.file_id, dataset);
+		strjoin(dataset, "/peakdata", outdat);
+
+		if (config.silent == 0) {
+			printf("\tWriting %d Peaks to: %s\n", plen, outdat);
+		}
+
+		int newlen = plen * 3;
+		float *ptemp = calloc(newlen, sizeof(float));
+		if (ptemp == NULL) {
+			fprintf(stderr, "Memory allocation failed for %d floats\n", newlen);
+			exit(11);
+		}
+
+		for (int i = 0; i < plen; i++) {
+			ptemp[i * 3] = peakx[i];
+			ptemp[i * 3 + 1] = peaky[i];
+			ptemp[i * 3 + 2] = dscores[i];
+		}
+
+		mh5writefile2d_grid(config.file_id, outdat, plen, 3, ptemp);
+		free(ptemp);
+		//mh5writefile2d(config.file_id, outdat, plen, peakx, peaky);
+
+		peak_extracts(config, peakx, config.file_id, "/mass_data", plen, 0);
+
+		free(peakx);
+		free(peaky);
+		free(massaxis);
+		free(masssum);
+		free(dscores);
+		free(numerators);
+		free(denominators);
+	}
+	else {
+		strcpy(dataset, "/peaks");
+		strjoin(dataset, "/ultrapeakdata", outdat);
+		printf("Importing Peaks: %s\n", outdat);
+
+		int plen = mh5getfilelength(config.file_id, outdat);
+		float *peakx = NULL;
+		peakx = calloc(plen, sizeof(float));
+		if (peakx == NULL)
+		{
+			printf("Error allocating memory for peak x values\n");
+			exit(11);
+		}
+		mh5readfile1d(config.file_id, outdat, peakx);
+
+		peak_extracts(config, peakx, config.file_id, "/mass_data", plen, 1);
+
+		free(peakx);
+
+	}
+}
+
