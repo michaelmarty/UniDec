@@ -136,7 +136,68 @@ def outlier_setup_dda(df, mztol=0.3, write_output=True, do_heads=True, do_tails=
     return outdf
 
 
-def venn_diagram(df, sets, namecol="Metabolite name", title="", ax=None):
+def round_six_set_venn(ax, corner_fraction=0.18):
+    """Round the corners of the triangular patches used for six-set Venns."""
+    for patch in list(ax.patches):
+        if not isinstance(patch, mpl.patches.Polygon):
+            continue
+
+        vertices = np.asarray(patch.get_xy(), dtype=float)
+        if len(vertices) > 1 and np.allclose(vertices[0], vertices[-1]):
+            vertices = vertices[:-1]
+        if len(vertices) != 3:
+            continue
+
+        path_vertices = []
+        path_codes = []
+        for index, vertex in enumerate(vertices):
+            previous_vertex = vertices[index - 1]
+            next_vertex = vertices[(index + 1) % len(vertices)]
+            corner_entry = vertex + corner_fraction * (
+                previous_vertex - vertex
+            )
+            corner_exit = vertex + corner_fraction * (
+                next_vertex - vertex
+            )
+
+            if index == 0:
+                path_vertices.append(corner_entry)
+                path_codes.append(mpl.path.Path.MOVETO)
+            else:
+                path_vertices.append(corner_entry)
+                path_codes.append(mpl.path.Path.LINETO)
+
+            path_vertices.extend([vertex, corner_exit])
+            path_codes.extend(
+                [mpl.path.Path.CURVE3, mpl.path.Path.CURVE3]
+            )
+
+        path_vertices.append(path_vertices[0])
+        path_codes.append(mpl.path.Path.CLOSEPOLY)
+        rounded_patch = mpl.patches.PathPatch(
+            mpl.path.Path(path_vertices, path_codes),
+            facecolor=patch.get_facecolor(),
+            edgecolor=patch.get_edgecolor(),
+            linewidth=patch.get_linewidth(),
+            zorder=patch.get_zorder(),
+        )
+        patch.remove()
+        ax.add_patch(rounded_patch)
+
+
+def venn_diagram(
+        df,
+        sets,
+        namecol="Metabolite name",
+        title="",
+        ax=None,
+        rounded_six_set=False,
+        number_fontsize=13,
+        legend_fontsize=None,
+        legend_loc="upper right",
+        legend_bbox_to_anchor=None,
+        legend_ncol=1
+):
     vdata = {}
     for s in sets:
         subdf = df[df["Dataset"] == s]
@@ -147,8 +208,25 @@ def venn_diagram(df, sets, namecol="Metabolite name", title="", ax=None):
     if ax is None:
         plt.figure(figsize=(8, 8))
         ax = plt.gca()
-    venn(vdata, ax=ax)
-    plt.title(title)
+    use_custom_legend = legend_bbox_to_anchor is not None
+    venn(
+        vdata,
+        ax=ax,
+        fontsize=number_fontsize,
+        legend_loc=None if use_custom_legend else legend_loc
+    )
+    if use_custom_legend:
+        ax.legend(
+            list(vdata.keys()),
+            loc=legend_loc,
+            bbox_to_anchor=legend_bbox_to_anchor,
+            fontsize=legend_fontsize or number_fontsize,
+            ncol=legend_ncol,
+            frameon=False
+        )
+    if rounded_six_set and len(sets) == 6:
+        round_six_set_venn(ax)
+    ax.set_title(title)
 
 def count_number_of_datasets(df, namecol="Metabolite name", dataset_col="Dataset", class_col="Ontology"):
     # If Dataset Count column already exists, drop it to avoid confusion
@@ -192,7 +270,19 @@ def get_class_counts(df, name_col="Metabolite name", dataset_col="Dataset", clas
     class_counts.index = newrows
     return class_counts
 
-def bar_chart_of_classes(df, datasets, dataset_col="Dataset", class_col="Ontology", name_col="Metabolite name", title="", ax=None):
+def bar_chart_of_classes(
+        df,
+        datasets,
+        dataset_col="Dataset",
+        class_col="Ontology",
+        name_col="Metabolite name",
+        title="",
+        ax=None,
+        legend_fontsize=8,
+        legend_bbox_to_anchor=(1.05, 1),
+        legend_loc="upper left",
+        hide_top_and_right=False
+):
     class_counts = get_class_counts(df, name_col=name_col, dataset_col=dataset_col, class_col=class_col)
     # Sort order of class counts rows to match datasets order with only at the end, add the other classes at the beginning in the same order they appear in the dataframe
     new_order = []
@@ -210,16 +300,251 @@ def bar_chart_of_classes(df, datasets, dataset_col="Dataset", class_col="Ontolog
     else:
         plt.sca(ax)
     colors = [class_color_map.get(cls, "#333333") for cls in class_counts.columns]
-    class_counts.plot(kind="bar", stacked=True, ax=ax, color=colors)
+    plot_ax = class_counts.plot(kind="bar", stacked=True, ax=ax, color=colors)
     # rotate x tick labels by 45 degrees
-    plt.xticks(rotation=45, ha="right")
+    plot_ax.tick_params(axis="x", rotation=45)
+    for label in plot_ax.get_xticklabels():
+        label.set_horizontalalignment("right")
 
-    plt.title(title)
-    plt.ylabel("Count")
+    plot_ax.set_title(title)
+    plot_ax.set_ylabel("Count")
     # plt.xlabel(dataset_col)
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8, reverse=True)
+    plot_ax.legend(
+        bbox_to_anchor=legend_bbox_to_anchor,
+        loc=legend_loc,
+        fontsize=legend_fontsize,
+        reverse=True
+    )
 
-def compare_classes_plot(df, datasets=None, use_simple_names=True, use_simple_classes=True, drop_low_quality=True):
+    if hide_top_and_right:
+        plot_ax.spines["top"].set_visible(False)
+        plot_ax.spines["right"].set_visible(False)
+
+
+def shared_unique_plot(
+        df,
+        sets,
+        namecol="Metabolite name",
+        title="",
+        ax=None,
+        id_status_label="Confirmed"
+):
+    """Plot each dataset total as unique-only plus shared confirmed IDs."""
+    if ax is None:
+        _, ax = plt.subplots(figsize=(9, 7))
+
+    dataset_counts = df.groupby(namecol)["Dataset"].nunique()
+    unique_names = dataset_counts[dataset_counts == 1].index
+
+    total_counts = (
+        df.groupby("Dataset")[namecol]
+        .nunique()
+        .reindex(sets, fill_value=0)
+    )
+    unique_counts = (
+        df[df[namecol].isin(unique_names)]
+        .groupby("Dataset")[namecol]
+        .nunique()
+        .reindex(sets, fill_value=0)
+    )
+    shared_counts = total_counts - unique_counts
+
+    x_positions = list(range(len(sets)))
+    unique_bars = ax.bar(
+        x_positions,
+        unique_counts.values,
+        color="#E69F00",
+        edgecolor="black",
+        linewidth=1,
+        label="Unique to Dataset"
+    )
+    shared_bars = ax.bar(
+        x_positions,
+        shared_counts.values,
+        bottom=unique_counts.values,
+        color="#035D99",
+        edgecolor="black",
+        linewidth=1,
+        label="Shared with Another Dataset"
+    )
+
+    ax.bar_label(
+        shared_bars,
+        labels=[f"{value} shared" for value in shared_counts.values],
+        label_type="center",
+        color="white",
+        fontsize=11
+    )
+    ax.bar_label(
+        shared_bars,
+        labels=[str(value) for value in total_counts.values],
+        padding=4,
+        fontsize=14
+    )
+    for bar, value in zip(unique_bars, unique_counts.values):
+        ax.annotate(
+            f"{value} unique",
+            xy=(bar.get_x() + bar.get_width() / 2, bar.get_height()),
+            xytext=(0, 5),
+            textcoords="offset points",
+            ha="center",
+            va="bottom",
+            fontsize=11,
+            color="#7A4C00",
+            fontweight="bold"
+        )
+
+    ax.set_xticks(x_positions, labels=sets, rotation=45, ha="right")
+    ax.set_xlabel("Dataset")
+    ax.set_ylabel(f"{id_status_label} Lipid IDs")
+    ax.set_title(title)
+    ax.legend(frameon=False, loc="upper left")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.margins(y=0.12)
+
+    return total_counts, unique_counts, shared_counts
+
+
+def upset_diagram(df, sets, namecol="Metabolite name", title="", subplot_spec=None):
+    """Plot exact set intersections and dataset totals without extra dependencies."""
+    if subplot_spec is None:
+        fig = plt.figure(figsize=(12, 8))
+        subplot_spec = fig.add_gridspec(1, 1)[0]
+    else:
+        fig = plt.gcf()
+
+    membership_counts = {}
+    for _, group in df.groupby(namecol, sort=False):
+        observed_sets = set(group["Dataset"])
+        membership = tuple(dataset for dataset in sets if dataset in observed_sets)
+        if membership:
+            membership_counts[membership] = membership_counts.get(membership, 0) + 1
+
+    intersections = sorted(
+        membership_counts.items(),
+        key=lambda item: (-item[1], -len(item[0]), item[0])
+    )
+
+    grid = subplot_spec.subgridspec(
+        2,
+        2,
+        height_ratios=(3, 2),
+        width_ratios=(2, 7),
+        hspace=0.05,
+        wspace=0.05
+    )
+    label_ax = fig.add_subplot(grid[0, 0])
+    intersection_ax = fig.add_subplot(grid[0, 1])
+    set_size_ax = fig.add_subplot(grid[1, 0])
+    matrix_ax = fig.add_subplot(grid[1, 1], sharex=intersection_ax)
+    label_ax.axis("off")
+
+    x_positions = list(range(len(intersections)))
+    intersection_values = [count for _, count in intersections]
+    intersection_bars = intersection_ax.bar(
+        x_positions,
+        intersection_values,
+        color="#035D99",
+        edgecolor="black",
+        linewidth=0.8
+    )
+    intersection_ax.bar_label(
+        intersection_bars,
+        padding=2,
+        fontsize=10,
+        rotation=90
+    )
+    intersection_ax.set_ylabel("Intersection Size")
+    intersection_ax.set_title(title)
+    intersection_ax.tick_params(axis="x", bottom=False, labelbottom=False)
+    intersection_ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
+    intersection_ax.spines["top"].set_visible(False)
+    intersection_ax.spines["right"].set_visible(False)
+    intersection_ax.margins(y=0.15)
+
+    row_positions = list(range(len(sets)))
+    set_sizes = [df.loc[df["Dataset"] == dataset, namecol].nunique() for dataset in sets]
+    set_bars = set_size_ax.barh(
+        row_positions,
+        set_sizes,
+        color="#076E3D",
+        edgecolor="black",
+        linewidth=0.8
+    )
+    set_size_ax.bar_label(set_bars, padding=3, fontsize=12)
+    set_size_ax.set_yticks(row_positions, labels=sets)
+    set_size_ax.tick_params(axis="y", length=0)
+    set_size_ax.invert_yaxis()
+    set_size_ax.invert_xaxis()
+    set_size_ax.set_xlabel("Dataset Size")
+    set_size_ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True, nbins=4))
+    set_size_ax.spines["top"].set_visible(False)
+    set_size_ax.spines["left"].set_visible(False)
+
+    for row in row_positions:
+        if row % 2 == 0:
+            matrix_ax.axhspan(row - 0.5, row + 0.5, color="#F2F2F2", zorder=0)
+
+    for column, (membership, _) in enumerate(intersections):
+        active_rows = [sets.index(dataset) for dataset in membership]
+        matrix_ax.scatter(
+            [column] * len(row_positions),
+            row_positions,
+            s=28,
+            color="#D3D3D3",
+            zorder=1
+        )
+        if len(active_rows) > 1:
+            matrix_ax.plot(
+                [column, column],
+                [min(active_rows), max(active_rows)],
+                color="black",
+                linewidth=1.5,
+                zorder=2
+            )
+        matrix_ax.scatter(
+            [column] * len(active_rows),
+            active_rows,
+            s=48,
+            color="black",
+            zorder=3
+        )
+
+    matrix_ax.set_yticks(row_positions, labels=[])
+    matrix_ax.tick_params(axis="y", left=False, labelleft=False)
+    matrix_ax.set_xticks([])
+    matrix_ax.set_xlabel("Exact Dataset Combination")
+    matrix_ax.set_ylim(len(sets) - 0.5, -0.5)
+    matrix_ax.spines[["top", "right", "bottom", "left"]].set_visible(False)
+
+    return membership_counts
+
+
+def compare_classes_plot(
+        df,
+        datasets=None,
+        use_simple_names=True,
+        use_simple_classes=True,
+        drop_low_quality=True,
+        output_basename="DDA_Overlap_and_Class_Distribution",
+        figure_size=None,
+        save_bbox_inches="tight",
+        overlap_style="venn",
+        class_legend_fontsize=8,
+        class_legend_bbox_to_anchor=(1.05, 1),
+        class_legend_loc="upper left",
+        hide_class_top_and_right=False,
+        rounded_six_set_venn=False,
+        venn_number_fontsize=13,
+        venn_legend_fontsize=None,
+        venn_legend_loc="upper right",
+        venn_legend_bbox_to_anchor=None,
+        venn_legend_ncol=1,
+        id_status_label="Confirmed",
+        panel_labels=None,
+        show_titles=True
+):
     df = df.copy()
     if datasets is None:
         datasets = sorted(df["Dataset"].unique())
@@ -251,13 +576,118 @@ def compare_classes_plot(df, datasets=None, use_simple_names=True, use_simple_cl
     df["Dataset"] = df["Dataset"].replace({"OTOT": "OT/OT", "OTIT": "OT/IT", "ITIT": "IT/IT"})
     datasets = [d.replace("OTOT", "OT/OT").replace("OTIT", "OT/IT").replace("ITIT", "IT/IT") for d in datasets]
 
-    plt.figure(figsize=(18, 10))
-    plt.subplot(1, 2, 1)
-    venn_diagram(df, datasets, namecol=namecol, title="Overlap of Identified Metabolites", ax=plt.gca())
-    plt.subplot(1, 2, 2)
-    bar_chart_of_classes(df, datasets, dataset_col="Dataset", class_col="Ontology", title="Class Distribution by Dataset",
-                         name_col=namecol, ax=plt.gca())
-    plt.tight_layout()
-    plt.savefig("DDA_Overlap_and_Class_Distribution.png", dpi=600, bbox_inches="tight")
-    plt.savefig("DDA_Overlap_and_Class_Distribution.pdf", bbox_inches="tight")
+    if overlap_style == "shared_unique":
+        fig, axes = plt.subplots(
+            ncols=2,
+            figsize=figure_size or (18, 8),
+            layout="constrained"
+        )
+        shared_unique_plot(
+            df,
+            datasets,
+            namecol=namecol,
+            title=f"{id_status_label} Lipid IDs: Unique vs Shared",
+            ax=axes[0],
+            id_status_label=id_status_label
+        )
+        bar_chart_of_classes(
+            df,
+            datasets,
+            dataset_col="Dataset",
+            class_col="Ontology",
+            title="Class Distribution by Overlap Category",
+            name_col=namecol,
+            ax=axes[1],
+            legend_fontsize=class_legend_fontsize,
+            legend_bbox_to_anchor=class_legend_bbox_to_anchor,
+            legend_loc=class_legend_loc,
+            hide_top_and_right=hide_class_top_and_right
+        )
+    elif overlap_style == "upset":
+        fig = plt.figure(figsize=figure_size or (22, 10), layout="constrained")
+        outer_grid = fig.add_gridspec(
+            1,
+            2,
+            width_ratios=(1.5, 1),
+            wspace=0.25
+        )
+        upset_diagram(
+            df,
+            datasets,
+            namecol=namecol,
+            title=f"Overlap of {id_status_label} Lipid IDs",
+            subplot_spec=outer_grid[0]
+        )
+        class_ax = fig.add_subplot(outer_grid[1])
+        bar_chart_of_classes(
+            df,
+            datasets,
+            dataset_col="Dataset",
+            class_col="Ontology",
+            title="Class Distribution by Overlap Category",
+            name_col=namecol,
+            ax=class_ax,
+            legend_fontsize=class_legend_fontsize,
+            legend_bbox_to_anchor=class_legend_bbox_to_anchor,
+            legend_loc=class_legend_loc,
+            hide_top_and_right=hide_class_top_and_right
+        )
+    elif overlap_style == "venn":
+        fig = plt.figure(figsize=figure_size or (18, 10))
+        plt.subplot(1, 2, 1)
+        venn_diagram(
+            df,
+            datasets,
+            namecol=namecol,
+            title=f"Overlap of {id_status_label} Lipid IDs",
+            ax=plt.gca(),
+            rounded_six_set=rounded_six_set_venn,
+            number_fontsize=venn_number_fontsize,
+            legend_fontsize=venn_legend_fontsize,
+            legend_loc=venn_legend_loc,
+            legend_bbox_to_anchor=venn_legend_bbox_to_anchor,
+            legend_ncol=venn_legend_ncol
+        )
+        plt.subplot(1, 2, 2)
+        bar_chart_of_classes(
+            df,
+            datasets,
+            dataset_col="Dataset",
+            class_col="Ontology",
+            title="Class Distribution by Dataset",
+            name_col=namecol,
+            ax=plt.gca(),
+            legend_fontsize=class_legend_fontsize,
+            legend_bbox_to_anchor=class_legend_bbox_to_anchor,
+            legend_loc=class_legend_loc,
+            hide_top_and_right=hide_class_top_and_right
+        )
+    else:
+        raise ValueError(
+            "overlap_style must be 'venn', 'upset', or 'shared_unique'"
+        )
+
+    if not show_titles:
+        for ax in fig.axes:
+            ax.set_title("")
+
+    if panel_labels is not None:
+        for label, ax in zip(panel_labels, [fig.axes[0], fig.axes[-1]]):
+            ax.text(
+                0.02, 0.98, label, transform=ax.transAxes,
+                fontsize=10, fontweight="bold", ha="left", va="top"
+            )
+
+    if overlap_style == "venn":
+        fig.tight_layout()
+
+    fig.savefig(
+        f"{output_basename}.png",
+        dpi=600,
+        bbox_inches=save_bbox_inches
+    )
+    fig.savefig(
+        f"{output_basename}.pdf",
+        bbox_inches=save_bbox_inches
+    )
     plt.show()

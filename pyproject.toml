@@ -6,9 +6,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "UniDec"
-version = "8.2.1"
+dynamic = ["version"]
 description = "Universal Deconvolution of Mass and Ion Mobility Spectra"
-readme = "README.md"
+readme = "readme.md"
 authors = [{ name = "Michael Marty", email = "mtmarty@utexas.edu" }]
 license = { file = "LICENSE" }
 classifiers = [
@@ -19,27 +19,71 @@ classifiers = [
 keywords = ["Mass Spectrometry", "Ion Mobility", "Deconvolution"]
 dependencies = ["numpy>=2.0.0", "scipy>=1.2", "matplotlib>=3.7", 'pandas',
                       "pymzml", "natsort", "networkx", "h5py", "pypubsub", "numba",
-                      "pyimzml", "pythonnet", "pyteomics", "lxml", "lxml_html_clean", "pywin32"]
-requires-python = ">=3.7"
+                      "pyimzml", "isodec>=2.0.4", "pyisogen>=1.1.2", "pythonnet; platform_system == 'Windows'", "pyteomics",
+                      "UniDecImporter>=1.0.4", "lxml", "lxml_html_clean", "openpyxl>=3.1.5",
+                      "pywin32; platform_system == 'Windows'"]
+requires-python = ">=3.10"
 
 [project.optional-dependencies]
-dev = ["massql", "pytest", "pyinstaller", "molmass", "mpld3", "wxpython>=4.0"]
+# install with <installer> install '.[opt-dependency group]'
+gui = ["wxPython>=4.0"]
+dev = ["coverage", "pytest", "pyinstaller", "wxpython>=4.0"]
+# Shared research dependencies used by Scripts/ and PublicScripts/. Specialized
+# scripts can still require vendor runtimes or project-specific packages.
+scripts = [
+    "adjustText",
+    "joblib",
+    "matchms",
+    "molmass",
+    "mplcursors",
+    "ms_entropy",
+    "pingouin",
+    "pyopenms",
+    "rdkit",
+    "scikit-learn",
+    "statsmodels",
+    "venn",
+]
+img = ['pyimzml']
+
 [project.urls]
 Homepage = "https://github.com/michaelmarty/UniDec"
+Documentation = "https://michaelmarty.github.io/UniDec/"
+Repository = "https://github.com/michaelmarty/UniDec"
+Issues = "https://github.com/michaelmarty/UniDec/issues"
 
 [project.scripts]
 unidec = "unidec.__main__:main"
 gunidec = "unidec.Launcher:run_launcher"
-isodec = "unidec.IsoDec.__main__:main"
+unidecim = "unidec.UniDecIM:main"
+isodec = "isodec.__main__:main"
 
 [tool.setuptools]
 include-package-data = true
+
+[tool.setuptools.dynamic]
+version = {attr = "unidec._version.__version__"}
 
 #[tool.setuptools.packages.find]
 #where = ["unidec"]
 #
 #[tool.setuptools.package_data]
 
+[tool.setuptools.package-dir]
+# define the subdirectory (from the parent directory containing this pyproject
+# file) to define as the root directory of the package.
+unidec = "unidec"
 
-#[project.gui-scripts]
-#gunidec = "unidec.Launcher:run_launcher"
+[project.gui-scripts]
+# define a command to open the unidec GUI
+gunidec = "unidec.Launcher:run_launcher"
+unidecim = "unidec.UniDecIM:main"
+
+[tool.uv.sources]
+unidec = { workspace = true }
+
+[tool.uv.workspace]
+members = [
+    ".",
+    ".",
+]
