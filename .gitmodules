@@ -1,0 +1,3 @@
+[submodule "extern/IsoGen"]
+	path = extern/IsoGen
+	url = https://github.com/michaelmarty/IsoGen.git

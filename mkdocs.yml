@@ -1,0 +1,12 @@
+site_name: IsoDec
+site_url: https://michaelmarty.github.io/IsoDec/
+repo_url: https://github.com/michaelmarty/IsoDec
+theme:
+  name: mkdocs
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Python API: api.md
+  - Command line: command-line.md
+  - Development: development.md
+strict: true

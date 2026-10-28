@@ -1,0 +1,162 @@
+# IsoDec
+
+IsoDec assigns charge states and deconvolves isotopically resolved mass
+spectrometry data. Its native core uses [IsoGen](https://github.com/michaelmarty/IsoGen)
+for peptide and RNA isotope distributions.
+
+## Installation
+
+Install a published wheel:
+
+```shell
+python -m pip install isodec
+```
+
+IsoDec supports Python 3.10 and newer on 64-bit Windows, Linux, and macOS,
+including Windows ARM64 and Apple silicon. Native builds are also tested on
+ARM64 Linux; the Windows ARM64 wheel is tested with Python 3.14. Compatible
+wheels include the native IsoDec and IsoGen libraries. A source build requires
+CMake 3.22.1 or newer, a C/C++ compiler, FFTW, and an initialized IsoGen
+submodule. IsoDec pins IsoGen and the `pyisogen` package to version 1.1.3:
+
+```shell
+git clone --recurse-submodules https://github.com/michaelmarty/IsoDec.git
+python -m pip install ./IsoDec
+```
+
+## Python usage
+
+```python
+import numpy as np
+from isodec import IsoDecRuntime
+
+spectrum = np.loadtxt("spectrum.txt")
+engine = IsoDecRuntime()
+peaks = engine.batch_process_spectrum(spectrum, centroided=True)
+
+for peak in peaks:
+    print(peak.mz, peak.z, peak.monoiso, peak.matchedintensity)
+```
+
+Mass groups use peak insertion order by default. To evaluate descending
+matched intensity order, set
+`engine.config.mass_group_order = "matched_intensity"` before processing.
+Intensity order applies within each incoming spectrum. Native grouping handles
+new collections; appending scans uses the Python incremental merge rules, with
+the same double-precision group summaries. The ETD example and frozen grouping
+reference are in `tests/ca_etd.dat` and `tests/ca_etd_unidecfiles/`.
+
+TXT, DAT, CSV, and NPZ single-scan spectra are supported without UniDec. Raw
+vendor files, mzML/mzXML, and I2MS import use UniDec's extensive importer stack:
+
+```shell
+python -m pip install "isodec[unidec]"
+```
+
+## Command line
+
+```shell
+isodec spectrum.txt --centroided -o assigned_peaks.tsv
+python -m isodec --help
+```
+
+## Development
+
+```shell
+git submodule update --init --recursive
+python -m pip install -e ".[test]"
+python -m pytest
+```
+
+Documentation sources live in `docs/` and are built with MkDocs. Release and
+wheel-building details are in [PUBLISHING.md](PUBLISHING.md).
+
+## Fragment matching
+
+Match deconvolved neutral masses to theoretical protein fragments with a 5 ppm
+default tolerance:
+
+```python
+from isodec import match_fragments
+
+match_fragments(pks, "PEPTIDE", ion_types="by", monoisotopic=True)
+print(pks.fragment_match_percent, pks.sequence_coverage)
+print(pks.fragment_matches)
+```
+
+Each matched peak receives a `sequence_match` annotation such as `"b6"`.
+Pass `allow_duplicate_assignments=True` to retain every valid annotation as a
+list instead of selecting the assignment with the smallest ppm error.
+Pass `match_multiple_monoisotopics=False` to match only each peak's `monoiso`
+mass instead of all masses in `monoisos`.
+
+### Plotting Sequence
+
+To view matches along a wrapped sequence, run `python tests/show_fragment_matches.py`
+from the IsoDec directory. The demo uses IsoGen's carbonic anhydrase ETD masses.
+For an embedded view, call `plot_fragment_matches(ax, sequence, pks)` from
+`isodec.fragment_view` with an existing Matplotlib axis. Modified residues are
+shown in red. The standalone view is sized for a two-column figure; save the
+returned Matplotlib figure as SVG or PDF for publication.
+
+## License and citation
+
+IsoDec is released under the BSD 3-Clause License. See
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for IsoGen, FFTW, and Intel
+runtime notices. When using IsoDec, please cite Pavek et al.,
+“[A Fast Neural Network for Isotopic Charge State Assignment](https://doi.org/10.1021/jacs.5c03162),”
+*J. Am. Chem. Soc.* **2025**, *147*, 21610–21620. Machine-readable metadata is
+provided in [CITATION.cff](CITATION.cff).
+
+## Changelog
+
+### 2.0.5
+
+- Updated to IsoGen 1.1.3 for improved fragment matching.
+- Require Python 3.10 or newer.
+- Moved mass grouping and merging into the native core for improved performance and
+  reduced memory usage.
+- Fixed the intensity-weighted average of monoisotopic mass candidates during
+  mass grouping and prevented merges from modifying the first peak's candidates.
+- Fixed isotope-distribution mass-axis fitting to shift toward observed
+  centroids in either direction, preventing accumulated positive mass drift.
+- Use matched centroids when merging neutral-mass groups, so unrelated peaks
+  in a local isotope window do not distort the fitted distribution.
+
+### 2.0.4
+
+- Added Windows and Linux ARM64 wheels built and tested on native ARM hardware.
+
+### 2.0.3
+
+- Added fragment matching viewer.
+
+### 2.0.2
+
+- Added fragmentation matching options.
+- Updated to IsoGen 1.1.1 for ProForma fragment masses and corrected z-ion annotations.
+
+### 2.0.1
+
+- Improved native processing performance with optimized AVX matrix operations,
+  linear-time peak detection, faster isotope matching, and reusable work
+  buffers.
+- Moved installed native libraries and executables into `isodec/bin`; Windows
+  binaries are included with the package.
+- Added processing-time and matched-peak reporting for native spectrum runs.
+- Added automated MSVC-versus-IntelLLVM performance benchmarking.
+
+### 2.0.0
+
+- Split IsoDec from UniDec into the standalone `isodec` package, with IsoGen as
+  a submodule and an independent version and release cycle.
+- Added experimental charge-state assignment directly from profile-mode data.
+- Added cross-platform tests—including native ARM64 Windows and Linux
+  coverage—documentation, and automated wheel and source distribution
+  publishing.
+
+### 1.0.0
+
+- Initial IsoDec release with IsoGen integration for isotopic charge-state
+  assignment and deconvolution of mass spectrometry data, distributed as part
+  of UniDec.

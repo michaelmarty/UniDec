@@ -1,0 +1,96 @@
+[build-system]
+requires = ["scikit-build-core>=0.12"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "isodec"
+dynamic = ["version"]
+description = "Charge-state assignment and deconvolution of isotopically resolved mass spectra"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "BSD-3-Clause"
+license-files = [
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    "extern/IsoGen/LICENSE",
+    "extern/IsoGen/src/fftw/COPYING",
+    "extern/IsoGen/src/fftw/COPYRIGHT",
+]
+authors = [{ name = "Michael T. Marty", email = "mtmarty@utexas.edu" }]
+keywords = ["mass spectrometry", "charge state", "deconvolution", "isotope distribution"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Chemistry",
+]
+dependencies = [
+    "matplotlib>=3.7",
+    "numba>=0.57,<0.62; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "numba>=0.57; sys_platform != 'darwin' or platform_machine != 'x86_64'",
+    "numpy>=1.23",
+    "pandas>=2.0",
+    "pyisogen==1.1.3",
+    "scipy>=1.9",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+docs = ["mkdocs>=1.6"]
+training = ["matchms>=0.26", "torch>=2.1"]
+unidec = ["UniDec>=8.2.1"]
+release = ["build>=1.2", "twine>=5"]
+
+[project.scripts]
+isodec = "isodec.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/michaelmarty/IsoDec"
+Repository = "https://github.com/michaelmarty/IsoDec"
+Issues = "https://github.com/michaelmarty/IsoDec/issues"
+Documentation = "https://michaelmarty.github.io/IsoDec/"
+
+[tool.scikit-build]
+minimum-version = "build-system.requires"
+cmake.source-dir = "isodec/src"
+cmake.version = ">=3.22.1"
+wheel.packages = ["isodec"]
+wheel.install-dir = "isodec/bin"
+wheel.py-api = "py3"
+wheel.exclude = ["isodec/src/**"]
+install.components = ["Runtime"]
+sdist.include = [
+    ".gitmodules",
+    "extern/IsoGen/LICENSE",
+    "extern/IsoGen/src/**",
+    "extern/IsoGen/tests/data/ca_etd_masses.txt",
+    "isodec/**",
+    "tests/**",
+    "docs/**",
+    "LICENSE",
+    "README.md",
+    "PUBLISHING.md",
+    "THIRD_PARTY_NOTICES.md",
+]
+sdist.exclude = ["isodec/src/cmake-build-*/**", "isodec/src/CMakeFiles/**"]
+messages.after-failure = """
+IsoDec's native library could not be compiled.
+Initialize the IsoGen submodule and install a C/C++ compiler, CMake, and the
+FFTW development libraries, or install a prebuilt wheel for your platform.
+"""
+
+[[tool.dynamic-metadata]]
+provider = "scikit_build_core.metadata.regex"
+field = "version"
+input = "isodec/_version.py"
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]

@@ -1,0 +1,227 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      run_windows_compiler_benchmark:
+        description: Compare MSVC and IntelLLVM native performance
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python-version: "3.10"
+          - os: ubuntu-latest
+            python-version: "3.11"
+          - os: ubuntu-latest
+            python-version: "3.12"
+          - os: ubuntu-latest
+            python-version: "3.13"
+          - os: windows-latest
+            python-version: "3.13"
+          - os: macos-14
+            python-version: "3.13"
+          - os: macos-15-intel
+            python-version: "3.13"
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Linux native dependency
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install --yes libfftw3-dev
+
+      - name: Install macOS native dependency
+        if: runner.os == 'macOS'
+        run: |
+          brew untap aws/tap 2>/dev/null || true
+          brew install fftw
+
+      - name: Install package and test dependencies
+        run: python -m pip install ".[test]"
+
+      - name: Run tests outside the source tree
+        working-directory: ${{ runner.temp }}
+        run: python -m pytest "${{ github.workspace }}/tests" --import-mode=importlib
+
+  linux-arm64:
+    name: ubuntu-24.04-arm / Python 3.13
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          architecture: arm64
+
+      - name: Install FFTW
+        run: sudo apt-get update && sudo apt-get install --yes libfftw3-dev
+
+      - name: Install package and test dependencies
+        run: python -m pip install ".[test]"
+
+      - name: Run native ARM64 regression tests
+        working-directory: ${{ runner.temp }}
+        run: python -m pytest "${{ github.workspace }}/tests" --import-mode=importlib
+
+  windows-arm64:
+    name: windows-11-arm / Python 3.14
+    runs-on: windows-11-arm
+    env:
+      # Let scikit-build-core remove temporary build directories after MSBuild exits.
+      MSBUILDDISABLENODEREUSE: "1"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          architecture: arm64
+
+      - name: Install ARM64 FFTW with vcpkg
+        shell: pwsh
+        run: |
+          $vcpkgRoot = (Resolve-Path -LiteralPath $env:VCPKG_INSTALLATION_ROOT).Path.Replace('\', '/')
+          & "$vcpkgRoot/vcpkg.exe" install fftw3:arm64-windows
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "CMAKE_GENERATOR_PLATFORM=ARM64" >> $env:GITHUB_ENV
+          "CMAKE_ARGS=-DCMAKE_TOOLCHAIN_FILE=$vcpkgRoot/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=arm64-windows -DFFTW3_ROOT=$vcpkgRoot/installed/arm64-windows" >> $env:GITHUB_ENV
+
+      - name: Install package and test dependencies
+        run: python -m pip install ".[test]"
+
+      - name: Run native ARM64 regression tests
+        working-directory: ${{ runner.temp }}
+        run: python -m pytest "${{ github.workspace }}/tests" --import-mode=importlib
+
+  windows-compiler-benchmark:
+    name: Windows MSVC vs IntelLLVM benchmark
+    if: github.event_name == 'workflow_dispatch' && inputs.run_windows_compiler_benchmark
+    runs-on: windows-latest
+    env:
+      ONEAPI_WINDOWS_URL: https://registrationcenter-download.intel.com/akdlm/IRC_NAS/bae85ab1-cfcd-4251-8d42-a0c27949ea33/intel-oneapi-toolkit-2026.0.0.193_offline.exe
+      ONEAPI_WINDOWS_COMPONENTS: intel.oneapi.win.cpp-dpcpp-common
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install build tooling
+        run: python -m pip install --upgrade build
+
+      - name: Build MSVC wheel
+        run: python -m build --wheel --outdir dist-msvc
+
+      - name: Benchmark MSVC wheel
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          python -m venv "${{ runner.temp }}\compiler-benchmark"
+          $benchmarkPython = "${{ runner.temp }}\compiler-benchmark\Scripts\python.exe"
+          $wheel = (Get-ChildItem 'dist-msvc\*.whl').FullName
+          & $benchmarkPython -m pip install $wheel
+          & $benchmarkPython "${{ github.workspace }}\benchmarks\benchmark_native.py" `
+            --label MSVC `
+            --spectrum "${{ github.workspace }}\tests\test_spectrum.txt" `
+            --output "${{ github.workspace }}\benchmark-results\msvc.json"
+
+      - name: Install Intel oneAPI compiler
+        shell: cmd
+        run: |
+          curl.exe --fail --location --retry 5 --output "%RUNNER_TEMP%\oneapi.exe" "%ONEAPI_WINDOWS_URL%"
+          start /b /wait "" "%RUNNER_TEMP%\oneapi.exe" -s -x -f "%RUNNER_TEMP%\oneapi-extracted" --log extract.log
+          "%RUNNER_TEMP%\oneapi-extracted\bootstrapper.exe" -s --action install --components=%ONEAPI_WINDOWS_COMPONENTS% --eula=accept -p=NEED_VS2022_INTEGRATION=0 --log-dir=.
+
+      - name: Build IntelLLVM wheel
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Intel\oneAPI\setvars-vcvarsall.bat" vs2022
+          call "C:\Program Files (x86)\Intel\oneAPI\compiler\latest\env\vars.bat"
+          set "CC=icx-cl"
+          set "CXX=icx-cl"
+          set "CMAKE_GENERATOR=Ninja"
+          set "CMAKE_ARGS=-DISODEC_REQUIRE_INTELLLVM=ON -DISOGEN_REQUIRE_INTELLLVM=ON"
+          python -m build --wheel --outdir dist-intel
+
+      - name: Benchmark IntelLLVM wheel
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $benchmarkPython = "${{ runner.temp }}\compiler-benchmark\Scripts\python.exe"
+          $wheel = (Get-ChildItem 'dist-intel\*.whl').FullName
+          & $benchmarkPython -m pip install --force-reinstall --no-deps $wheel
+          & $benchmarkPython "${{ github.workspace }}\benchmarks\benchmark_native.py" `
+            --label IntelLLVM `
+            --spectrum "${{ github.workspace }}\tests\test_spectrum.txt" `
+            --output "${{ github.workspace }}\benchmark-results\intelllvm.json"
+
+      - name: Write benchmark comparison
+        shell: pwsh
+        run: |
+          $msvc = Get-Content 'benchmark-results\msvc.json' -Raw | ConvertFrom-Json
+          $intel = Get-Content 'benchmark-results\intelllvm.json' -Raw | ConvertFrom-Json
+          if ($msvc.peak_count -ne $intel.peak_count) {
+            throw "Compiler builds returned different peak counts: MSVC=$($msvc.peak_count), IntelLLVM=$($intel.peak_count)"
+          }
+
+          if ($msvc.median_ms -le $intel.median_ms) {
+            $winner = 'MSVC'
+            $advantage = (($intel.median_ms / $msvc.median_ms) - 1) * 100
+          } else {
+            $winner = 'IntelLLVM'
+            $advantage = (($msvc.median_ms / $intel.median_ms) - 1) * 100
+          }
+
+          @"
+          ## Windows compiler benchmark
+
+          End-to-end native deconvolution of the same $($msvc.spectrum_points)-point spectrum.
+
+          | Compiler | Median (ms) | Mean (ms) | Minimum (ms) | Std. dev. (ms) | Spectra/s | Peaks |
+          |---|---:|---:|---:|---:|---:|---:|
+          | MSVC | $($msvc.median_ms) | $($msvc.mean_ms) | $($msvc.min_ms) | $($msvc.stdev_ms) | $($msvc.spectra_per_second) | $($msvc.peak_count) |
+          | IntelLLVM | $($intel.median_ms) | $($intel.mean_ms) | $($intel.min_ms) | $($intel.stdev_ms) | $($intel.spectra_per_second) | $($intel.peak_count) |
+
+          **Result:** $winner is $($advantage.ToString('0.0'))% faster by median elapsed time.
+
+          Results are informational and may vary with GitHub-hosted runner hardware and load.
+          "@ >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload benchmark data
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-compiler-benchmark
+          path: benchmark-results/*.json
+          if-no-files-found: warn
