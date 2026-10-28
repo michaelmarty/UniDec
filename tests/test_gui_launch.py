@@ -70,12 +70,13 @@ class TestMajorWindowLaunches(unittest.TestCase):
         self._assert_window_launches("unidec.UniDecCD", "UniDecCDApp", False)
 
     def test_uccd_launches_with_full_stack_button(self):
-        self._assert_window_launches("unidec.UniChromCD", "UniChromCDApp", True)
+        self._assert_window_launches("unidec.UniChromCD", "UniChromCDApp", True,
+                                     has_cd_chromatogram_type=True)
 
     def _assert_window_launches(self, module_name, class_name, has_full_stack_button=None,
                                 has_suppression_controls=False, launcher_layout=False,
                                 has_chrom_width=None, has_chrom_spectrum_menu=False,
-                                has_lazy_workflows=False):
+                                has_lazy_workflows=False, has_cd_chromatogram_type=False):
         """Construct a window in an isolated process without entering its event loop."""
         script = f"""
 import importlib
@@ -99,6 +100,12 @@ try:
     expected_full_stack_button = {has_full_stack_button!r}
     if expected_full_stack_button is not None:
         assert hasattr(app.view.controls, "rununidecstack") is expected_full_stack_button
+    if {has_cd_chromatogram_type!r}:
+        assert app.view.controls.ctlchromatogram.GetStrings() == ["TIC", "BPC"]
+        assert app.view.controls.ctlchromatogram.GetSelection() == 0
+        app.view.controls.ctlchromatogram.SetSelection(1)
+        app.view.controls.export_gui_to_config()
+        assert app.eng.config.chromatogram_type == 1
     if {has_suppression_controls!r}:
         suppression_controls = (
             "ctlsuppressiontopn",

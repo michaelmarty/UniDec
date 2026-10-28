@@ -56,6 +56,7 @@ class TestUniDecConfigSerialization(unittest.TestCase):
         "temp": 30.0,
         "pressure": 3.0,
         "dtsig": 2.5,
+        "chromatogram_type": 1,
         "zerolog": -9.5,
     }
     hdf5_only_values = {

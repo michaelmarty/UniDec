@@ -1066,6 +1066,26 @@ class UniChromCDEng(HTEng, UniDecCD):
             pass
         return np.transpose([self.fulltime, fulleic])
 
+    def create_bpc_from_hstack(self, hstack, chromaxis=None, **kwargs):
+        """Create a base peak chromatogram after summing charge at each m/z."""
+        hstack = self._validate_histogram_stack(hstack, name="BPC histogram stack")
+        if chromaxis is None:
+            chromaxis = self.fulltime
+        if len(hstack) != len(chromaxis):
+            raise ValueError(
+                "BPC histogram stack and chromatography axis must have the same length: "
+                f"{len(hstack)} != {len(chromaxis)}"
+            )
+        mzstack = np.sum(hstack, axis=1)
+        if np.iscomplexobj(mzstack):
+            mzstack = np.abs(mzstack)
+        bpi = np.max(mzstack, axis=1)
+        if kwargs.get("normalize", True):
+            maxval = np.amax(bpi)
+            if maxval > 0:
+                bpi = bpi / maxval
+        return np.transpose([chromaxis, bpi])
+
 
     def get_tic(self, farray=None, **kwargs):
         """
@@ -1084,6 +1104,12 @@ class UniChromCDEng(HTEng, UniDecCD):
             fulltic = self.create_chrom(farray, **kwargs)
         self.fulltic = fulltic[:, 1]
         return fulltic
+
+    def get_bpc(self, hstack=None, chromaxis=None, **kwargs):
+        """Get the BPC from the processed charge-resolved histogram stack."""
+        if hstack is None:
+            hstack = self._ensure_full_histogram_stack()
+        return self.create_bpc_from_hstack(hstack, chromaxis=chromaxis, **kwargs)
 
     def tic_ht(self, **kwargs):
         """

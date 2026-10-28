@@ -421,6 +421,7 @@ class UniDecConfig(object):
             "CDprethresh": (self.CDprethresh, float),
             "HTksmooth": (self.HTksmooth, float),
             "CDScanCompress": (self.CDScanCompress, int),
+            "chromatogram_type": (self.chromatogram_type, int),
             "HTmaxscans": (self.HTmaxscans, int),
             "HToutlb": (self.HToutputlb, float),
             "HToutub": (self.HToutputub, float),
@@ -885,6 +886,8 @@ class UniDecConfig(object):
                             self.htbit = str(line.split()[1])
                         if line.startswith("CDScanCompress"):
                             self.CDScanCompress = ud.string_to_value(line.split()[1])
+                        if line.startswith("chromatogram_type"):
+                            self.chromatogram_type = ud.string_to_int(line.split()[1])
                         if line.startswith("HTmaxscans"):
                             self.HTmaxscans = ud.string_to_int(line.split()[1])
                         if line.startswith("HToutlb"):

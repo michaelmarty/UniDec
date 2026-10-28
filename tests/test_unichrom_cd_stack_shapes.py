@@ -95,6 +95,34 @@ class TestUniChromCDStackShapes(unittest.TestCase):
                 np.testing.assert_array_equal(tic, [[0.0, 3.0], [1.0, 7.0]])
                 np.testing.assert_array_equal(engine.fulltic, [3.0, 7.0])
 
+    def test_bpc_sums_charge_then_selects_base_mz_peak(self):
+        engine = self._engine(grid_shape=(2, 3))
+        engine.config.datanorm = 0
+        engine.fullhstack = np.array([
+            [[1.0, 4.0, 2.0], [5.0, 3.0, 1.0]],
+            [[2.0, 1.0, 6.0], [3.0, 7.0, 2.0]],
+        ])
+
+        bpc = engine.get_bpc(normalize=0)
+
+        np.testing.assert_array_equal(bpc, [[0.0, 7.0], [1.0, 8.0]])
+
+    def test_bpc_uses_requested_axis_and_normalizes_safely(self):
+        engine = self._engine(grid_shape=(1, 2))
+        stack = np.array([[[0.0, 0.0]], [[2.0, 4.0]]])
+
+        bpc = engine.get_bpc(stack, chromaxis=np.array([10.0, 20.0]), normalize=1)
+
+        np.testing.assert_array_equal(bpc, [[10.0, 0.0], [20.0, 1.0]])
+
+    def test_bpc_uses_magnitude_for_complex_demultiplexed_data(self):
+        engine = self._engine(grid_shape=(1, 2))
+        stack = np.array([[[3.0 + 4.0j, 2.0 + 0.0j]]])
+
+        bpc = engine.get_bpc(stack, chromaxis=np.array([10.0]), normalize=0)
+
+        np.testing.assert_array_equal(bpc, [[10.0, 5.0]])
+
     def test_histogram_filters_use_the_summed_stack(self):
         input_stack = np.array([
             [[1.0, 2.0], [9.0, 1.0]],

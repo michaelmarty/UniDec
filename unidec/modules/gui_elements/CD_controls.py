@@ -170,6 +170,15 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                               flag=wx.ALIGN_CENTER_VERTICAL)
             i += 1
 
+            self.ctlchromatogram = wx.RadioBox(
+                panel1, label="Chromatogram Type", choices=["TIC", "BPC"],
+                majorDimension=2, style=wx.RA_SPECIFY_COLS
+            )
+            self.ctlchromatogram.SetSelection(self.config.chromatogram_type)
+            self.parent.Bind(wx.EVT_RADIOBOX, self.pres.on_chromatogram_type, self.ctlchromatogram)
+            sizercontrol1.Add(self.ctlchromatogram, (i, 0), span=(1, 2), flag=wx.EXPAND)
+            i += 1
+
         self.ctldatanorm = wx.CheckBox(panel1, label="Normalize Data")
         self.ctldatanorm.SetValue(True)
         sizercontrol1.Add(self.ctldatanorm, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -1066,6 +1075,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
             if self.chrom_mode:
                 self.ctlscancompress.SetValue(str(self.config.CDScanCompress))
+                self.ctlchromatogram.SetSelection(self.config.chromatogram_type)
                 self.ctlkernelsmooth.SetValue(str(self.config.HTksmooth))
                 self.ctlhtseq.SetStringSelection(str(self.config.htbit))
                 self.ctlhttimeshift.SetValue(str(self.config.HTtimeshift))
@@ -1211,6 +1221,7 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         if self.chrom_mode:
             self.config.CDScanCompress = ud.string_to_value(self.ctlscancompress.GetValue())
+            self.config.chromatogram_type = self.ctlchromatogram.GetSelection()
             self.config.HTksmooth = ud.string_to_value(self.ctlkernelsmooth.GetValue())
             #            self.config.htbit = int(self.ctlhtseq.GetStringSelection())
             self.config.htbit = self.ctlhtseq.GetStringSelection()
