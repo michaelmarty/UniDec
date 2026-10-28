@@ -95,6 +95,46 @@ class TestUniChromCDStackShapes(unittest.TestCase):
                 np.testing.assert_array_equal(tic, [[0.0, 3.0], [1.0, 7.0]])
                 np.testing.assert_array_equal(engine.fulltic, [3.0, 7.0])
 
+    def test_histogram_filters_use_the_summed_stack(self):
+        input_stack = np.array([
+            [[1.0, 2.0], [9.0, 1.0]],
+            [[2.0, 4.0], [1.0, 7.0]],
+        ])
+        expected_stack = np.array([
+            [[0.0, 2.0], [9.0, 1.0]],
+            [[0.0, 4.0], [1.0, 7.0]],
+        ])
+        for intthresh, reductionpercent in ((5, 0), (0, 25)):
+            with self.subTest(intthresh=intthresh, reductionpercent=reductionpercent):
+                engine = self._engine(grid_shape=(2, 2))
+                engine.config.CDiitflag = True
+                engine.config.mzbins = 1
+                engine.config.CDzbins = 1
+                engine.config.smooth = 0
+                engine.config.smoothdt = 0
+                engine.config.intthresh = intthresh
+                engine.config.reductionpercent = reductionpercent
+                engine.config.subbuff = 0
+                engine.config.subbufdt = 0
+                engine.config.datanorm = 0
+                engine.scans = np.array([1, 2])
+                engine.mzaxis = np.array([0.0, 1.0, 2.0])
+                engine.zaxis = np.array([0.0, 1.0, 2.0])
+                engine.farray = np.array([
+                    [mz + 0.5, 0, scan + 1, input_stack[scan, z, mz]]
+                    for scan in range(2) for z in range(2) for mz in range(2)
+                ])
+                engine.zarray = np.tile([0.5, 0.5, 1.5, 1.5], 2)
+                engine.clear_arrays = Mock()
+                engine.prep_time_domain = Mock()
+                engine.prep_hist = Mock()
+                engine.hist_filter_smash = Mock(side_effect=lambda hstack: hstack)
+
+                engine.process_data_scans(transform=False)
+
+                np.testing.assert_array_equal(engine.fullhstack, expected_stack)
+                np.testing.assert_array_equal(engine.topharray, np.sum(expected_stack, axis=0))
+
     @unittest.skipUnless(importlib.util.find_spec("wx"), "UniChromCDApp requires wxPython")
     def test_eic_demultiplex_transforms_full_stack_once_for_mass_eics(self):
         from unidec.UniChromCD import UniChromCDApp

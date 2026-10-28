@@ -839,13 +839,17 @@ class UniChromCDEng(HTEng, UniDecCD):
                     self.hstack[i], self.config.smoothdt, self.config.smooth
                 )
 
-        if self.config.intthresh > 0:
-            print("Histogram Intensity Threshold:", self.config.intthresh)
-            self.hstack = self.hist_int_threshold(self.hstack, self.config.intthresh)
+        if self.config.intthresh > 0 or self.config.reductionpercent > 0:
+            summed_harray = np.sum(self.hstack, axis=0)
+            if self.config.intthresh > 0:
+                print("Histogram Intensity Threshold:", self.config.intthresh)
+                summed_harray = self.hist_int_threshold(summed_harray, self.config.intthresh)
 
-        if self.config.reductionpercent > 0:
-            print("Full Stack Histogram Data Reduction:", self.config.reductionpercent)
-            self.hstack = self.hist_datareduction(self.hstack, self.config.reductionpercent)
+            if self.config.reductionpercent > 0:
+                print("Full Stack Histogram Data Reduction:", self.config.reductionpercent)
+                summed_harray = self.hist_datareduction(summed_harray, self.config.reductionpercent)
+
+            self.hstack *= summed_harray > 0
 
         if self.config.subbuff > 0 or self.config.subbufdt > 0:
             print("Histogram Background Subtraction:", self.config.subbuff, self.config.subbufdt)

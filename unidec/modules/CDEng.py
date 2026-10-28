@@ -1341,6 +1341,7 @@ class UniDecCD(engine.UniDec):
 
     def decon_external_call(self):
         self._clear_scores()
+        self.config.cdmsflag = 1
         self.export_config()
         # Check for this
         if self.config.CDzbins != 1 and self.config.zzsig != 0:
