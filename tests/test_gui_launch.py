@@ -103,6 +103,7 @@ try:
     if {has_cd_chromatogram_type!r}:
         assert app.view.controls.ctlchromatogram.GetStrings() == ["TIC", "BPC"]
         assert app.view.controls.ctlchromatogram.GetSelection() == 0
+        assert app.view.controls.ctlnormchrom.GetValue() is False
         app.view.controls.ctlchromatogram.SetSelection(1)
         app.view.controls.export_gui_to_config()
         assert app.eng.config.chromatogram_type == 1

@@ -117,6 +117,7 @@ class UniDecConfig(object):
         self.time_window = 2
         self.chrom_peak_width = 2
         self.chromatogram_type = 0
+        self.chromatogram_norm = 0
         self.calc_unichrom_scores = False
         self.sw_time_window = 1
         self.sw_scan_offset = 10
@@ -422,6 +423,7 @@ class UniDecConfig(object):
             "HTksmooth": (self.HTksmooth, float),
             "CDScanCompress": (self.CDScanCompress, int),
             "chromatogram_type": (self.chromatogram_type, int),
+            "chromatogram_norm": (self.chromatogram_norm, int),
             "HTmaxscans": (self.HTmaxscans, int),
             "HToutlb": (self.HToutputlb, float),
             "HToutub": (self.HToutputub, float),
@@ -826,274 +828,278 @@ class UniDecConfig(object):
             self.manualfileflag = 0
             self.mfileflag = 0
             for line in f:
-                if len(line.split()) > 1:
-                    if line.startswith("original_file") and not self.original_file:
+                parts = line.split()
+                if len(parts) > 1:
+                    key = parts[0]
+                    if key == "original_file" and not self.original_file:
                         self.original_file = line.partition(" ")[2].strip()
-                    if line.startswith("version"):
+                    if key == "version":
                         self.inputversion = line.split()[1]
-                    if line.startswith("imflag"):
+                    if key == "imflag":
                         self.imflag = ud.string_to_int(line.split()[1])
-                    if line.startswith("cdmsflag"):
+                    if key == "cdmsflag":
                         self.cdmsflag = ud.string_to_int(line.split()[1])
-                    if line.startswith("minmz"):
+                    if key == "minmz":
                         self.minmz = ud.string_to_value(line.split()[1])
-                    if line.startswith("maxmz"):
+                    if key == "maxmz":
                         self.maxmz = ud.string_to_value(line.split()[1])
-                    if line.startswith("mindt"):
+                    if key == "mindt":
                         self.mindt = ud.string_to_value(line.split()[1])
-                    if line.startswith("maxdt"):
+                    if key == "maxdt":
                         self.maxdt = ud.string_to_value(line.split()[1])
                     if self.batchflag == 0:
-                        if line.startswith("numit"):
+                        if key == "numit":
                             self.numit = ud.string_to_int(line.split()[1])
-                        if line.startswith("numz"):
+                        if key == "numz":
                             self.numz = ud.string_to_int(line.split()[1])
-                        if line.startswith("endz"):
+                        if key == "endz":
                             self.endz = ud.string_to_int(line.split()[1])
-                        if line.startswith("startz"):
+                        if key == "startz":
                             self.startz = ud.string_to_int(line.split()[1])
-                        if line.startswith("centroided"):
+                        if key == "centroided":
                             self.centroided = ud.string_to_int(line.split()[1])
-                        if line.startswith("verbose"):
+                        if key == "verbose":
                             self.verbose = ud.string_to_int(line.split()[1])
-                        if line.startswith("CDslope"):
+                        if key == "CDslope":
                             self.CDslope = ud.string_to_value(line.split()[1])
-                        if line.startswith("CDzbins"):
+                        if key == "CDzbins":
                             self.CDzbins = ud.string_to_value(line.split()[1])
-                        if line.startswith("CDres"):
+                        if key == "CDres":
                             self.CDres = ud.string_to_value(line.split()[1])
-                        if line.startswith("CDScanStart"):
+                        if key == "CDScanStart":
                             self.CDScanStart = ud.string_to_int(line.split()[1])
-                        if line.startswith("CDprethresh"):
+                        if key == "CDprethresh":
                             self.CDprethresh = ud.string_to_value(line.split()[1])
-                        if line.startswith("CDScanEnd"):
+                        if key == "CDScanEnd":
                             self.CDScanEnd = ud.string_to_int(line.split()[1])
-                        if line.startswith("HTksmooth"):
+                        if key == "HTksmooth":
                             self.HTksmooth = ud.string_to_value(line.split()[1])
-                        if line.startswith("HTtimeshift"):
+                        if key == "HTtimeshift":
                             self.HTtimeshift = ud.string_to_value(line.split()[1])
-                        if line.startswith("HTtimepad"):
+                        if key == "HTtimepad":
                             self.HTtimepad = ud.string_to_value(line.split()[1])
-                        if line.startswith("HTanalysistime"):
+                        if key == "HTanalysistime":
                             self.HTanalysistime = ud.string_to_value(line.split()[1])
-                        if line.startswith("HTxaxis"):
+                        if key == "HTxaxis":
                             self.HTxaxis = line.split()[1]
-                        if line.startswith("HTcycleindex"):
+                        if key == "HTcycleindex":
                             self.HTcycleindex = ud.string_to_value(line.split()[1])
-                        if line.startswith("HTcylctime"):
+                        if key == "HTcylctime":
                             self.HTcycletime = ud.string_to_value(line.split()[1])
-                        if line.startswith("htbit"):
+                        if key == "htbit":
                             self.htbit = str(line.split()[1])
-                        if line.startswith("CDScanCompress"):
+                        if key == "CDScanCompress":
                             self.CDScanCompress = ud.string_to_value(line.split()[1])
-                        if line.startswith("chromatogram_type"):
+                        if key == "chromatogram_type":
                             self.chromatogram_type = ud.string_to_int(line.split()[1])
-                        if line.startswith("HTmaxscans"):
+                        if key == "chromatogram_norm":
+                            self.chromatogram_norm = ud.string_to_int(line.split()[1])
+                        if key == "HTmaxscans":
                             self.HTmaxscans = ud.string_to_int(line.split()[1])
-                        if line.startswith("HToutlb"):
+                        if key == "HToutlb":
                             self.HToutputlb = ud.string_to_value(line.split()[1])
-                        if line.startswith("HToutub"):
+                        if key == "HToutub":
                             self.HToutputub = ud.string_to_value(line.split()[1])
-                        if line.startswith("demultiplexmode"):
+                        if key == "demultiplexmode":
                             self.demultiplexmode = line.split()[1]
-                        if line.startswith("FTstart"):
+                        if key == "FTstart":
                             self.FTstart = ud.string_to_value(line.split()[1])
-                        if line.startswith("FTend"):
+                        if key == "FTend":
                             self.FTend = ud.string_to_value(line.split()[1])
-                        if line.startswith("FTflatten"):
+                        if key == "FTflatten":
                             self.FTflatten = ud.string_to_int(line.split()[1])
-                        if line.startswith("FTapodize"):
+                        if key == "FTapodize":
                             self.FTapodize = ud.string_to_int(line.split()[1])
-                        if line.startswith("FTsmooth"):
+                        if key == "FTsmooth":
                             self.FTsmooth = ud.string_to_value(line.split()[1])
-                        if line.startswith("HTmaskn"):
+                        if key == "HTmaskn":
                             self.HTmaskn = ud.string_to_value(line.split()[1])
-                        if line.startswith("HTwin"):
+                        if key == "HTwin":
                             self.HTwin = ud.string_to_value(line.split()[1])
-                        if line.startswith("zzsig"):
+                        if key == "zzsig":
                             self.zzsig = ud.string_to_value(line.split()[1])
-                        if line.startswith("psig"):
+                        if key == "psig":
                             self.psig = ud.string_to_value(line.split()[1])
-                        if line.startswith("beta"):
+                        if key == "beta":
                             self.beta = ud.string_to_value(line.split()[1])
-                        if line.startswith("suppression_topn"):
+                        if key == "suppression_topn":
                             self.suppression_topn = ud.string_to_int(line.split()[1])
-                        # if line.startswith("topncharges"):
+                        # if key == "topncharges":
                         #     self.suppression_topn = ud.string_to_int(line.split()[1])
-                        if line.startswith("suppression_topx"):
+                        if key == "suppression_topx":
                             self.suppression_topx = ud.string_to_value(line.split()[1])
-                        # if line.startswith("zcutoff"):
+                        # if key == "zcutoff":
                         #     self.suppression_topx = ud.string_to_value(line.split()[1])
-                        if line.startswith("suppression_percent"):
+                        if key == "suppression_percent":
                             self.suppression_percent = ud.string_to_value(line.split()[1])
-                        # if line.startswith("zcutpercent"):
+                        # if key == "zcutpercent":
                         #     self.suppression_percent = ud.string_to_value(line.split()[1])
-                        if line.startswith("suppression_startit"):
+                        if key == "suppression_startit":
                             self.suppression_startit = ud.string_to_int(line.split()[1])
-                        # if line.startswith("zcutstartit"):
+                        # if key == "zcutstartit":
                         #     self.suppression_startit = ud.string_to_int(line.split()[1])
-                        if line.startswith("suppression_harmonic"):
+                        if key == "suppression_harmonic":
                             self.suppression_harmonic = ud.string_to_int(line.split()[1])
-                        if line.startswith("suppression_satellite"):
+                        if key == "suppression_satellite":
                             self.suppression_satellite = ud.string_to_int(line.split()[1])
-                        if line.startswith("mzsig"):
+                        if key == "mzsig":
                             self.mzsig = ud.string_to_value(line.split()[1])
-                        if line.startswith("psfun"):
+                        if key == "psfun":
                             self.psfun = ud.string_to_int(line.split()[1])
-                        if line.startswith("zpsfn"):
+                        if key == "zpsfn":
                             self.psfunz = ud.string_to_int(line.split()[1])
-                        if line.startswith("discreteplot"):
+                        if key == "discreteplot":
                             self.discreteplot = ud.string_to_int(line.split()[1])
-                        if line.startswith("smashflag"):
+                        if key == "smashflag":
                             self.smashflag = ud.string_to_int(line.split()[1])
-                        if line.startswith("massub"):
+                        if key == "massub":
                             self.massub = ud.string_to_value(line.split()[1])
-                        if line.startswith("masslb"):
+                        if key == "masslb":
                             self.masslb = ud.string_to_value(line.split()[1])
-                        if line.startswith("msig"):
+                        if key == "msig":
                             self.msig = ud.string_to_value(line.split()[1])
-                        if line.startswith("molig"):
+                        if key == "molig":
                             self.molig = ud.string_to_value(line.split()[1])
-                        if line.startswith("massbins"):
+                        if key == "massbins":
                             self.massbins = ud.string_to_value(line.split()[1])
-                        if line.startswith("mtabsig"):
+                        if key == "mtabsig":
                             self.mtabsig = ud.string_to_value(line.split()[1])
-                        if line.startswith("mfile"):
+                        if key == "mfile":
                             # self.mfile = line.split()[1]
                             self.mfileflag = 1
-                        if line.startswith("manualfile"):
+                        if key == "manualfile":
                             # self.manualfile = line.split()[1]
                             self.manualfileflag = 1
-                        if line.startswith("subbuff"):
+                        if key == "subbuff":
                             self.subbuff = ud.string_to_value(line.split()[1])
                             if self.subbuff < 0:
                                 self.subtype = 2
                                 self.subbuff = abs(self.subbuff)
-                        if line.startswith("subtype"):
+                        if key == "subtype":
                             self.subtype = ud.string_to_int(line.split()[1])
-                        if line.startswith("smooth") and not line.startswith("smoothdt"):
+                        if key == "smooth":
                             self.smooth = ud.string_to_value(line.split()[1])
-                        if line.startswith("mzbins"):
+                        if key == "mzbins":
                             self.mzbins = ud.string_to_value(line.split()[1])
-                        if line.startswith("peakwindow"):
+                        if key == "peakwindow":
                             self.peakwindow = ud.string_to_value(line.split()[1])
-                        if line.startswith("peakthresh"):
+                        if key == "peakthresh":
                             self.peakthresh = ud.string_to_value(line.split()[1])
-                        if line.startswith("normthresh"):
+                        if key == "normthresh":
                             self.normthresh = ud.string_to_int(line.split()[1])
-                        if line.startswith("peakplotthresh"):
+                        if key == "peakplotthresh":
                             self.peakplotthresh = ud.string_to_value(line.split()[1])
-                        if line.startswith("plotsep"):
+                        if key == "plotsep":
                             self.separation = ud.string_to_value(line.split()[1])
-                        if line.startswith("intthresh"):
+                        if key == "intthresh":
                             self.intthresh = ud.string_to_value(line.split()[1])
-                        if line.startswith("reductionpercent"):
+                        if key == "reductionpercent":
                             self.reductionpercent = ud.string_to_value(line.split()[1])
-                        if line.startswith("aggressive"):
+                        if key == "aggressive":
                             self.aggressiveflag = ud.string_to_int(line.split()[1])
-                        if line.startswith("rawflag"):
+                        if key == "rawflag":
                             self.rawflag = ud.string_to_int(line.split()[1])
-                        if line.startswith("rescale_newblur"):
+                        if key == "rescale_newblur":
                             self.rescale_newblur = ud.string_to_int(line.split()[1])
-                        if line.startswith("adductmass"):
+                        if key == "adductmass":
                             self.adductmass = ud.string_to_value(line.split()[1])
-                        if line.startswith("nativezub"):
+                        if key == "nativezub":
                             self.nativezub = ud.string_to_value(line.split()[1])
-                        if line.startswith("nativezlb"):
+                        if key == "nativezlb":
                             self.nativezlb = ud.string_to_value(line.split()[1])
-                        if line.startswith("poolflag"):
+                        if key == "poolflag":
                             self.poolflag = ud.string_to_int(line.split()[1])
-                        if line.startswith("accvol"):
+                        if key == "accvol":
                             self.detectoreffva = ud.string_to_value(line.split()[1])
-                        if line.startswith("peakshapeinflate"):
+                        if key == "peakshapeinflate":
                             self.inflate = ud.string_to_value(line.split()[1])
-                        if line.startswith("noiseflag"):
+                        if key == "noiseflag":
                             self.noiseflag = ud.string_to_value(line.split()[1])
-                        if line.startswith("linflag"):
+                        if key == "linflag":
                             self.linflag = ud.string_to_int(line.split()[1])
-                        if line.startswith("cmap"):
+                        if key == "cmap":
                             self.cmap = str(line.split()[1])
-                        if line.startswith("peakcmap"):
+                        if key == "peakcmap":
                             self.peakcmap = str(line.split()[1])
-                        if line.startswith("spectracmap"):
+                        if key == "spectracmap":
                             self.spectracmap = str(line.split()[1])
-                        if line.startswith("publicationmode"):
+                        if key == "publicationmode":
                             self.publicationmode = ud.string_to_int(line.split()[1])
-                        if line.startswith("isotopemode"):
+                        if key == "isotopemode":
                             self.isotopemode = ud.string_to_int(line.split()[1])
-                        if line.startswith("integratelb"):
+                        if key == "integratelb":
                             self.integratelb = ud.string_to_value(line.split()[1])
-                        if line.startswith("integrateub"):
+                        if key == "integrateub":
                             self.integrateub = ud.string_to_value(line.split()[1])
-                        if line.startswith("filterwidth"):
+                        if key == "filterwidth":
                             self.filterwidth = ud.string_to_int(line.split()[1])
-                        if line.startswith("zerolog"):
+                        if key == "zerolog":
                             self.zerolog = ud.string_to_value(line.split()[1])
-                        if line.startswith("peaknorm"):
+                        if key == "peaknorm":
                             self.peaknorm = ud.string_to_int(line.split()[1])
-                        if line.startswith("datanorm"):
+                        if key == "datanorm":
                             self.datanorm = ud.string_to_int(line.split()[1])
-                        if line.startswith("baselineflag"):
+                        if key == "baselineflag":
                             self.baselineflag = ud.string_to_value(line.split()[1])
-                        if line.startswith("orbimode"):
+                        if key == "orbimode":
                             self.orbimode = ud.string_to_int(line.split()[1])
-                        if line.startswith("doubledec"):
+                        if key == "doubledec":
                             ddval = ud.string_to_int(line.split()[1])
                             if ddval == 0:
                                 self.doubledec = False
                             else:
                                 self.doubledec = True
-                        if line.startswith("kernel"):
+                        if key == "kernel":
                             self.kernel = line.strip()[7:]
 
                         # IM Imports
-                        if line.startswith("ccsub"):
+                        if key == "ccsub":
                             self.ccsub = ud.string_to_value(line.split()[1])
-                        if line.startswith("ccslb"):
+                        if key == "ccslb":
                             self.ccslb = ud.string_to_value(line.split()[1])
-                        if line.startswith("dtsig"):
+                        if key == "dtsig":
                             self.dtsig = ud.string_to_value(line.split()[1])
-                        if line.startswith("csig"):
+                        if key == "csig":
                             self.csig = ud.string_to_value(line.split()[1])
-                        if line.startswith("ccsbins"):
+                        if key == "ccsbins":
                             self.ccsbins = ud.string_to_value(line.split()[1])
-                        if line.startswith("subbufdt"):
+                        if key == "subbufdt":
                             self.subbufdt = ud.string_to_value(line.split()[1])
-                        if line.startswith("smoothdt"):
+                        if key == "smoothdt":
                             self.smoothdt = ud.string_to_value(line.split()[1])
-                        if line.startswith("temp"):
+                        if key == "temp":
                             self.temp = ud.string_to_value(line.split()[1])
-                        if line.startswith("pressure"):
+                        if key == "pressure":
                             self.pressure = ud.string_to_value(line.split()[1])
-                        if line.startswith("volt"):
+                        if key == "volt":
                             self.volt = ud.string_to_value(line.split()[1])
-                        if line.startswith("gasmass"):
+                        if key == "gasmass":
                             self.gasmass = ud.string_to_value(line.split()[1])
-                        if (line.startswith("to")) or (line.startswith("tnaught")):
+                        if (key == "to") or (key == "tnaught"):
                             self.to = ud.string_to_value(line.split()[1])
-                        if line.startswith("driftlength"):
+                        if key == "driftlength":
                             self.driftlength = ud.string_to_value(line.split()[1])
-                        if line.startswith("tcal1"):
+                        if key == "tcal1":
                             self.tcal1 = ud.string_to_value(line.split()[1])
-                        if line.startswith("tcal2"):
+                        if key == "tcal2":
                             self.tcal2 = ud.string_to_value(line.split()[1])
-                        if line.startswith("tcal3"):
+                        if key == "tcal3":
                             self.tcal3 = ud.string_to_value(line.split()[1])
-                        if line.startswith("tcal4"):
+                        if key == "tcal4":
                             self.tcal4 = ud.string_to_value(line.split()[1])
-                        if line.startswith("edc"):
+                        if key == "edc":
                             self.edc = ud.string_to_value(line.split()[1])
-                        if line.startswith("twaveflag"):
+                        if key == "twaveflag":
                             self.twaveflag = ud.string_to_int(line.split()[1])
-                        if line.startswith("pusher"):
+                        if key == "pusher":
                             self.pusher = ud.string_to_value(line.split()[1])
-                        if line.startswith("zout"):
+                        if key == "zout":
                             self.zout = ud.string_to_value(line.split()[1])
-                        if line.startswith("nativeccsub") or line.startswith("ubnativeccs"):
+                        if key == "nativeccsub" or key == "ubnativeccs":
                             self.nativeccsub = ud.string_to_value(line.split()[1])
-                        if line.startswith("nativeccslb") or line.startswith("lbnativeccs"):
+                        if key == "nativeccslb" or key == "lbnativeccs":
                             self.nativeccslb = ud.string_to_value(line.split()[1])
-                        if line.startswith("isomode"):
+                        if key == "isomode":
                             self.isomode = ud.string_to_int(line.split()[1])
 
             f.close()
@@ -1208,7 +1214,7 @@ class UniDecConfig(object):
             "exthresh": self.exthresh,
             "exnorm": self.exnorm, "exnormz": self.exnormz, "metamode": self.metamode,
             "datanorm": self.datanorm, "chrom_time_window": self.time_window, "chrom_peak_width": self.chrom_peak_width,
-            "chromatogram_type": self.chromatogram_type,
+            "chromatogram_type": self.chromatogram_type, "chromatogram_norm": self.chromatogram_norm,
             "sw_time_window": self.sw_time_window, "sw_scan_offset": self.sw_scan_offset, "time_start": self.time_start,
             "time_end": self.time_end, "scan_window": self.scan_window
         }
@@ -1366,6 +1372,7 @@ class UniDecConfig(object):
         self.time_window = read_attr(self.time_window, "chrom_time_window", config_group)
         self.chrom_peak_width = read_attr(self.chrom_peak_width, "chrom_peak_width", config_group)
         self.chromatogram_type = read_attr(self.chromatogram_type, "chromatogram_type", config_group)
+        self.chromatogram_norm = read_attr(self.chromatogram_norm, "chromatogram_norm", config_group)
         self.sw_time_window = read_attr(self.sw_time_window, "sw_time_window", config_group)
         self.sw_scan_offset = read_attr(self.sw_scan_offset, "sw_scan_offset", config_group)
         self.scan_window = read_attr(self.scan_window, "scan_window", config_group)

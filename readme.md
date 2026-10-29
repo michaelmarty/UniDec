@@ -425,6 +425,8 @@ Improvements to UniChromCD workflow. Fixing bugs in several places. Added BPC op
 
 Fixed config text file parsing in C code. 
 
+Added a EIC/TIC normalization option to UniChromCD.
+
 v.9.0.1
 
 Updated UniDecImporter to 1.0.4 to add in BPC support. Added this to UniChrom as an option.

@@ -119,6 +119,25 @@ class TestUniDecConfigSerialization(unittest.TestCase):
             restored.config_import(source.confname)
             self.assertEqual(restored.original_file, "destination.raw")
 
+    def test_text_config_uses_exact_parameter_keys(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-exact-config-") as directory:
+            path = Path(directory, "config.dat")
+            path.write_text(
+                "numit_extra 1\n"
+                "startz_suffix 20\n"
+                "aggressive_mode 2\n"
+                "peakthresh 0.25\n",
+                encoding="utf-8",
+            )
+
+            restored = UniDecConfig()
+            restored.config_import(str(path))
+
+            self.assertEqual(restored.numit, 100)
+            self.assertEqual(restored.startz, 1)
+            self.assertEqual(restored.aggressiveflag, 0)
+            self.assertEqual(restored.peakthresh, 0.25)
+
 
     def test_new_run_uses_short_names_and_versioned_npz_cache(self):
         with tempfile.TemporaryDirectory(prefix="unidec-short-run-") as directory:

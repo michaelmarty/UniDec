@@ -14,6 +14,15 @@ def _is_summary_chromatogram(label):
     return "TIC" in label or "BPC" in label
 
 
+def _plot_intensity(data, normalize=False):
+    intensity = data[:, 1]
+    if normalize:
+        maximum = np.amax(intensity)
+        if maximum != 0:
+            intensity = intensity / maximum
+    return intensity
+
+
 class UniChromCDApp(UniDecCDApp):
     """
     Main UniDec GUI Application.
@@ -468,6 +477,7 @@ class UniChromCDApp(UniDecCDApp):
                                                   adduct_mass=self.eng.config.adductmass)
 
             if not ud.isempty(c.chromdat):
+                ydat = _plot_intensity(c.chromdat, self.eng.config.chromatogram_norm)
                 if self.eng.config.HTxaxis == "Scans":
                     xdat = np.arange(0, len(c.chromdat))
                     xlab = "Scan Number"
@@ -476,14 +486,15 @@ class UniChromCDApp(UniDecCDApp):
                     xlab = "Time"
 
                 if not self.view.plottic.flag:
-                    self.view.plottic.plotrefreshtop(xdat, c.chromdat[:, 1] - sep, config=self.eng.config,
+                    self.view.plottic.plotrefreshtop(xdat, ydat - sep, config=self.eng.config,
                                                      zoomout=True, label=c.label, xlabel=xlab,
                                                      color=c.color, nopaint=True)
                 else:
-                    self.view.plottic.plotadd(xdat, c.chromdat[:, 1] - sep, colval=c.color, nopaint=True,
+                    self.view.plottic.plotadd(xdat, ydat - sep, colval=c.color, nopaint=True,
                                               newlabel=c.label)
 
             if c.decondat is not None and not self.showccs:
+                ydat = _plot_intensity(c.decondat, self.eng.config.chromatogram_norm)
                 if self.eng.config.HTxaxis == "Scans":
                     xdat = np.arange(0, len(c.decondat))
                     xlab = "Scan Number"
@@ -492,11 +503,11 @@ class UniChromCDApp(UniDecCDApp):
                     xlab = "Time"
 
                 if not self.view.plotdecontic.flag:
-                    self.view.plotdecontic.plotrefreshtop(xdat, c.decondat[:, 1] - sep, config=self.eng.config,
+                    self.view.plotdecontic.plotrefreshtop(xdat, ydat - sep, config=self.eng.config,
                                                           zoomout=True, label=c.label, xlabel=xlab,
                                                           color=c.color, nopaint=True)
                 else:
-                    self.view.plotdecontic.plotadd(xdat, c.decondat[:, 1] - sep, colval=c.color, nopaint=True,
+                    self.view.plotdecontic.plotadd(xdat, ydat - sep, colval=c.color, nopaint=True,
                                                    newlabel=c.label)
 
             if c.ccsdat is not None and self.showccs:
