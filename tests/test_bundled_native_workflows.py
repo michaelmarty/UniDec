@@ -13,6 +13,32 @@ from tests._test_support import copy_unidec_example
 
 
 class TestBundledNativeWorkflows(unittest.TestCase):
+    def test_native_text_config_uses_exact_parameter_keys(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-native-config-keys-") as directory:
+            root = Path(directory)
+            spectrum = copy_unidec_example(root, "BSA.txt")
+            engine = UniDec(ignore_args=True, silent=True)
+            if not os.path.isfile(engine.config.UniDecPath):
+                self.skipTest(f"Packaged native executable is unavailable: {engine.config.UniDecPath}")
+            engine.open_file(spectrum.name, directory, silent=True)
+            engine.process_data(silent=True)
+
+            command = [engine.config.UniDecPath, engine.config.confname, "-nthreads", "1"]
+            control = subprocess.run(command, capture_output=True, text=True)
+            self.assertEqual(control.returncode, 0, control.stdout + control.stderr)
+            expected = np.loadtxt(engine.config.massdatfile)
+
+            with open(engine.config.confname, "a", encoding="utf-8") as config_file:
+                config_file.write("prefix_startz 20\n")
+                config_file.write("endz_suffix 30\n")
+                config_file.write("numit_extra 1\n")
+
+            result = subprocess.run(command, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            actual = np.loadtxt(engine.config.massdatfile)
+
+            np.testing.assert_array_equal(actual, expected)
+
     def test_native_resolves_relative_config_paths_from_config_directory(self):
         with tempfile.TemporaryDirectory(prefix="unidec-native-relative-") as directory:
             root = Path(directory)

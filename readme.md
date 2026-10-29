@@ -423,6 +423,8 @@ v.9.0.2
 
 Improvements to UniChromCD workflow. Fixing bugs in several places. Added BPC option to UCCD. 
 
+Fixed config text file parsing in C code. 
+
 v.9.0.1
 
 Updated UniDecImporter to 1.0.4 to add in BPC support. Added this to UniChrom as an option.
