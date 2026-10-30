@@ -309,7 +309,7 @@ jobs:
   build:
     name: Build and test distributions
     needs: [native-unix, native-windows]
-        runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Check out the tagged source
@@ -729,7 +729,7 @@ jobs:
   publish:
     name: Publish distributions
     needs: [build, smoke-windows, smoke-windows-arm64, smoke-macos-arm64, smoke-linux-arm64]
-        runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04
     environment:
       name: ${{ inputs.repository }}
       url: ${{ inputs.repository == 'testpypi' && 'https://test.pypi.org/p/UniDec' || 'https://pypi.org/p/UniDec' }}
