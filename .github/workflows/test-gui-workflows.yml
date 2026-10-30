@@ -37,7 +37,7 @@ jobs:
             build_native: true
             gui_tests: false
           - name: macOS ARM64
-            os: macos-14
+            os: macos-15
             python-version: "3.12"
             build_native: true
             gui_tests: true

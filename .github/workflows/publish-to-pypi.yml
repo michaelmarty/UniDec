@@ -43,7 +43,7 @@ jobs:
             library: libunideclib.dylib
             deployment_target: "11.0"
           - name: macOS ARM64
-            os: macos-14
+            os: macos-15
             artifact: native-macos-arm64
             executable: unidecmac
             library: libunideclib.dylib
@@ -650,7 +650,7 @@ jobs:
   smoke-macos-arm64:
     name: Smoke-test the wheel on macOS ARM64
     needs: build
-    runs-on: macos-14
+    runs-on: macos-15
 
     steps:
       - name: Download distributions
