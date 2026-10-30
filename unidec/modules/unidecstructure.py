@@ -63,6 +63,7 @@ class UniDecConfig(object):
         self.outfname = ""
         self.mfile = "mass.dat"
         self.manualfile = "man.dat"
+        self.fwhmfile = "fwhm.dat"
         self.smashfile = "smash.dat"
         self.confname = "conf.dat"
         self.hdf_file = "default.hdf5"
@@ -375,6 +376,7 @@ class UniDecConfig(object):
             "isomode": (self.isomode, int),
             "mfile": (self.mfile, str),
             "manualfile": (self.manualfile, str),
+            "fwhmfile": (self.fwhmfile, str),
             "minmz": (self.minmz, float),
             "maxmz": (self.maxmz, float),
             "subbuff": (self.subbuff, float),
@@ -730,7 +732,7 @@ class UniDecConfig(object):
 
         config_dir = os.path.dirname(os.path.abspath(name))
         f = open(name, 'w+')
-        ignorelist = ["mfile", "manualfile", "smashfile", "ofile", "matchfile", "peaksfile", "kernel"]
+        ignorelist = ["mfile", "manualfile", "fwhmfile", "smashfile", "ofile", "matchfile", "peaksfile", "kernel"]
         for key in self.namedict.keys():
             if key in ignorelist:
                 continue
@@ -771,6 +773,9 @@ class UniDecConfig(object):
                 f.write("manualfile " + self._path_for_config(self.manualfile, config_dir) + "\n")
             else:
                 print("Need to specify manual assignments. Running without assignments.")
+
+        if self.variablepw:
+            f.write("fwhmfile " + self._path_for_config(self.fwhmfile, config_dir) + "\n")
 
         if self.kernel != "":
             f.write("kernel " + self._path_for_config(self.kernel, config_dir) + "\n")
@@ -948,6 +953,12 @@ class UniDecConfig(object):
                             self.psfun = ud.string_to_int(line.split()[1])
                         if key == "zpsfn":
                             self.psfunz = ud.string_to_int(line.split()[1])
+                        if key == "variablepw":
+                            self.variablepw = ud.string_to_int(line.split()[1])
+                        if key == "minratio":
+                            self.minratio = ud.string_to_value(line.split()[1])
+                        if key == "fwhmfile":
+                            self.fwhmfile = os.path.join(os.path.dirname(os.path.abspath(name)), line.partition(" ")[2].strip())
                         if key == "discreteplot":
                             self.discreteplot = ud.string_to_int(line.split()[1])
                         if key == "smashflag":
@@ -1179,7 +1190,8 @@ class UniDecConfig(object):
             "beta": self.beta, "suppression_topn": self.suppression_topn, "suppression_topx": self.suppression_topx,
             "suppression_percent": self.suppression_percent, "suppression_startit": self.suppression_startit,
             "suppression_harmonic": self.suppression_harmonic, "suppression_satellite": self.suppression_satellite,
-            "psfun": self.psfun, "psfunz": self.psfunz, "discreteplot": self.discreteplot, "massub": self.massub,
+            "psfun": self.psfun, "psfunz": self.psfunz, "variablepw": self.variablepw,
+            "minratio": self.minratio, "discreteplot": self.discreteplot, "massub": self.massub,
             "masslb": self.masslb,
             "msig": self.msig, "molig": self.molig, "massbins": self.massbins, "mtabsig": self.mtabsig,
             "minmz": self.minmz, "maxmz": self.maxmz, "subbuff": self.subbuff, "subtype": self.subtype,
@@ -1279,6 +1291,8 @@ class UniDecConfig(object):
         self.mzsig = read_attr(self.mzsig, "mzsig", config_group)
         self.psfun = read_attr(self.psfun, "psfun", config_group)
         self.psfunz = read_attr(self.psfunz, "psfunz", config_group)
+        self.variablepw = read_attr(self.variablepw, "variablepw", config_group)
+        self.minratio = read_attr(self.minratio, "minratio", config_group)
         self.discreteplot = read_attr(self.discreteplot, "discreteplot", config_group)
         self.massub = read_attr(self.massub, "massub", config_group)
         self.masslb = read_attr(self.masslb, "masslb", config_group)
@@ -1295,9 +1309,11 @@ class UniDecConfig(object):
         self.normthresh = read_attr(self.normthresh, "normthresh", config_group)
         self.peakplotthresh = read_attr(self.peakplotthresh, "peakplotthresh", config_group)
         self.separation = read_attr(self.separation, "separation", config_group)
+        self.separation = read_attr(self.separation, "plotsep", config_group)
         self.intthresh = read_attr(self.intthresh, "intthresh", config_group)
         self.reductionpercent = read_attr(self.reductionpercent, "reductionpercent", config_group)
         self.aggressiveflag = read_attr(self.aggressiveflag, "aggressiveflag", config_group)
+        self.aggressiveflag = read_attr(self.aggressiveflag, "aggressive", config_group)
         self.rawflag = read_attr(self.rawflag, "rawflag", config_group)
         self.rescale_newblur = read_attr(self.rescale_newblur, "rescale_newblur", config_group)
         self.adductmass = read_attr(self.adductmass, "adductmass", config_group)
@@ -1401,6 +1417,7 @@ class UniDecConfig(object):
         self.confname = self.outfname + s + "conf.dat"
         self.mfile = self.outfname + s + "mfile.dat"
         self.manualfile = self.outfname + s + "manualfile.dat"
+        self.fwhmfile = self.outfname + s + "fwhm.dat"
         self.smashfile = self.outfname + s + "smashfile.dat"
         self.ofile = self.outfname + s + "ofile.dat"
         self.matchfile = self.outfname + s + "match.dat"
@@ -2095,7 +2112,7 @@ class DataContainer:
         self.tscore = 0
 
     def write_hdf5(self, file_name):
-        hdf = h5py.File(file_name)
+        hdf = h5py.File(file_name, "a")
         config_group = hdf.require_group("ms_data")
         immsdata = hdf.require_group("imms_data")
         replace_dataset(config_group, "raw_data_ms", data=self.rawdata)
@@ -2103,6 +2120,7 @@ class DataContainer:
         replace_dataset(config_group, "fit_data", data=self.fitdat)
         replace_dataset(immsdata, "fit_data_2d", data=self.fitdat2d)
         replace_dataset(config_group, "processed_data", data=self.data2)
+        replace_dataset(config_group, "fwhm", data=self.fwhmlist)
         replace_dataset(immsdata, "processed_data_2d", data=self.data3)
         replace_dataset(config_group, "mass_data", data=self.massdat)
         replace_dataset(config_group, "mz_grid", data=self.mzgrid)
@@ -2123,6 +2141,7 @@ class DataContainer:
         self.fitdat = config_group.get("fit_data")
         self.fitdat2d = immsdata.get("fit_data_2d")
         self.data2 = config_group.get("processed_data")
+        self.fwhmlist = get_dataset(config_group, "fwhm")
         self.data3 = immsdata.get("processed_data_2d")
         self.massdat = config_group.get("mass_data")
         self.mzgrid = config_group.get("mz_grid")

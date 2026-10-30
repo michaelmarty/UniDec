@@ -81,6 +81,18 @@ void SetupInputs(const Config config, Input *inp, const int verbose){
 
 int SetupDeconvolution(const Config config, const Input inp, Decon *decon, IntraDecon *intra, const int silent)
 {
+	if (config.variablepw != 0) {
+		if (inp.fwhmlist == NULL) {
+			fprintf(stderr, "Variable peak width requires one FWHM value per m/z point.\n");
+			return 1;
+		}
+		for (int i = 0; i < config.lengthmz; i++) {
+			if (!isfinite(inp.fwhmlist[i]) || inp.fwhmlist[i] <= 0) {
+				fprintf(stderr, "Invalid FWHM value at index %d: %g.\n", i, inp.fwhmlist[i]);
+				return 1;
+			}
+		}
+	}
 	// Set up memory and copy in binary array
 	intra->ln = config.lengthmz * config.numz;
 	intra->barr = calloc(intra->ln, sizeof(char));
@@ -578,6 +590,11 @@ int run_unidec(int argc, char *argv[], Config config) {
 	//Initialize
 	clock_t starttime;
 	starttime = clock();
+	const int owns_hdf5_file = config.filetype == 1 && config.metamode == -2;
+	if (owns_hdf5_file) {
+		config.file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
+		if (config.file_id < 0) { return 2; }
+	}
 
 	int verbose = 0;
 	if (argc>2)
@@ -608,6 +625,7 @@ int run_unidec(int argc, char *argv[], Config config) {
 	//Free memory
 	FreeInputs(inp);
 	FreeDecon(decon);
+	if (owns_hdf5_file) { H5Fclose(config.file_id); }
 
 	//printf("Error in the Fit: %f\n", decon.error);
 

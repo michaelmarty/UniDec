@@ -186,6 +186,7 @@ void SetDefaultConfig(Config *config) {
     config->nativezlb = -200;
     config->poolflag = 1;
     config->manualflag = 0;
+    config->fwhmfile[0] = '\0';
     config->intthresh = 0;
     config->peakshapeinflate = 1;
     config->fixedmassaxis = 0;
@@ -334,6 +335,7 @@ Config LoadConfig(Config config, const char *filename) {
                 strcpy(config.mfile, y);
                 config.mflag = 1;
             } // printf(" mfile"); }
+            else if (strcmp(x, "fwhmfile") == 0) { strcpy(config.fwhmfile, y); }
             else if (strcmp(x, "numit") == 0) { config.numit = strtol(y, &endptr, 10); } // printf(" numit"); }
             //else if (strcmp(x, "numz") == 0){ config.numz = strtol(y, &endptr, 10); printf(" numz"); }
             else if (strcmp(x, "startz") == 0) { config.startz = strtol(y, &endptr, 10); } // printf(" startz"); }
@@ -348,6 +350,8 @@ Config LoadConfig(Config config, const char *filename) {
             else if (strcmp(x, "masslb") == 0) { config.masslb = strtof(y, &endptr); } // printf(" masslb"); }
             else if (strcmp(x, "psfun") == 0) { config.psfun = strtol(y, &endptr, 10); } // printf(" psfun"); }
             else if (strcmp(x, "zpsfn") == 0) { config.zpsfun = strtol(y, &endptr, 10); }
+            else if (strcmp(x, "variablepw") == 0) { config.variablepw = strtol(y, &endptr, 10); }
+            else if (strcmp(x, "minratio") == 0) { config.minratio = strtof(y, &endptr); }
             else if (strcmp(x, "mtabsig") == 0) { config.mtabsig = strtof(y, &endptr); } // printf(" mtabsig"); }
             else if (strcmp(x, "massbins") == 0) { config.massbins = strtof(y, &endptr); } // printf(" massbins"); }
             else if (strcmp(x, "psthresh") == 0) { config.psthresh = strtof(y, &endptr); } // printf(" psthresh"); }

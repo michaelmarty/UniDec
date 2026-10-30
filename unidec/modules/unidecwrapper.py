@@ -83,9 +83,14 @@ def py_to_c_input(dataobj, c_config, py_config):
         setattr(c_config, "mfilelen", 0)
 
     if dataobj.fwhmlist is not None and len(dataobj.fwhmlist) > 0:
-        fwhmlist = np.array(dataobj.fwhmlist, dtype=np.float32)
+        fwhmlist = np.asarray(dataobj.fwhmlist, dtype=np.float32)
+        if c_config.variablepw and (fwhmlist.ndim != 1 or len(fwhmlist) != len(mz) or
+                                    not np.all(np.isfinite(fwhmlist)) or np.any(fwhmlist <= 0)):
+            raise ValueError("Variable peak width requires one finite, positive FWHM value per m/z point")
         c_input.fwhmlist = (ctypes.c_float * len(fwhmlist))(*fwhmlist)
     else:
+        if c_config.variablepw:
+            raise ValueError("Variable peak width requires one finite, positive FWHM value per m/z point")
         c_input.fwhmlist = ctypes.POINTER(ctypes.c_float)()
 
     return c_input
@@ -282,6 +287,7 @@ class Config(ctypes.Structure):
         ("mtabsig", ctypes.c_float),
         ("mfile", ctypes.c_char * 500),
         ("manualfile", ctypes.c_char * 500),
+        ("fwhmfile", ctypes.c_char * 500),
         ("mflag", ctypes.c_int),
         ("massbins", ctypes.c_float),
         ("limitflag", ctypes.c_int),

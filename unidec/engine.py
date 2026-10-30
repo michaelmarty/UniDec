@@ -429,6 +429,12 @@ class UniDec(UniDecEngine):
             except (IOError, FileNotFoundError) as err:
                 print("Could not open kernel file.\nPlease select a valid kernel file to use DoubleDec")
                 return 1
+        if self.config.variablepw:
+            fwhm = np.asarray(self.data.fwhmlist)
+            if fwhm.ndim != 1 or len(fwhm) != len(self.data.data2) or not np.all(np.isfinite(fwhm)) or np.any(fwhm <= 0):
+                print("Variable peak width requires one finite, positive FWHM value per processed m/z point.")
+                return 1
+            ud.dataexport(fwhm, self.config.fwhmfile)
         # Export Config and Call
         self.export_config()
         self.pks = peakstructure.Peaks()

@@ -301,6 +301,8 @@ Config mh5LoadConfig(Config config, hid_t file_id)
 	config.endz=int_attr(file_id, "/config", "endz", config.endz);
 	config.startz=int_attr(file_id, "/config", "startz", config.startz);
 	config.psfun=int_attr(file_id, "/config", "psfun", config.psfun);
+	config.variablepw = int_attr(file_id, "/config", "variablepw", config.variablepw);
+	config.minratio = float_attr(file_id, "/config", "minratio", config.minratio);
 	config.linflag=int_attr(file_id, "/config", "linflag", config.linflag);
 	config.aggressiveflag=int_attr(file_id, "/config", "aggressive", config.aggressiveflag);
 	config.rawflag=int_attr(file_id, "/config", "rawflag", config.rawflag);

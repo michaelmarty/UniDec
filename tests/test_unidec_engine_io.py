@@ -7,7 +7,7 @@ import h5py
 import numpy as np
 
 from unidec.engine import UniDec
-from unidec.modules.unidecstructure import UniDecConfig
+from unidec.modules.unidecstructure import DataContainer, UniDecConfig
 
 
 class TestUniDecFileValidation(unittest.TestCase):
@@ -33,6 +33,8 @@ class TestUniDecConfigSerialization(unittest.TestCase):
         "masslb": 1234.5,
         "massub": 98765.5,
         "rawflag": 1,
+        "aggressiveflag": 2,
+        "separation": 0.125,
         "rescale_newblur": 0,
         "suppression_topn": 4,
         "suppression_topx": 0.35,
@@ -46,6 +48,8 @@ class TestUniDecConfigSerialization(unittest.TestCase):
         "mzsig": 1.2,
         "psfun": 2,
         "psfunz": 1,
+        "variablepw": 1,
+        "minratio": 0.2,
         "zzsig": 2.2,
         "psig": 3.3,
         "beta": 5.5,
@@ -118,6 +122,34 @@ class TestUniDecConfigSerialization(unittest.TestCase):
             restored.original_file = "destination.raw"
             restored.config_import(source.confname)
             self.assertEqual(restored.original_file, "destination.raw")
+
+    def test_variable_peak_width_text_sidecar_path_round_trip(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-fwhm-config-") as directory:
+            path = Path(directory, "config.dat")
+            source = UniDecConfig()
+            source.variablepw = 1
+            source.fwhmfile = str(Path(directory, "fwhm.dat"))
+            source.config_export(str(path))
+
+            self.assertIn("fwhmfile fwhm.dat\n", path.read_text(encoding="utf-8"))
+            restored = UniDecConfig()
+            restored.config_import(str(path))
+            self.assertEqual(Path(restored.fwhmfile), Path(directory, "fwhm.dat"))
+
+    def test_data_hdf5_round_trips_fwhm_dataset(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-fwhm-hdf-") as directory:
+            path = Path(directory, "data.hdf5")
+            source = DataContainer()
+            source.data2 = np.array([[100.0, 1.0], [101.0, 0.5]])
+            source.fwhmlist = np.array([0.2, 0.3])
+            source.write_hdf5(str(path))
+
+            with h5py.File(path, "r") as hdf:
+                np.testing.assert_array_equal(hdf["ms_data/fwhm"], source.fwhmlist)
+
+            restored = DataContainer()
+            restored.read_hdf5(str(path))
+            np.testing.assert_array_equal(restored.fwhmlist, source.fwhmlist)
 
     def test_text_config_uses_exact_parameter_keys(self):
         with tempfile.TemporaryDirectory(prefix="unidec-exact-config-") as directory:
@@ -210,6 +242,10 @@ class TestUniDecConfigSerialization(unittest.TestCase):
             source.startz = 7
             source.dtsig = 2.5
             source.zerolog = -9.5
+            source.aggressiveflag = 2
+            source.separation = 0.125
+            source.variablepw = 1
+            source.minratio = 0.2
             source.masslist = np.array([100.0, 200.0])
             source.manuallist = np.array([[100.0, 5.0, 1.0]])
             source.write_hdf5(str(path))
@@ -219,19 +255,28 @@ class TestUniDecConfigSerialization(unittest.TestCase):
                 self.assertEqual(attrs["startz"], 7)
                 self.assertEqual(attrs["dtsig"], 2.5)
                 self.assertEqual(attrs["zerolog"], -9.5)
+                self.assertEqual(attrs["aggressive"], 2)
+                self.assertEqual(attrs["plotsep"], 0.125)
+                self.assertEqual(attrs["variablepw"], 1)
+                self.assertEqual(attrs["minratio"], 0.2)
                 self.assertTrue(np.issubdtype(type(attrs["startz"]), np.integer))
                 np.testing.assert_array_equal(hdf["config/masslist"], [100.0, 200.0])
                 self.assertEqual(hdf["config/manuallist"].shape, (1, 3))
 
             legacy = Path(directory, "legacy.hdf5")
             with h5py.File(legacy, "w") as hdf:
-                hdf.create_group("config").attrs["startz"] = 9
+                attrs = hdf.create_group("config").attrs
+                attrs["startz"] = 9
+                attrs["aggressiveflag"] = 1
+                attrs["separation"] = 0.5
             restored = UniDecConfig()
             default_dtsig = restored.dtsig
             default_suppression = restored.suppression_topn
             default_rescale_newblur = restored.rescale_newblur
             restored.read_hdf5(str(legacy))
             self.assertEqual(restored.startz, 9)
+            self.assertEqual(restored.aggressiveflag, 1)
+            self.assertEqual(restored.separation, 0.5)
             self.assertEqual(restored.dtsig, default_dtsig)
             self.assertEqual(restored.suppression_topn, default_suppression)
             self.assertEqual(restored.rescale_newblur, default_rescale_newblur)

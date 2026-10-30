@@ -135,6 +135,7 @@ struct Config {
     float mtabsig;
     char mfile[500];
     char manualfile[500];
+    char fwhmfile[500];
     int mflag;
     float massbins;
     int limitflag;
