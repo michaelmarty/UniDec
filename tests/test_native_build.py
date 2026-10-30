@@ -65,12 +65,17 @@ class TestNativeBuild(unittest.TestCase):
             self.assertAlmostEqual(restored.minratio, 0.25)
             self.assertEqual(bytes(restored.fwhmfile).rstrip(b"\0"), b"fwhm.dat")
 
-    def test_native_hdf5_loader_declares_variable_peak_width_settings(self):
+    def test_native_hdf5_loader_declares_persistence_settings(self):
         source = Path(__file__).resolve().parents[1] / "unidec" / "src" / "h5io.c"
         text = source.read_text(encoding="utf-8")
 
         self.assertIn('"variablepw", config.variablepw', text)
         self.assertIn('"minratio", config.minratio', text)
+        legacy_psfunz = 'config.zpsfun = int_attr(file_id, "/config", "zpsfn", config.zpsfun);'
+        canonical_psfunz = 'config.zpsfun = int_attr(file_id, "/config", "psfunz", config.zpsfun);'
+        self.assertIn(legacy_psfunz, text)
+        self.assertIn(canonical_psfunz, text)
+        self.assertLess(text.index(legacy_psfunz), text.index(canonical_psfunz))
         input_source = source.with_name("udio.c").read_text(encoding="utf-8")
         self.assertIn('strjoin(config->dataset, "/fwhm", fwhmdat)', input_source)
 
