@@ -6,9 +6,8 @@ from unittest.mock import Mock, call, patch
 import h5py
 import numpy as np
 
-from unidec.modules.ChromEng import ChromEngine
+from unidec.modules.ChromEng import ChromEngine, plot_intensity
 from unidec.modules.unidecstructure import UniDecConfig
-from unidec.UniChromCD import _plot_intensity
 
 
 class TestUniChromWorkflow(unittest.TestCase):
@@ -55,10 +54,10 @@ class TestUniChromWorkflow(unittest.TestCase):
         data = np.array([[0.0, 2.0], [1.0, 4.0]])
         original = data.copy()
 
-        np.testing.assert_allclose(_plot_intensity(data, normalize=True), [0.5, 1.0])
+        np.testing.assert_allclose(plot_intensity(data, normalize=True), [0.5, 1.0])
         np.testing.assert_array_equal(data, original)
-        np.testing.assert_array_equal(_plot_intensity(data), data[:, 1])
-        np.testing.assert_array_equal(_plot_intensity(np.zeros((2, 2)), normalize=True), [0.0, 0.0])
+        np.testing.assert_array_equal(plot_intensity(data), data[:, 1])
+        np.testing.assert_array_equal(plot_intensity(np.zeros((2, 2)), normalize=True), [0.0, 0.0])
 
     def test_selected_chromatogram_uses_configured_cache(self):
         engine = object.__new__(ChromEngine)

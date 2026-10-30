@@ -1,6 +1,7 @@
 from unidec.UniDecCD import UniDecCDApp
 import multiprocessing
 import unidec.modules.HTEng as HTEng
+from unidec.modules.ChromEng import plot_intensity
 from unidec.modules.gui_elements import ChromCDWindow
 from pubsub import pub
 import wx
@@ -12,15 +13,6 @@ import os, time, platform
 
 def _is_summary_chromatogram(label):
     return "TIC" in label or "BPC" in label
-
-
-def _plot_intensity(data, normalize=False):
-    intensity = data[:, 1]
-    if normalize:
-        maximum = np.amax(intensity)
-        if maximum != 0:
-            intensity = intensity / maximum
-    return intensity
 
 
 class UniChromCDApp(UniDecCDApp):
@@ -477,7 +469,7 @@ class UniChromCDApp(UniDecCDApp):
                                                   adduct_mass=self.eng.config.adductmass)
 
             if not ud.isempty(c.chromdat):
-                ydat = _plot_intensity(c.chromdat, self.eng.config.chromatogram_norm)
+                ydat = plot_intensity(c.chromdat, self.eng.config.chromatogram_norm)
                 if self.eng.config.HTxaxis == "Scans":
                     xdat = np.arange(0, len(c.chromdat))
                     xlab = "Scan Number"
@@ -494,7 +486,7 @@ class UniChromCDApp(UniDecCDApp):
                                               newlabel=c.label)
 
             if c.decondat is not None and not self.showccs:
-                ydat = _plot_intensity(c.decondat, self.eng.config.chromatogram_norm)
+                ydat = plot_intensity(c.decondat, self.eng.config.chromatogram_norm)
                 if self.eng.config.HTxaxis == "Scans":
                     xdat = np.arange(0, len(c.decondat))
                     xlab = "Scan Number"

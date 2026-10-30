@@ -8,6 +8,15 @@ from copy import deepcopy
 chrom_file_exts = [".raw", ".Raw", ".RAW", ".d", ".mzML.gz", ".mzML"]
 
 
+def plot_intensity(data, normalize=False):
+    intensity = data[:, 1]
+    if normalize:
+        maximum = np.amax(intensity)
+        if maximum != 0:
+            intensity = intensity / maximum
+    return intensity
+
+
 def chromatographic_peak_scores(xvalues, intensities):
     """Return FWHM symmetry and within-FWHM monotonicity scores."""
     xvalues = np.asarray(xvalues, dtype=float)
