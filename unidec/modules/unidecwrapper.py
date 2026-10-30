@@ -18,9 +18,9 @@ default_dll_path = os.path.join(os.path.dirname(current_path), "bin")
 if platform.system() == "Windows":
     dllname = "unideclib.dll"
 elif platform.system() == "Linux":
-    dllname = "unideclib.so"
+    dllname = "libunideclib.so"
 else:
-    dllname = "unideclib.dylib"
+    dllname = "libunideclib.dylib"
 
 default_dll_path = start_at_iso(dllname, guess=default_dll_path)
 
