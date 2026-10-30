@@ -16,7 +16,7 @@ class TestAdductPanels(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         directory = Path(__file__).resolve().parents[3] / "Scripts/Annika/DDA Analysis"
-        spec = importlib.util.spec_from_file_location("si_11_12", directory / "SI_6_7.py")
+        spec = importlib.util.spec_from_file_location("si_11_12", directory / "SI_5_6.py")
         cls.script = importlib.util.module_from_spec(spec)
         with patch.object(sys, "path", [str(directory), *sys.path]), patch.dict(os.environ, {"MPLBACKEND": "Agg"}):
             spec.loader.exec_module(cls.script)
@@ -128,6 +128,56 @@ class TestAdductPanels(unittest.TestCase):
         self.assertTrue(audit["Status"].str.startswith("Skipped").any())
         with self.assertRaisesRegex(ValueError, "MS/MS spectrum"):
             self.script.recompute_adduct_networks(source.drop(columns="MS/MS spectrum"))
+
+    def test_rejected_and_provisional_spectra_cannot_change_accepted_strengths(self):
+        source = self.network_source()
+        extra = source.iloc[[0, 0, 0]].copy()
+        extra["Metabolite name"] = ["Rejected TG", "Provisional TG", "Unknown TG"]
+        extra["Overall Match Status"] = [False, True, "unknown"]
+        extra["Validation Status"] = ["Failed", " Provisional ", ""]
+        # Nonmembers must not influence even the network's tolerance validation.
+        extra["Tolerance"] = 0.7
+        source = pd.concat([source, extra], ignore_index=True)
+        graphs = {}
+        scored, audit = self.script.recompute_adduct_networks(source, graph_store=graphs)
+        np.testing.assert_allclose(scored.iloc[:6]["Class Strength"], 2.0)
+        self.assertTrue(scored.iloc[6:]["Class Strength"].isna().all())
+        self.assertTrue(scored.iloc[6:]["Network status"].eq("Not in network population").all())
+        self.assertTrue(audit["Feature rows"].eq(3).all())
+        self.assertTrue(audit["Network population"].eq("Accepted only").all())
+        self.assertEqual({attrs["Input Row"] for graph in graphs.values()
+                          for _, attrs in graph.nodes(data=True)}, set(range(6)))
+        points = self.script.prepare_strength(scored, all_ids=False)
+        self.assertEqual(len(points), 6)
+        self.assertTrue(points[self.script.NORMALIZED].eq(1).all())
+
+    def test_minimum_network_size_is_checked_after_acceptance_filter(self):
+        source = self.network_source().iloc[:3].copy()
+        source.loc[0, "Overall Match Status"] = False
+        scored, audit = self.script.recompute_adduct_networks(source)
+        self.assertTrue(scored["Class Strength"].isna().all())
+        self.assertEqual(audit.iloc[0]["Unique lipids"], 2)
+        self.assertTrue(audit.iloc[0]["Status"].startswith("Skipped"))
+
+    def test_explicit_all_candidate_network_preserves_comparison_mode(self):
+        source = self.network_source().iloc[:3].copy()
+        source.loc[0, "Overall Match Status"] = False
+        scored, audit = self.script.recompute_adduct_networks(source, accepted_only=False)
+        np.testing.assert_allclose(scored["Class Strength"], 2.0)
+        self.assertEqual(audit.iloc[0]["Network population"], "Accepted + excluded")
+        provisional = source.iloc[[0]].assign(**{"Validation Status": "provisional"})
+        scored, _ = self.script.recompute_adduct_networks(
+            pd.concat([source, provisional], ignore_index=True), accepted_only=False)
+        self.assertTrue(pd.isna(scored.iloc[-1]["Class Strength"]))
+
+    def test_empty_accepted_population_leaves_no_scored_networks(self):
+        source = self.network_source().assign(**{"Overall Match Status": False})
+        scored, audit = self.script.recompute_adduct_networks(source)
+        self.assertTrue(audit.empty)
+        self.assertTrue(scored["Class Strength"].isna().all())
+        self.assertTrue(self.script.prepare_strength(scored, all_ids=False, allow_empty=True).empty)
+        with self.assertRaisesRegex(ValueError, "Overall Match Status"):
+            self.script.recompute_adduct_networks(source.drop(columns="Overall Match Status"))
 
     def test_mixed_network_tolerance_is_rejected(self):
         source = self.network_source()
@@ -291,6 +341,29 @@ class TestAdductPanels(unittest.TestCase):
             files = [p for p in output.rglob("*") if p.is_file()]
             self.assertEqual(len(files), 4)
             self.assertEqual({p.suffix for p in files}, {".png", ".pdf"})
+
+    def test_cli_default_and_explicit_comparison_populations_score_correct_members(self):
+        source = self.network_source().iloc[:3].copy()
+        rejected = source.iloc[[0]].assign(**{"Metabolite name": "Rejected TG",
+                                            "Overall Match Status": False})
+        source = pd.concat([source, rejected], ignore_index=True)
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            source.to_csv(root / "input.csv", index=False)
+            for flag, strength, population in [(None, 2, "Accepted_IDs"),
+                                               ("--all-ids", 3, "All_IDs"),
+                                               ("--excluded-only", 3, "Excluded_IDs")]:
+                args = ["--input", str(root / "input.csv"), "--output-dir", str(root), "--no-show"]
+                if flag:
+                    args.append(flag)
+                with self.subTest(flag=flag), patch.object(self.script, "export_population") as export:
+                    self.script.main(args)
+                    export.assert_called_once()
+                    scored = export.call_args.args[0]
+                    np.testing.assert_allclose(scored.iloc[:3]["Class Strength"], strength)
+                    self.assertEqual(export.call_args.args[1].name, population)
+                    if flag is None:
+                        self.assertTrue(pd.isna(scored.iloc[-1]["Class Strength"]))
 
     def test_default_workbook_regenerates_scores_without_intermediate_file(self):
         self.assertEqual(self.script.INPUT_FILE.name, "Combined_Fragment_Assignment_Colored.xlsx")
