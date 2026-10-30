@@ -22,7 +22,7 @@ env:
 
 jobs:
   metadata:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
@@ -134,7 +134,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - runner: ubuntu-latest
+          - runner: ubuntu-24.04
             arch: x86_64
           - runner: ubuntu-24.04-arm
             arch: aarch64
@@ -194,7 +194,7 @@ jobs:
           if-no-files-found: error
 
   sdist:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
         with:
@@ -214,7 +214,7 @@ jobs:
   github-release:
     if: github.event_name == 'workflow_dispatch'
     needs: [metadata, windows, windows-arm64, linux, macos, sdist]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
@@ -242,7 +242,7 @@ jobs:
       needs.macos.result == 'success' &&
       needs.sdist.result == 'success'
     needs: [metadata, windows, windows-arm64, linux, macos, sdist, github-release]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: pypi
       url: https://pypi.org/p/isodec
