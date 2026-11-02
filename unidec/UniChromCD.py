@@ -206,8 +206,8 @@ class UniChromCDApp(UniDecCDApp):
                 massrange = [mass + lb, mass + ub]
                 self.add_mass_eic(massrange, color=p.color, plot=False, label="Mass EIC: " + str(mass))
 
-        for c in self.eng.cc.chromatograms:
-            pass
+        # for c in self.eng.cc.chromatograms:
+        #     pass
 
         self.plot_chromatograms()
 
