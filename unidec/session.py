@@ -250,7 +250,12 @@ class UniDecSession:
                             "stale_prerequisite", "Process data at the current revision first", operation_id)
                     result = self.engine.run_unidec(silent=True)
                     if result != 0:
-                        return self._failure("native_failed", f"UniDec returned {result}", operation_id)
+                        diagnostic = getattr(self.engine, "last_run_diagnostic", None)
+                        return self._failure(
+                            "native_failed",
+                            f"UniDec returned {result}" + (f": {diagnostic}" if diagnostic else ""),
+                            operation_id,
+                        )
                     self._stage_revision["deconvolve"] = self.revision
                     self._stage_revision["pick_peaks"] = None
                 else:

@@ -419,6 +419,7 @@ class UniDec(UniDecEngine):
             print("Need to process data first. Processing...")
             self.process_data()
         if self.check_badness() == 1:
+            self.last_run_diagnostic = "Configuration validation failed before launching the native executable."
             print("Badness found, aborting unidec run")
             return 1
         if self.config.doubledec:
@@ -427,11 +428,13 @@ class UniDec(UniDecEngine):
                 with open(kpath, "r") as f:
                     pass
             except (IOError, FileNotFoundError) as err:
+                self.last_run_diagnostic = f"DoubleDec kernel could not be opened: {err}"
                 print("Could not open kernel file.\nPlease select a valid kernel file to use DoubleDec")
                 return 1
         if self.config.variablepw:
             fwhm = np.asarray(self.data.fwhmlist)
             if fwhm.ndim != 1 or len(fwhm) != len(self.data.data2) or not np.all(np.isfinite(fwhm)) or np.any(fwhm <= 0):
+                self.last_run_diagnostic = "Variable peak width requires one finite, positive FWHM value per processed m/z point."
                 print("Variable peak width requires one finite, positive FWHM value per processed m/z point.")
                 return 1
             ud.dataexport(fwhm, self.config.fwhmfile)
@@ -444,7 +447,9 @@ class UniDec(UniDecEngine):
         self.data.mzgrid = np.array([])
         tstart = time.perf_counter()
 
+        self.last_run_diagnostic = None
         out = ud.unidec_call(self.config, silent=silent)
+        self.last_run_diagnostic = getattr(self.config, "last_native_diagnostic", None)
 
         tend = time.perf_counter()
         self.config.runtime = (tend - tstart)

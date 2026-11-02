@@ -1764,7 +1764,7 @@ def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
 # ............................................................................
 
 
-def exe_call(call, silent=False, cwd=None):
+def exe_call(call, silent=False, cwd=None, return_diagnostics=False):
     """
     Run the  binary specified in the call.
     If silent is False (default), the output from exepath will be printed to the standard out.
@@ -1780,6 +1780,8 @@ def exe_call(call, silent=False, cwd=None):
     out = result.returncode
     if not silent:
         print(result.stdout)
+    if return_diagnostics:
+        return out, "\n".join(part.strip() for part in (result.stdout, result.stderr) if part.strip())
     return out
 
 
@@ -1808,7 +1810,13 @@ def unidec_call(config, silent=False, conv=False, **kwargs):
     if conv:
         call.append("-conv")
 
-    out = exe_call(call, silent=silent, cwd=os.path.dirname(os.path.abspath(config.confname)))
+    out, diagnostic = exe_call(
+        call,
+        silent=silent,
+        cwd=os.path.dirname(os.path.abspath(config.confname)),
+        return_diagnostics=True,
+    )
+    config.last_native_diagnostic = diagnostic
     return out
 
 
