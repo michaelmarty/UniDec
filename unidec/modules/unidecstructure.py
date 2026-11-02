@@ -1,5 +1,7 @@
 import os
 import time
+from dataclasses import asdict, dataclass
+from numbers import Integral, Real
 import numpy as np
 import unidec.tools as ud
 import platform
@@ -13,6 +15,53 @@ import io
 __author__ = 'Michael.Marty'
 
 version = __version__
+
+
+@dataclass(frozen=True)
+class ParameterSpec:
+    attribute: str
+    dtype: type
+    text_key: str
+    hdf5_key: str | None = None
+    minimum: float | None = None
+    maximum: float | None = None
+    choices: tuple | None = None
+    modes: tuple[str, ...] = ("ms",)
+    affects: str = "deconvolution"
+    units: str | None = None
+    description: str = ""
+    public: bool = True
+    optional: bool = False
+
+    def schema(self):
+        schema = asdict(self)
+        schema["dtype"] = self.dtype.__name__
+        return schema
+
+
+CONVENTIONAL_PARAMETER_SPECS = (
+    ParameterSpec("minmz", float, "minmz", "minmz", 0, 1e9,
+                  affects="processing", units="m/z", optional=True),
+    ParameterSpec("maxmz", float, "maxmz", "maxmz", 0, 1e9,
+                  affects="processing", units="m/z", optional=True),
+    ParameterSpec("mzbins", float, "mzbins", "mzbins", 0, 1000,
+                  affects="processing", units="m/z"),
+    ParameterSpec("startz", int, "startz", "startz", 1, 1000, units="charge"),
+    ParameterSpec("endz", int, "endz", "endz", 1, 1000, units="charge"),
+    ParameterSpec("masslb", float, "masslb", "masslb", 0, 1e9, units="Da"),
+    ParameterSpec("massub", float, "massub", "massub", 0, 1e9, units="Da"),
+    ParameterSpec("massbins", float, "massbins", "massbins", 1e-12, 1e6, units="Da"),
+    ParameterSpec("numit", int, "numit", "numit", 1, 1000000),
+    ParameterSpec("mzsig", float, "mzsig", "mzsig", 1e-12, 1e6, units="m/z"),
+    ParameterSpec("psig", float, "psig", "psig", 0, 1e6),
+    ParameterSpec("beta", float, "beta", "beta", 0, 1e6),
+    ParameterSpec("psfun", int, "psfun", "psfun", choices=(0, 1, 2)),
+    ParameterSpec("psfunz", int, "zpsfn", "psfunz", choices=(0, 1, 2)),
+    ParameterSpec("peakwindow", float, "peakwindow", "peakwindow", 0, 1e9,
+                  affects="peaks", units="Da"),
+    ParameterSpec("peakthresh", float, "peakthresh", "peakthresh", 0, 1,
+                  affects="peaks"),
+)
 
 
 def ofile_reader(path):
@@ -45,6 +94,124 @@ class UniDecConfig(object):
     Class containing all options and configurations for UniDec GUI and Program. Contains methods to export and import
     config to text file for running UniDec core binaries and for storing parameters for GUI.
     """
+
+    _HDF5_INT_KEYS = frozenset({
+        "numit", "endz", "startz", "suppression_topn", "suppression_startit",
+        "suppression_harmonic", "suppression_satellite", "psfun", "psfunz",
+        "variablepw", "discreteplot", "subtype", "normthresh", "aggressive",
+        "rawflag", "rescale_newblur", "poolflag", "noiseflag", "linflag",
+        "publicationmode", "isotopemode", "peaknorm", "datanorm", "baselineflag",
+        "orbimode", "filterwidth", "manualfileflag", "mfileflag", "imflag",
+        "cdmsflag", "smashflag",
+    })
+    _HDF5_FLOAT_KEYS = frozenset({
+        "zzsig", "psig", "mzsig", "beta", "suppression_topx",
+        "suppression_percent", "massub", "masslb", "msig", "molig", "massbins",
+        "mtabsig", "minmz", "maxmz", "subbuff", "smooth", "mzbins", "peakwindow",
+        "peakthresh", "peakplotthresh", "plotsep", "intthresh", "reductionpercent",
+        "minratio", "adductmass", "nativezub", "nativezlb", "accvol",
+        "peakshapeinflate", "integratelb", "integrateub", "zerolog",
+    })
+    _HDF5_BOOL_KEYS = frozenset({"doubledec"})
+    _HDF5_STRING_KEYS = frozenset({
+        "version", "original_file", "cmap", "peakcmap", "spectracmap",
+    })
+
+    @staticmethod
+    def _parameter_specs():
+        return {spec.attribute: spec for spec in CONVENTIONAL_PARAMETER_SPECS if spec.public}
+
+    def parameter_schema(self):
+        """Return serializable metadata for supported conventional-MS parameters."""
+        return {name: spec.schema() for name, spec in self._parameter_specs().items()}
+
+    def parameter_values(self, names=None):
+        """Return public parameter values, representing unset optionals as ``None``."""
+        specs = self._parameter_specs()
+        if names is None:
+            names = tuple(specs)
+        elif isinstance(names, str):
+            names = (names,)
+        unknown = set(names) - set(specs)
+        if unknown:
+            raise ValueError("Unsupported parameters: " + ", ".join(sorted(unknown)))
+        values = {}
+        for name in names:
+            value = getattr(self, name)
+            if specs[name].optional and value in ("", -1, None):
+                value = None
+            values[name] = value
+        return values
+
+    @staticmethod
+    def _validate_parameter_value(spec, value):
+        if value is None:
+            if spec.optional:
+                return None
+            raise ValueError("may not be None")
+        if isinstance(value, (bool, np.bool_)):
+            raise ValueError("must be a number, not a boolean")
+        if spec.dtype is int:
+            if not isinstance(value, Integral):
+                raise ValueError("must be an integer")
+            normalized = int(value)
+        elif spec.dtype is float:
+            if not isinstance(value, Real):
+                raise ValueError("must be a number")
+            normalized = float(value)
+        else:
+            if not isinstance(value, spec.dtype):
+                raise ValueError(f"must be {spec.dtype.__name__}")
+            normalized = value
+        if isinstance(normalized, (int, float)) and not np.isfinite(normalized):
+            raise ValueError("must be finite")
+        if spec.minimum is not None and normalized < spec.minimum:
+            raise ValueError(f"must be at least {spec.minimum:g}")
+        if spec.maximum is not None and normalized > spec.maximum:
+            raise ValueError(f"must be at most {spec.maximum:g}")
+        if spec.choices is not None and normalized not in spec.choices:
+            raise ValueError(f"must be one of {spec.choices}")
+        return normalized
+
+    def validate_parameters(self, values):
+        """Validate an update and return normalized values without changing this config."""
+        if not hasattr(values, "items"):
+            raise ValueError("Parameter updates must be a mapping")
+        specs = self._parameter_specs()
+        unknown = set(values) - set(specs)
+        if unknown:
+            raise ValueError("Unsupported parameters: " + ", ".join(sorted(unknown)))
+        normalized = {}
+        errors = []
+        for name, value in values.items():
+            try:
+                normalized[name] = self._validate_parameter_value(specs[name], value)
+            except ValueError as error:
+                errors.append(f"{name} {error}")
+        if errors:
+            raise ValueError("; ".join(errors))
+
+        proposed = self.parameter_values()
+        proposed.update(normalized)
+        if proposed["startz"] > proposed["endz"]:
+            errors.append("startz must be less than or equal to endz")
+        if (proposed["minmz"] is not None and proposed["maxmz"] is not None
+                and proposed["minmz"] >= proposed["maxmz"]):
+            errors.append("minmz must be less than maxmz")
+        if proposed["masslb"] >= proposed["massub"]:
+            errors.append("masslb must be less than massub")
+        if errors:
+            raise ValueError("; ".join(errors))
+        return normalized
+
+    def update_parameters(self, values):
+        """Atomically validate and apply supported conventional-MS parameters."""
+        normalized = self.validate_parameters(values)
+        for name, value in normalized.items():
+            spec = self._parameter_specs()[name]
+            setattr(self, name, "" if value is None and spec.optional else value)
+        self.numz = self.endz - self.startz + 1
+        return normalized
 
     def __init__(self):
         """
@@ -328,6 +495,7 @@ class UniDecConfig(object):
 
         self.doubledec = False
         self.kernel = ""
+        self.kerneldata = np.array([])
 
         # IsoDec specific
         self.isomode = 0
@@ -704,6 +872,7 @@ class UniDecConfig(object):
 
         self.doubledec = False
         self.kernel = ""
+        self.kerneldata = np.array([])
 
     def default_colormaps(self):
         """
@@ -829,6 +998,9 @@ class UniDecConfig(object):
         :return: None
         """
         if self.batchflag != 1:
+            config_dir = os.path.dirname(os.path.abspath(name))
+            loaded_endz = False
+            loaded_numz = False
             f = open(name, 'r', encoding="utf-8")
             self.manualfileflag = 0
             self.mfileflag = 0
@@ -857,8 +1029,10 @@ class UniDecConfig(object):
                             self.numit = ud.string_to_int(line.split()[1])
                         if key == "numz":
                             self.numz = ud.string_to_int(line.split()[1])
+                            loaded_numz = True
                         if key == "endz":
                             self.endz = ud.string_to_int(line.split()[1])
+                            loaded_endz = True
                         if key == "startz":
                             self.startz = ud.string_to_int(line.split()[1])
                         if key == "centroided":
@@ -958,7 +1132,7 @@ class UniDecConfig(object):
                         if key == "minratio":
                             self.minratio = ud.string_to_value(line.split()[1])
                         if key == "fwhmfile":
-                            self.fwhmfile = os.path.join(os.path.dirname(os.path.abspath(name)), line.partition(" ")[2].strip())
+                            self.fwhmfile = os.path.join(config_dir, line.partition(" ")[2].strip())
                         if key == "discreteplot":
                             self.discreteplot = ud.string_to_int(line.split()[1])
                         if key == "smashflag":
@@ -976,10 +1150,10 @@ class UniDecConfig(object):
                         if key == "mtabsig":
                             self.mtabsig = ud.string_to_value(line.split()[1])
                         if key == "mfile":
-                            # self.mfile = line.split()[1]
+                            self.mfile = os.path.join(config_dir, line.partition(" ")[2].strip())
                             self.mfileflag = 1
                         if key == "manualfile":
-                            # self.manualfile = line.split()[1]
+                            self.manualfile = os.path.join(config_dir, line.partition(" ")[2].strip())
                             self.manualfileflag = 1
                         if key == "subbuff":
                             self.subbuff = ud.string_to_value(line.split()[1])
@@ -1061,7 +1235,7 @@ class UniDecConfig(object):
                             else:
                                 self.doubledec = True
                         if key == "kernel":
-                            self.kernel = line.strip()[7:]
+                            self.kernel = os.path.join(config_dir, line.partition(" ")[2].strip())
 
                         # IM Imports
                         if key == "ccsub":
@@ -1117,7 +1291,10 @@ class UniDecConfig(object):
 
             self.idconfig.config_import(name)
 
-            self.endz = self.startz + self.numz - 1
+            if loaded_endz or not loaded_numz:
+                self.numz = self.endz - self.startz + 1
+            else:
+                self.endz = self.startz + self.numz - 1
 
             # Import massfile
             if os.path.isfile(self.mfile):
@@ -1171,18 +1348,24 @@ class UniDecConfig(object):
         if self.metamode != -2:
             self.linflag = 2
         try:
-            self.maxmz = float(self.maxmz)
+            maxmz = float(self.maxmz)
         except Exception:
-            self.maxmz = 1000000
+            maxmz = 1000000.0
         try:
-            self.minmz = float(self.minmz)
+            minmz = float(self.minmz)
         except Exception:
-            self.minmz = 0
+            minmz = 0.0
 
-        if self.tcal3 == "":
-            self.tcal3 = 0
-        if self.tcal4 == "":
-            self.tcal4 = 0
+        tcal3 = 0.0 if self.tcal3 == "" else self.tcal3
+        tcal4 = 0.0 if self.tcal4 == "" else self.tcal4
+        try:
+            integratelb = float(self.integratelb)
+        except (TypeError, ValueError):
+            integratelb = -1.0
+        try:
+            integrateub = float(self.integrateub)
+        except (TypeError, ValueError):
+            integrateub = -1.0
 
         cdict = {  # "input": self.infname, "output": self.outfname,
             "numit": self.numit, "version": self.version,
@@ -1194,7 +1377,7 @@ class UniDecConfig(object):
             "minratio": self.minratio, "discreteplot": self.discreteplot, "massub": self.massub,
             "masslb": self.masslb,
             "msig": self.msig, "molig": self.molig, "massbins": self.massbins, "mtabsig": self.mtabsig,
-            "minmz": self.minmz, "maxmz": self.maxmz, "subbuff": self.subbuff, "subtype": self.subtype,
+            "minmz": minmz, "maxmz": maxmz, "subbuff": self.subbuff, "subtype": self.subtype,
             "smooth": self.smooth,
             "mzbins": self.mzbins, "peakwindow": self.peakwindow, "peakthresh": self.peakthresh,
             "normthresh": self.normthresh,
@@ -1217,11 +1400,12 @@ class UniDecConfig(object):
             "ubnativeccs": self.nativeccsub, "lbnativeccs": self.nativeccslb, "twaveflag": self.twaveflag,
             "temp": self.temp, "pressure": self.pressure, "volt": self.volt,
             "tnaught": self.to, "driftlength": self.driftlength, "tcal1": self.tcal1, "tcal2": self.tcal2,
-            "tcal3": self.tcal3, "tcal4": self.tcal4,
-            "edc": self.edc, "gasmass": self.gasmass, "integratelb": self.integratelb,
-            "integrateub": self.integrateub, "filterwidth": self.filterwidth, "zerolog": self.zerolog,
+            "tcal3": tcal3, "tcal4": tcal4,
+            "edc": self.edc, "gasmass": self.gasmass, "integratelb": integratelb,
+            "integrateub": integrateub, "filterwidth": self.filterwidth, "zerolog": self.zerolog,
             "manualfileflag": self.manualfileflag, "mfileflag": self.mfileflag, "imflag": self.imflag,
-            "cdmsflag": self.cdmsflag,
+            "cdmsflag": self.cdmsflag, "doubledec": self.doubledec, "smashflag": self.smashflag,
+            "original_file": self.original_file,
             "exwindow": self.exwindow, "exchoice": self.exchoice, "exchoicez": self.exchoicez,
             "exthresh": self.exthresh,
             "exnorm": self.exnorm, "exnormz": self.exnormz, "metamode": self.metamode,
@@ -1243,8 +1427,14 @@ class UniDecConfig(object):
         for key, value in cdict.items():
             if value is not None:
                 try:
-                    # if value is None:
-                    #    value = ""
+                    if key in self._HDF5_INT_KEYS:
+                        value = int(value)
+                    elif key in self._HDF5_FLOAT_KEYS:
+                        value = float(value)
+                    elif key in self._HDF5_BOOL_KEYS:
+                        value = bool(value)
+                    elif key in self._HDF5_STRING_KEYS:
+                        value = str(value)
                     config_group.attrs[key] = value
                 except Exception as e:
                     print("Error with key, value:", key, value, e)
@@ -1257,6 +1447,21 @@ class UniDecConfig(object):
             self.oligomerlist = np.array(self.oligomerlist)
             replace_dataset(config_group, "oligomerlist", data=self.oligomerlist.astype(np.string_))
             np.savetxt(self.ofile, self.oligomerlist, fmt='%s')
+
+        kerneldata = np.asarray(self.kerneldata)
+        if ud.isempty(kerneldata) and self.kernel and os.path.isfile(self.kernel):
+            kerneldata = np.loadtxt(self.kernel)
+        if not ud.isempty(kerneldata):
+            self.kerneldata = np.atleast_2d(kerneldata)
+            replace_dataset(config_group, "doubledec_kernel", data=self.kerneldata)
+        elif "doubledec_kernel" in config_group:
+            del config_group["doubledec_kernel"]
+
+        if not ud.isempty(self.smashlist):
+            self.smashlist = np.atleast_2d(self.smashlist)
+            replace_dataset(config_group, "smashlist", data=self.smashlist)
+        elif "smashlist" in config_group:
+            del config_group["smashlist"]
 
         hdf.close()
         pass
@@ -1372,6 +1577,9 @@ class UniDecConfig(object):
         self.manualfileflag = read_attr(self.manualfileflag, "manualfileflag", config_group)
         self.imflag = read_attr(self.imflag, "imflag", config_group)
         self.cdmsflag = read_attr(self.cdmsflag, "cdmsflag", config_group)
+        self.doubledec = bool(read_attr(self.doubledec, "doubledec", config_group))
+        self.smashflag = read_attr(self.smashflag, "smashflag", config_group)
+        self.original_file = read_attr(self.original_file, "original_file", config_group)
 
         self.exchoice = read_attr(self.exchoice, "exchoice", config_group)
         self.exchoicez = read_attr(self.exchoicez, "exchoicez", config_group)
@@ -1384,6 +1592,8 @@ class UniDecConfig(object):
         self.masslist = get_dataset(config_group, "masslist")
         self.manuallist = get_dataset(config_group, "manuallist")
         self.oligomerlist = get_dataset(config_group, "oligomerlist").astype(np.str_)
+        self.kerneldata = get_dataset(config_group, "doubledec_kernel")
+        self.smashlist = get_dataset(config_group, "smashlist")
 
         self.time_window = read_attr(self.time_window, "chrom_time_window", config_group)
         self.chrom_peak_width = read_attr(self.chrom_peak_width, "chrom_peak_width", config_group)
@@ -1397,6 +1607,16 @@ class UniDecConfig(object):
         self.time_end = read_attr(self.time_end, "time_end", config_group)
 
         hdf.close()
+
+    def materialize_doubledec_kernel(self):
+        """Return a usable kernel path, exporting embedded HDF5 data when needed."""
+        if self.kernel and os.path.isfile(self.kernel):
+            return self.kernel
+        if ud.isempty(self.kerneldata):
+            return self.kernel
+        self.kernel = self.output_file("doubledec_kernel.txt")
+        np.savetxt(self.kernel, np.atleast_2d(self.kerneldata))
+        return self.kernel
 
     def print_config(self):
         """

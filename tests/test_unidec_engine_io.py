@@ -26,6 +26,38 @@ class TestUniDecFileValidation(unittest.TestCase):
 
 
 class TestUniDecConfigSerialization(unittest.TestCase):
+    conventional_text_scalar_keys = {
+        "version", "imflag", "cdmsflag", "input", "output", "original_file",
+        "numit", "numz", "endz", "startz", "zzsig", "psig", "beta",
+        "suppression_topn", "suppression_topx", "suppression_percent",
+        "suppression_startit", "suppression_harmonic", "suppression_satellite",
+        "mzsig", "psfun", "zpsfn", "discreteplot", "smashflag", "massub",
+        "masslb", "msig", "molig", "massbins", "mtabsig", "isomode", "minmz",
+        "maxmz", "subbuff", "subtype", "smooth", "mzbins", "peakwindow",
+        "peakthresh", "normthresh", "peakplotthresh", "plotsep", "intthresh",
+        "reductionpercent", "aggressive", "rawflag", "rescale_newblur",
+        "adductmass", "nativezub", "nativezlb", "poolflag", "accvol",
+        "peakshapeinflate", "noiseflag", "linflag", "cmap", "peakcmap",
+        "spectracmap", "publicationmode", "isotopemode", "peaknorm", "datanorm",
+        "baselineflag", "orbimode", "integratelb", "integrateub", "filterwidth",
+        "zerolog", "doubledec", "centroided", "verbose", "variablepw", "minratio",
+    }
+    conventional_hdf5_scalar_keys = {
+        "version", "imflag", "cdmsflag", "original_file", "numit", "endz",
+        "startz", "zzsig", "psig", "beta", "suppression_topn",
+        "suppression_topx", "suppression_percent", "suppression_startit",
+        "suppression_harmonic", "suppression_satellite", "mzsig", "psfun",
+        "psfunz", "variablepw", "minratio", "discreteplot", "massub", "masslb",
+        "msig", "molig", "massbins", "mtabsig", "minmz", "maxmz", "subbuff",
+        "subtype", "smooth", "mzbins", "peakwindow", "peakthresh", "normthresh",
+        "peakplotthresh", "plotsep", "intthresh", "reductionpercent", "aggressive",
+        "rawflag", "rescale_newblur", "adductmass", "nativezub", "nativezlb",
+        "poolflag", "accvol", "peakshapeinflate", "noiseflag", "linflag", "cmap",
+        "peakcmap", "spectracmap", "publicationmode", "isotopemode", "peaknorm",
+        "datanorm", "baselineflag", "orbimode", "integratelb", "integrateub",
+        "filterwidth", "zerolog", "manualfileflag", "mfileflag", "doubledec",
+        "smashflag",
+    }
     values = {
         "startz": 7,
         "endz": 42,
@@ -87,6 +119,34 @@ class TestUniDecConfigSerialization(unittest.TestCase):
 
     def test_newblur_rescaling_defaults_on(self):
         self.assertEqual(UniDecConfig().rescale_newblur, 1)
+
+    def test_conventional_text_and_hdf5_scalar_key_inventories(self):
+        """Literal expected sets protect the reviewed inventory from serializer omissions."""
+        with tempfile.TemporaryDirectory(prefix="unidec-key-inventory-") as directory:
+            root = Path(directory)
+            source = UniDecConfig()
+            source.outfname = str(root / "source")
+            source.default_file_names()
+            source.original_file = "sample.raw"
+            source.minmz = 100.0
+            source.maxmz = 1000.0
+            source.integratelb = 10000.0
+            source.integrateub = 20000.0
+
+            text_path = root / "config.dat"
+            source.config_export(str(text_path))
+            text_keys = {
+                line.split(maxsplit=1)[0]
+                for line in text_path.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            }
+            self.assertEqual(self.conventional_text_scalar_keys - text_keys, set())
+
+            hdf_path = root / "config.hdf5"
+            source.write_hdf5(str(hdf_path))
+            with h5py.File(hdf_path, "r") as hdf:
+                hdf5_keys = set(hdf["config"].attrs)
+            self.assertEqual(self.conventional_hdf5_scalar_keys - hdf5_keys, set())
 
     def test_managed_output_names_support_short_and_legacy_modes(self):
         with tempfile.TemporaryDirectory(prefix="unidec-names-") as directory:
@@ -151,6 +211,59 @@ class TestUniDecConfigSerialization(unittest.TestCase):
             restored.read_hdf5(str(path))
             np.testing.assert_array_equal(restored.fwhmlist, source.fwhmlist)
 
+    def test_hdf5_preserves_doubledec_smash_and_source_provenance(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-hdf-sidecars-") as directory:
+            root = Path(directory)
+            path = root / "config.hdf5"
+            kernel_path = root / "kernel.txt"
+            kernel = np.array([[-1.0, 0.25], [0.0, 1.0], [1.0, 0.25]])
+            smashlist = np.array([[100.0, 110.0], [200.0, 205.0]])
+            np.savetxt(kernel_path, kernel)
+
+            source = UniDecConfig()
+            source.outfname = str(root / "source")
+            source.default_file_names()
+            source.doubledec = True
+            source.kernel = str(kernel_path)
+            source.smashflag = 1
+            source.smashlist = smashlist
+            source.original_file = "sample.raw"
+            source.write_hdf5(str(path))
+
+            with h5py.File(path, "r") as hdf:
+                attrs = hdf["config"].attrs
+                self.assertTrue(bool(attrs["doubledec"]))
+                self.assertEqual(attrs["smashflag"], 1)
+                self.assertEqual(attrs["original_file"], "sample.raw")
+                np.testing.assert_array_equal(hdf["config/doubledec_kernel"], kernel)
+                np.testing.assert_array_equal(hdf["config/smashlist"], smashlist)
+
+            restored = UniDecConfig()
+            restored.outfname = str(root / "restored")
+            restored.default_file_names()
+            restored.read_hdf5(str(path))
+            self.assertTrue(restored.doubledec)
+            self.assertEqual(restored.smashflag, 1)
+            self.assertEqual(restored.original_file, "sample.raw")
+            np.testing.assert_array_equal(restored.kerneldata, kernel)
+            np.testing.assert_array_equal(restored.smashlist, smashlist)
+
+            materialized = Path(restored.materialize_doubledec_kernel())
+            self.assertEqual(materialized, root / "restored_doubledec_kernel.txt")
+            np.testing.assert_array_equal(np.loadtxt(materialized), kernel)
+
+            source.doubledec = False
+            source.kernel = ""
+            source.kerneldata = np.array([])
+            source.smashflag = 0
+            source.smashlist = np.array([])
+            source.write_hdf5(str(path))
+            with h5py.File(path, "r") as hdf:
+                self.assertNotIn("doubledec_kernel", hdf["config"])
+                self.assertNotIn("smashlist", hdf["config"])
+                self.assertFalse(bool(hdf["config"].attrs["doubledec"]))
+                self.assertEqual(hdf["config"].attrs["smashflag"], 0)
+
     def test_text_config_uses_exact_parameter_keys(self):
         with tempfile.TemporaryDirectory(prefix="unidec-exact-config-") as directory:
             path = Path(directory, "config.dat")
@@ -169,6 +282,49 @@ class TestUniDecConfigSerialization(unittest.TestCase):
             self.assertEqual(restored.startz, 1)
             self.assertEqual(restored.aggressiveflag, 0)
             self.assertEqual(restored.peakthresh, 0.25)
+
+    def test_text_charge_range_prefers_endz_and_accepts_legacy_numz(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-charge-config-") as directory:
+            path = Path(directory, "config.dat")
+            path.write_text("startz 5\nnumz 100\nendz 12\n", encoding="utf-8")
+            restored = UniDecConfig()
+            restored.config_import(str(path))
+            self.assertEqual(restored.startz, 5)
+            self.assertEqual(restored.endz, 12)
+            self.assertEqual(restored.numz, 8)
+
+            path.write_text("startz 5\nnumz 8\n", encoding="utf-8")
+            legacy = UniDecConfig()
+            legacy.config_import(str(path))
+            self.assertEqual(legacy.endz, 12)
+            self.assertEqual(legacy.numz, 8)
+
+    def test_text_config_restores_explicit_relative_sidecar_paths(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-sidecar-config-") as directory:
+            root = Path(directory)
+            sidecars = root / "sidecars"
+            sidecars.mkdir()
+            masses = sidecars / "custom_masses.dat"
+            assignments = sidecars / "custom_manual.dat"
+            kernel = sidecars / "custom_kernel.dat"
+            np.savetxt(masses, [100.0, 200.0])
+            np.savetxt(assignments, [[100.0, 5.0, 1.0]])
+            np.savetxt(kernel, [[-1.0, 0.5], [0.0, 1.0], [1.0, 0.5]])
+            path = root / "config.dat"
+            path.write_text(
+                "mfile sidecars/custom_masses.dat\n"
+                "manualfile sidecars/custom_manual.dat\n"
+                "kernel sidecars/custom_kernel.dat\n",
+                encoding="utf-8",
+            )
+
+            restored = UniDecConfig()
+            restored.config_import(str(path))
+            self.assertEqual(Path(restored.mfile), masses)
+            self.assertEqual(Path(restored.manualfile), assignments)
+            self.assertEqual(Path(restored.kernel), kernel)
+            np.testing.assert_array_equal(restored.masslist, [100.0, 200.0])
+            np.testing.assert_array_equal(restored.manuallist, [[100.0, 5.0, 1.0]])
 
 
     def test_new_run_uses_short_names_and_versioned_npz_cache(self):
@@ -280,6 +436,37 @@ class TestUniDecConfigSerialization(unittest.TestCase):
             self.assertEqual(restored.dtsig, default_dtsig)
             self.assertEqual(restored.suppression_topn, default_suppression)
             self.assertEqual(restored.rescale_newblur, default_rescale_newblur)
+
+    def test_hdf5_optional_defaults_do_not_mutate_config(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-hdf-optionals-") as directory:
+            path = Path(directory, "config.hdf5")
+            source = UniDecConfig()
+            source.minmz = ""
+            source.maxmz = ""
+            source.tcal3 = ""
+            source.tcal4 = ""
+            source.integratelb = ""
+            source.integrateub = ""
+            source.massbins = 10
+            source.peakwindow = 500
+            source.write_hdf5(str(path))
+
+            self.assertEqual(source.minmz, "")
+            self.assertEqual(source.maxmz, "")
+            self.assertEqual(source.tcal3, "")
+            self.assertEqual(source.tcal4, "")
+            self.assertEqual(source.integratelb, "")
+            self.assertEqual(source.integrateub, "")
+            with h5py.File(path, "r") as hdf:
+                attrs = hdf["config"].attrs
+                self.assertEqual(attrs["minmz"], 0.0)
+                self.assertEqual(attrs["maxmz"], 1000000.0)
+                self.assertEqual(attrs["tcal3"], 0.0)
+                self.assertEqual(attrs["tcal4"], 0.0)
+                self.assertEqual(attrs["integratelb"], -1.0)
+                self.assertEqual(attrs["integrateub"], -1.0)
+                self.assertTrue(np.issubdtype(type(attrs["massbins"]), np.floating))
+                self.assertTrue(np.issubdtype(type(attrs["peakwindow"]), np.floating))
 
     def test_check_badness_repairs_malformed_limits_and_rejects_reversed_range(self):
         config = UniDecConfig()

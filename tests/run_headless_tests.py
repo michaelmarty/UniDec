@@ -26,6 +26,7 @@ HEADLESS_TEST_MODULES = (
     "tests.test_isodec_output_names",
     "tests.test_matchtools",
     "tests.test_meta_dataset_io",
+    "tests.test_parameter_metadata",
     "tests.test_peak_quantitation",
     "tests.test_plotting_labels",
     "tests.test_tools_extraction",
@@ -35,6 +36,7 @@ HEADLESS_TEST_MODULES = (
     "tests.test_unichrom_cd_stack_shapes",
     "tests.test_unichrom_workflow",
     "tests.test_unidec_engine_io",
+    "tests.test_unidec_session",
 )
 BLOCKED_GUI_MODULES = (
     "wx",

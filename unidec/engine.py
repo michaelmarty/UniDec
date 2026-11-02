@@ -422,7 +422,7 @@ class UniDec(UniDecEngine):
             print("Badness found, aborting unidec run")
             return 1
         if self.config.doubledec:
-            kpath = self.config.kernel
+            kpath = self.config.materialize_doubledec_kernel()
             try:
                 with open(kpath, "r") as f:
                     pass
