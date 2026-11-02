@@ -25,6 +25,7 @@ HEADLESS_TEST_MODULES = (
     "tests.test_im_engine_split",
     "tests.test_isodec_output_names",
     "tests.test_matchtools",
+    "tests.test_mcp_adapter",
     "tests.test_meta_dataset_io",
     "tests.test_parameter_metadata",
     "tests.test_peak_quantitation",

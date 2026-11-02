@@ -1,10 +1,12 @@
 """Persistent, GUI-independent control surface for conventional UniDec."""
 
 from pathlib import Path
+import shutil
 import tempfile
 import threading
 import time
 import uuid
+import zipfile
 
 import numpy as np
 
@@ -16,12 +18,20 @@ class UniDecSession:
 
     STAGES = ("process", "deconvolve", "pick_peaks", "all")
 
-    def __init__(self, engine=None, working_directory=None):
+    def __init__(self, engine=None, working_directory=None, allowed_input_roots=None):
         self.engine = engine or UniDec(ignore_args=True, silent=True)
         if working_directory is None:
             working_directory = tempfile.mkdtemp(prefix="unidec-session-")
         self.working_directory = Path(working_directory).resolve()
         self.working_directory.mkdir(parents=True, exist_ok=True)
+        if allowed_input_roots is None:
+            allowed_input_roots = (self.working_directory,)
+        self.allowed_input_roots = tuple(Path(root).resolve() for root in allowed_input_roots)
+        if not self.allowed_input_roots:
+            raise ValueError("At least one allowed input root is required")
+        invalid_roots = [root for root in self.allowed_input_roots if not root.is_dir()]
+        if invalid_roots:
+            raise ValueError(f"Input roots must be existing directories: {invalid_roots}")
         self.session_id = uuid.uuid4().hex
         self.status = "empty"
         self.revision = 0
@@ -38,6 +48,7 @@ class UniDecSession:
             "mode": "ms",
             "file": config.filename or None,
             "working_directory": str(self.working_directory),
+            "allowed_input_roots": [str(root) for root in self.allowed_input_roots],
             "status": self.status,
             "revision": self.revision,
             "operation_id": self.operation_id,
@@ -85,13 +96,40 @@ class UniDecSession:
         for stage in self._stage_revision:
             self._stage_revision[stage] = None
 
+    @staticmethod
+    def _is_within(path, root):
+        try:
+            path.relative_to(root)
+            return True
+        except ValueError:
+            return False
+
+    def _input_path(self, path):
+        resolved = Path(path).resolve()
+        roots = self.allowed_input_roots + (self.working_directory,)
+        if not any(self._is_within(resolved, root) for root in roots):
+            raise ValueError(f"Path is outside the permitted input roots: {resolved}")
+        return resolved
+
+    def _output_path(self, path):
+        candidate = Path(path)
+        if not candidate.is_absolute():
+            candidate = self.working_directory / candidate
+        resolved = candidate.resolve()
+        if not self._is_within(resolved, self.working_directory):
+            raise ValueError(f"Path is outside the working directory: {resolved}")
+        return resolved
+
     def open_spectrum(self, path):
         operation_id = self._begin_mutation()
         if operation_id is None:
             return self._failure("busy", "Another session mutation is running", set_error=False)
         try:
-            spectrum = Path(path).resolve()
-            if not spectrum.exists():
+            try:
+                spectrum = self._input_path(path)
+            except ValueError as error:
+                return self._failure("path_not_allowed", error, operation_id)
+            if not spectrum.is_file():
                 return self._failure("not_found", f"Spectrum does not exist: {spectrum}", operation_id)
             session_directory = self.working_directory / f"operation-{operation_id}"
             session_directory.mkdir(parents=True, exist_ok=True)
@@ -123,6 +161,65 @@ class UniDecSession:
             return self._finish_success(operation_id, values=updated)
         except ValueError as error:
             return self._failure("invalid_parameters", error, operation_id)
+        finally:
+            self._lock.release()
+
+    def save_state(self, path):
+        previous_status = self.status
+        operation_id = self._begin_mutation()
+        if operation_id is None:
+            return self._failure("busy", "Another session mutation is running", set_error=False)
+        try:
+            if not self.engine.config.filename:
+                return self._failure("empty", "Open a spectrum before saving state", operation_id)
+            try:
+                target = self._output_path(path)
+            except ValueError as error:
+                return self._failure("path_not_allowed", error, operation_id)
+            if target.suffix.lower() != ".zip":
+                return self._failure("invalid_path", "State checkpoints must use a .zip suffix", operation_id)
+            if target.exists():
+                return self._failure("already_exists", f"Refusing to overwrite {target}", operation_id)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            self.engine.save_state(str(target))
+            self.status = previous_status
+            return self._finish_success(operation_id, path=str(target))
+        except Exception as error:
+            return self._failure("save_failed", error, operation_id)
+        finally:
+            self._lock.release()
+
+    def load_state(self, path):
+        operation_id = self._begin_mutation()
+        if operation_id is None:
+            return self._failure("busy", "Another session mutation is running", set_error=False)
+        try:
+            try:
+                source = self._input_path(path)
+            except ValueError as error:
+                return self._failure("path_not_allowed", error, operation_id)
+            if not source.is_file():
+                return self._failure("not_found", f"State checkpoint does not exist: {source}", operation_id)
+            if source.suffix.lower() != ".zip":
+                return self._failure("invalid_path", "State checkpoints must use a .zip suffix", operation_id)
+            with zipfile.ZipFile(source) as archive:
+                for member in archive.infolist():
+                    member_path = Path(member.filename.replace("\\", "/"))
+                    if member_path.is_absolute() or ".." in member_path.parts:
+                        return self._failure(
+                            "invalid_checkpoint", f"Unsafe checkpoint member: {member.filename}", operation_id)
+            operation_directory = self.working_directory / f"operation-{operation_id}"
+            operation_directory.mkdir(parents=True, exist_ok=True)
+            managed_copy = operation_directory / source.name
+            shutil.copy2(source, managed_copy)
+            if not self.engine.load_state(str(managed_copy)):
+                return self._failure("load_failed", f"Could not load {source}", operation_id)
+            self.revision += 1
+            self._invalidate_results()
+            self.status = "ready"
+            return self._finish_success(operation_id, source=str(source))
+        except Exception as error:
+            return self._failure("load_failed", error, operation_id)
         finally:
             self._lock.release()
 
