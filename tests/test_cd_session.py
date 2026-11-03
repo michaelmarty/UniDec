@@ -24,7 +24,7 @@ class TestUniDecCDSession(unittest.TestCase):
                 opened = session.open_spectrum(spectrum)
                 self.assertTrue(opened["ok"], opened)
                 self.assertEqual(session.get_state()["mode"], "cdms")
-                self.assertTrue(Path(engine.config.udir).is_relative_to(root / "session"))
+                self.assertTrue(Path(engine.config.udir).resolve().is_relative_to((root / "session").resolve()))
                 self.assertFalse((root / "BgalGroEL_unidecfiles").exists())
 
                 updated = session.set_parameters({

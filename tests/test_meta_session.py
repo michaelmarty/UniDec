@@ -53,7 +53,7 @@ class TestMetaUniDecCollectionSession(unittest.TestCase):
             self.assertFalse(state["collection"]["spectra_truncated"])
 
             managed_project = Path(session.engine.config.hdf_file)
-            self.assertTrue(managed_project.is_relative_to(Path(working_directory)))
+            self.assertTrue(managed_project.resolve().is_relative_to(Path(working_directory).resolve()))
             self.assertNotEqual(managed_project, source)
             self.assertEqual(file_digest(source), original_digest)
             self.assertFalse(Path(str(source) + "_unidecfiles").exists())
