@@ -1,6 +1,11 @@
 import unittest
 
-from unidec.mcp_server import build_parser, register_tools
+from unidec.mcp_server import (
+    build_parser,
+    register_collection_tools,
+    register_tools,
+    register_unichrom_tools,
+)
 
 
 EXPECTED_TOOLS = {
@@ -18,6 +23,31 @@ EXPECTED_TOOLS = {
     "load_state",
 }
 GUI_TOOLS = {"get_gui_parameters", "set_gui_parameters", "run_gui"}
+COLLECTION_TOOLS = {
+    "open_collection",
+    "get_collection_state",
+    "get_parameters",
+    "set_parameters",
+    "run_collection",
+    "get_collection_results",
+    "get_collection_run_manifest",
+    "compare_collection_runs",
+    "export_collection_regression_fixture",
+    "save_collection_checkpoint",
+    "load_collection_checkpoint",
+}
+UNICHROM_TOOLS = {
+    "open_chromatogram",
+    "get_chromatogram_state",
+    "get_parameters",
+    "set_parameters",
+    "create_time_windows",
+    "run_unichrom",
+    "get_unichrom_results",
+    "get_unichrom_run_manifest",
+    "compare_unichrom_runs",
+    "export_unichrom_regression_fixture",
+}
 
 
 class FakeServer:
@@ -107,6 +137,80 @@ class TestMCPAdapter(unittest.TestCase):
         self.assertTrue(get_annotations["readOnlyHint"])
         self.assertTrue(get_annotations["idempotentHint"])
 
+    def test_collection_tools_use_separate_names_and_delegate(self):
+        server = FakeServer()
+        register_collection_tools(server, self.session, lambda **values: values)
+        self.assertEqual(set(server.tools), COLLECTION_TOOLS)
+        calls = {
+            "open_collection": ("project.hdf5",),
+            "get_collection_state": (),
+            "get_parameters": (["startz"],),
+            "set_parameters": ({"startz": 5},),
+            "run_collection": (),
+            "get_collection_results": (4,),
+            "get_collection_run_manifest": (3,),
+            "compare_collection_runs": (3, 6),
+            "export_collection_regression_fixture": (3, "failure.json"),
+            "save_collection_checkpoint": ("checkpoint.hdf5",),
+            "load_collection_checkpoint": ("checkpoint.hdf5",),
+        }
+        expected_methods = {
+            "open_collection": "open_collection",
+            "get_collection_state": "get_state",
+            "get_parameters": "get_parameters",
+            "set_parameters": "set_parameters",
+            "run_collection": "run",
+            "get_collection_results": "get_results",
+            "get_collection_run_manifest": "get_run_manifest",
+            "compare_collection_runs": "compare_runs",
+            "export_collection_regression_fixture": "export_regression_fixture",
+            "save_collection_checkpoint": "save_checkpoint",
+            "load_collection_checkpoint": "load_checkpoint",
+        }
+        for name, args in calls.items():
+            response = server.tools[name][0](*args)
+            self.assertTrue(response["ok"])
+            self.assertEqual(response["method"], expected_methods[name])
+        read_only = {
+            "get_collection_state", "get_parameters", "get_collection_results",
+            "get_collection_run_manifest", "compare_collection_runs",
+        }
+        for name, (_, metadata) in server.tools.items():
+            self.assertEqual(metadata["annotations"]["readOnlyHint"], name in read_only)
+
+    def test_unichrom_tools_use_separate_names_and_delegate(self):
+        server = FakeServer()
+        register_unichrom_tools(server, self.session, lambda **values: values)
+        self.assertEqual(set(server.tools), UNICHROM_TOOLS)
+        calls = {
+            "open_chromatogram": ("sample.mzML",),
+            "get_chromatogram_state": (),
+            "get_parameters": (["time_window"],),
+            "set_parameters": ({"time_window": 1.0},),
+            "create_time_windows": (1.0, 0.0, 5.0),
+            "run_unichrom": (),
+            "get_unichrom_results": (4,),
+            "get_unichrom_run_manifest": (3,),
+            "compare_unichrom_runs": (3, 6),
+            "export_unichrom_regression_fixture": (3, "failure.json"),
+        }
+        expected_methods = {
+            "open_chromatogram": "open_chromatogram",
+            "get_chromatogram_state": "get_state",
+            "get_parameters": "get_parameters",
+            "set_parameters": "set_parameters",
+            "create_time_windows": "create_time_windows",
+            "run_unichrom": "run",
+            "get_unichrom_results": "get_results",
+            "get_unichrom_run_manifest": "get_run_manifest",
+            "compare_unichrom_runs": "compare_runs",
+            "export_unichrom_regression_fixture": "export_regression_fixture",
+        }
+        for name, args in calls.items():
+            response = server.tools[name][0](*args)
+            self.assertTrue(response["ok"])
+            self.assertEqual(response["method"], expected_methods[name])
+
     def test_cli_requires_explicit_roots_and_supports_multiple_input_roots(self):
         arguments = build_parser().parse_args([
             "--input-root", "first", "--input-root", "second", "--working-directory", "work",
@@ -131,6 +235,18 @@ class TestMCPAdapter(unittest.TestCase):
                 "--mode", "cdms", "--input-root", "first", "--working-directory", "work",
             ]).mode,
             "cdms",
+        )
+        self.assertEqual(
+            build_parser().parse_args([
+                "--mode", "metaunidec", "--input-root", "first", "--working-directory", "work",
+            ]).mode,
+            "metaunidec",
+        )
+        self.assertEqual(
+            build_parser().parse_args([
+                "--mode", "unichrom", "--input-root", "first", "--working-directory", "work",
+            ]).mode,
+            "unichrom",
         )
 
 

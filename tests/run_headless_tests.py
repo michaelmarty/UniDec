@@ -31,6 +31,7 @@ HEADLESS_TEST_MODULES = (
     "tests.test_meta_dataset_io",
     "tests.test_meta_session",
     "tests.test_parameter_metadata",
+    "tests.test_run_manifest",
     "tests.test_peak_quantitation",
     "tests.test_plotting_labels",
     "tests.test_tools_extraction",
@@ -39,6 +40,7 @@ HEADLESS_TEST_MODULES = (
     "tests.test_uccd_binary",
     "tests.test_unichrom_cd_stack_shapes",
     "tests.test_unichrom_workflow",
+    "tests.test_unichrom_session",
     "tests.test_unidec_engine_io",
     "tests.test_unidec_session",
 )

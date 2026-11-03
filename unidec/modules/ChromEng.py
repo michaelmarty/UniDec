@@ -100,6 +100,7 @@ class ChromEngine(MetaUniDec):
 
     def __init__(self):
         MetaUniDec.__init__(self)
+        self.config.agent_mode = "unichrom"
         self.polarity = None
         self.chrompeaks = None
         self.chrompeaks_tranges = None
@@ -169,7 +170,7 @@ class ChromEngine(MetaUniDec):
         self.data.peaks = current_peaks
         self.data.export_unichrom_scores(np.asarray(score_rows).reshape((-1, 5)), self.pks.uniscore)
 
-    def open_chrom(self, path, load_hdf5=True, refresh=False):
+    def open_chrom(self, path, load_hdf5=True, refresh=False, output_path=None):
         if os.path.splitext(path)[1] == ".hdf5":
             self.open_hdf5_file(path)
             return True
@@ -178,7 +179,8 @@ class ChromEngine(MetaUniDec):
 
             print("Opening: ", self.filename)
             self.path = path
-            load_hdf5 = self.load_mzml(self.path, load_hdf5, refresh=refresh)
+            load_hdf5 = self.load_mzml(
+                self.path, load_hdf5, refresh=refresh, output_path=output_path)
             return load_hdf5
 
     def open_hdf5_file(self, path):
@@ -200,12 +202,12 @@ class ChromEngine(MetaUniDec):
         raise FileNotFoundError
         # return False, header
 
-    def load_mzml(self, path, load_hdf5=True, refresh=False, *args, **kwargs):
+    def load_mzml(self, path, load_hdf5=True, refresh=False, output_path=None, *args, **kwargs):
         self.path = path
         name = os.path.splitext(path)[0]
         if name[-5:].lower() == ".mzml":
             name = name[:-5]
-        self.outpath = name + ".hdf5"
+        self.outpath = str(output_path) if output_path is not None else name + ".hdf5"
         self.setup_filenames(self.outpath)
         self.data.filename = self.outpath
         hdf5 = False

@@ -134,5 +134,37 @@ class TestCDMSParameterMetadata(unittest.TestCase):
         self.assertEqual(self.config.CDzbins, 1)
 
 
+class TestUniChromParameterMetadata(unittest.TestCase):
+    def setUp(self):
+        self.config = UniDecConfig()
+        self.config.agent_mode = "unichrom"
+
+    def test_schema_adds_reviewed_chromatogram_parameters(self):
+        schema = self.config.parameter_schema()
+        self.assertEqual(schema["chromatogram_type"]["choices"], (0, 1))
+        self.assertEqual(schema["time_window"]["affects"], "windowing")
+        self.assertIn("dtsig", schema)
+        self.assertNotIn("time_window", UniDecConfig().parameter_schema())
+
+    def test_time_range_is_validated_atomically(self):
+        with self.assertRaisesRegex(ValueError, "both be set"):
+            self.config.update_parameters({"time_start": 1, "time_end": None})
+        self.assertEqual(self.config.time_start, "")
+        self.assertEqual(self.config.time_end, "")
+
+        with self.assertRaisesRegex(ValueError, "less than"):
+            self.config.update_parameters({"time_start": 5, "time_end": 2})
+        updated = self.config.update_parameters({
+            "chromatogram_type": 1,
+            "time_window": 0.5,
+            "time_start": 1,
+            "time_end": 5,
+            "dtsig": 0,
+        })
+        self.assertEqual(updated["time_window"], 0.5)
+        self.assertEqual(self.config.chromatogram_type, 1)
+        self.assertEqual(self.config.time_end, 5.0)
+
+
 if __name__ == "__main__":
     unittest.main()

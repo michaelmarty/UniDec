@@ -26,7 +26,7 @@ class ParameterSpec:
     minimum: float | None = None
     maximum: float | None = None
     choices: tuple | None = None
-    modes: tuple[str, ...] = ("ms", "imms", "cdms", "metaunidec")
+    modes: tuple[str, ...] = ("ms", "imms", "cdms", "metaunidec", "unichrom")
     affects: str = "deconvolution"
     units: str | None = None
     description: str = ""
@@ -100,6 +100,24 @@ CDMS_PARAMETER_SPECS = (
 )
 
 
+UNICHROM_PARAMETER_SPECS = (
+    ParameterSpec("chromatogram_type", int, "chromatogram_type", "chromatogram_type",
+                  choices=(0, 1), modes=("unichrom",), affects="windowing"),
+    ParameterSpec("time_window", float, "chrom_time_window", "chrom_time_window", 1e-12, 1e9,
+                  modes=("unichrom",), affects="windowing", units="time"),
+    ParameterSpec("chrom_peak_width", float, "chrom_peak_width", "chrom_peak_width", 1e-12, 1e9,
+                  modes=("unichrom",), affects="windowing", units="time"),
+    ParameterSpec("scan_window", float, "scan_window", "scan_window", 1e-12, 1e9,
+                  modes=("unichrom",), affects="windowing", units="scan"),
+    ParameterSpec("time_start", float, "time_start", "time_start", 0, 1e12,
+                  modes=("unichrom",), affects="windowing", units="time", optional=True),
+    ParameterSpec("time_end", float, "time_end", "time_end", 0, 1e12,
+                  modes=("unichrom",), affects="windowing", units="time", optional=True),
+    ParameterSpec("dtsig", float, "dtsig", "dtsig", 0, 1e6,
+                  modes=("unichrom",), units="time"),
+)
+
+
 def ofile_reader(path):
     oligos = []
     for line in open(path):
@@ -154,7 +172,9 @@ class UniDecConfig(object):
     })
 
     def _parameter_specs(self):
-        if self.cdmsflag == 1:
+        if getattr(self, "agent_mode", None) == "unichrom":
+            mode = "unichrom"
+        elif self.cdmsflag == 1:
             mode = "cdms"
         elif self.imflag == 1:
             mode = "imms"
@@ -162,7 +182,8 @@ class UniDecConfig(object):
             mode = "metaunidec"
         else:
             mode = "ms"
-        specs = CONVENTIONAL_PARAMETER_SPECS + ION_MOBILITY_PARAMETER_SPECS + CDMS_PARAMETER_SPECS
+        specs = (CONVENTIONAL_PARAMETER_SPECS + ION_MOBILITY_PARAMETER_SPECS
+                 + CDMS_PARAMETER_SPECS + UNICHROM_PARAMETER_SPECS)
         return {
             spec.attribute: spec
             for spec in specs
@@ -256,6 +277,13 @@ class UniDecConfig(object):
                 errors.append("ccslb must be less than ccsub")
         if self.cdmsflag == 1 and proposed["CDslope"] == 0:
             errors.append("CDslope must be nonzero")
+        if getattr(self, "agent_mode", None) == "unichrom":
+            time_start = proposed["time_start"]
+            time_end = proposed["time_end"]
+            if (time_start is None) != (time_end is None):
+                errors.append("time_start and time_end must either both be set or both be null")
+            elif time_start is not None and time_start >= time_end:
+                errors.append("time_start must be less than time_end")
         if errors:
             raise ValueError("; ".join(errors))
         return normalized
