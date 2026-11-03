@@ -71,5 +71,68 @@ class TestConventionalParameterMetadata(unittest.TestCase):
         self.assertEqual(config.minmz, "")
 
 
+class TestIonMobilityParameterMetadata(unittest.TestCase):
+    def setUp(self):
+        self.config = UniDecConfig()
+        self.config.imflag = 1
+
+    def test_schema_adds_only_reviewed_arrival_time_and_ccs_parameters(self):
+        schema = self.config.parameter_schema()
+        self.assertEqual(schema["mindt"]["modes"], ("imms",))
+        self.assertEqual(schema["mindt"]["affects"], "processing")
+        self.assertEqual(schema["ccsbins"]["units"], "CCS")
+        self.assertNotIn("pusher", schema)
+        self.assertNotIn("twaveflag", schema)
+        self.assertNotIn("tcal1", schema)
+
+        conventional = UniDecConfig().parameter_schema()
+        self.assertNotIn("mindt", conventional)
+        self.assertNotIn("ccsbins", conventional)
+
+    def test_im_ranges_validate_atomically(self):
+        original_mindt = self.config.mindt
+        with self.assertRaisesRegex(ValueError, "mindt must be less"):
+            self.config.update_parameters({"mindt": 8, "maxdt": 2})
+        self.assertEqual(self.config.mindt, original_mindt)
+
+        with self.assertRaisesRegex(ValueError, "ccslb must be less"):
+            self.config.update_parameters({"ccslb": 500, "ccsub": 100})
+        self.assertEqual(self.config.ccslb, 100)
+        self.assertEqual(self.config.ccsub, 25000)
+
+        updated = self.config.update_parameters({
+            "mindt": 1,
+            "maxdt": 8,
+            "smoothdt": 2,
+            "dtsig": 0.5,
+            "ccslb": 200,
+            "ccsub": 2000,
+            "ccsbins": 10,
+        })
+        self.assertEqual(updated["mindt"], 1.0)
+        self.assertEqual(self.config.maxdt, 8.0)
+        self.assertEqual(self.config.ccsbins, 10.0)
+
+
+class TestCDMSParameterMetadata(unittest.TestCase):
+    def setUp(self):
+        self.config = UniDecConfig()
+        self.config.cdmsflag = 1
+
+    def test_schema_adds_reviewed_cdms_parameters_only_in_cdms_mode(self):
+        schema = self.config.parameter_schema()
+        self.assertIn("CDslope", schema)
+        self.assertIn("CDzbins", schema)
+        self.assertIn("csig", schema)
+        self.assertNotIn("CDslope", UniDecConfig().parameter_schema())
+
+    def test_zero_slope_is_rejected_atomically(self):
+        original = self.config.CDslope
+        with self.assertRaisesRegex(ValueError, "CDslope must be nonzero"):
+            self.config.update_parameters({"CDslope": 0, "CDzbins": 2})
+        self.assertEqual(self.config.CDslope, original)
+        self.assertEqual(self.config.CDzbins, 1)
+
+
 if __name__ == "__main__":
     unittest.main()

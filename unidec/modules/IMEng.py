@@ -276,7 +276,11 @@ class UniDecIM(UniDecMS):
         self.open_file(filename, self.config.dirname)
 
         if os.path.isfile(self.config.infname):
-            self.data.data3 = np.loadtxt(self.config.infname)
+            processed = np.fromfile(self.config.infname, dtype=np.single)
+            if processed.size % 3 != 0:
+                print("Broken Save File. Processed IM-MS data are not float32 triplets")
+                return False
+            self.data.data3 = processed.reshape((-1, 3)).astype(self.config.dtype, copy=False)
             intensity = self.data.data3[:, 2].reshape(
                 (len(np.unique(self.data.data3[:, 0])), len(np.unique(self.data.data3[:, 1])))
             )

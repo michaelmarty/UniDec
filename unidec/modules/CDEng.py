@@ -233,12 +233,14 @@ class UniDecCD(engine.UniDec):
         self.harray = []
         # Sets a few default config parameters
         self.config.cdms_defaults()
+        self.config.cdmsflag = 1
         self.exemode = True
         self.massaxis = None
         self.invinjtime = None
         self.res = None
         self.uscore_method = 1
         self._clear_scores()
+        self.outfile = None
         pass
 
     def _clear_scores(self):
@@ -567,11 +569,15 @@ class UniDecCD(engine.UniDec):
                 pass
 
         # Change paths to unidecfiles folder
-        dirnew = os.path.splitext(self.path)[0] + "_unidecfiles"
+        if self.outfile is None:
+            dirnew = os.path.splitext(self.path)[0] + "_unidecfiles"
+            basename = os.path.split(os.path.splitext(file_name)[0])[1]
+        else:
+            output_directory, basename = os.path.split(self.outfile)
+            dirnew = os.path.abspath(output_directory or os.getcwd())
         if not os.path.isdir(dirnew):
             os.mkdir(dirnew)
         self.config.udir = dirnew
-        basename = os.path.split(os.path.splitext(file_name)[0])[1]
         self.legacy_outfname = os.path.join(self.config.udir, basename)
         self.legacy_confname = self.legacy_outfname + "_conf.dat"
         short_confname = os.path.join(self.config.udir, "conf.dat")

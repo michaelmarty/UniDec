@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -13,7 +14,36 @@ class TestUniDecSession(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="unidec-session-unit-") as directory:
             session = UniDecSession(working_directory=directory)
             self.assertEqual(session.get_state()["status"], "empty")
-            self.assertEqual(session.run("all")["error"]["code"], "empty")
+            failed_run = session.run("all")
+            self.assertEqual(failed_run["error"]["code"], "empty")
+            failed_manifest = session.get_run_manifest()
+            self.assertTrue(failed_manifest["ok"])
+            self.assertEqual(failed_manifest["manifest"]["status"], "error")
+            self.assertEqual(failed_manifest["manifest"]["error"]["code"], "empty")
+            session._run_records[-1]["error"]["message"] = "x" * 2001
+
+            exported = session.export_regression_fixture(
+                failed_run["error"]["operation_id"], "fixtures/empty-run.json")
+            self.assertTrue(exported["ok"], exported)
+            fixture_path = Path(exported["path"])
+            self.assertTrue(fixture_path.is_file())
+            fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+            self.assertEqual(fixture["fixture_schema"], "unidec-regression-fixture/v1")
+            self.assertEqual(fixture["source"]["requested_stage"], "all")
+            self.assertIsNone(fixture["source"]["input"])
+            self.assertEqual(fixture["expected_error"]["code"], "empty")
+            self.assertEqual(len(fixture["expected_error"]["message"]), 2000)
+            self.assertTrue(fixture["expected_error"]["message_truncated"])
+            self.assertNotIn("output_prefix", fixture)
+            self.assertNotIn("session_id", fixture["source"])
+            self.assertEqual(session.get_state()["status"], "error")
+            self.assertEqual(session.get_state()["last_error"]["code"], "empty")
+            self.assertEqual(
+                session.export_regression_fixture(
+                    failed_run["error"]["operation_id"], "fixtures/empty-run.json"
+                )["error"]["code"],
+                "already_exists",
+            )
             self.assertEqual(session.run("unknown")["error"]["code"], "invalid_stage")
             self.assertEqual(session.get_results()["error"]["code"], "stale_results")
 
@@ -59,6 +89,19 @@ class TestUniDecSession(unittest.TestCase):
                 archive.writestr("../escape.txt", "no")
             self.assertEqual(session.load_state(unsafe)["error"]["code"], "invalid_checkpoint")
 
+            failed_run = session.run("deconvolve")
+            failed_operation_id = failed_run["error"]["operation_id"]
+            self.assertEqual(
+                session.export_regression_fixture(failed_operation_id, root / "outside.json")
+                ["error"]["code"],
+                "path_not_allowed",
+            )
+            self.assertEqual(
+                session.export_regression_fixture(failed_operation_id, "failure.txt")
+                ["error"]["code"],
+                "invalid_path",
+            )
+
     def test_bundled_adh_headless_rerun_produces_fresh_bounded_results(self):
         with tempfile.TemporaryDirectory(prefix="unidec-session-adh-") as directory:
             root = Path(directory)
@@ -73,8 +116,24 @@ class TestUniDecSession(unittest.TestCase):
             first_revision = session.revision
             first_run = session.run("all")
             self.assertTrue(first_run["ok"], first_run)
+            self.assertEqual(
+                session.export_regression_fixture(first_run["operation_id"], "successful.json")
+                ["error"]["code"],
+                "run_succeeded",
+            )
+            first_operation_id = first_run["operation_id"]
+            first_manifest = session.get_run_manifest(first_operation_id)
+            self.assertTrue(first_manifest["ok"], first_manifest)
+            self.assertEqual(first_manifest["manifest"]["requested_stage"], "all")
+            self.assertEqual(first_manifest["manifest"]["input"]["kind"], "spectrum")
+            self.assertEqual(first_manifest["manifest"]["input"]["hash_status"], "complete")
+            self.assertEqual(len(first_manifest["manifest"]["input"]["sha256"]), 64)
             first_results = session.get_results(max_peaks=2)
             self.assertTrue(first_results["ok"])
+            self.assertEqual(
+                first_manifest["manifest"]["results"]["peak_count"],
+                first_results["peak_count"],
+            )
             self.assertLessEqual(len(first_results["peaks"]), 2)
             plot = session.get_plot("mass_distribution")
             self.assertTrue(plot["ok"], plot)
@@ -89,6 +148,18 @@ class TestUniDecSession(unittest.TestCase):
             self.assertEqual(session.get_plot("mass_distribution")["error"]["code"], "stale_plot")
             second_run = session.run("all")
             self.assertTrue(second_run["ok"], second_run)
+            comparison = session.compare_runs(first_operation_id, second_run["operation_id"])
+            self.assertTrue(comparison["ok"], comparison)
+            self.assertEqual(
+                comparison["parameter_changes"]["startz"],
+                {"before": first_manifest["manifest"]["parameters"]["startz"], "after": 8},
+            )
+            self.assertEqual(
+                comparison["parameter_changes"]["endz"],
+                {"before": first_manifest["manifest"]["parameters"]["endz"], "after": 24},
+            )
+            self.assertIsNotNone(comparison["r_squared"]["delta"])
+            self.assertIsNotNone(comparison["dominant_peak_mass"]["delta"])
             second_results = session.get_results()
             self.assertTrue(second_results["ok"])
             self.assertEqual(second_results["revision"], session.revision)

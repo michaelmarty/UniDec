@@ -26,7 +26,7 @@ class ParameterSpec:
     minimum: float | None = None
     maximum: float | None = None
     choices: tuple | None = None
-    modes: tuple[str, ...] = ("ms",)
+    modes: tuple[str, ...] = ("ms", "imms", "cdms", "metaunidec")
     affects: str = "deconvolution"
     units: str | None = None
     description: str = ""
@@ -61,6 +61,42 @@ CONVENTIONAL_PARAMETER_SPECS = (
                   affects="peaks", units="Da"),
     ParameterSpec("peakthresh", float, "peakthresh", "peakthresh", 0, 1,
                   affects="peaks"),
+)
+
+
+ION_MOBILITY_PARAMETER_SPECS = (
+    ParameterSpec("mindt", float, "mindt", "mindt", 0, 1e9,
+                  modes=("imms",), affects="processing", units="ms", optional=True),
+    ParameterSpec("maxdt", float, "maxdt", "maxdt", 0, 1e9,
+                  modes=("imms",), affects="processing", units="ms", optional=True),
+    ParameterSpec("smoothdt", float, "smoothdt", "smoothdt", 0, 1e6,
+                  modes=("imms",), affects="processing"),
+    ParameterSpec("subbufdt", float, "subbufdt", "subbufdt", 0, 1e6,
+                  modes=("imms",), affects="processing"),
+    ParameterSpec("dtsig", float, "dtsig", "dtsig", 0, 1e6,
+                  modes=("imms",), units="ms"),
+    ParameterSpec("ccslb", float, "ccslb", "ccslb", 0, 1e9,
+                  modes=("imms",), units="CCS"),
+    ParameterSpec("ccsub", float, "ccsub", "ccsub", 0, 1e9,
+                  modes=("imms",), units="CCS"),
+    ParameterSpec("ccsbins", float, "ccsbins", "ccsbins", 1e-12, 1e9,
+                  modes=("imms",), units="CCS"),
+)
+
+
+CDMS_PARAMETER_SPECS = (
+    ParameterSpec("CDslope", float, "CDslope", "CDslope", -1e12, 1e12,
+                  modes=("cdms",), affects="processing"),
+    ParameterSpec("CDzbins", int, "CDzbins", "CDzbins", 1, 1000,
+                  modes=("cdms",), affects="processing", units="charge"),
+    ParameterSpec("CDres", float, "CDres", "CDres", 0, 1e6,
+                  modes=("cdms",), affects="processing", units="m/z"),
+    ParameterSpec("csig", float, "csig", "csig", 0, 1e6,
+                  modes=("cdms",), units="charge"),
+    ParameterSpec("zzsig", float, "zzsig", "zzsig", 0, 1e6,
+                  modes=("cdms",), units="charge"),
+    ParameterSpec("subtype", int, "subtype", "subtype", choices=(0, 1),
+                  modes=("cdms",), affects="processing"),
 )
 
 
@@ -117,9 +153,21 @@ class UniDecConfig(object):
         "version", "original_file", "cmap", "peakcmap", "spectracmap",
     })
 
-    @staticmethod
-    def _parameter_specs():
-        return {spec.attribute: spec for spec in CONVENTIONAL_PARAMETER_SPECS if spec.public}
+    def _parameter_specs(self):
+        if self.cdmsflag == 1:
+            mode = "cdms"
+        elif self.imflag == 1:
+            mode = "imms"
+        elif self.metamode == -1:
+            mode = "metaunidec"
+        else:
+            mode = "ms"
+        specs = CONVENTIONAL_PARAMETER_SPECS + ION_MOBILITY_PARAMETER_SPECS + CDMS_PARAMETER_SPECS
+        return {
+            spec.attribute: spec
+            for spec in specs
+            if spec.public and mode in spec.modes
+        }
 
     def parameter_schema(self):
         """Return serializable metadata for supported conventional-MS parameters."""
@@ -200,6 +248,14 @@ class UniDecConfig(object):
             errors.append("minmz must be less than maxmz")
         if proposed["masslb"] >= proposed["massub"]:
             errors.append("masslb must be less than massub")
+        if self.imflag == 1:
+            if (proposed["mindt"] is not None and proposed["maxdt"] is not None
+                    and proposed["mindt"] >= proposed["maxdt"]):
+                errors.append("mindt must be less than maxdt")
+            if proposed["ccslb"] >= proposed["ccsub"]:
+                errors.append("ccslb must be less than ccsub")
+        if self.cdmsflag == 1 and proposed["CDslope"] == 0:
+            errors.append("CDslope must be nonzero")
         if errors:
             raise ValueError("; ".join(errors))
         return normalized
