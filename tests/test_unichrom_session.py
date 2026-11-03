@@ -53,7 +53,7 @@ class TestUniChromSession(unittest.TestCase):
             self.assertEqual(state["chromatogram"]["tic"]["points"], 3)
             self.assertEqual(state["chromatogram"]["bpc"]["maximum_intensity"], 8.0)
             managed = Path(session.engine.config.hdf_file)
-            self.assertTrue(managed.is_relative_to(Path(working_directory)))
+            self.assertTrue(managed.resolve().is_relative_to(Path(working_directory).resolve()))
             self.assertTrue(managed.is_file())
             self.assertFalse(Path(input_directory, "sample.hdf5").exists())
             self.assertFalse(Path(input_directory, "sample.hdf5_unidecfiles").exists())
