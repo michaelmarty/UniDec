@@ -1802,7 +1802,8 @@ def unidec_call(config, silent=False, conv=False, **kwargs):
     :return: Standard error of exepath execution
     """
 
-    call = [config.UniDecPath, str(config.confname)]
+    confname = os.path.abspath(config.confname)
+    call = [config.UniDecPath, confname]
     #
     # if config.autotune:
     #     call.append("-autotune")
@@ -1813,7 +1814,7 @@ def unidec_call(config, silent=False, conv=False, **kwargs):
     out, diagnostic = exe_call(
         call,
         silent=silent,
-        cwd=os.path.dirname(os.path.abspath(config.confname)),
+        cwd=os.path.dirname(confname),
         return_diagnostics=True,
     )
     config.last_native_diagnostic = diagnostic

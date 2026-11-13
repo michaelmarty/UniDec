@@ -1,9 +1,29 @@
+import os
 import unittest
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import numpy as np
 
 from unidec import tools
+
+
+class TestNativeCall(unittest.TestCase):
+    def test_relative_config_path_is_made_absolute_before_changing_directory(self):
+        config = SimpleNamespace(UniDecPath="unidec", confname=os.path.join("run", "conf.dat"))
+        confname = os.path.abspath(config.confname)
+
+        with patch.object(tools, "exe_call", return_value=(0, "diagnostic")) as exe_call:
+            result = tools.unidec_call(config, silent=True)
+
+        self.assertEqual(result, 0)
+        self.assertEqual(config.last_native_diagnostic, "diagnostic")
+        exe_call.assert_called_once_with(
+            [config.UniDecPath, confname],
+            silent=True,
+            cwd=os.path.dirname(confname),
+            return_diagnostics=True,
+        )
 
 
 class TestNormalization(unittest.TestCase):

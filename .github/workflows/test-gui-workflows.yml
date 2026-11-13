@@ -316,7 +316,7 @@ jobs:
                   cwd=workdir, check=True, timeout=180,
               )
               for output in (workdir / "isodec.tsv",
-                             workdir / "test_1_unidecfiles" / "test_1_mass.txt"):
+                             workdir / "test_1_unidecfiles" / "mass.txt"):
                   if not output.is_file() or output.stat().st_size == 0:
                       raise RuntimeError(f"CLI did not produce output: {output}")
           '@ | .venv\Scripts\python -I -
