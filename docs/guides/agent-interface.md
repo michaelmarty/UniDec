@@ -1,4 +1,4 @@
-# UniDec MCP Agent Interface
+# UniDec MCP agent interface
 
 The optional MCP adapter exposes one headless conventional-MS, IM-MS, CD-MS, MetaUniDec, or UniChrom session through a bounded set of tools. An optional local bridge can also route workflow commands to a separately running conventional UniDec GUI. It does not provide shell access, arbitrary Python or filesystem operations, native command selection, DoubleDec, or SMAS.
 

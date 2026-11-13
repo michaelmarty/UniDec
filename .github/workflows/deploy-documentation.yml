@@ -26,37 +26,19 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install documentation tools
-        run: |
-          python -m pip install --upgrade \
-            sphinx \
-            myst-parser \
-            furo \
-            numpy \
-            scipy \
-            matplotlib \
-            pandas \
-            pymzml \
-            natsort \
-            networkx \
-            h5py \
-            pypubsub \
-            numba \
-            pyimzml \
-            pyteomics \
-            lxml \
-            lxml_html_clean
+      - name: Install package and documentation tools
+        run: python -m pip install --upgrade -e ".[docs]"
 
       - name: Generate API documentation
-        run: python unidec_doc/generate_api_docs.py
+        run: python docs/_scripts/generate_api_docs.py
 
       - name: Build HTML documentation
-        run: sphinx-build --builder html --fail-on-warning unidec_doc/source unidec_doc/build/html
+        run: sphinx-build --builder html --fail-on-warning --keep-going docs docs/_build/html
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
-          path: unidec_doc/build/html
+          path: docs/_build/html
 
   deploy:
     name: Deploy documentation

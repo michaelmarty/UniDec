@@ -4,12 +4,16 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 import sys
-import tomllib
 from datetime import date
 from pathlib import Path
 
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python 3.10
+    import tomli as tomllib
+
 # Make the public repository importable on Windows and in the Linux Pages runner.
-repository_root = Path(__file__).resolve().parents[2]
+repository_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(repository_root))
 from unidec._version import __version__
 
@@ -28,7 +32,7 @@ version = release
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
-# Run unidec_doc/generate.bat on Windows to regenerate the API pages and build HTML.
+# Run docs/generate.bat on Windows to regenerate the API pages and build HTML.
 
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'myst_parser']
 
@@ -63,6 +67,8 @@ source_suffix = {
     '.txt': 'markdown',
     '.md': 'markdown',
 }
+
+exclude_patterns = ['_build']
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
