@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import scipy.fft as fft
 from unidec.modules import unidecstructure, peakstructure, IM_functions, fitting
 import time
+import tempfile
 from unidec import engine
 from scipy.optimize import curve_fit
 from UniDecImporter import ImportTools as IT
@@ -232,12 +233,14 @@ class UniDecCD(engine.UniDec):
         self.harray = []
         # Sets a few default config parameters
         self.config.cdms_defaults()
+        self.config.cdmsflag = 1
         self.exemode = True
         self.massaxis = None
         self.invinjtime = None
         self.res = None
         self.uscore_method = 1
         self._clear_scores()
+        self.outfile = None
         pass
 
     def _clear_scores(self):
@@ -513,28 +516,28 @@ class UniDecCD(engine.UniDec):
         self.config.maxmz = np.amax(mz)
 
         # Create the npz file of the extracted values if it doens't exist
-        if not os.path.isfile(self.config.cdrawextracts) or refresh:
+        if not os.path.isfile(self.config.cdrawextracts) or refresh or getattr(self, "_rewrite_raw_cache", False):
             try:
-                np.savez_compressed(self.config.cdrawextracts, data=self.darray)
+                handle = tempfile.NamedTemporaryFile(dir=self.config.udir, suffix=".npz", delete=False)
+                temp_path = handle.name
+                handle.close()
+                np.savez_compressed(
+                    temp_path,
+                    data=self.darray,
+                    unidec_rawdata_version=np.array(1),
+                    mode=np.array("cdms"),
+                    original_file=np.array(self.config.original_file),
+                )
+                os.replace(temp_path, self.config.cdrawextracts)
             except Exception as e:
                 pass
+            finally:
+                if "temp_path" in locals() and os.path.exists(temp_path):
+                    os.remove(temp_path)
 
         self.config.cdmsflag = 1
-        # Load the config if you can find it. Fall back to the legacy files,
-        # but restore the short names after importing their configuration and
-        # companion lists so subsequent writes do not hit Windows MAX_PATH.
         if os.path.isfile(self.config.confname):
             self.load_config(self.config.confname)
-        elif os.path.isfile(self.legacy_confname):
-            short_outfname = self.config.outfname
-            try:
-                self.config.outfname = self.legacy_outfname
-                self.config.default_file_names()
-                self.load_config(self.config.confname)
-            finally:
-                self.config.outfname = short_outfname
-                self.config.default_file_names(s="")
-                self.config.confname = os.path.join(self.config.udir, "conf.dat")
         else:
             self.export_config()
 
@@ -556,30 +559,52 @@ class UniDecCD(engine.UniDec):
         # Handle Paths
         self.config.filename = self.path
         self.config.dirname = file_directory
+        self.config.original_file = file_name
+        if os.path.splitext(self.path)[1].lower() == ".npz":
+            try:
+                with np.load(self.path, allow_pickle=False) as cache:
+                    if "original_file" in cache:
+                        self.config.original_file = str(cache["original_file"])
+            except (OSError, ValueError, KeyError):
+                pass
 
         # Change paths to unidecfiles folder
-        dirnew = os.path.splitext(self.path)[0] + "_unidecfiles"
+        if self.outfile is None:
+            dirnew = os.path.splitext(self.path)[0] + "_unidecfiles"
+            basename = os.path.split(os.path.splitext(file_name)[0])[1]
+        else:
+            output_directory, basename = os.path.split(self.outfile)
+            dirnew = os.path.abspath(output_directory or os.getcwd())
         if not os.path.isdir(dirnew):
             os.mkdir(dirnew)
         self.config.udir = dirnew
-        # Use bare file names inside the already unique _unidecfiles directory.
-        # Keep the old paths available for loading existing results and caches.
-        basename = os.path.split(os.path.splitext(file_name)[0])[1]
         self.legacy_outfname = os.path.join(self.config.udir, basename)
         self.legacy_confname = self.legacy_outfname + "_conf.dat"
-        legacy_cdrawextracts = self.legacy_outfname + "_rawdata.npz"
-        self.config.outfname = os.path.join(self.config.udir, "")
+        short_confname = os.path.join(self.config.udir, "conf.dat")
+        use_short_names = os.path.isfile(short_confname) or not os.path.isfile(self.legacy_confname)
+        self.config.outfname = (os.path.join(self.config.udir, "") if use_short_names
+                                else self.legacy_outfname)
         self.config.extension = os.path.splitext(self.config.filename)[1]
-        self.config.default_file_names(s="")
-        self.config.confname = os.path.join(self.config.udir, "conf.dat")
+        self.config.default_file_names(s="" if use_short_names else "_")
 
         # Look for already processed data in the form of an npz file and load it if it exists for speed.
         raw_extracts = self.config.cdrawextracts
-        if not os.path.isfile(raw_extracts) and os.path.isfile(legacy_cdrawextracts):
-            raw_extracts = legacy_cdrawextracts
+        self._rewrite_raw_cache = False
         if os.path.isfile(self.path) and os.path.isfile(raw_extracts) and not refresh:
-            print("Raw data found:", raw_extracts)
-            self.path = raw_extracts
+            cache_matches = True
+            try:
+                with np.load(raw_extracts, allow_pickle=False) as cache:
+                    if "mode" in cache and str(cache["mode"]) != "cdms":
+                        cache_matches = False
+                    if "original_file" in cache and str(cache["original_file"]) != self.config.original_file:
+                        cache_matches = False
+            except (OSError, ValueError, KeyError):
+                cache_matches = False
+            if cache_matches:
+                print("Raw data found:", raw_extracts)
+                self.path = raw_extracts
+            else:
+                self._rewrite_raw_cache = True
 
 
     def process_data(self, transform=True):
@@ -855,9 +880,11 @@ class UniDecCD(engine.UniDec):
         return harray
 
     def hist_datareduction(self, harray, red_per):
-        sdat = np.sort(np.ravel(harray))
-        index = round(len(sdat) * red_per / 100.)
-        cutoff = sdat[index]
+        sdat = np.sort(harray[harray > 0])
+        remove_count = min(max(round(len(sdat) * red_per / 100.), 0), len(sdat))
+        if remove_count == 0:
+            return harray
+        cutoff = sdat[remove_count - 1]
         harray = self.hist_int_threshold(harray, cutoff)
         return harray
 
@@ -1320,6 +1347,7 @@ class UniDecCD(engine.UniDec):
 
     def decon_external_call(self):
         self._clear_scores()
+        self.config.cdmsflag = 1
         self.export_config()
         # Check for this
         if self.config.CDzbins != 1 and self.config.zzsig != 0:

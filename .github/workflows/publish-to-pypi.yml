@@ -25,7 +25,7 @@ jobs:
       matrix:
         include:
           - name: Linux x64
-            os: ubuntu-latest
+            os: ubuntu-24.04
             artifact: native-linux
             executable: unideclinux
             library: libunideclib.so
@@ -43,7 +43,7 @@ jobs:
             library: libunideclib.dylib
             deployment_target: "11.0"
           - name: macOS ARM64
-            os: macos-14
+            os: macos-15
             artifact: native-macos-arm64
             executable: unidecmac
             library: libunideclib.dylib
@@ -309,7 +309,7 @@ jobs:
   build:
     name: Build and test distributions
     needs: [native-unix, native-windows]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Check out the tagged source
@@ -650,7 +650,7 @@ jobs:
   smoke-macos-arm64:
     name: Smoke-test the wheel on macOS ARM64
     needs: build
-    runs-on: macos-14
+    runs-on: macos-15
 
     steps:
       - name: Download distributions
@@ -729,7 +729,7 @@ jobs:
   publish:
     name: Publish distributions
     needs: [build, smoke-windows, smoke-windows-arm64, smoke-macos-arm64, smoke-linux-arm64]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: ${{ inputs.repository }}
       url: ${{ inputs.repository == 'testpypi' && 'https://test.pypi.org/p/UniDec' || 'https://pypi.org/p/UniDec' }}
@@ -760,7 +760,7 @@ jobs:
     name: Create version tag
     if: inputs.repository == 'pypi'
     needs: publish
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     outputs:
@@ -798,7 +798,7 @@ jobs:
   github-release:
     name: Create GitHub release
     needs: create-tag
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
 

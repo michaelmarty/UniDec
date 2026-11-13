@@ -882,7 +882,7 @@ class DataCollector(wx.Frame):
                     data = np.loadtxt(filename)
                 self.xlabel = "m/z (Th)"
             elif self.datachoice == 1:
-                filename = os.path.join(header + "_unidecfiles", subheader + "_input.dat")
+                filename = ud.get_unidec_output_path_from_header(header, "input.dat")
                 if self.filetype == 1:
                     data = get_dataset(msdata, "processed_data")
                 else:
@@ -891,16 +891,16 @@ class DataCollector(wx.Frame):
             elif self.datachoice == 2:
                 self.xlabel = "Mass (Da)"
                 zstate = l[3]
-                filename = os.path.join(header + "_unidecfiles", subheader + "_mass.txt")
+                filename = ud.get_unidec_output_path_from_header(header, "mass.txt")
                 if self.filetype == 1:
                     data = get_dataset(msdata, "mass_data")
                 else:
                     data = np.loadtxt(filename)
                 if not zstate == 'All':
                     try:
-                        filename = os.path.join(header + "_unidecfiles", subheader + "_massgrid.bin")
+                        filename = ud.get_unidec_output_path_from_header(header, "massgrid.bin")
                         massgrid = np.fromfile(filename, dtype=self.config.dtype)
-                        configfile = os.path.join(header + "_unidecfiles", subheader + "_conf.dat")
+                        configfile = ud.get_unidec_output_path_from_header(header, "conf.dat")
                         f = open(configfile, 'r')
                         for line in f:
                             if line.startswith("startz"):
@@ -940,7 +940,7 @@ class DataCollector(wx.Frame):
                             self.ypanel.list.populate(self.yvals)
 
             elif self.datachoice == 3:
-                filename = os.path.join(header + "_unidecfiles", subheader + "_ccs.txt")
+                filename = ud.get_unidec_output_path_from_header(header, "ccs.txt")
                 if self.filetype == 1:
                     print("ERROR: HDF5 Files not supported with IMMS data")
                 else:
@@ -949,7 +949,7 @@ class DataCollector(wx.Frame):
 
             elif self.datachoice == 4:
                 self.xlabel = "Mass (Da)"
-                filename = os.path.join(header + "_unidecfiles", subheader + "_massdd.txt")
+                filename = ud.get_unidec_output_path_from_header(header, "massdd.txt")
                 if self.filetype == 1:
                     data = get_dataset(msdata, "mass_data_dd")
                 else:
@@ -1211,20 +1211,20 @@ class DataCollector(wx.Frame):
                 header = os.path.join(self.directory, header)
             subheader = os.path.split(header)[1]
             if self.datachoice < 2:
-                filename = os.path.join(header + "_unidecfiles", subheader + "_grid.bin")
-                file2 = os.path.join(header + "_unidecfiles", subheader + "_input.dat")
+                filename = ud.get_unidec_output_path_from_header(header, "grid.bin")
+                file2 = ud.get_unidec_output_path_from_header(header, "input.dat")
             elif self.datachoice == 2:
-                filename = os.path.join(header + "_unidecfiles", subheader + "_massgrid.bin")
-                file2 = os.path.join(header + "_unidecfiles", subheader + "_mass.txt")
+                filename = ud.get_unidec_output_path_from_header(header, "massgrid.bin")
+                file2 = ud.get_unidec_output_path_from_header(header, "mass.txt")
             elif self.datachoice == 3:
-                filename = os.path.join(header + "_unidecfiles", subheader + "_massccs.bin")
-                file2 = os.path.join(header + "_unidecfiles", subheader + "_ccs.txt")
+                filename = ud.get_unidec_output_path_from_header(header, "massccs.bin")
+                file2 = ud.get_unidec_output_path_from_header(header, "ccs.txt")
             else:
                 file2 = filename
                 print("Undefined choice for data type", self.datachoice, type(self.datachoice))
             data = np.loadtxt(file2)
             massgrid = np.fromfile(filename, dtype=self.config.dtype)
-            configfile = os.path.join(header + "_unidecfiles", subheader + "_conf.dat")
+            configfile = ud.get_unidec_output_path_from_header(header, "conf.dat")
             f = open(configfile, 'r')
             for line in f:
                 if line.startswith("startz"):
@@ -1379,7 +1379,7 @@ class DataCollector(wx.Frame):
                 filename = os.path.join(self.directory, filename)
             subheader = os.path.split(header)[1]
 
-            filename = os.path.join(header + "_unidecfiles", subheader + "_mass.txt")
+            filename = ud.get_unidec_output_path_from_header(header, "mass.txt")
             if self.filetype == 1:
                 data = get_dataset(msdata, "mass_data")
             else:

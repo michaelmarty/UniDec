@@ -6,7 +6,7 @@ from unittest.mock import Mock, call, patch
 import h5py
 import numpy as np
 
-from unidec.modules.ChromEng import ChromEngine
+from unidec.modules.ChromEng import ChromEngine, plot_intensity
 from unidec.modules.unidecstructure import UniDecConfig
 
 
@@ -18,31 +18,46 @@ class TestUniChromWorkflow(unittest.TestCase):
             self.assertEqual(config.UClineardecon, 1)
             self.assertEqual(config.UCtype, 0)
             self.assertEqual(config.chromatogram_type, 0)
+            self.assertEqual(config.chromatogram_norm, 0)
             self.assertFalse(config.calc_unichrom_scores)
             config.UClineardecon = 0
             config.UCtype = 1
             config.chromatogram_type = 1
+            config.chromatogram_norm = 1
             config.calc_unichrom_scores = True
             config.write_hdf5(str(path))
             with h5py.File(path, "r") as hdf:
                 self.assertEqual(hdf["config"].attrs["UClineardecon"], 0)
                 self.assertEqual(hdf["config"].attrs["UCtype"], 1)
                 self.assertEqual(hdf["config"].attrs["chromatogram_type"], 1)
+                self.assertEqual(hdf["config"].attrs["chromatogram_norm"], 1)
                 self.assertTrue(hdf["config"].attrs["calc_unichrom_scores"])
             restored = UniDecConfig()
             restored.read_hdf5(str(path))
             self.assertEqual(restored.UClineardecon, 0)
             self.assertEqual(restored.UCtype, 1)
             self.assertEqual(restored.chromatogram_type, 1)
+            self.assertEqual(restored.chromatogram_norm, 1)
             self.assertTrue(restored.calc_unichrom_scores)
 
             with h5py.File(path, "a") as hdf:
                 del hdf["config"].attrs["chromatogram_type"]
+                del hdf["config"].attrs["chromatogram_norm"]
                 del hdf["config"].attrs["calc_unichrom_scores"]
             legacy = UniDecConfig()
             legacy.read_hdf5(str(path))
             self.assertEqual(legacy.chromatogram_type, 0)
+            self.assertEqual(legacy.chromatogram_norm, 0)
             self.assertFalse(legacy.calc_unichrom_scores)
+
+    def test_plot_intensity_normalizes_without_changing_stored_data(self):
+        data = np.array([[0.0, 2.0], [1.0, 4.0]])
+        original = data.copy()
+
+        np.testing.assert_allclose(plot_intensity(data, normalize=True), [0.5, 1.0])
+        np.testing.assert_array_equal(data, original)
+        np.testing.assert_array_equal(plot_intensity(data), data[:, 1])
+        np.testing.assert_array_equal(plot_intensity(np.zeros((2, 2)), normalize=True), [0.0, 0.0])
 
     def test_selected_chromatogram_uses_configured_cache(self):
         engine = object.__new__(ChromEngine)
@@ -113,6 +128,31 @@ class TestUniChromWorkflow(unittest.TestCase):
         importer.get_bpc.assert_called_once_with()
         np.testing.assert_array_equal(engine.ticdat, tic)
         np.testing.assert_array_equal(engine.bpcdat, bpc)
+
+    @patch("unidec.modules.ChromEng.ImporterFactory.create_importer")
+    def test_chromatogram_can_route_hdf5_cache_to_managed_path(self, create_importer):
+        importer = create_importer.return_value
+        importer.get_polarity.return_value = "Positive"
+        importer.get_tic.return_value = [[0.0, 1.0], [1.0, 2.0]]
+        importer.get_bpc.return_value = [[0.0, 0.5], [1.0, 1.5]]
+        importer.scans = [1, 2]
+
+        engine = object.__new__(ChromEngine)
+        engine.data = Mock()
+        engine.setup_filenames = Mock()
+        engine.clear = Mock()
+        engine.open = Mock()
+        engine.update_history = Mock()
+
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory, "input", "sample.mzML")
+            managed = Path(directory, "work", "operation-1", "sample.hdf5")
+            engine.load_mzml(str(source), load_hdf5=False, output_path=managed)
+
+        self.assertEqual(engine.outpath, str(managed))
+        engine.setup_filenames.assert_called_once_with(str(managed))
+        engine.data.new_file.assert_called_once_with(str(managed))
+        engine.open.assert_called_once_with(str(managed))
 
     def test_chromatogram_folder_gets_retention_time_metadata(self):
         engine = object.__new__(ChromEngine)

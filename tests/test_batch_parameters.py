@@ -108,6 +108,16 @@ class TestBatchParameters(unittest.TestCase):
             self.assertEqual(Path(batch.find_kernel_file(str(source))), generated)
             self.assertIsNone(batch.find_kernel_file(str(root / "missing_mass.txt")))
 
+    def test_kernel_source_prefers_standard_mass_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "kernel.txt"
+            source.write_text("100 1\n101 2\n", encoding="utf-8")
+            generated = root / "kernel_unidecfiles" / "mass.txt"
+            generated.parent.mkdir()
+            generated.write_text("100 1\n101 2\n", encoding="utf-8")
+            self.assertEqual(Path(batch.find_kernel_file(str(source))), generated)
+
 
 class TestBatchPathsAndTime(unittest.TestCase):
     def test_time_range_defaults_valid_values_and_invalid_values(self):

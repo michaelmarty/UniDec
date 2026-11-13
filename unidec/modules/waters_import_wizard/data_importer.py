@@ -201,8 +201,7 @@ def MakeUniDecConfig(job_kwargs):
     if not os.path.isdir(dirnew):
         os.mkdir(dirnew)
 
-    header = os.path.splitext(job_kwargs[tt.FILE_NAME])[0] + '_' + str(job_kwargs[tt.FUNCTION]) + '_imms'
-    filename = os.path.join(dirnew, header + "_conf.dat")
+    filename = os.path.join(dirnew, "conf.dat")
 
     if job_kwargs[tt.TYPE] == "linear":
         twaveflag = 0

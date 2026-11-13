@@ -13,6 +13,7 @@ from unidec.modules.isolated_packages import FileDialogs
 import platform
 import multiprocessing
 from unidec.modules.unidec_presbase import UniDecPres
+from unidec.modules.unidec_enginebase import copy_config
 
 __author__ = 'Michael.Marty'
 
@@ -43,6 +44,17 @@ class UniDecApp(UniDecPres):
         """
         self.eng = unidec.UniDec(ignore_args=True)
         self.view = mainwindow.Mainwindow(self, "UniDec", self.eng.config)
+        self.agent_bridge = None
+        self.agent_revision = 0
+
+        bridge_file = kwargs.get("agent_bridge_file") or os.environ.get("UNIDEC_GUI_BRIDGE_FILE")
+        if bridge_file:
+            from unidec.gui_agent_bridge import GuiAgentBridgeServer
+
+            self.agent_bridge = GuiAgentBridgeServer(self, bridge_file)
+            self.agent_bridge.start()
+            self.view.Bind(wx.EVT_WINDOW_DESTROY, self._on_agent_bridge_window_destroy)
+            print("UniDec GUI agent bridge:", bridge_file)
 
         pub.subscribe(self.on_integrate, 'integrate')
         pub.subscribe(self.on_smash, 'smash')
@@ -228,8 +240,12 @@ class UniDecApp(UniDecPres):
         :return: None
         """
         if filenew is None:
+            default_state = os.path.join(
+                self.eng.config.dirname,
+                os.path.splitext(self.eng.config.original_file or "unidec_state")[0] + ".zip",
+            )
             filenew = FileDialogs.save_file_dialog(message="Save to UniDec Zip File", file_types="*.zip",
-                                                   default_file=self.eng.config.outfname + ".zip")
+                                                   default_file=default_state)
         if filenew is not None:
             self.view.SetStatusText("Saving", number=5)
             self.eng.save_state(filenew)
@@ -355,6 +371,103 @@ class UniDecApp(UniDecPres):
     #  Core engine functions
     #
     # ..........................................
+
+    def dispatch_agent_request(self, action, request, on_complete=None):
+        """Queue an allowlisted agent request on the wx main thread."""
+        def execute():
+            try:
+                if action == "run":
+                    stage = request.get("stage")
+                    if stage not in ("process", "deconvolve", "pick_peaks", "all"):
+                        response = {
+                            "ok": False,
+                            "error": {"code": "invalid_stage", "message": "Unsupported GUI run stage: " + str(stage)},
+                        }
+                    else:
+                        response = self._run_agent_stage(stage)
+                elif action == "get_parameters":
+                    try:
+                        response = self._get_agent_parameters(request.get("names"))
+                    except ValueError as error:
+                        response = {
+                            "ok": False,
+                            "error": {"code": "invalid_parameters", "message": str(error)},
+                        }
+                elif action == "set_parameters":
+                    try:
+                        response = self._set_agent_parameters(request.get("values"))
+                    except ValueError as error:
+                        response = {
+                            "ok": False,
+                            "error": {"code": "invalid_parameters", "message": str(error)},
+                        }
+                else:
+                    response = {
+                        "ok": False,
+                        "error": {"code": "invalid_action", "message": "Unsupported GUI action: " + action},
+                    }
+            except Exception as error:
+                response = {
+                    "ok": False,
+                    "error": {"code": "gui_command_failed", "message": str(error)},
+                }
+            if on_complete is not None:
+                on_complete(response)
+
+        wx.CallAfter(execute)
+
+    def dispatch_agent_command(self, command, on_complete=None):
+        """Compatibility wrapper for queuing one GUI workflow stage."""
+        self.dispatch_agent_request("run", {"stage": command}, on_complete=on_complete)
+
+    def _run_agent_stage(self, stage):
+        handlers = {
+            "process": self.on_dataprep_button,
+            "deconvolve": self.on_unidec_button,
+            "pick_peaks": self.on_pick_peaks,
+            "all": self.on_auto,
+        }
+        handlers[stage]()
+        return {"ok": True, "stage": stage, "revision": self.agent_revision}
+
+    def _visible_agent_config(self):
+        candidate = copy_config(self.eng.config)
+        controls = self.view.controls
+        live_config = controls.config
+        controls.config = candidate
+        try:
+            self.view.export_gui_to_config()
+        finally:
+            controls.config = live_config
+        candidate.validate_parameters(candidate.parameter_values())
+        return candidate
+
+    def _get_agent_parameters(self, names=None):
+        candidate = self._visible_agent_config()
+        return {
+            "ok": True,
+            "revision": self.agent_revision,
+            "values": candidate.parameter_values(names),
+            "schema": candidate.parameter_schema(),
+        }
+
+    def _set_agent_parameters(self, values):
+        candidate = self._visible_agent_config()
+        updated = candidate.update_parameters(values)
+        self.eng.config.__dict__ = candidate.__dict__
+        self.import_config()
+        self.agent_revision += 1
+        return {
+            "ok": True,
+            "revision": self.agent_revision,
+            "values": updated,
+        }
+
+    def _on_agent_bridge_window_destroy(self, event):
+        if event.GetEventObject() is self.view and self.agent_bridge is not None:
+            self.agent_bridge.stop()
+            self.agent_bridge = None
+        event.Skip()
 
     def on_dataprep_button(self, e=None):
         """
@@ -523,7 +636,7 @@ class UniDecApp(UniDecPres):
 
             self.view.plot4.plotadd(self.eng.data.data2[:, 0], self.eng.pks.composite, "b", "useless label")
             self.view.plot4.repaint()
-            np.savetxt(self.eng.config.outfname + "_composite_spectrum.dat",
+            np.savetxt(self.eng.config.output_file("composite_spectrum.dat"),
                        np.transpose([self.eng.data.data2[:, 0], self.eng.pks.composite]))
         except ValueError:
             print("Need to hit Plot Peaks button first")
@@ -614,7 +727,7 @@ class UniDecApp(UniDecPres):
         # Normalize and write
         self.eng.normalize_peaks()
         areas = [[p.mass, p.integral] for p in self.eng.pks.peaks]
-        np.savetxt(self.eng.config.outfname + "_peak_areas.dat", areas)
+        np.savetxt(self.eng.config.output_file("peak_areas.dat"), areas)
 
         # Plot
         if plot:
@@ -1105,11 +1218,12 @@ class UniDecApp(UniDecPres):
         peaklabels = [p.label for p in self.eng.pks.peaks]
         peakcolors = [p.color for p in self.eng.pks.peaks]
         peaks = np.array([[p.mass, p.height] for p in self.eng.pks.peaks])
-        texmaker.MakeTexReport(self.eng.config.outfname + '_report.tex', self.eng.config, self.eng.config.udir,
+        report_path = self.eng.config.output_file('report.tex')
+        texmaker.MakeTexReport(report_path, self.eng.config, self.eng.config.udir,
                                peaks, textmarkertab, peaklabels, peakcolors, figureflags)
         self.view.SetStatusText("TeX file Written", number=5)
         try:
-            texmaker.PDFTexReport(self.eng.config.outfname + '_report.tex')
+            texmaker.PDFTexReport(report_path)
             self.view.SetStatusText("PDF Report Finished", number=5)
         except Exception as ex:
             self.view.SetStatusText("PDF Report Failed", number=5)

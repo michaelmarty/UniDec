@@ -257,6 +257,22 @@ void ReadInputs(Config* config, Input* inp)
 		}
 		mh5readfile2d(config->file_id, outdat, config->lengthmz, inp->dataMZ, inp->dataInt);
 		if (config->silent == 0) { printf("Length of Data: %d \n", config->lengthmz); }
+		if (config->variablepw != 0) {
+			char fwhmdat[1024];
+			strjoin(config->dataset, "/fwhm", fwhmdat);
+			if (!check_group_noexit(config->file_id, fwhmdat, config->silent)) {
+				fprintf(stderr, "Variable peak width requires HDF5 dataset %s.\n", fwhmdat);
+				exit(12);
+			}
+			const int fwhmlen = mh5getfilelength(config->file_id, fwhmdat);
+			if (fwhmlen != config->lengthmz) {
+				fprintf(stderr, "FWHM length %d does not match processed data length %d.\n", fwhmlen, config->lengthmz);
+				exit(12);
+			}
+			inp->fwhmlist = (float*)malloc((size_t)fwhmlen * sizeof(float));
+			if (inp->fwhmlist == NULL) { fprintf(stderr, "Error allocating FWHM array.\n"); exit(1); }
+			mh5readfile1d(config->file_id, fwhmdat, inp->fwhmlist);
+		}
 
 		//Check the length of the mfile and then read it in.
 		if (config->mflag == 1)
@@ -284,6 +300,20 @@ void ReadInputs(Config* config, Input* inp)
 
 		readfile(config->infile, config->lengthmz, inp->dataMZ, inp->dataInt);//load up the data array
 		printf("Length of Data: %d \n", config->lengthmz);
+		if (config->variablepw != 0) {
+			if (config->fwhmfile[0] == '\0') {
+				fprintf(stderr, "Variable peak width requires fwhmfile.\n");
+				exit(12);
+			}
+			const int fwhmlen = getfilelength(config->fwhmfile);
+			if (fwhmlen != config->lengthmz) {
+				fprintf(stderr, "FWHM length %d does not match processed data length %d.\n", fwhmlen, config->lengthmz);
+				exit(12);
+			}
+			inp->fwhmlist = (float*)malloc((size_t)fwhmlen * sizeof(float));
+			if (inp->fwhmlist == NULL) { fprintf(stderr, "Error allocating FWHM array.\n"); exit(1); }
+			readmfile(config->fwhmfile, fwhmlen, inp->fwhmlist);
+		}
 
 		//Check the length of the mfile and then read it in.
 

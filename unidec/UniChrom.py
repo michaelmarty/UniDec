@@ -270,9 +270,8 @@ class ChromApp(MetaUniDecBase):
         unidec_config.rawflag %= 2
         unidec_config.udir = os.path.splitext(path)[0] + "_unidecfiles"
         os.makedirs(unidec_config.udir, exist_ok=True)
-        unidec_config.outfname = os.path.join(unidec_config.udir,
-                                               os.path.splitext(filename)[0])
-        unidec_config.default_file_names()
+        unidec_config.outfname = os.path.join(unidec_config.udir, "")
+        unidec_config.default_file_names(s="")
         unidec_config.config_export(unidec_config.confname)
 
         print("Launching UniDec:", path)

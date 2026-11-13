@@ -76,14 +76,12 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
     def setup_filenames(self, path):
         self.config.hdf_file = path
         self.config.dirname, self.config.filename = os.path.split(path)
-        outfname = os.path.splitext(self.config.filename)[0]
-        dir = os.path.dirname(path)
-        dirnew = os.path.join(dir, "UniDec_Figures_and_Files")
+        dirnew = path + "_unidecfiles"
         if not os.path.isdir(dirnew):
             os.mkdir(dirnew)
         self.config.udir = dirnew
-        self.config.outfname = os.path.join(dirnew, outfname)
-        self.config.default_file_names()
+        self.config.outfname = os.path.join(dirnew, "")
+        self.config.default_file_names(s="")
 
     def process_data(self):
         self.pks.peaks = []
@@ -327,7 +325,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         peakparams = []
         for p in self.pks.peaks:
             peakparams.append([str(p.mass), str(p.height), str(p.area), str(p.label)])
-        outfile = self.config.outfname + "_peaks.txt"
+        outfile = self.config.output_file("peaks.txt")
         try:
             np.savetxt(outfile, np.array(peakparams), delimiter=",", fmt="%s")
         except:
@@ -336,7 +334,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         peakexts = list([np.concatenate(([0], self.data.var1))])
         for p in self.pks.peaks:
             peakexts.append(np.concatenate(([p.mass], p.extracts)))
-        outfile = self.config.outfname + "_extracts.txt"
+        outfile = self.config.output_file("extracts.txt")
         np.savetxt(outfile, np.array(peakexts))
         print("Peak info saved to:", outfile)
 
@@ -348,7 +346,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
             for p in self.pks.peaks:
                 for i, val in enumerate(p.extracts):
                     outlist.append([var1[i], p.mass, val])
-            outfile = self.config.outfname + "_extracts_3col_peaks.txt"
+            outfile = self.config.output_file("extracts_3col_peaks.txt")
             np.savetxt(outfile, np.array(outlist), delimiter="\t", header="Var1\tMass\tIntensity", comments='', fmt='%.6f')
             print("3 Column Peak info saved to:", outfile)
         else:
@@ -380,7 +378,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         b1 = outlist[:, 2] > 0  # Remove zero intensity points
         outlist = outlist[b1]
 
-        outfile = self.config.outfname + "_2D_decon_3col.txt"
+        outfile = self.config.output_file("2D_decon_3col.txt")
 
         np.savetxt(outfile, outlist, delimiter="\t", header="Var1\tMass\tIntensity", comments='', fmt='%.6f')
         tend = time.perf_counter()
@@ -391,16 +389,16 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
 
     def export_spectra(self, e=None):
         for s in self.data.spectra:
-            outfile = self.config.outfname + "_" + str(s.var1) + ".txt"
+            outfile = self.config.output_file(str(s.var1) + ".txt")
             np.savetxt(outfile, s.rawdata)
             print("Writing HDF5 spctrum to text file:", outfile)
-            self.config.config_export(self.config.outfname + "_conf.dat")
+            self.config.config_export(self.config.confname)
 
     def export_peaks_2d_apex(self, e=None):
         if len(self.pks.peaks) == 0:
             print("No peaks to export. Try picking peaks first.")
             return
-        outfile = self.config.outfname + "_peaks_apexes.txt"
+        outfile = self.config.output_file("peaks_apexes.txt")
         outputdata = []
         for i, p in enumerate(self.pks.peaks):
             line = [p.mass, p.height, p.dscore, p.area, p.apexvar1, p.avgvar1]
@@ -466,15 +464,15 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         self.export_fits()
 
     def export_fits(self, e=None):
-        outfile = self.config.outfname + "_fits.txt"
+        outfile = self.config.output_file("fits.txt")
         np.savetxt(outfile, np.array(self.data.fits))
         print("Writing Fit to text file:", outfile)
 
-        outfile2 = self.config.outfname + "_fitgrid.txt"
+        outfile2 = self.config.output_file("fitgrid.txt")
         np.savetxt(outfile2, np.array(self.data.fitgrid))
         print("Writing Fit Grid to text file:", outfile2)
 
-        outfile3 = self.config.outfname + "_exgrid.txt"
+        outfile3 = self.config.output_file("exgrid.txt")
         # Add xvals to top of exgrid
         exgrid = np.vstack((self.data.var1, self.data.exgrid))
         np.savetxt(outfile3, np.array(exgrid))

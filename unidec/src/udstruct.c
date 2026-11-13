@@ -4,6 +4,36 @@
 
 #include "udstruct.h"
 
+static int path_is_absolute(const char *path) {
+    return path[0] == '/' || path[0] == '\\' ||
+           (strlen(path) > 2 && path[1] == ':' && (path[2] == '/' || path[2] == '\\'));
+}
+
+static void config_directory(const char *filename, char *directory, const size_t length) {
+    const char *slash = strrchr(filename, '/');
+    const char *backslash = strrchr(filename, '\\');
+    const char *separator = slash;
+    if (backslash != NULL && (separator == NULL || backslash > separator)) { separator = backslash; }
+    if (separator == NULL) {
+        snprintf(directory, length, ".");
+        return;
+    }
+    const size_t count = (size_t)(separator - filename);
+    snprintf(directory, length, "%.*s", (int)count, filename);
+}
+
+static void resolve_config_path(char *path, const size_t length, const char *directory, const int output) {
+    if (path[0] == '\0' || path_is_absolute(path)) { return; }
+    char resolved[500];
+    const char separator = strchr(directory, '\\') != NULL ? '\\' : '/';
+    if (output && strcmp(path, ".") == 0) {
+        snprintf(resolved, sizeof(resolved), "%s%c", directory, separator);
+    } else {
+        snprintf(resolved, sizeof(resolved), "%s%c%s", directory, separator, path);
+    }
+    snprintf(path, length, "%s", resolved);
+}
+
 
 Input InitInputs() {
     Input inp;
@@ -156,6 +186,7 @@ void SetDefaultConfig(Config *config) {
     config->nativezlb = -200;
     config->poolflag = 1;
     config->manualflag = 0;
+    config->fwhmfile[0] = '\0';
     config->intthresh = 0;
     config->peakshapeinflate = 1;
     config->fixedmassaxis = 0;
@@ -298,94 +329,105 @@ Config LoadConfig(Config config, const char *filename) {
         //printf("\nRead from file:");
         while (fscanf(file, "%s %500[^\n]", x, y) != EOF) {
             //printf( "read in: %s %s \n", x,y );
-            if (strstr(x, "input") != NULL) { strcpy(config.infile, y); } // printf(" input");
-            if (strstr(x, "output") != NULL) { strcpy(config.outfile, y); } //printf(" %s output\n", config.outfile); }
-            if (strstr(x, "mfile") != NULL) {
+            if (strcmp(x, "input") == 0) { strcpy(config.infile, y); } // printf(" input");
+            else if (strcmp(x, "output") == 0) { strcpy(config.outfile, y); } //printf(" %s output\n", config.outfile); }
+            else if (strcmp(x, "mfile") == 0) {
                 strcpy(config.mfile, y);
                 config.mflag = 1;
             } // printf(" mfile"); }
-            if (strstr(x, "numit") != NULL) { config.numit = strtol(y, &endptr, 10); } // printf(" numit"); }
-            //if (strstr(x, "numz") != NULL){ config.numz = strtol(y, &endptr, 10); printf(" numz"); }
-            if (strstr(x, "startz") != NULL) { config.startz = strtol(y, &endptr, 10); } // printf(" startz"); }
-            if (strstr(x, "endz") != NULL) { config.endz = strtol(y, &endptr, 10); } // printf(" endz"); }
-            if (strstr(x, "zzsig") != NULL) { config.zsig = strtof(y, &endptr); } // printf(" zzsig"); }
-            if (strstr(x, "psig") != NULL) { config.psig = strtof(y, &endptr); } // printf(" psig"); }
-            if (strstr(x, "beta") != NULL) { config.beta = strtof(y, &endptr); } // printf(" beta"); }
-            if (strstr(x, "mzsig") != NULL) { config.mzsig = strtof(y, &endptr); } // printf(" mzsig"); }
-            if (strstr(x, "msig") != NULL) { config.msig = strtof(y, &endptr); } // printf(" msig"); }
-            if (strstr(x, "molig") != NULL) { config.molig = strtof(y, &endptr); } // printf(" molig"); }
-            if (strstr(x, "massub") != NULL) { config.massub = strtof(y, &endptr); } // printf(" massub"); }
-            if (strstr(x, "masslb") != NULL) { config.masslb = strtof(y, &endptr); } // printf(" masslb"); }
-            if (strstr(x, "psfun") != NULL) { config.psfun = strtol(y, &endptr, 10); } // printf(" psfun"); }
-            if (strstr(x, "zpsfn") != NULL) { config.zpsfun = strtol(y, &endptr, 10); }
-            if (strstr(x, "mtabsig") != NULL) { config.mtabsig = strtof(y, &endptr); } // printf(" mtabsig"); }
-            if (strstr(x, "massbins") != NULL) { config.massbins = strtof(y, &endptr); } // printf(" massbins"); }
-            if (strstr(x, "psthresh") != NULL) { config.psthresh = strtof(y, &endptr); } // printf(" psthresh"); }
-            if (strstr(x, "speedy") != NULL) { config.speedyflag = strtol(y, &endptr, 10); } //  printf(" speedy"); }
-            if (strstr(x, "aggressive") != NULL) { config.aggressiveflag = strtol(y, &endptr, 10); } //  printf(" aggressive"); }
-            if (strstr(x, "adductmass") != NULL) { config.adductmass = strtof(y, &endptr); } //  printf(" adductmass"); }
-            if (strstr(x, "rawflag") != NULL) { config.rawflag = strtol(y, &endptr, 10); } // printf(" rawflag"); }
-            if (strstr(x, "rescale_newblur") != NULL) { config.rescale_newblur = strtol(y, &endptr, 10); }
-            if (strstr(x, "nativezub") != NULL) { config.nativezub = strtof(y, &endptr); } // printf(" nativezub"); }
-            if (strstr(x, "nativezlb") != NULL) { config.nativezlb = strtof(y, &endptr); } // printf(" nativezlb"); }
-            if (strstr(x, "poolflag") != NULL) { config.poolflag = strtol(y, &endptr, 10); } // printf(" poolflag"); }
-            if (strstr(x, "manualfile") != NULL) {
+            else if (strcmp(x, "fwhmfile") == 0) { strcpy(config.fwhmfile, y); }
+            else if (strcmp(x, "numit") == 0) { config.numit = strtol(y, &endptr, 10); } // printf(" numit"); }
+            //else if (strcmp(x, "numz") == 0){ config.numz = strtol(y, &endptr, 10); printf(" numz"); }
+            else if (strcmp(x, "startz") == 0) { config.startz = strtol(y, &endptr, 10); } // printf(" startz"); }
+            else if (strcmp(x, "endz") == 0) { config.endz = strtol(y, &endptr, 10); } // printf(" endz"); }
+            else if (strcmp(x, "zzsig") == 0) { config.zsig = strtof(y, &endptr); } // printf(" zzsig"); }
+            else if (strcmp(x, "psig") == 0) { config.psig = strtof(y, &endptr); } // printf(" psig"); }
+            else if (strcmp(x, "beta") == 0) { config.beta = strtof(y, &endptr); } // printf(" beta"); }
+            else if (strcmp(x, "mzsig") == 0) { config.mzsig = strtof(y, &endptr); } // printf(" mzsig"); }
+            else if (strcmp(x, "msig") == 0) { config.msig = strtof(y, &endptr); } // printf(" msig"); }
+            else if (strcmp(x, "molig") == 0) { config.molig = strtof(y, &endptr); } // printf(" molig"); }
+            else if (strcmp(x, "massub") == 0) { config.massub = strtof(y, &endptr); } // printf(" massub"); }
+            else if (strcmp(x, "masslb") == 0) { config.masslb = strtof(y, &endptr); } // printf(" masslb"); }
+            else if (strcmp(x, "psfun") == 0) { config.psfun = strtol(y, &endptr, 10); } // printf(" psfun"); }
+            else if (strcmp(x, "zpsfn") == 0) { config.zpsfun = strtol(y, &endptr, 10); }
+            else if (strcmp(x, "variablepw") == 0) { config.variablepw = strtol(y, &endptr, 10); }
+            else if (strcmp(x, "minratio") == 0) { config.minratio = strtof(y, &endptr); }
+            else if (strcmp(x, "mtabsig") == 0) { config.mtabsig = strtof(y, &endptr); } // printf(" mtabsig"); }
+            else if (strcmp(x, "massbins") == 0) { config.massbins = strtof(y, &endptr); } // printf(" massbins"); }
+            else if (strcmp(x, "psthresh") == 0) { config.psthresh = strtof(y, &endptr); } // printf(" psthresh"); }
+            else if (strcmp(x, "speedy") == 0) { config.speedyflag = strtol(y, &endptr, 10); } //  printf(" speedy"); }
+            else if (strcmp(x, "aggressive") == 0) { config.aggressiveflag = strtol(y, &endptr, 10); } //  printf(" aggressive"); }
+            else if (strcmp(x, "adductmass") == 0) { config.adductmass = strtof(y, &endptr); } //  printf(" adductmass"); }
+            else if (strcmp(x, "rawflag") == 0) { config.rawflag = strtol(y, &endptr, 10); } // printf(" rawflag"); }
+            else if (strcmp(x, "rescale_newblur") == 0) { config.rescale_newblur = strtol(y, &endptr, 10); }
+            else if (strcmp(x, "nativezub") == 0) { config.nativezub = strtof(y, &endptr); } // printf(" nativezub"); }
+            else if (strcmp(x, "nativezlb") == 0) { config.nativezlb = strtof(y, &endptr); } // printf(" nativezlb"); }
+            else if (strcmp(x, "poolflag") == 0) { config.poolflag = strtol(y, &endptr, 10); } // printf(" poolflag"); }
+            else if (strcmp(x, "manualfile") == 0) {
                 config.manualflag = 1;
                 strcpy(config.manualfile, y);
             } //  printf(" manualfile"); }
-            if (strstr(x, "intthresh") != NULL) { config.intthresh = strtof(y, &endptr); } // printf(" intthresh"); }
-            if (strstr(x, "peakshapeinflate") != NULL) { config.peakshapeinflate = strtof(y, &endptr); }
+            else if (strcmp(x, "intthresh") == 0) { config.intthresh = strtof(y, &endptr); } // printf(" intthresh"); }
+            else if (strcmp(x, "peakshapeinflate") == 0) { config.peakshapeinflate = strtof(y, &endptr); }
             // printf(" peakshapeinflate"); }
-            if (strstr(x, "isotopemode") != NULL) { config.isotopemode = strtol(y, &endptr, 10); } // printf(" isotopemode"); }
-            if (strstr(x, "orbimode") != NULL) { config.orbimode = strtol(y, &endptr, 10); } // printf(" orbimode"); }
-            if (strstr(x, "datanorm") != NULL) { config.datanorm = strtol(y, &endptr, 10); } // printf(" datanorm"); }
-            if (strstr(x, "imflag") != NULL) { config.imflag = strtol(y, &endptr, 10); } // printf(" imflag"); }
-            if (strstr(x, "cdmsflag") != NULL) { config.cdmsflag = strtol(y, &endptr, 10); } // printf(" imflag"); }
-            if (strstr(x, "linflag") != NULL) { config.linflag = strtol(y, &endptr, 10); } // printf(" linflag"); }
+            else if (strcmp(x, "isotopemode") == 0) { config.isotopemode = strtol(y, &endptr, 10); } // printf(" isotopemode"); }
+            else if (strcmp(x, "orbimode") == 0) { config.orbimode = strtol(y, &endptr, 10); } // printf(" orbimode"); }
+            else if (strcmp(x, "datanorm") == 0) { config.datanorm = strtol(y, &endptr, 10); } // printf(" datanorm"); }
+            else if (strcmp(x, "imflag") == 0) { config.imflag = strtol(y, &endptr, 10); } // printf(" imflag"); }
+            else if (strcmp(x, "cdmsflag") == 0) { config.cdmsflag = strtol(y, &endptr, 10); } // printf(" imflag"); }
+            else if (strcmp(x, "linflag") == 0) { config.linflag = strtol(y, &endptr, 10); } // printf(" linflag"); }
 
             //IM Parameters
-            if (strstr(x, "csig") != NULL) { config.csig = strtof(y, &endptr); } // printf(" csig"); }
-            if (strstr(x, "dtsig") != NULL) { config.dtsig = strtof(y, &endptr); } // printf(" dtsig"); }
-            if (strstr(x, "ccsub") != NULL) { config.ccsub = strtof(y, &endptr); } // printf(" ccsub"); }
-            if (strstr(x, "ccslb") != NULL) { config.ccslb = strtof(y, &endptr); } // printf(" ccslb"); }
-            if (strstr(x, "ccsbins") != NULL) { config.ccsbins = strtof(y, &endptr); } // printf(" ccsbins"); }
-            if (strstr(x, "temp") != NULL) { config.temp = strtof(y, &endptr); } // printf(" temp"); }
-            if (strstr(x, "pressure") != NULL) { config.press = strtof(y, &endptr); } // printf(" pressure"); }
-            if (strstr(x, "volt") != NULL) { config.volt = strtof(y, &endptr); } // printf(" volt"); }
-            if (strstr(x, "gasmass") != NULL) { config.hmass = strtof(y, &endptr); } // printf(" gasmass"); }
-            if (strstr(x, "tnaught") != NULL) { config.to = strtof(y, &endptr); } // printf(" to"); }
-            if (strstr(x, "tcal1") != NULL) { config.tcal1 = strtof(y, &endptr); } // printf(" tcal1"); }
-            if (strstr(x, "tcal2") != NULL) { config.tcal2 = strtof(y, &endptr); } // printf(" tcal2"); }
-            if (strstr(x, "tcal3") != NULL) { config.tcal3 = strtof(y, &endptr); } // printf(" tcal3"); }
-            if (strstr(x, "tcal4") != NULL) { config.tcal4 = strtof(y, &endptr); } // printf(" tcal4"); }
-            if (strstr(x, "edc") != NULL) { config.edc = strtof(y, &endptr); } // printf(" edc"); }
-            if (strstr(x, "zout") != NULL) { config.zout = strtol(y, &endptr, 10); } // printf(" zout"); }
-            if (strstr(x, "twaveflag") != NULL) { config.twaveflag = strtol(y, &endptr, 10); } // printf(" twaveflag"); }
-            if (strstr(x, "ubnativeccs") != NULL) { config.nativeccsub = strtof(y, &endptr); } // printf(" ubnativeccs"); }
-            if (strstr(x, "lbnativeccs") != NULL) { config.nativeccslb = strtof(y, &endptr); } // printf(" lbnativeccs"); }
-            if (strstr(x, "driftlength") != NULL) { config.len = strtof(y, &endptr); } // printf(" driftlength"); }
-            if (strstr(x, "baselineflag") != NULL) { config.baselineflag = strtol(y, &endptr, 10); } // printf(" baselineflag"); }
-            if (strstr(x, "noiseflag") != NULL) { config.noiseflag = strtol(y, &endptr, 10); } // printf(" noiseflag"); }
+            else if (strcmp(x, "csig") == 0) { config.csig = strtof(y, &endptr); } // printf(" csig"); }
+            else if (strcmp(x, "dtsig") == 0) { config.dtsig = strtof(y, &endptr); } // printf(" dtsig"); }
+            else if (strcmp(x, "ccsub") == 0) { config.ccsub = strtof(y, &endptr); } // printf(" ccsub"); }
+            else if (strcmp(x, "ccslb") == 0) { config.ccslb = strtof(y, &endptr); } // printf(" ccslb"); }
+            else if (strcmp(x, "ccsbins") == 0) { config.ccsbins = strtof(y, &endptr); } // printf(" ccsbins"); }
+            else if (strcmp(x, "temp") == 0) { config.temp = strtof(y, &endptr); } // printf(" temp"); }
+            else if (strcmp(x, "pressure") == 0) { config.press = strtof(y, &endptr); } // printf(" pressure"); }
+            else if (strcmp(x, "volt") == 0) { config.volt = strtof(y, &endptr); } // printf(" volt"); }
+            else if (strcmp(x, "gasmass") == 0) { config.hmass = strtof(y, &endptr); } // printf(" gasmass"); }
+            else if (strcmp(x, "tnaught") == 0) { config.to = strtof(y, &endptr); } // printf(" to"); }
+            else if (strcmp(x, "tcal1") == 0) { config.tcal1 = strtof(y, &endptr); } // printf(" tcal1"); }
+            else if (strcmp(x, "tcal2") == 0) { config.tcal2 = strtof(y, &endptr); } // printf(" tcal2"); }
+            else if (strcmp(x, "tcal3") == 0) { config.tcal3 = strtof(y, &endptr); } // printf(" tcal3"); }
+            else if (strcmp(x, "tcal4") == 0) { config.tcal4 = strtof(y, &endptr); } // printf(" tcal4"); }
+            else if (strcmp(x, "edc") == 0) { config.edc = strtof(y, &endptr); } // printf(" edc"); }
+            else if (strcmp(x, "zout") == 0) { config.zout = strtol(y, &endptr, 10); } // printf(" zout"); }
+            else if (strcmp(x, "twaveflag") == 0) { config.twaveflag = strtol(y, &endptr, 10); } // printf(" twaveflag"); }
+            else if (strcmp(x, "ubnativeccs") == 0) { config.nativeccsub = strtof(y, &endptr); } // printf(" ubnativeccs"); }
+            else if (strcmp(x, "lbnativeccs") == 0) { config.nativeccslb = strtof(y, &endptr); } // printf(" lbnativeccs"); }
+            else if (strcmp(x, "driftlength") == 0) { config.len = strtof(y, &endptr); } // printf(" driftlength"); }
+            else if (strcmp(x, "baselineflag") == 0) { config.baselineflag = strtol(y, &endptr, 10); } // printf(" baselineflag"); }
+            else if (strcmp(x, "noiseflag") == 0) { config.noiseflag = strtol(y, &endptr, 10); } // printf(" noiseflag"); }
             //Experimental
-            if (strstr(x, "filterwidth") != NULL) { config.filterwidth = strtol(y, &endptr, 10); } // printf(" filterwidth"); }
-            if (strstr(x, "zerolog") != NULL) { config.zerolog = strtof(y, &endptr); } // printf(" zerolog"); }
+            else if (strcmp(x, "filterwidth") == 0) { config.filterwidth = strtol(y, &endptr, 10); } // printf(" filterwidth"); }
+            else if (strcmp(x, "zerolog") == 0) { config.zerolog = strtof(y, &endptr); } // printf(" zerolog"); }
             //Peak Parameters
-            if (strstr(x, "peakwindow") != NULL) { config.peakwin = strtof(y, &endptr); } // printf(" peakwindow"); }
-            if (strstr(x, "peakthresh") != NULL) { config.peakthresh = strtof(y, &endptr); } // printf(" peakthresh"); }
-            if (strstr(x, "peaknorm") != NULL) { config.peaknorm = strtol(y, &endptr, 10); } // printf(" peaknorm"); }
+            else if (strcmp(x, "peakwindow") == 0) { config.peakwin = strtof(y, &endptr); } // printf(" peakwindow"); }
+            else if (strcmp(x, "peakthresh") == 0) { config.peakthresh = strtof(y, &endptr); } // printf(" peakthresh"); }
+            else if (strcmp(x, "peaknorm") == 0) { config.peaknorm = strtol(y, &endptr, 10); } // printf(" peaknorm"); }
             // DoubleDec Parameters
-            if (strstr(x, "doubledec") != NULL) { config.doubledec = strtol(y, &endptr, 10); }
-            if (strstr(x, "kernel") != NULL) { strcpy(config.kernel, y); }
-            if (strstr(x, "suppression_topn") != NULL) {config.suppression_topn = strtol(y, &endptr, 10);}
-            if (strstr(x, "suppression_topx") != NULL) {config.suppression_topx = strtof(y, &endptr);}
-            if (strstr(x, "suppression_percent") != NULL) {config.suppression_percent = strtof(y, &endptr);}
-            if (strstr(x, "suppression_startit") != NULL) {config.suppression_startit = strtol(y, &endptr, 10);}
-            if (strstr(x, "suppression_harmonic") != NULL) { config.suppression_harmonic = strtol(y, &endptr, 10); }
-            if (strstr(x, "suppression_satellite") != NULL) { config.suppression_satellite = strtol(y, &endptr, 10); }
+            else if (strcmp(x, "doubledec") == 0) { config.doubledec = strtol(y, &endptr, 10); }
+            else if (strcmp(x, "kernel") == 0) { strcpy(config.kernel, y); }
+            else if (strcmp(x, "suppression_topn") == 0) {config.suppression_topn = strtol(y, &endptr, 10);}
+            else if (strcmp(x, "suppression_topx") == 0) {config.suppression_topx = strtof(y, &endptr);}
+            else if (strcmp(x, "suppression_percent") == 0) {config.suppression_percent = strtof(y, &endptr);}
+            else if (strcmp(x, "suppression_startit") == 0) {config.suppression_startit = strtol(y, &endptr, 10);}
+            else if (strcmp(x, "suppression_harmonic") == 0) { config.suppression_harmonic = strtol(y, &endptr, 10); }
+            else if (strcmp(x, "suppression_satellite") == 0) { config.suppression_satellite = strtol(y, &endptr, 10); }
         }
         //printf("\n\n");
     }
     fclose(file);
+
+    char directory[500];
+    config_directory(filename, directory, sizeof(directory));
+    resolve_config_path(config.infile, sizeof(config.infile), directory, 0);
+    resolve_config_path(config.outfile, sizeof(config.outfile), directory, 1);
+    if (config.mflag) { resolve_config_path(config.mfile, sizeof(config.mfile), directory, 0); }
+    if (config.manualflag) { resolve_config_path(config.manualfile, sizeof(config.manualfile), directory, 0); }
+    if (config.kernel[0] != '\0') { resolve_config_path(config.kernel, sizeof(config.kernel), directory, 0); }
 
     PostImport(&config);
 

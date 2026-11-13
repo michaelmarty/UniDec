@@ -10,7 +10,7 @@ import textwrap
 import unittest
 from pathlib import Path
 
-from _test_support import has_gui_display, importer_fixture
+from tests._test_support import has_gui_display, importer_fixture
 
 
 UNIDEC_ROOT = Path(__file__).resolve().parents[1]

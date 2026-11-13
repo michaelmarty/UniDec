@@ -1,5 +1,7 @@
 import os
 import time
+from dataclasses import asdict, dataclass
+from numbers import Integral, Real
 import numpy as np
 import unidec.tools as ud
 import platform
@@ -13,6 +15,107 @@ import io
 __author__ = 'Michael.Marty'
 
 version = __version__
+
+
+@dataclass(frozen=True)
+class ParameterSpec:
+    attribute: str
+    dtype: type
+    text_key: str
+    hdf5_key: str | None = None
+    minimum: float | None = None
+    maximum: float | None = None
+    choices: tuple | None = None
+    modes: tuple[str, ...] = ("ms", "imms", "cdms", "metaunidec", "unichrom")
+    affects: str = "deconvolution"
+    units: str | None = None
+    description: str = ""
+    public: bool = True
+    optional: bool = False
+
+    def schema(self):
+        schema = asdict(self)
+        schema["dtype"] = self.dtype.__name__
+        return schema
+
+
+CONVENTIONAL_PARAMETER_SPECS = (
+    ParameterSpec("minmz", float, "minmz", "minmz", 0, 1e9,
+                  affects="processing", units="m/z", optional=True),
+    ParameterSpec("maxmz", float, "maxmz", "maxmz", 0, 1e9,
+                  affects="processing", units="m/z", optional=True),
+    ParameterSpec("mzbins", float, "mzbins", "mzbins", 0, 1000,
+                  affects="processing", units="m/z"),
+    ParameterSpec("startz", int, "startz", "startz", 1, 1000, units="charge"),
+    ParameterSpec("endz", int, "endz", "endz", 1, 1000, units="charge"),
+    ParameterSpec("masslb", float, "masslb", "masslb", 0, 1e9, units="Da"),
+    ParameterSpec("massub", float, "massub", "massub", 0, 1e9, units="Da"),
+    ParameterSpec("massbins", float, "massbins", "massbins", 1e-12, 1e6, units="Da"),
+    ParameterSpec("numit", int, "numit", "numit", 1, 1000000),
+    ParameterSpec("mzsig", float, "mzsig", "mzsig", 1e-12, 1e6, units="m/z"),
+    ParameterSpec("psig", float, "psig", "psig", 0, 1e6),
+    ParameterSpec("beta", float, "beta", "beta", 0, 1e6),
+    ParameterSpec("psfun", int, "psfun", "psfun", choices=(0, 1, 2)),
+    ParameterSpec("psfunz", int, "zpsfn", "psfunz", choices=(0, 1, 2)),
+    ParameterSpec("peakwindow", float, "peakwindow", "peakwindow", 0, 1e9,
+                  affects="peaks", units="Da"),
+    ParameterSpec("peakthresh", float, "peakthresh", "peakthresh", 0, 1,
+                  affects="peaks"),
+)
+
+
+ION_MOBILITY_PARAMETER_SPECS = (
+    ParameterSpec("mindt", float, "mindt", "mindt", 0, 1e9,
+                  modes=("imms",), affects="processing", units="ms", optional=True),
+    ParameterSpec("maxdt", float, "maxdt", "maxdt", 0, 1e9,
+                  modes=("imms",), affects="processing", units="ms", optional=True),
+    ParameterSpec("smoothdt", float, "smoothdt", "smoothdt", 0, 1e6,
+                  modes=("imms",), affects="processing"),
+    ParameterSpec("subbufdt", float, "subbufdt", "subbufdt", 0, 1e6,
+                  modes=("imms",), affects="processing"),
+    ParameterSpec("dtsig", float, "dtsig", "dtsig", 0, 1e6,
+                  modes=("imms",), units="ms"),
+    ParameterSpec("ccslb", float, "ccslb", "ccslb", 0, 1e9,
+                  modes=("imms",), units="CCS"),
+    ParameterSpec("ccsub", float, "ccsub", "ccsub", 0, 1e9,
+                  modes=("imms",), units="CCS"),
+    ParameterSpec("ccsbins", float, "ccsbins", "ccsbins", 1e-12, 1e9,
+                  modes=("imms",), units="CCS"),
+)
+
+
+CDMS_PARAMETER_SPECS = (
+    ParameterSpec("CDslope", float, "CDslope", "CDslope", -1e12, 1e12,
+                  modes=("cdms",), affects="processing"),
+    ParameterSpec("CDzbins", int, "CDzbins", "CDzbins", 1, 1000,
+                  modes=("cdms",), affects="processing", units="charge"),
+    ParameterSpec("CDres", float, "CDres", "CDres", 0, 1e6,
+                  modes=("cdms",), affects="processing", units="m/z"),
+    ParameterSpec("csig", float, "csig", "csig", 0, 1e6,
+                  modes=("cdms",), units="charge"),
+    ParameterSpec("zzsig", float, "zzsig", "zzsig", 0, 1e6,
+                  modes=("cdms",), units="charge"),
+    ParameterSpec("subtype", int, "subtype", "subtype", choices=(0, 1),
+                  modes=("cdms",), affects="processing"),
+)
+
+
+UNICHROM_PARAMETER_SPECS = (
+    ParameterSpec("chromatogram_type", int, "chromatogram_type", "chromatogram_type",
+                  choices=(0, 1), modes=("unichrom",), affects="windowing"),
+    ParameterSpec("time_window", float, "chrom_time_window", "chrom_time_window", 1e-12, 1e9,
+                  modes=("unichrom",), affects="windowing", units="time"),
+    ParameterSpec("chrom_peak_width", float, "chrom_peak_width", "chrom_peak_width", 1e-12, 1e9,
+                  modes=("unichrom",), affects="windowing", units="time"),
+    ParameterSpec("scan_window", float, "scan_window", "scan_window", 1e-12, 1e9,
+                  modes=("unichrom",), affects="windowing", units="scan"),
+    ParameterSpec("time_start", float, "time_start", "time_start", 0, 1e12,
+                  modes=("unichrom",), affects="windowing", units="time", optional=True),
+    ParameterSpec("time_end", float, "time_end", "time_end", 0, 1e12,
+                  modes=("unichrom",), affects="windowing", units="time", optional=True),
+    ParameterSpec("dtsig", float, "dtsig", "dtsig", 0, 1e6,
+                  modes=("unichrom",), units="time"),
+)
 
 
 def ofile_reader(path):
@@ -46,6 +149,154 @@ class UniDecConfig(object):
     config to text file for running UniDec core binaries and for storing parameters for GUI.
     """
 
+    _HDF5_INT_KEYS = frozenset({
+        "numit", "endz", "startz", "suppression_topn", "suppression_startit",
+        "suppression_harmonic", "suppression_satellite", "psfun", "psfunz",
+        "variablepw", "discreteplot", "subtype", "normthresh", "aggressive",
+        "rawflag", "rescale_newblur", "poolflag", "noiseflag", "linflag",
+        "publicationmode", "isotopemode", "peaknorm", "datanorm", "baselineflag",
+        "orbimode", "filterwidth", "manualfileflag", "mfileflag", "imflag",
+        "cdmsflag", "smashflag",
+    })
+    _HDF5_FLOAT_KEYS = frozenset({
+        "zzsig", "psig", "mzsig", "beta", "suppression_topx",
+        "suppression_percent", "massub", "masslb", "msig", "molig", "massbins",
+        "mtabsig", "minmz", "maxmz", "subbuff", "smooth", "mzbins", "peakwindow",
+        "peakthresh", "peakplotthresh", "plotsep", "intthresh", "reductionpercent",
+        "minratio", "adductmass", "nativezub", "nativezlb", "accvol",
+        "peakshapeinflate", "integratelb", "integrateub", "zerolog",
+    })
+    _HDF5_BOOL_KEYS = frozenset({"doubledec"})
+    _HDF5_STRING_KEYS = frozenset({
+        "version", "original_file", "cmap", "peakcmap", "spectracmap",
+    })
+
+    def _parameter_specs(self):
+        if getattr(self, "agent_mode", None) == "unichrom":
+            mode = "unichrom"
+        elif self.cdmsflag == 1:
+            mode = "cdms"
+        elif self.imflag == 1:
+            mode = "imms"
+        elif self.metamode == -1:
+            mode = "metaunidec"
+        else:
+            mode = "ms"
+        specs = (CONVENTIONAL_PARAMETER_SPECS + ION_MOBILITY_PARAMETER_SPECS
+                 + CDMS_PARAMETER_SPECS + UNICHROM_PARAMETER_SPECS)
+        return {
+            spec.attribute: spec
+            for spec in specs
+            if spec.public and mode in spec.modes
+        }
+
+    def parameter_schema(self):
+        """Return serializable metadata for supported conventional-MS parameters."""
+        return {name: spec.schema() for name, spec in self._parameter_specs().items()}
+
+    def parameter_values(self, names=None):
+        """Return public parameter values, representing unset optionals as ``None``."""
+        specs = self._parameter_specs()
+        if names is None:
+            names = tuple(specs)
+        elif isinstance(names, str):
+            names = (names,)
+        unknown = set(names) - set(specs)
+        if unknown:
+            raise ValueError("Unsupported parameters: " + ", ".join(sorted(unknown)))
+        values = {}
+        for name in names:
+            value = getattr(self, name)
+            if specs[name].optional and value in ("", -1, None):
+                value = None
+            values[name] = value
+        return values
+
+    @staticmethod
+    def _validate_parameter_value(spec, value):
+        if value is None:
+            if spec.optional:
+                return None
+            raise ValueError("may not be None")
+        if isinstance(value, (bool, np.bool_)):
+            raise ValueError("must be a number, not a boolean")
+        if spec.dtype is int:
+            if not isinstance(value, Integral):
+                raise ValueError("must be an integer")
+            normalized = int(value)
+        elif spec.dtype is float:
+            if not isinstance(value, Real):
+                raise ValueError("must be a number")
+            normalized = float(value)
+        else:
+            if not isinstance(value, spec.dtype):
+                raise ValueError(f"must be {spec.dtype.__name__}")
+            normalized = value
+        if isinstance(normalized, (int, float)) and not np.isfinite(normalized):
+            raise ValueError("must be finite")
+        if spec.minimum is not None and normalized < spec.minimum:
+            raise ValueError(f"must be at least {spec.minimum:g}")
+        if spec.maximum is not None and normalized > spec.maximum:
+            raise ValueError(f"must be at most {spec.maximum:g}")
+        if spec.choices is not None and normalized not in spec.choices:
+            raise ValueError(f"must be one of {spec.choices}")
+        return normalized
+
+    def validate_parameters(self, values):
+        """Validate an update and return normalized values without changing this config."""
+        if not hasattr(values, "items"):
+            raise ValueError("Parameter updates must be a mapping")
+        specs = self._parameter_specs()
+        unknown = set(values) - set(specs)
+        if unknown:
+            raise ValueError("Unsupported parameters: " + ", ".join(sorted(unknown)))
+        normalized = {}
+        errors = []
+        for name, value in values.items():
+            try:
+                normalized[name] = self._validate_parameter_value(specs[name], value)
+            except ValueError as error:
+                errors.append(f"{name} {error}")
+        if errors:
+            raise ValueError("; ".join(errors))
+
+        proposed = self.parameter_values()
+        proposed.update(normalized)
+        if proposed["startz"] > proposed["endz"]:
+            errors.append("startz must be less than or equal to endz")
+        if (proposed["minmz"] is not None and proposed["maxmz"] is not None
+                and proposed["minmz"] >= proposed["maxmz"]):
+            errors.append("minmz must be less than maxmz")
+        if proposed["masslb"] >= proposed["massub"]:
+            errors.append("masslb must be less than massub")
+        if self.imflag == 1:
+            if (proposed["mindt"] is not None and proposed["maxdt"] is not None
+                    and proposed["mindt"] >= proposed["maxdt"]):
+                errors.append("mindt must be less than maxdt")
+            if proposed["ccslb"] >= proposed["ccsub"]:
+                errors.append("ccslb must be less than ccsub")
+        if self.cdmsflag == 1 and proposed["CDslope"] == 0:
+            errors.append("CDslope must be nonzero")
+        if getattr(self, "agent_mode", None) == "unichrom":
+            time_start = proposed["time_start"]
+            time_end = proposed["time_end"]
+            if (time_start is None) != (time_end is None):
+                errors.append("time_start and time_end must either both be set or both be null")
+            elif time_start is not None and time_start >= time_end:
+                errors.append("time_start must be less than time_end")
+        if errors:
+            raise ValueError("; ".join(errors))
+        return normalized
+
+    def update_parameters(self, values):
+        """Atomically validate and apply supported conventional-MS parameters."""
+        normalized = self.validate_parameters(values)
+        for name, value in normalized.items():
+            spec = self._parameter_specs()[name]
+            setattr(self, name, "" if value is None and spec.optional else value)
+        self.numz = self.endz - self.startz + 1
+        return normalized
+
     def __init__(self):
         """
         Initialize Everything. Set default paths and run self.initialize
@@ -63,6 +314,7 @@ class UniDecConfig(object):
         self.outfname = ""
         self.mfile = "mass.dat"
         self.manualfile = "man.dat"
+        self.fwhmfile = "fwhm.dat"
         self.smashfile = "smash.dat"
         self.confname = "conf.dat"
         self.hdf_file = "default.hdf5"
@@ -73,6 +325,7 @@ class UniDecConfig(object):
         self.dirname = ''
         self.udir = ''
         self.filename = ''
+        self.original_file = ''
         self.extension = ''
         self.deconfile = ''
         self.errorfile = ''
@@ -116,6 +369,7 @@ class UniDecConfig(object):
         self.time_window = 2
         self.chrom_peak_width = 2
         self.chromatogram_type = 0
+        self.chromatogram_norm = 0
         self.calc_unichrom_scores = False
         self.sw_time_window = 1
         self.sw_scan_offset = 10
@@ -325,6 +579,7 @@ class UniDecConfig(object):
 
         self.doubledec = False
         self.kernel = ""
+        self.kerneldata = np.array([])
 
         # IsoDec specific
         self.isomode = 0
@@ -345,6 +600,7 @@ class UniDecConfig(object):
             "cdmsflag": (self.cdmsflag, int),
             "input": (self.infname, str),
             "output": (self.outfname, str),
+            "original_file": (self.original_file, str),
             "numit": (self.numit, int),
             "numz": (self.numz, int),
             "endz": (self.endz, int),
@@ -372,6 +628,7 @@ class UniDecConfig(object):
             "isomode": (self.isomode, int),
             "mfile": (self.mfile, str),
             "manualfile": (self.manualfile, str),
+            "fwhmfile": (self.fwhmfile, str),
             "minmz": (self.minmz, float),
             "maxmz": (self.maxmz, float),
             "subbuff": (self.subbuff, float),
@@ -419,6 +676,8 @@ class UniDecConfig(object):
             "CDprethresh": (self.CDprethresh, float),
             "HTksmooth": (self.HTksmooth, float),
             "CDScanCompress": (self.CDScanCompress, int),
+            "chromatogram_type": (self.chromatogram_type, int),
+            "chromatogram_norm": (self.chromatogram_norm, int),
             "HTmaxscans": (self.HTmaxscans, int),
             "HToutlb": (self.HToutputlb, float),
             "HToutub": (self.HToutputub, float),
@@ -697,6 +956,7 @@ class UniDecConfig(object):
 
         self.doubledec = False
         self.kernel = ""
+        self.kerneldata = np.array([])
 
     def default_colormaps(self):
         """
@@ -723,8 +983,9 @@ class UniDecConfig(object):
         self.numz = self.endz - self.startz + 1
         self.get_dict()
 
+        config_dir = os.path.dirname(os.path.abspath(name))
         f = open(name, 'w+')
-        ignorelist = ["mfile", "manualfile", "smashfile", "ofile", "matchfile", "peaksfile", "kernel"]
+        ignorelist = ["mfile", "manualfile", "fwhmfile", "smashfile", "ofile", "matchfile", "peaksfile", "kernel"]
         for key in self.namedict.keys():
             if key in ignorelist:
                 continue
@@ -747,23 +1008,30 @@ class UniDecConfig(object):
                         else:
                             raise ValueError(f"Value for {key} is not a valid int: {value}")
 
+                if key in ("input", "output"):
+                    value = self._path_for_config(value, config_dir)
+                    if key == "output" and value == ".":
+                        value = "./"
                 outstring = str(value)
                 if outstring != "" and outstring != " ":
                     f.write(key + " " + outstring + "\n")
 
         if self.mfileflag:
             if not ud.isempty(self.masslist):
-                f.write("mfile " + str(self.mfile) + "\n")
+                f.write("mfile " + self._path_for_config(self.mfile, config_dir) + "\n")
             else:
                 print("Need to specify mass list. Running without mass list.")
         if self.manualfileflag:
             if not ud.isempty(self.manuallist):
-                f.write("manualfile " + str(self.manualfile) + "\n")
+                f.write("manualfile " + self._path_for_config(self.manualfile, config_dir) + "\n")
             else:
                 print("Need to specify manual assignments. Running without assignments.")
 
+        if self.variablepw:
+            f.write("fwhmfile " + self._path_for_config(self.fwhmfile, config_dir) + "\n")
+
         if self.kernel != "":
-            f.write("kernel " + str(self.kernel) + "\n")
+            f.write("kernel " + self._path_for_config(self.kernel, config_dir) + "\n")
 
         # Add IsoDec Config to File
         self.idconfig.config_export(f)
@@ -814,281 +1082,303 @@ class UniDecConfig(object):
         :return: None
         """
         if self.batchflag != 1:
+            config_dir = os.path.dirname(os.path.abspath(name))
+            loaded_endz = False
+            loaded_numz = False
             f = open(name, 'r', encoding="utf-8")
             self.manualfileflag = 0
             self.mfileflag = 0
             for line in f:
-                if len(line.split()) > 1:
-                    if line.startswith("version"):
+                parts = line.split()
+                if len(parts) > 1:
+                    key = parts[0]
+                    if key == "original_file" and not self.original_file:
+                        self.original_file = line.partition(" ")[2].strip()
+                    if key == "version":
                         self.inputversion = line.split()[1]
-                    if line.startswith("imflag"):
+                    if key == "imflag":
                         self.imflag = ud.string_to_int(line.split()[1])
-                    if line.startswith("cdmsflag"):
+                    if key == "cdmsflag":
                         self.cdmsflag = ud.string_to_int(line.split()[1])
-                    if line.startswith("minmz"):
+                    if key == "minmz":
                         self.minmz = ud.string_to_value(line.split()[1])
-                    if line.startswith("maxmz"):
+                    if key == "maxmz":
                         self.maxmz = ud.string_to_value(line.split()[1])
-                    if line.startswith("mindt"):
+                    if key == "mindt":
                         self.mindt = ud.string_to_value(line.split()[1])
-                    if line.startswith("maxdt"):
+                    if key == "maxdt":
                         self.maxdt = ud.string_to_value(line.split()[1])
                     if self.batchflag == 0:
-                        if line.startswith("numit"):
+                        if key == "numit":
                             self.numit = ud.string_to_int(line.split()[1])
-                        if line.startswith("numz"):
+                        if key == "numz":
                             self.numz = ud.string_to_int(line.split()[1])
-                        if line.startswith("endz"):
+                            loaded_numz = True
+                        if key == "endz":
                             self.endz = ud.string_to_int(line.split()[1])
-                        if line.startswith("startz"):
+                            loaded_endz = True
+                        if key == "startz":
                             self.startz = ud.string_to_int(line.split()[1])
-                        if line.startswith("centroided"):
+                        if key == "centroided":
                             self.centroided = ud.string_to_int(line.split()[1])
-                        if line.startswith("verbose"):
+                        if key == "verbose":
                             self.verbose = ud.string_to_int(line.split()[1])
-                        if line.startswith("CDslope"):
+                        if key == "CDslope":
                             self.CDslope = ud.string_to_value(line.split()[1])
-                        if line.startswith("CDzbins"):
+                        if key == "CDzbins":
                             self.CDzbins = ud.string_to_value(line.split()[1])
-                        if line.startswith("CDres"):
+                        if key == "CDres":
                             self.CDres = ud.string_to_value(line.split()[1])
-                        if line.startswith("CDScanStart"):
+                        if key == "CDScanStart":
                             self.CDScanStart = ud.string_to_int(line.split()[1])
-                        if line.startswith("CDprethresh"):
+                        if key == "CDprethresh":
                             self.CDprethresh = ud.string_to_value(line.split()[1])
-                        if line.startswith("CDScanEnd"):
+                        if key == "CDScanEnd":
                             self.CDScanEnd = ud.string_to_int(line.split()[1])
-                        if line.startswith("HTksmooth"):
+                        if key == "HTksmooth":
                             self.HTksmooth = ud.string_to_value(line.split()[1])
-                        if line.startswith("HTtimeshift"):
+                        if key == "HTtimeshift":
                             self.HTtimeshift = ud.string_to_value(line.split()[1])
-                        if line.startswith("HTtimepad"):
+                        if key == "HTtimepad":
                             self.HTtimepad = ud.string_to_value(line.split()[1])
-                        if line.startswith("HTanalysistime"):
+                        if key == "HTanalysistime":
                             self.HTanalysistime = ud.string_to_value(line.split()[1])
-                        if line.startswith("HTxaxis"):
+                        if key == "HTxaxis":
                             self.HTxaxis = line.split()[1]
-                        if line.startswith("HTcycleindex"):
+                        if key == "HTcycleindex":
                             self.HTcycleindex = ud.string_to_value(line.split()[1])
-                        if line.startswith("HTcylctime"):
+                        if key == "HTcylctime":
                             self.HTcycletime = ud.string_to_value(line.split()[1])
-                        if line.startswith("htbit"):
+                        if key == "htbit":
                             self.htbit = str(line.split()[1])
-                        if line.startswith("CDScanCompress"):
+                        if key == "CDScanCompress":
                             self.CDScanCompress = ud.string_to_value(line.split()[1])
-                        if line.startswith("HTmaxscans"):
+                        if key == "chromatogram_type":
+                            self.chromatogram_type = ud.string_to_int(line.split()[1])
+                        if key == "chromatogram_norm":
+                            self.chromatogram_norm = ud.string_to_int(line.split()[1])
+                        if key == "HTmaxscans":
                             self.HTmaxscans = ud.string_to_int(line.split()[1])
-                        if line.startswith("HToutlb"):
+                        if key == "HToutlb":
                             self.HToutputlb = ud.string_to_value(line.split()[1])
-                        if line.startswith("HToutub"):
+                        if key == "HToutub":
                             self.HToutputub = ud.string_to_value(line.split()[1])
-                        if line.startswith("demultiplexmode"):
+                        if key == "demultiplexmode":
                             self.demultiplexmode = line.split()[1]
-                        if line.startswith("FTstart"):
+                        if key == "FTstart":
                             self.FTstart = ud.string_to_value(line.split()[1])
-                        if line.startswith("FTend"):
+                        if key == "FTend":
                             self.FTend = ud.string_to_value(line.split()[1])
-                        if line.startswith("FTflatten"):
+                        if key == "FTflatten":
                             self.FTflatten = ud.string_to_int(line.split()[1])
-                        if line.startswith("FTapodize"):
+                        if key == "FTapodize":
                             self.FTapodize = ud.string_to_int(line.split()[1])
-                        if line.startswith("FTsmooth"):
+                        if key == "FTsmooth":
                             self.FTsmooth = ud.string_to_value(line.split()[1])
-                        if line.startswith("HTmaskn"):
+                        if key == "HTmaskn":
                             self.HTmaskn = ud.string_to_value(line.split()[1])
-                        if line.startswith("HTwin"):
+                        if key == "HTwin":
                             self.HTwin = ud.string_to_value(line.split()[1])
-                        if line.startswith("zzsig"):
+                        if key == "zzsig":
                             self.zzsig = ud.string_to_value(line.split()[1])
-                        if line.startswith("psig"):
+                        if key == "psig":
                             self.psig = ud.string_to_value(line.split()[1])
-                        if line.startswith("beta"):
+                        if key == "beta":
                             self.beta = ud.string_to_value(line.split()[1])
-                        if line.startswith("suppression_topn"):
+                        if key == "suppression_topn":
                             self.suppression_topn = ud.string_to_int(line.split()[1])
-                        # if line.startswith("topncharges"):
+                        # if key == "topncharges":
                         #     self.suppression_topn = ud.string_to_int(line.split()[1])
-                        if line.startswith("suppression_topx"):
+                        if key == "suppression_topx":
                             self.suppression_topx = ud.string_to_value(line.split()[1])
-                        # if line.startswith("zcutoff"):
+                        # if key == "zcutoff":
                         #     self.suppression_topx = ud.string_to_value(line.split()[1])
-                        if line.startswith("suppression_percent"):
+                        if key == "suppression_percent":
                             self.suppression_percent = ud.string_to_value(line.split()[1])
-                        # if line.startswith("zcutpercent"):
+                        # if key == "zcutpercent":
                         #     self.suppression_percent = ud.string_to_value(line.split()[1])
-                        if line.startswith("suppression_startit"):
+                        if key == "suppression_startit":
                             self.suppression_startit = ud.string_to_int(line.split()[1])
-                        # if line.startswith("zcutstartit"):
+                        # if key == "zcutstartit":
                         #     self.suppression_startit = ud.string_to_int(line.split()[1])
-                        if line.startswith("suppression_harmonic"):
+                        if key == "suppression_harmonic":
                             self.suppression_harmonic = ud.string_to_int(line.split()[1])
-                        if line.startswith("suppression_satellite"):
+                        if key == "suppression_satellite":
                             self.suppression_satellite = ud.string_to_int(line.split()[1])
-                        if line.startswith("mzsig"):
+                        if key == "mzsig":
                             self.mzsig = ud.string_to_value(line.split()[1])
-                        if line.startswith("psfun"):
+                        if key == "psfun":
                             self.psfun = ud.string_to_int(line.split()[1])
-                        if line.startswith("zpsfn"):
+                        if key == "zpsfn":
                             self.psfunz = ud.string_to_int(line.split()[1])
-                        if line.startswith("discreteplot"):
+                        if key == "variablepw":
+                            self.variablepw = ud.string_to_int(line.split()[1])
+                        if key == "minratio":
+                            self.minratio = ud.string_to_value(line.split()[1])
+                        if key == "fwhmfile":
+                            self.fwhmfile = os.path.join(config_dir, line.partition(" ")[2].strip())
+                        if key == "discreteplot":
                             self.discreteplot = ud.string_to_int(line.split()[1])
-                        if line.startswith("smashflag"):
+                        if key == "smashflag":
                             self.smashflag = ud.string_to_int(line.split()[1])
-                        if line.startswith("massub"):
+                        if key == "massub":
                             self.massub = ud.string_to_value(line.split()[1])
-                        if line.startswith("masslb"):
+                        if key == "masslb":
                             self.masslb = ud.string_to_value(line.split()[1])
-                        if line.startswith("msig"):
+                        if key == "msig":
                             self.msig = ud.string_to_value(line.split()[1])
-                        if line.startswith("molig"):
+                        if key == "molig":
                             self.molig = ud.string_to_value(line.split()[1])
-                        if line.startswith("massbins"):
+                        if key == "massbins":
                             self.massbins = ud.string_to_value(line.split()[1])
-                        if line.startswith("mtabsig"):
+                        if key == "mtabsig":
                             self.mtabsig = ud.string_to_value(line.split()[1])
-                        if line.startswith("mfile"):
-                            # self.mfile = line.split()[1]
+                        if key == "mfile":
+                            self.mfile = os.path.join(config_dir, line.partition(" ")[2].strip())
                             self.mfileflag = 1
-                        if line.startswith("manualfile"):
-                            # self.manualfile = line.split()[1]
+                        if key == "manualfile":
+                            self.manualfile = os.path.join(config_dir, line.partition(" ")[2].strip())
                             self.manualfileflag = 1
-                        if line.startswith("subbuff"):
+                        if key == "subbuff":
                             self.subbuff = ud.string_to_value(line.split()[1])
                             if self.subbuff < 0:
                                 self.subtype = 2
                                 self.subbuff = abs(self.subbuff)
-                        if line.startswith("subtype"):
+                        if key == "subtype":
                             self.subtype = ud.string_to_int(line.split()[1])
-                        if line.startswith("smooth") and not line.startswith("smoothdt"):
+                        if key == "smooth":
                             self.smooth = ud.string_to_value(line.split()[1])
-                        if line.startswith("mzbins"):
+                        if key == "mzbins":
                             self.mzbins = ud.string_to_value(line.split()[1])
-                        if line.startswith("peakwindow"):
+                        if key == "peakwindow":
                             self.peakwindow = ud.string_to_value(line.split()[1])
-                        if line.startswith("peakthresh"):
+                        if key == "peakthresh":
                             self.peakthresh = ud.string_to_value(line.split()[1])
-                        if line.startswith("normthresh"):
+                        if key == "normthresh":
                             self.normthresh = ud.string_to_int(line.split()[1])
-                        if line.startswith("peakplotthresh"):
+                        if key == "peakplotthresh":
                             self.peakplotthresh = ud.string_to_value(line.split()[1])
-                        if line.startswith("plotsep"):
+                        if key == "plotsep":
                             self.separation = ud.string_to_value(line.split()[1])
-                        if line.startswith("intthresh"):
+                        if key == "intthresh":
                             self.intthresh = ud.string_to_value(line.split()[1])
-                        if line.startswith("reductionpercent"):
+                        if key == "reductionpercent":
                             self.reductionpercent = ud.string_to_value(line.split()[1])
-                        if line.startswith("aggressive"):
+                        if key == "aggressive":
                             self.aggressiveflag = ud.string_to_int(line.split()[1])
-                        if line.startswith("rawflag"):
+                        if key == "rawflag":
                             self.rawflag = ud.string_to_int(line.split()[1])
-                        if line.startswith("rescale_newblur"):
+                        if key == "rescale_newblur":
                             self.rescale_newblur = ud.string_to_int(line.split()[1])
-                        if line.startswith("adductmass"):
+                        if key == "adductmass":
                             self.adductmass = ud.string_to_value(line.split()[1])
-                        if line.startswith("nativezub"):
+                        if key == "nativezub":
                             self.nativezub = ud.string_to_value(line.split()[1])
-                        if line.startswith("nativezlb"):
+                        if key == "nativezlb":
                             self.nativezlb = ud.string_to_value(line.split()[1])
-                        if line.startswith("poolflag"):
+                        if key == "poolflag":
                             self.poolflag = ud.string_to_int(line.split()[1])
-                        if line.startswith("accvol"):
+                        if key == "accvol":
                             self.detectoreffva = ud.string_to_value(line.split()[1])
-                        if line.startswith("peakshapeinflate"):
+                        if key == "peakshapeinflate":
                             self.inflate = ud.string_to_value(line.split()[1])
-                        if line.startswith("noiseflag"):
+                        if key == "noiseflag":
                             self.noiseflag = ud.string_to_value(line.split()[1])
-                        if line.startswith("linflag"):
+                        if key == "linflag":
                             self.linflag = ud.string_to_int(line.split()[1])
-                        if line.startswith("cmap"):
+                        if key == "cmap":
                             self.cmap = str(line.split()[1])
-                        if line.startswith("peakcmap"):
+                        if key == "peakcmap":
                             self.peakcmap = str(line.split()[1])
-                        if line.startswith("spectracmap"):
+                        if key == "spectracmap":
                             self.spectracmap = str(line.split()[1])
-                        if line.startswith("publicationmode"):
+                        if key == "publicationmode":
                             self.publicationmode = ud.string_to_int(line.split()[1])
-                        if line.startswith("isotopemode"):
+                        if key == "isotopemode":
                             self.isotopemode = ud.string_to_int(line.split()[1])
-                        if line.startswith("integratelb"):
+                        if key == "integratelb":
                             self.integratelb = ud.string_to_value(line.split()[1])
-                        if line.startswith("integrateub"):
+                        if key == "integrateub":
                             self.integrateub = ud.string_to_value(line.split()[1])
-                        if line.startswith("filterwidth"):
+                        if key == "filterwidth":
                             self.filterwidth = ud.string_to_int(line.split()[1])
-                        if line.startswith("zerolog"):
+                        if key == "zerolog":
                             self.zerolog = ud.string_to_value(line.split()[1])
-                        if line.startswith("peaknorm"):
+                        if key == "peaknorm":
                             self.peaknorm = ud.string_to_int(line.split()[1])
-                        if line.startswith("datanorm"):
+                        if key == "datanorm":
                             self.datanorm = ud.string_to_int(line.split()[1])
-                        if line.startswith("baselineflag"):
+                        if key == "baselineflag":
                             self.baselineflag = ud.string_to_value(line.split()[1])
-                        if line.startswith("orbimode"):
+                        if key == "orbimode":
                             self.orbimode = ud.string_to_int(line.split()[1])
-                        if line.startswith("doubledec"):
+                        if key == "doubledec":
                             ddval = ud.string_to_int(line.split()[1])
                             if ddval == 0:
                                 self.doubledec = False
                             else:
                                 self.doubledec = True
-                        if line.startswith("kernel"):
-                            self.kernel = line.strip()[7:]
+                        if key == "kernel":
+                            self.kernel = os.path.join(config_dir, line.partition(" ")[2].strip())
 
                         # IM Imports
-                        if line.startswith("ccsub"):
+                        if key == "ccsub":
                             self.ccsub = ud.string_to_value(line.split()[1])
-                        if line.startswith("ccslb"):
+                        if key == "ccslb":
                             self.ccslb = ud.string_to_value(line.split()[1])
-                        if line.startswith("dtsig"):
+                        if key == "dtsig":
                             self.dtsig = ud.string_to_value(line.split()[1])
-                        if line.startswith("csig"):
+                        if key == "csig":
                             self.csig = ud.string_to_value(line.split()[1])
-                        if line.startswith("ccsbins"):
+                        if key == "ccsbins":
                             self.ccsbins = ud.string_to_value(line.split()[1])
-                        if line.startswith("subbufdt"):
+                        if key == "subbufdt":
                             self.subbufdt = ud.string_to_value(line.split()[1])
-                        if line.startswith("smoothdt"):
+                        if key == "smoothdt":
                             self.smoothdt = ud.string_to_value(line.split()[1])
-                        if line.startswith("temp"):
+                        if key == "temp":
                             self.temp = ud.string_to_value(line.split()[1])
-                        if line.startswith("pressure"):
+                        if key == "pressure":
                             self.pressure = ud.string_to_value(line.split()[1])
-                        if line.startswith("volt"):
+                        if key == "volt":
                             self.volt = ud.string_to_value(line.split()[1])
-                        if line.startswith("gasmass"):
+                        if key == "gasmass":
                             self.gasmass = ud.string_to_value(line.split()[1])
-                        if (line.startswith("to")) or (line.startswith("tnaught")):
+                        if (key == "to") or (key == "tnaught"):
                             self.to = ud.string_to_value(line.split()[1])
-                        if line.startswith("driftlength"):
+                        if key == "driftlength":
                             self.driftlength = ud.string_to_value(line.split()[1])
-                        if line.startswith("tcal1"):
+                        if key == "tcal1":
                             self.tcal1 = ud.string_to_value(line.split()[1])
-                        if line.startswith("tcal2"):
+                        if key == "tcal2":
                             self.tcal2 = ud.string_to_value(line.split()[1])
-                        if line.startswith("tcal3"):
+                        if key == "tcal3":
                             self.tcal3 = ud.string_to_value(line.split()[1])
-                        if line.startswith("tcal4"):
+                        if key == "tcal4":
                             self.tcal4 = ud.string_to_value(line.split()[1])
-                        if line.startswith("edc"):
+                        if key == "edc":
                             self.edc = ud.string_to_value(line.split()[1])
-                        if line.startswith("twaveflag"):
+                        if key == "twaveflag":
                             self.twaveflag = ud.string_to_int(line.split()[1])
-                        if line.startswith("pusher"):
+                        if key == "pusher":
                             self.pusher = ud.string_to_value(line.split()[1])
-                        if line.startswith("zout"):
+                        if key == "zout":
                             self.zout = ud.string_to_value(line.split()[1])
-                        if line.startswith("nativeccsub") or line.startswith("ubnativeccs"):
+                        if key == "nativeccsub" or key == "ubnativeccs":
                             self.nativeccsub = ud.string_to_value(line.split()[1])
-                        if line.startswith("nativeccslb") or line.startswith("lbnativeccs"):
+                        if key == "nativeccslb" or key == "lbnativeccs":
                             self.nativeccslb = ud.string_to_value(line.split()[1])
-                        if line.startswith("isomode"):
+                        if key == "isomode":
                             self.isomode = ud.string_to_int(line.split()[1])
 
             f.close()
 
             self.idconfig.config_import(name)
 
-            self.endz = self.startz + self.numz - 1
+            if loaded_endz or not loaded_numz:
+                self.numz = self.endz - self.startz + 1
+            else:
+                self.endz = self.startz + self.numz - 1
 
             # Import massfile
             if os.path.isfile(self.mfile):
@@ -1142,18 +1432,24 @@ class UniDecConfig(object):
         if self.metamode != -2:
             self.linflag = 2
         try:
-            self.maxmz = float(self.maxmz)
+            maxmz = float(self.maxmz)
         except Exception:
-            self.maxmz = 1000000
+            maxmz = 1000000.0
         try:
-            self.minmz = float(self.minmz)
+            minmz = float(self.minmz)
         except Exception:
-            self.minmz = 0
+            minmz = 0.0
 
-        if self.tcal3 == "":
-            self.tcal3 = 0
-        if self.tcal4 == "":
-            self.tcal4 = 0
+        tcal3 = 0.0 if self.tcal3 == "" else self.tcal3
+        tcal4 = 0.0 if self.tcal4 == "" else self.tcal4
+        try:
+            integratelb = float(self.integratelb)
+        except (TypeError, ValueError):
+            integratelb = -1.0
+        try:
+            integrateub = float(self.integrateub)
+        except (TypeError, ValueError):
+            integrateub = -1.0
 
         cdict = {  # "input": self.infname, "output": self.outfname,
             "numit": self.numit, "version": self.version,
@@ -1161,10 +1457,11 @@ class UniDecConfig(object):
             "beta": self.beta, "suppression_topn": self.suppression_topn, "suppression_topx": self.suppression_topx,
             "suppression_percent": self.suppression_percent, "suppression_startit": self.suppression_startit,
             "suppression_harmonic": self.suppression_harmonic, "suppression_satellite": self.suppression_satellite,
-            "psfun": self.psfun, "psfunz": self.psfunz, "discreteplot": self.discreteplot, "massub": self.massub,
+            "psfun": self.psfun, "psfunz": self.psfunz, "variablepw": self.variablepw,
+            "minratio": self.minratio, "discreteplot": self.discreteplot, "massub": self.massub,
             "masslb": self.masslb,
             "msig": self.msig, "molig": self.molig, "massbins": self.massbins, "mtabsig": self.mtabsig,
-            "minmz": self.minmz, "maxmz": self.maxmz, "subbuff": self.subbuff, "subtype": self.subtype,
+            "minmz": minmz, "maxmz": maxmz, "subbuff": self.subbuff, "subtype": self.subtype,
             "smooth": self.smooth,
             "mzbins": self.mzbins, "peakwindow": self.peakwindow, "peakthresh": self.peakthresh,
             "normthresh": self.normthresh,
@@ -1187,16 +1484,17 @@ class UniDecConfig(object):
             "ubnativeccs": self.nativeccsub, "lbnativeccs": self.nativeccslb, "twaveflag": self.twaveflag,
             "temp": self.temp, "pressure": self.pressure, "volt": self.volt,
             "tnaught": self.to, "driftlength": self.driftlength, "tcal1": self.tcal1, "tcal2": self.tcal2,
-            "tcal3": self.tcal3, "tcal4": self.tcal4,
-            "edc": self.edc, "gasmass": self.gasmass, "integratelb": self.integratelb,
-            "integrateub": self.integrateub, "filterwidth": self.filterwidth, "zerolog": self.zerolog,
+            "tcal3": tcal3, "tcal4": tcal4,
+            "edc": self.edc, "gasmass": self.gasmass, "integratelb": integratelb,
+            "integrateub": integrateub, "filterwidth": self.filterwidth, "zerolog": self.zerolog,
             "manualfileflag": self.manualfileflag, "mfileflag": self.mfileflag, "imflag": self.imflag,
-            "cdmsflag": self.cdmsflag,
+            "cdmsflag": self.cdmsflag, "doubledec": self.doubledec, "smashflag": self.smashflag,
+            "original_file": self.original_file,
             "exwindow": self.exwindow, "exchoice": self.exchoice, "exchoicez": self.exchoicez,
             "exthresh": self.exthresh,
             "exnorm": self.exnorm, "exnormz": self.exnormz, "metamode": self.metamode,
             "datanorm": self.datanorm, "chrom_time_window": self.time_window, "chrom_peak_width": self.chrom_peak_width,
-            "chromatogram_type": self.chromatogram_type,
+            "chromatogram_type": self.chromatogram_type, "chromatogram_norm": self.chromatogram_norm,
             "sw_time_window": self.sw_time_window, "sw_scan_offset": self.sw_scan_offset, "time_start": self.time_start,
             "time_end": self.time_end, "scan_window": self.scan_window
         }
@@ -1213,8 +1511,14 @@ class UniDecConfig(object):
         for key, value in cdict.items():
             if value is not None:
                 try:
-                    # if value is None:
-                    #    value = ""
+                    if key in self._HDF5_INT_KEYS:
+                        value = int(value)
+                    elif key in self._HDF5_FLOAT_KEYS:
+                        value = float(value)
+                    elif key in self._HDF5_BOOL_KEYS:
+                        value = bool(value)
+                    elif key in self._HDF5_STRING_KEYS:
+                        value = str(value)
                     config_group.attrs[key] = value
                 except Exception as e:
                     print("Error with key, value:", key, value, e)
@@ -1227,6 +1531,21 @@ class UniDecConfig(object):
             self.oligomerlist = np.array(self.oligomerlist)
             replace_dataset(config_group, "oligomerlist", data=self.oligomerlist.astype(np.string_))
             np.savetxt(self.ofile, self.oligomerlist, fmt='%s')
+
+        kerneldata = np.asarray(self.kerneldata)
+        if ud.isempty(kerneldata) and self.kernel and os.path.isfile(self.kernel):
+            kerneldata = np.loadtxt(self.kernel)
+        if not ud.isempty(kerneldata):
+            self.kerneldata = np.atleast_2d(kerneldata)
+            replace_dataset(config_group, "doubledec_kernel", data=self.kerneldata)
+        elif "doubledec_kernel" in config_group:
+            del config_group["doubledec_kernel"]
+
+        if not ud.isempty(self.smashlist):
+            self.smashlist = np.atleast_2d(self.smashlist)
+            replace_dataset(config_group, "smashlist", data=self.smashlist)
+        elif "smashlist" in config_group:
+            del config_group["smashlist"]
 
         hdf.close()
         pass
@@ -1261,6 +1580,8 @@ class UniDecConfig(object):
         self.mzsig = read_attr(self.mzsig, "mzsig", config_group)
         self.psfun = read_attr(self.psfun, "psfun", config_group)
         self.psfunz = read_attr(self.psfunz, "psfunz", config_group)
+        self.variablepw = read_attr(self.variablepw, "variablepw", config_group)
+        self.minratio = read_attr(self.minratio, "minratio", config_group)
         self.discreteplot = read_attr(self.discreteplot, "discreteplot", config_group)
         self.massub = read_attr(self.massub, "massub", config_group)
         self.masslb = read_attr(self.masslb, "masslb", config_group)
@@ -1277,9 +1598,11 @@ class UniDecConfig(object):
         self.normthresh = read_attr(self.normthresh, "normthresh", config_group)
         self.peakplotthresh = read_attr(self.peakplotthresh, "peakplotthresh", config_group)
         self.separation = read_attr(self.separation, "separation", config_group)
+        self.separation = read_attr(self.separation, "plotsep", config_group)
         self.intthresh = read_attr(self.intthresh, "intthresh", config_group)
         self.reductionpercent = read_attr(self.reductionpercent, "reductionpercent", config_group)
         self.aggressiveflag = read_attr(self.aggressiveflag, "aggressiveflag", config_group)
+        self.aggressiveflag = read_attr(self.aggressiveflag, "aggressive", config_group)
         self.rawflag = read_attr(self.rawflag, "rawflag", config_group)
         self.rescale_newblur = read_attr(self.rescale_newblur, "rescale_newblur", config_group)
         self.adductmass = read_attr(self.adductmass, "adductmass", config_group)
@@ -1338,6 +1661,9 @@ class UniDecConfig(object):
         self.manualfileflag = read_attr(self.manualfileflag, "manualfileflag", config_group)
         self.imflag = read_attr(self.imflag, "imflag", config_group)
         self.cdmsflag = read_attr(self.cdmsflag, "cdmsflag", config_group)
+        self.doubledec = bool(read_attr(self.doubledec, "doubledec", config_group))
+        self.smashflag = read_attr(self.smashflag, "smashflag", config_group)
+        self.original_file = read_attr(self.original_file, "original_file", config_group)
 
         self.exchoice = read_attr(self.exchoice, "exchoice", config_group)
         self.exchoicez = read_attr(self.exchoicez, "exchoicez", config_group)
@@ -1350,10 +1676,13 @@ class UniDecConfig(object):
         self.masslist = get_dataset(config_group, "masslist")
         self.manuallist = get_dataset(config_group, "manuallist")
         self.oligomerlist = get_dataset(config_group, "oligomerlist").astype(np.str_)
+        self.kerneldata = get_dataset(config_group, "doubledec_kernel")
+        self.smashlist = get_dataset(config_group, "smashlist")
 
         self.time_window = read_attr(self.time_window, "chrom_time_window", config_group)
         self.chrom_peak_width = read_attr(self.chrom_peak_width, "chrom_peak_width", config_group)
         self.chromatogram_type = read_attr(self.chromatogram_type, "chromatogram_type", config_group)
+        self.chromatogram_norm = read_attr(self.chromatogram_norm, "chromatogram_norm", config_group)
         self.sw_time_window = read_attr(self.sw_time_window, "sw_time_window", config_group)
         self.sw_scan_offset = read_attr(self.sw_scan_offset, "sw_scan_offset", config_group)
         self.scan_window = read_attr(self.scan_window, "scan_window", config_group)
@@ -1362,6 +1691,16 @@ class UniDecConfig(object):
         self.time_end = read_attr(self.time_end, "time_end", config_group)
 
         hdf.close()
+
+    def materialize_doubledec_kernel(self):
+        """Return a usable kernel path, exporting embedded HDF5 data when needed."""
+        if self.kernel and os.path.isfile(self.kernel):
+            return self.kernel
+        if ud.isempty(self.kerneldata):
+            return self.kernel
+        self.kernel = self.output_file("doubledec_kernel.txt")
+        np.savetxt(self.kernel, np.atleast_2d(self.kerneldata))
+        return self.kernel
 
     def print_config(self):
         """
@@ -1382,6 +1721,7 @@ class UniDecConfig(object):
         self.confname = self.outfname + s + "conf.dat"
         self.mfile = self.outfname + s + "mfile.dat"
         self.manualfile = self.outfname + s + "manualfile.dat"
+        self.fwhmfile = self.outfname + s + "fwhm.dat"
         self.smashfile = self.outfname + s + "smashfile.dat"
         self.ofile = self.outfname + s + "ofile.dat"
         self.matchfile = self.outfname + s + "match.dat"
@@ -1400,6 +1740,24 @@ class UniDecConfig(object):
         self.reportfile = self.outfname + s + "report.html"
         if self.filetype == 0:
             self.hdf_file = self.outfname + ".hdf5"
+
+    def output_file(self, name):
+        """Return a managed output path for the active short or legacy naming mode."""
+        separator = "" if self.outfname.endswith(("/", "\\")) else "_"
+        return self.outfname + separator + name
+
+    @staticmethod
+    def _path_for_config(path, config_dir):
+        """Serialize managed paths relative to the config file when possible."""
+        if not path:
+            return str(path)
+        absolute = os.path.abspath(path)
+        try:
+            if os.path.commonpath((absolute, config_dir)) == config_dir:
+                return os.path.relpath(absolute, config_dir)
+        except ValueError:
+            pass
+        return str(path)
 
     def check_badness(self):
         """
@@ -2058,7 +2416,7 @@ class DataContainer:
         self.tscore = 0
 
     def write_hdf5(self, file_name):
-        hdf = h5py.File(file_name)
+        hdf = h5py.File(file_name, "a")
         config_group = hdf.require_group("ms_data")
         immsdata = hdf.require_group("imms_data")
         replace_dataset(config_group, "raw_data_ms", data=self.rawdata)
@@ -2066,6 +2424,7 @@ class DataContainer:
         replace_dataset(config_group, "fit_data", data=self.fitdat)
         replace_dataset(immsdata, "fit_data_2d", data=self.fitdat2d)
         replace_dataset(config_group, "processed_data", data=self.data2)
+        replace_dataset(config_group, "fwhm", data=self.fwhmlist)
         replace_dataset(immsdata, "processed_data_2d", data=self.data3)
         replace_dataset(config_group, "mass_data", data=self.massdat)
         replace_dataset(config_group, "mz_grid", data=self.mzgrid)
@@ -2086,6 +2445,7 @@ class DataContainer:
         self.fitdat = config_group.get("fit_data")
         self.fitdat2d = immsdata.get("fit_data_2d")
         self.data2 = config_group.get("processed_data")
+        self.fwhmlist = get_dataset(config_group, "fwhm")
         self.data3 = immsdata.get("processed_data_2d")
         self.massdat = config_group.get("mass_data")
         self.mzgrid = config_group.get("mz_grid")

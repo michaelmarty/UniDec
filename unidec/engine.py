@@ -4,9 +4,11 @@ import time
 import shutil
 import sys
 import getopt
+import tempfile
 from copy import deepcopy
 import zipfile
 import fnmatch
+import io
 import numpy as np
 
 from unidec.modules import unidecstructure, peakstructure, MassFitter
@@ -102,8 +104,57 @@ class UniDec(UniDecEngine):
     def _load_raw_data(self, importer, time_range=None):
         """Load conventional MS data and return its cache path and contents."""
         self.data.rawdata = importer.get_avg_scan(time_range=time_range)
-        suffix = "rawdata.txt" if getattr(self, "simple_output", False) else "_rawdata.txt"
-        return self.config.outfname + suffix, self.data.rawdata
+        if getattr(self, "simple_output", False):
+            return self.config.output_file("rawdata.npz"), self.data.rawdata
+        return self.config.outfname + "_rawdata.txt", self.data.rawdata
+
+    def _write_raw_cache(self, path, data):
+        """Write a managed raw cache without exposing a partial NPZ as valid."""
+        if not self.simple_output:
+            np.savetxt(path, data)
+            return
+        handle = tempfile.NamedTemporaryFile(dir=self.config.udir, suffix=".npz", delete=False)
+        temp_path = handle.name
+        handle.close()
+        try:
+            np.savez_compressed(
+                temp_path,
+                data=np.asarray(data),
+                unidec_rawdata_version=np.array(1),
+                mode=np.array("imms" if self.config.imflag else "ms"),
+                original_file=np.array(self.config.original_file),
+            )
+            os.replace(temp_path, path)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+    def _load_managed_raw_cache(self, path):
+        """Load a versioned UniDec raw cache and return its original basename."""
+        try:
+            with np.load(path, allow_pickle=False) as cache:
+                if int(cache["unidec_rawdata_version"]) != 1 or str(cache["mode"]) != "ms":
+                    return None
+                data = np.asarray(cache["data"])
+                original_file = str(cache["original_file"])
+        except (OSError, ValueError, KeyError, TypeError):
+            return None
+        if data.ndim != 2 or data.shape[1] < 2 or not np.isfinite(data[:, :2]).all():
+            return None
+        self.data.rawdata = data
+        return original_file
+
+    def _raw_cache_matches(self, path):
+        try:
+            with np.load(path, allow_pickle=False) as cache:
+                return (
+                    int(cache["unidec_rawdata_version"]) == 1
+                    and str(cache["mode"]) == ("imms" if self.config.imflag else "ms")
+                    and str(cache["original_file"]) == self.config.original_file
+                    and np.asarray(cache["data"]).ndim == 2
+                )
+        except (OSError, ValueError, KeyError, TypeError):
+            return False
 
     def _restore_processed_data(self, refresh=False):
         """Restore cached one-dimensional processed data when available."""
@@ -120,7 +171,7 @@ class UniDec(UniDecEngine):
         self.config.procflag = 0
 
     def open_file(self, file_name, file_directory=None, time_range=None, refresh=False, load_results=False,
-                 isodeceng=None, simple_output=False, *args, **kwargs):
+                 isodeceng=None, simple_output=None, *args, **kwargs):
         """
         Open text or mzML file. Will create _unidecfiles directory if it does not exist.
 
@@ -152,14 +203,20 @@ class UniDec(UniDecEngine):
                 file_path = file_directory
             except:
                 raise IOError("File path not found")
-        # Handle Paths
+        managed_cache_original = None
+        if os.path.basename(file_path) == "rawdata.npz":
+            managed_cache_original = self._load_managed_raw_cache(file_path)
 
         self.config.filename = file_path
         self.config.dirname = file_directory
+        self.config.original_file = managed_cache_original or os.path.basename(file_path)
         if "silent" not in kwargs or not kwargs["silent"]:
             print("Opening File: ", self.config.filename)
 
-        if self.outfile is None:
+        if managed_cache_original is not None and self.outfile is None:
+            dirnew = file_directory
+            basename = os.path.splitext(managed_cache_original)[0]
+        elif self.outfile is None:
             dirnew = os.path.splitext(file_path)[0] + "_unidecfiles"
             basename = os.path.split(os.path.splitext(file_name)[0])[1]
         else:
@@ -176,35 +233,43 @@ class UniDec(UniDecEngine):
         if not os.path.isdir(dirnew):
             os.mkdir(dirnew)
         self.config.udir = dirnew
-        self.simple_output = simple_output
+        legacy_outfname = os.path.join(self.config.udir, basename)
+        short_confname = os.path.join(self.config.udir, "conf.dat")
+        legacy_confname = legacy_outfname + "_conf.dat"
+        if os.path.isfile(short_confname):
+            self.simple_output = True
+        elif os.path.isfile(legacy_confname):
+            self.simple_output = False
+        else:
+            self.simple_output = (self.outfile is None if simple_output is None else bool(simple_output))
         if "silent" not in kwargs or not kwargs["silent"]:
             print("Output Directory:", self.config.udir)
-        legacy_outfname = os.path.join(self.config.udir, basename)
-        self.config.outfname = (os.path.join(self.config.udir, "") if simple_output
+        self.config.outfname = (os.path.join(self.config.udir, "") if self.simple_output
                                 else legacy_outfname)
         self.config.extension = os.path.splitext(self.config.filename)[1]
-        self.config.default_file_names(s="" if simple_output else "_")
+        self.config.default_file_names(s="" if self.simple_output else "_")
 
-        # Import vendor readers only when a data file is opened. Their optional
-        # dependencies add noticeable overhead to GUI startup.
-        from UniDecImporter.ImporterFactory import ImporterFactory
-
-        #All the magic happens here
-        curr_importer = ImporterFactory.create_importer(self.config.filename)
-        if isodeceng is not None:
-            isodeceng.reader = curr_importer
-
-        newname, outputdata = self._load_raw_data(curr_importer, time_range=time_range)
+        curr_importer = None
+        if managed_cache_original is None:
+            # Import vendor readers only when a data file is opened. Their optional
+            # dependencies add noticeable overhead to GUI startup.
+            from UniDecImporter.ImporterFactory import ImporterFactory
+            curr_importer = ImporterFactory.create_importer(self.config.filename)
+            if isodeceng is not None:
+                isodeceng.reader = curr_importer
+            newname, outputdata = self._load_raw_data(curr_importer, time_range=time_range)
+        else:
+            newname, outputdata = file_path, self.data.rawdata
 
         if ud.isempty(self.data.rawdata):
             print("Error: Data Array is Empty")
             print("Likely an error with data conversion")
             raise ImportError
 
-        if not os.path.isfile(newname):
+        if (not os.path.isfile(newname) or refresh or
+                (self.simple_output and not self._raw_cache_matches(newname))):
             try:
-                # shutil.copy(file_directory, newname)
-                np.savetxt(newname, outputdata)
+                self._write_raw_cache(newname, outputdata)
             except Exception as e:
                 pass
 
@@ -217,20 +282,12 @@ class UniDec(UniDecEngine):
         else:
             if os.path.isfile(self.config.confname) and not refresh:
                 self.load_config(self.config.confname)
-            elif simple_output and os.path.isfile(legacy_outfname + "_conf.dat") and not refresh:
-                short_outfname = self.config.outfname
-                try:
-                    self.config.outfname = legacy_outfname
-                    self.config.default_file_names()
-                    self.load_config(self.config.confname)
-                finally:
-                    self.config.outfname = short_outfname
-                    self.config.default_file_names(s="")
             else:
                 self.export_config()
 
-        self.auto_polarity(importer = curr_importer)
-        if isodeceng is None:
+        if curr_importer is not None:
+            self.auto_polarity(importer=curr_importer)
+        if curr_importer is not None and isodeceng is None:
             curr_importer.close()
 
         if load_results:
@@ -362,16 +419,25 @@ class UniDec(UniDecEngine):
             print("Need to process data first. Processing...")
             self.process_data()
         if self.check_badness() == 1:
+            self.last_run_diagnostic = "Configuration validation failed before launching the native executable."
             print("Badness found, aborting unidec run")
             return 1
         if self.config.doubledec:
-            kpath = self.config.kernel
+            kpath = self.config.materialize_doubledec_kernel()
             try:
                 with open(kpath, "r") as f:
                     pass
             except (IOError, FileNotFoundError) as err:
+                self.last_run_diagnostic = f"DoubleDec kernel could not be opened: {err}"
                 print("Could not open kernel file.\nPlease select a valid kernel file to use DoubleDec")
                 return 1
+        if self.config.variablepw:
+            fwhm = np.asarray(self.data.fwhmlist)
+            if fwhm.ndim != 1 or len(fwhm) != len(self.data.data2) or not np.all(np.isfinite(fwhm)) or np.any(fwhm <= 0):
+                self.last_run_diagnostic = "Variable peak width requires one finite, positive FWHM value per processed m/z point."
+                print("Variable peak width requires one finite, positive FWHM value per processed m/z point.")
+                return 1
+            ud.dataexport(fwhm, self.config.fwhmfile)
         # Export Config and Call
         self.export_config()
         self.pks = peakstructure.Peaks()
@@ -381,7 +447,9 @@ class UniDec(UniDecEngine):
         self.data.mzgrid = np.array([])
         tstart = time.perf_counter()
 
+        self.last_run_diagnostic = None
         out = ud.unidec_call(self.config, silent=silent)
+        self.last_run_diagnostic = getattr(self.config, "last_native_diagnostic", None)
 
         tend = time.perf_counter()
         self.config.runtime = (tend - tstart)
@@ -432,7 +500,7 @@ class UniDec(UniDecEngine):
             self.data.fitdat = np.fromfile(self.config.fitdatfile, dtype=self.config.dtype)
             try:
                 if self.config.aggressiveflag != 0:
-                    self.data.baseline = np.fromfile(self.config.outfname + "_baseline.bin", dtype=self.config.dtype)
+                    self.data.baseline = np.fromfile(self.config.output_file("baseline.bin"), dtype=self.config.dtype)
                 else:
                     self.data.baseline = np.array([])
             except Exception as e:
@@ -553,7 +621,7 @@ class UniDec(UniDecEngine):
             # TODO: There's no reason this shouldn't work for CD-MS data, but we'd need to include a write to _grid.bin
             ud.unidec_call(self.config, conv=True)
 
-            convdata = np.fromfile(self.config.outfname + "_conv.bin", dtype=self.config.dtype)
+            convdata = np.fromfile(self.config.output_file("conv.bin"), dtype=self.config.dtype)
             xlen = len(self.data.data2)
             try:
                 convdata = convdata.reshape((len(self.pks.peaks), xlen))
@@ -670,8 +738,8 @@ class UniDec(UniDecEngine):
                                                                        transformmode=transformmode,
                                                                        xaxistype=xaxistype)
             # Write outputs
-            outfile2 = os.path.join(self.config.outfname + "_2D_Mass_Defects.txt")
-            outfile1 = os.path.join(self.config.outfname + "_1D_Mass_Defects.txt")
+            outfile2 = self.config.output_file("2D_Mass_Defects.txt")
+            outfile1 = self.config.output_file("1D_Mass_Defects.txt")
             np.savetxt(outfile2, data2)
             np.savetxt(outfile1, data1)
             print("Saved Mass Defects:", outfile2, outfile1)
@@ -748,19 +816,19 @@ class UniDec(UniDecEngine):
         if self.pks.plen > 0:
             # Export Peaks Height by Charge Grid
             mztab = np.array([p.mztab for p in self.pks.peaks])
-            ud.dataexport(mztab[:, :, 1], self.config.outfname + "_chargedata.dat")
+            ud.dataexport(mztab[:, :, 1], self.config.output_file("chargedata.dat"))
             if not silent:
-                print("Exported data to " + self.config.outfname + "_chargedata.dat")
+                print("Exported data to " + self.config.output_file("chargedata.dat"))
 
-            ud.dataexport(mztab[:, :, 0], self.config.outfname + "_mzpeakdata.dat")
+            ud.dataexport(mztab[:, :, 0], self.config.output_file("mzpeakdata.dat"))
             if not silent:
-                print("Exported data to " + self.config.outfname + "_mzpeakdata.dat")
+                print("Exported data to " + self.config.output_file("mzpeakdata.dat"))
 
             # Export Peaks Integral by Charge Grid
             if self.config.batchflag == 0:
                 try:
                     chargeareas = self.autointegrate(ztab=self.data.ztab)
-                    ud.dataexport(chargeareas, self.config.outfname + "_chargedata_areas.dat")
+                    ud.dataexport(chargeareas, self.config.output_file("chargedata_areas.dat"))
                 except (IndexError, ValueError, AttributeError, ZeroDivisionError):
                     print("Unable to autointegrate")
 
@@ -794,7 +862,7 @@ class UniDec(UniDecEngine):
 
             header = "Mass MassStdGuess AvgCharge StdDevCharge Height Area MassCentroid " \
                      "MassFWHM MassErrorBetweenZ DScore"
-            outfile = self.config.outfname + "_peakparam.dat"
+            outfile = self.config.output_file("peakparam.dat")
             ud.dataexport(self.peakparams, outfile, header)
             if not silent:
                 print(header)
@@ -878,7 +946,7 @@ class UniDec(UniDecEngine):
                 cint = cint / np.sum(cint) * 100.
 
             cpeaks = np.transpose([self.data.ztab, cint])
-            np.savetxt(self.config.outfname + "_chargepeaks.txt", cpeaks)
+            np.savetxt(self.config.output_file("chargepeaks.txt"), cpeaks)
             # com, std = self.center_of_mass(data=cpeaks)
             self.pks = peakstructure.Peaks()
             self.pks.add_peaks(cpeaks, massbins=1)
@@ -909,12 +977,22 @@ class UniDec(UniDecEngine):
         zipf = zipfile.ZipFile(load_path)
         msfile = None
         for file_path in zipf.namelist():
+            if os.path.basename(file_path) == "rawdata.npz":
+                msfile = file_path
+                break
             if fnmatch.fnmatch(file_path, '*' + extension + "*"):
                 msfile = file_path
 
         # Set file and extension
         header = None
-        if msfile is not None:
+        short_cache = msfile is not None and os.path.basename(msfile) == "rawdata.npz"
+        cached_data = None
+        if short_cache:
+            with np.load(io.BytesIO(zipf.read(msfile)), allow_pickle=False) as cache:
+                cached_data = np.asarray(cache["data"])
+                original_file = str(cache["original_file"])
+            header = os.path.splitext(os.path.basename(original_file))[0]
+        elif msfile is not None:
             header = msfile[:-10]
         else:
             print("Broken Save File. Unable to find _rawdata")
@@ -939,7 +1017,10 @@ class UniDec(UniDecEngine):
         filename2 = basename + ".txt"
         load_path = os.path.join(self.config.dirname, filename2)
         print("Data file:", file_name, load_path)
-        shutil.copy(file_name, load_path)
+        if short_cache:
+            np.savetxt(load_path, cached_data)
+        else:
+            shutil.copy(file_name, load_path)
 
         # Open File
         self.open_file(filename2, self.config.dirname)

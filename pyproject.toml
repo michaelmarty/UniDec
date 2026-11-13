@@ -19,8 +19,8 @@ classifiers = [
 keywords = ["Mass Spectrometry", "Ion Mobility", "Deconvolution"]
 dependencies = ["numpy>=2.0.0", "scipy>=1.2", "matplotlib>=3.7", 'pandas',
                       "pymzml", "natsort", "networkx", "h5py", "pypubsub", "numba",
-                      "pyimzml", "isodec>=2.0.4", "pyisogen>=1.1.2", "pythonnet; platform_system == 'Windows'", "pyteomics",
-                      "UniDecImporter>=1.0.4", "lxml", "lxml_html_clean", "openpyxl>=3.1.5",
+                      "pyimzml", "isodec>=2.0.4", "pyisogen>=1.1.4", "pythonnet; platform_system == 'Windows'", "pyteomics",
+                      "UniDecImporter>=1.0.5", "lxml", "lxml_html_clean", "openpyxl>=3.1.5",
                       "pywin32; platform_system == 'Windows'"]
 requires-python = ">=3.10"
 
@@ -28,6 +28,7 @@ requires-python = ">=3.10"
 # install with <installer> install '.[opt-dependency group]'
 gui = ["wxPython>=4.0"]
 dev = ["coverage", "pytest", "pyinstaller", "wxpython>=4.0"]
+agent = ["mcp>=1.9,<2"]
 # Shared research dependencies used by Scripts/ and PublicScripts/. Specialized
 # scripts can still require vendor runtimes or project-specific packages.
 scripts = [
@@ -55,6 +56,7 @@ Issues = "https://github.com/michaelmarty/UniDec/issues"
 [project.scripts]
 unidec = "unidec.__main__:main"
 gunidec = "unidec.Launcher:run_launcher"
+unidec-mcp = "unidec.mcp_server:main"
 unidecim = "unidec.UniDecIM:main"
 isodec = "isodec.__main__:main"
 

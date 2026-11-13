@@ -1,6 +1,7 @@
 from unidec.UniDecCD import UniDecCDApp
 import multiprocessing
 import unidec.modules.HTEng as HTEng
+from unidec.modules.ChromEng import plot_intensity
 from unidec.modules.gui_elements import ChromCDWindow
 from pubsub import pub
 import wx
@@ -8,6 +9,10 @@ import unidec.tools as ud
 import numpy as np
 from unidec.modules import AutocorrWindow
 import os, time, platform
+
+
+def _is_summary_chromatogram(label):
+    return "TIC" in label or "BPC" in label
 
 
 class UniChromCDApp(UniDecCDApp):
@@ -110,6 +115,11 @@ class UniChromCDApp(UniDecCDApp):
         self.export_config()
         self.plot_chromatograms()
 
+    def on_chromatogram_type(self, e=None):
+        self.eng.config.chromatogram_type = self.view.controls.ctlchromatogram.GetSelection()
+        if self.eng.farray is not None and len(self.eng.farray) > 0:
+            self.make_tic_plot()
+
     def on_dataprep_button(self, e=None):
         """
         Run data preparation. Makes the TIC and clears the chromatogram list.
@@ -196,8 +206,8 @@ class UniChromCDApp(UniDecCDApp):
                 massrange = [mass + lb, mass + ub]
                 self.add_mass_eic(massrange, color=p.color, plot=False, label="Mass EIC: " + str(mass))
 
-        for c in self.eng.cc.chromatograms:
-            pass
+        # for c in self.eng.cc.chromatograms:
+        #     pass
 
         self.plot_chromatograms()
 
@@ -286,11 +296,19 @@ class UniChromCDApp(UniDecCDApp):
 
     def make_tic_plot(self):
         """
-        Make the TIC Plot
+        Make the selected TIC or BPC plot.
         :return: None
         """
-        data = self.eng.get_tic(normalize=self.eng.config.datanorm)
-        self.eng.cc.add_chromatogram(data, color="black", label="TIC")
+        self.eng.cc.chromatograms = [
+            c for c in self.eng.cc.chromatograms if c.label not in ("TIC", "BPC")
+        ]
+        if self.eng.config.chromatogram_type == 1:
+            data = self.eng.get_bpc(normalize=self.eng.config.datanorm)
+            label = "BPC"
+        else:
+            data = self.eng.get_tic(normalize=self.eng.config.datanorm)
+            label = "TIC"
+        self.eng.cc.add_chromatogram(data, color="black", label=label)
         self.plot_chromatograms(save=False)
 
     def add_eic(self, mzrange, zrange, color='b', plot=True, sarray=None, label=None):
@@ -316,7 +334,7 @@ class UniChromCDApp(UniDecCDApp):
         self.export_config(self.eng.config.confname)
         self.showccs = True
         for c in self.eng.cc.chromatograms:
-            if "TIC" not in c.label:
+            if not _is_summary_chromatogram(c.label):
                 if c.decondat is None:
                     htdata, eicdata = self.eng.eic_ht(c.mzrange, c.zrange,
                                                       normalize=self.eng.config.datanorm, sarray=c.sarray)
@@ -348,12 +366,21 @@ class UniChromCDApp(UniDecCDApp):
         self.export_config(self.eng.config.confname)
         self.showccs = False
         self.showht = True
+        mass_eics = [c for c in self.eng.cc.chromatograms if not _is_summary_chromatogram(c.label) and c.massmode]
+        if mass_eics:
+            self.eng.run_all_ht()
+            self.eng.transform_stacks()
+
         for c in self.eng.cc.chromatograms:
-            if "TIC" not in c.label:
-                htdata, eicdata = self.eng.eic_ht(c.mzrange, c.zrange,
-                                                  normalize=self.eng.config.datanorm, sarray=c.sarray)
-                c.chromdat = eicdata
-                c.decondat = htdata
+            if not _is_summary_chromatogram(c.label):
+                if c.massmode:
+                    c.chromdat = self.eng.get_mass_eic(c.massrange, c.zrange)
+                    c.decondat = self.eng.get_mass_eic(c.massrange, c.zrange, ht=True)
+                else:
+                    htdata, eicdata = self.eng.eic_ht(c.mzrange, c.zrange,
+                                                      normalize=self.eng.config.datanorm, sarray=c.sarray)
+                    c.chromdat = eicdata
+                    c.decondat = htdata
         self.plot_chromatograms()
 
     def run_tic_ht(self):
@@ -362,10 +389,19 @@ class UniChromCDApp(UniDecCDApp):
         :return: None
         """
 
-        self.eng.get_tic(normalize=self.eng.config.datanorm)
-        htdata = self.eng.tic_ht(normalize=self.eng.config.datanorm)
-        ticdata = np.transpose(np.vstack((self.eng.fulltime, self.eng.fulltic)))
-        self.eng.cc.add_chromatogram(ticdata, decondat=htdata, color="black", label="TIC",
+        if self.eng.config.chromatogram_type == 1:
+            self.eng.run_all_ht()
+            data = self.eng.get_bpc(normalize=self.eng.config.datanorm)
+            htdata = self.eng.get_bpc(
+                self.eng.fullhstack_ht, chromaxis=self.eng.decontime,
+                normalize=self.eng.config.datanorm
+            )
+            label = "BPC"
+        else:
+            htdata = self.eng.tic_ht(normalize=self.eng.config.datanorm)
+            data = np.transpose(np.vstack((self.eng.fulltime, self.eng.fulltic)))
+            label = "TIC"
+        self.eng.cc.add_chromatogram(data, decondat=htdata, color="black", label=label,
                                      mode=self.eng.config.demultiplexmode)
 
         self.showht = True
@@ -433,6 +469,7 @@ class UniChromCDApp(UniDecCDApp):
                                                   adduct_mass=self.eng.config.adductmass)
 
             if not ud.isempty(c.chromdat):
+                ydat = plot_intensity(c.chromdat, self.eng.config.chromatogram_norm)
                 if self.eng.config.HTxaxis == "Scans":
                     xdat = np.arange(0, len(c.chromdat))
                     xlab = "Scan Number"
@@ -441,14 +478,15 @@ class UniChromCDApp(UniDecCDApp):
                     xlab = "Time"
 
                 if not self.view.plottic.flag:
-                    self.view.plottic.plotrefreshtop(xdat, c.chromdat[:, 1] - sep, config=self.eng.config,
+                    self.view.plottic.plotrefreshtop(xdat, ydat - sep, config=self.eng.config,
                                                      zoomout=True, label=c.label, xlabel=xlab,
                                                      color=c.color, nopaint=True)
                 else:
-                    self.view.plottic.plotadd(xdat, c.chromdat[:, 1] - sep, colval=c.color, nopaint=True,
+                    self.view.plottic.plotadd(xdat, ydat - sep, colval=c.color, nopaint=True,
                                               newlabel=c.label)
 
             if c.decondat is not None and not self.showccs:
+                ydat = plot_intensity(c.decondat, self.eng.config.chromatogram_norm)
                 if self.eng.config.HTxaxis == "Scans":
                     xdat = np.arange(0, len(c.decondat))
                     xlab = "Scan Number"
@@ -457,11 +495,11 @@ class UniChromCDApp(UniDecCDApp):
                     xlab = "Time"
 
                 if not self.view.plotdecontic.flag:
-                    self.view.plotdecontic.plotrefreshtop(xdat, c.decondat[:, 1] - sep, config=self.eng.config,
+                    self.view.plotdecontic.plotrefreshtop(xdat, ydat - sep, config=self.eng.config,
                                                           zoomout=True, label=c.label, xlabel=xlab,
                                                           color=c.color, nopaint=True)
                 else:
-                    self.view.plotdecontic.plotadd(xdat, c.decondat[:, 1] - sep, colval=c.color, nopaint=True,
+                    self.view.plotdecontic.plotadd(xdat, ydat - sep, colval=c.color, nopaint=True,
                                                    newlabel=c.label)
 
             if c.ccsdat is not None and self.showccs:
@@ -561,7 +599,7 @@ class UniChromCDApp(UniDecCDApp):
                     massrange = [-1, -1]
                     massmode = False
 
-            if "TIC" in label or self.eng.config.demultiplexmode in label:
+            if _is_summary_chromatogram(label) or self.eng.config.demultiplexmode in label:
                 continue
             if massmode and massrange[0] != -1:
                 # Restore the mass stack without adding a duplicate Mass_TIC
@@ -598,7 +636,7 @@ class UniChromCDApp(UniDecCDApp):
         self.makeplot3()
         self.makeplot4()
         for c in self.eng.cc.chromatograms:
-            if "TIC" not in c.label:
+            if not _is_summary_chromatogram(c.label):
                 if c.sarray is not None and c.sarray[0] != -1:
                     newd = self.eng.extract_swoop_subdata(c.sarray)
                 elif c.massmode and c.massrange is not None and c.massrange[0] != -1:
@@ -704,10 +742,19 @@ class UniChromCDApp(UniDecCDApp):
         self.export_config(self.eng.config.confname)
         # self.eng.process_data_scans()
         decondat, procdat = self.eng.run_all_ht()
-        procdat = np.transpose(np.vstack((self.eng.fulltime, procdat)))
+        if self.eng.config.chromatogram_type == 1:
+            procdat = self.eng.get_bpc(normalize=self.eng.config.datanorm)
+            decondat = self.eng.get_bpc(
+                self.eng.fullhstack_ht, chromaxis=self.eng.decontime,
+                normalize=self.eng.config.datanorm
+            )
+            label = "DM_BPC"
+        else:
+            procdat = np.transpose(np.vstack((self.eng.fulltime, procdat)))
+            label = "DM_TIC"
 
         self.eng.cc.add_chromatogram(procdat, decondat=decondat, color="gold",
-                                     label="DM_TIC", mode=self.eng.config.demultiplexmode)
+                                     label=label, mode=self.eng.config.demultiplexmode)
 
         self.showht = True
         self.showccs = False
@@ -739,7 +786,7 @@ class UniChromCDApp(UniDecCDApp):
         self.export_config(self.eng.config.confname)
         ccs_tic = self.eng.ccs_transform_stacks()
         for c in self.eng.cc.chromatograms:
-            if "TIC" in c.label:
+            if _is_summary_chromatogram(c.label):
                 c.ccsdat = ccs_tic
         self.plot_chromatograms()
 
@@ -1014,7 +1061,7 @@ class UniChromCDApp(UniDecCDApp):
         :return: None
         """
         # Export Kernel Array
-        np.savetxt(self.eng.config.outfname + "_htkernel.txt", self.eng.htkernel)
+        np.savetxt(self.eng.config.output_file("htkernel.txt"), self.eng.htkernel)
         # Export Chromatograms
         for c in self.eng.cc.chromatograms:
             if c.ignore:
@@ -1054,11 +1101,18 @@ class UniChromCDApp(UniDecCDApp):
         # Mass EICs depend on the transformed full stack. Rebuild it once if
         # any saved chromatograms require it; decon_full_stack invalidates the
         # old transformed stacks when its UCCD result replaces fullhstack.
-        if any(c.massmode and "TIC" not in c.label for c in old_chroms):
+        if any(c.massmode and not _is_summary_chromatogram(c.label) for c in old_chroms):
             self.eng.transform_stacks()
 
         for c in old_chroms:
-            if "TIC" in c.label:
+            if _is_summary_chromatogram(c.label):
+                if c.label in ("TIC", "BPC"):
+                    if self.eng.config.chromatogram_type == 1:
+                        c.chromdat = self.eng.get_bpc(normalize=self.eng.config.datanorm)
+                        c.label = "BPC"
+                    else:
+                        c.chromdat = self.eng.get_tic(normalize=self.eng.config.datanorm)
+                        c.label = "TIC"
                 self.eng.cc.add_chromatogram(c.chromdat, decondat=c.decondat, ccsdat=c.ccsdat, color=c.color,
                                              zrange=c.zrange, mzrange=c.mzrange, sarray=c.sarray, label=c.label,
                                              massrange=c.massrange, massmode=c.massmode)

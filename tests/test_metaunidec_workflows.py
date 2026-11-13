@@ -10,15 +10,32 @@ import numpy as np
 import wx
 
 from unidec.MetaUniDec import UniDecApp
+from unidec.metaunidec.mudeng import MetaUniDec
 from unidec.modules.unidec_presbase import UniDecPres
 
-from _test_support import copy_workflow_spectra, has_gui_display
+from tests._test_support import copy_workflow_spectra, has_gui_display
 
 
 UNIDEC_ROOT = Path(__file__).resolve().parents[1]
 
 
 class TestMetaUniDecConfigPersistence(unittest.TestCase):
+    def test_projects_get_distinct_standard_sidecars(self):
+        with tempfile.TemporaryDirectory(prefix="metaunidec-sidecars-") as directory:
+            first = Path(directory, "first.hdf5")
+            second = Path(directory, "second.hdf5")
+            first.touch()
+            second.touch()
+
+            engine = MetaUniDec()
+            engine.setup_filenames(str(first))
+            self.assertEqual(Path(engine.config.udir), Path(str(first) + "_unidecfiles"))
+            self.assertEqual(Path(engine.config.confname), Path(engine.config.udir, "conf.dat"))
+
+            engine.setup_filenames(str(second))
+            self.assertEqual(Path(engine.config.udir), Path(str(second) + "_unidecfiles"))
+            self.assertNotEqual(Path(str(first) + "_unidecfiles"), Path(engine.config.udir))
+
     def test_implicit_config_writes_require_an_active_dataset(self):
         presenter = UniDecPres.__new__(UniDecPres)
         presenter.view = Mock()

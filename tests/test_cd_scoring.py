@@ -253,6 +253,7 @@ class TestCDScoring(unittest.TestCase):
 
     def test_native_fit_import_preserves_charge_mz_order(self):
         eng = self.make_engine()
+        eng.config.cdmsflag = 2
         observed = eng.harray.copy()
         with tempfile.TemporaryDirectory() as directory:
             eng.config.infname = str(Path(directory, "input.txt"))
@@ -262,6 +263,7 @@ class TestCDScoring(unittest.TestCase):
             observed.T.astype(eng.config.dtype).tofile(eng.config.fitdatfile)
             with patch.object(eng, "export_config"), patch("unidec.tools.unidec_call", return_value=0):
                 eng.decon_external_call()
+        self.assertEqual(eng.config.cdmsflag, 1)
         np.testing.assert_allclose(eng.observed, observed)
         np.testing.assert_allclose(eng.fit2d, observed)
         np.testing.assert_allclose(eng.harray, observed)

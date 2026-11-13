@@ -571,7 +571,7 @@ class IMToolExtract(wx.Dialog):
         # Get parameters
         self.get_from_gui(e)
         outs = np.array(self.masspanel.list.get_list())
-        fname = self.config.outfname + "_zout_" + str(self.zout) + ".bin"
+        fname = self.config.output_file("zout_" + str(self.zout) + ".bin")
         if os.path.isfile(fname):
             zoutgrid = np.fromfile(fname, dtype=self.config.dtype)
         else:

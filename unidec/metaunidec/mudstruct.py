@@ -397,6 +397,7 @@ class Spectrum:
         # self.fitdat2d = np.array([])
         self.rawdata = np.array([])
         self.data2 = np.array([])
+        self.fwhmlist = np.array([])
         self.massdat = np.array([])
         self.mzgrid = np.array([])
         self.massgrid = np.array([])
@@ -430,6 +431,7 @@ class Spectrum:
             # print(self.eng.config.dtype)
             # replace_dataset(msdata, "fit_data", self.fitdat)
             replace_dataset(msdata, "processed_data", self.data2.astype(self.eng.config.dtype))
+            replace_dataset(msdata, "fwhm", self.fwhmlist.astype(self.eng.config.dtype))
             replace_dataset(msdata, "mass_data", self.massdat.astype(self.eng.config.dtype))
             replace_dataset(msdata, "mz_grid", self.mzgrid.astype(self.eng.config.dtype))
             replace_dataset(msdata, "mass_grid", self.massgrid.astype(self.eng.config.dtype))
@@ -455,6 +457,7 @@ class Spectrum:
             self.rawdata = get_dataset(msdata, "raw_data")
             # self.fitdat = get_dataset(msdata, "fit_data")
             self.data2 = get_dataset(msdata, "processed_data")
+            self.fwhmlist = get_dataset(msdata, "fwhm")
             if ud.isempty(self.data2) and not ud.isempty(self.rawdata):
                 self.data2 = deepcopy(self.rawdata)
             self.massdat = get_dataset(msdata, "mass_data")

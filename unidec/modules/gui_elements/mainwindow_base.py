@@ -219,13 +219,12 @@ class MainwindowBase(wx.Frame):
         self.SetStatusText("Saving Figures", number=5)
         figureflags = []
         files = []
-        if header is None:
-            header = self.config.outfname + extension2
-        else:
-            header += extension2
-
         for i, plot in enumerate(self.plots):
-            name1 = header + "_" + self.plotnames[i] + "." + extension
+            if header is None:
+                stem = (extension2.strip("_") + "_" if extension2.strip("_") else "") + self.plotnames[i]
+                name1 = self.config.output_file(stem + "." + extension)
+            else:
+                name1 = header + extension2 + "_" + self.plotnames[i] + "." + extension
             if plot.flag:
                 plot.on_save_fig(e, name1, **kwargs)
                 figureflags.append(i + 1)

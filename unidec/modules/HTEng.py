@@ -839,13 +839,17 @@ class UniChromCDEng(HTEng, UniDecCD):
                     self.hstack[i], self.config.smoothdt, self.config.smooth
                 )
 
-        if self.config.intthresh > 0:
-            print("Histogram Intensity Threshold:", self.config.intthresh)
-            self.hstack = self.hist_int_threshold(self.hstack, self.config.intthresh)
+        if self.config.intthresh > 0 or self.config.reductionpercent > 0:
+            summed_harray = np.sum(self.hstack, axis=0)
+            if self.config.intthresh > 0:
+                print("Histogram Intensity Threshold:", self.config.intthresh)
+                summed_harray = self.hist_int_threshold(summed_harray, self.config.intthresh)
 
-        if self.config.reductionpercent > 0:
-            print("Full Stack Histogram Data Reduction:", self.config.reductionpercent)
-            self.hstack = self.hist_datareduction(self.hstack, self.config.reductionpercent)
+            if self.config.reductionpercent > 0:
+                print("Full Stack Histogram Data Reduction:", self.config.reductionpercent)
+                summed_harray = self.hist_datareduction(summed_harray, self.config.reductionpercent)
+
+            self.hstack *= summed_harray > 0
 
         if self.config.subbuff > 0 or self.config.subbufdt > 0:
             print("Histogram Background Subtraction:", self.config.subbuff, self.config.subbufdt)
@@ -1062,6 +1066,26 @@ class UniChromCDEng(HTEng, UniDecCD):
             pass
         return np.transpose([self.fulltime, fulleic])
 
+    def create_bpc_from_hstack(self, hstack, chromaxis=None, **kwargs):
+        """Create a base peak chromatogram after summing charge at each m/z."""
+        hstack = self._validate_histogram_stack(hstack, name="BPC histogram stack")
+        if chromaxis is None:
+            chromaxis = self.fulltime
+        if len(hstack) != len(chromaxis):
+            raise ValueError(
+                "BPC histogram stack and chromatography axis must have the same length: "
+                f"{len(hstack)} != {len(chromaxis)}"
+            )
+        mzstack = np.sum(hstack, axis=1)
+        if np.iscomplexobj(mzstack):
+            mzstack = np.abs(mzstack)
+        bpi = np.max(mzstack, axis=1)
+        if kwargs.get("normalize", True):
+            maxval = np.amax(bpi)
+            if maxval > 0:
+                bpi = bpi / maxval
+        return np.transpose([chromaxis, bpi])
+
 
     def get_tic(self, farray=None, **kwargs):
         """
@@ -1070,12 +1094,22 @@ class UniChromCDEng(HTEng, UniDecCD):
         :param kwargs: Keywords to be passed down to create_chrom
         :return: 2D array of TIC (time, intensity)
         """
-        self.prep_time_domain()
-        if farray is None:
-            farray = self.farray
-        fulltic = self.create_chrom(farray, **kwargs)
+        if farray is None and (self.config.intthresh > 0 or self.config.reductionpercent > 0):
+            self.process_data_scans()
+            fulltic = self.create_chrom_from_hstack(self.fullhstack, **kwargs)
+        else:
+            self.prep_time_domain()
+            if farray is None:
+                farray = self.farray
+            fulltic = self.create_chrom(farray, **kwargs)
         self.fulltic = fulltic[:, 1]
         return fulltic
+
+    def get_bpc(self, hstack=None, chromaxis=None, **kwargs):
+        """Get the BPC from the processed charge-resolved histogram stack."""
+        if hstack is None:
+            hstack = self._ensure_full_histogram_stack()
+        return self.create_bpc_from_hstack(hstack, chromaxis=chromaxis, **kwargs)
 
     def tic_ht(self, **kwargs):
         """
@@ -1466,8 +1500,7 @@ class UniChromCDEng(HTEng, UniDecCD):
         """
         if self.massaxis is None:
             self.process_data(transform=True)
-        if self.fullhstack is None:
-            self.process_data_scans(transform=True)
+        self._ensure_full_histogram_stack()
 
         self.ccsstack_ht = None
 

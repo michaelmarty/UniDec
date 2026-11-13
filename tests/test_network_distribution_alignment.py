@@ -18,7 +18,7 @@ class TestNetworkDistributionAlignment(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         directory = Path(__file__).resolve().parents[3] / "Scripts/Annika/DDA Analysis"
-        spec = importlib.util.spec_from_file_location("aligned_networks", directory / "SI_8_9_10_11_12.py")
+        spec = importlib.util.spec_from_file_location("aligned_networks", directory / "Network_all_lipids.py")
         cls.script = importlib.util.module_from_spec(spec)
         with patch.object(sys, "path", [str(directory), *sys.path]), patch.dict(os.environ, {"MPLBACKEND": "Agg"}):
             spec.loader.exec_module(cls.script)
@@ -80,12 +80,20 @@ class TestNetworkDistributionAlignment(unittest.TestCase):
         duplicate = [attrs for _, attrs in graph.nodes(data=True) if attrs["Lipid ID"] == "pc|pc 30:0"]
         self.assertNotEqual(duplicate[0]["strength"], duplicate[1]["strength"])
         self.assertEqual(duplicate[0][self.script.NORMALIZED], duplicate[1][self.script.NORMALIZED])
-        # All seven feature rows contributed to the original network, including
-        # excluded/provisional/unknown rows. Only eligible accepted rows are displayed.
-        self.assertTrue(all(graph.number_of_nodes() == 7 for graph in raw_graphs.values()))
-        self.assertTrue(any(a["strength"] > graph.degree(n, weight="weight")
-                            for n, a in graph.nodes(data=True)))
+        # Only the four accepted, non-provisional features contribute to scores.
+        self.assertTrue(all(graph.number_of_nodes() == 4 for graph in raw_graphs.values()))
+        for graph in networks[0][1]:
+            for node, attrs in graph.nodes(data=True):
+                self.assertAlmostEqual(attrs["strength"], graph.degree(node, weight="weight"))
         pd.testing.assert_frame_equal(source, original)
+
+    def test_all_candidate_mode_is_explicit_and_still_excludes_provisional_unknown(self):
+        scored, points, graphs = self.context(self.source(), confirmed_only=False)
+        self.assertTrue(all(graph.number_of_nodes() == 5 for graph in graphs.values()))
+        self.assertTrue(scored["Network population"].eq("Accepted + excluded").all())
+        self.assertIn("pc|pc 36:0", set(points["Lipid ID"]))
+        self.assertNotIn("pc|pc 38:0", set(points["Lipid ID"]))
+        self.assertNotIn("pc|pc 40:0", set(points["Lipid ID"]))
 
     def test_adduct_and_original_class_maxima_do_not_mix(self):
         source = self.source()

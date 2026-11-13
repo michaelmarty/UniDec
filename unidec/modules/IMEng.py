@@ -7,6 +7,7 @@ IM-MS.
 """
 
 from copy import deepcopy
+import io
 import fnmatch
 import os
 import shutil
@@ -44,7 +45,24 @@ class UniDecIM(UniDecMS):
         self.data.rawdata3, self.data.rawdata = ud.unsparse(self.data.rawdata)
         print("Data Shape:", self.data.rawdata3.shape, self.data.rawdata.shape)
         self.data.data3 = self.data.rawdata3
+        if getattr(self, "simple_output", False):
+            return self.config.output_file("rawdata.npz"), self.data.rawdata3
         return self.config.outfname + "_imraw.txt", ud.sparse(self.data.rawdata3)
+
+    def _load_managed_raw_cache(self, path):
+        try:
+            with np.load(path, allow_pickle=False) as cache:
+                if int(cache["unidec_rawdata_version"]) != 1 or str(cache["mode"]) != "imms":
+                    return None
+                data = np.asarray(cache["data"])
+                original_file = str(cache["original_file"])
+        except (OSError, ValueError, KeyError, TypeError):
+            return None
+        if data.ndim != 2 or data.shape[1] < 3 or not np.isfinite(data[:, :3]).all():
+            return None
+        self.data.rawdata3, self.data.rawdata = ud.unsparse(data[:, :3])
+        self.data.data3 = self.data.rawdata3
+        return original_file
 
     def _restore_processed_data(self, refresh=False):
         # IM processing is inexpensive to identify but shape-sensitive; always
@@ -176,7 +194,7 @@ class UniDecIM(UniDecMS):
             try:
                 if self.config.aggressiveflag != 0:
                     self.data.baseline = np.fromfile(
-                        self.config.outfname + "_baseline.bin", dtype=self.config.dtype
+                        self.config.output_file("baseline.bin"), dtype=self.config.dtype
                     )
                 else:
                     self.data.baseline = np.array([])
@@ -185,19 +203,19 @@ class UniDecIM(UniDecMS):
 
         runstats = np.genfromtxt(self.config.errorfile, dtype="str")
         self.config.error = float(runstats[1])
-        self.data.ccsdata = np.loadtxt(self.config.outfname + "_ccs.txt")
+        self.data.ccsdata = np.loadtxt(self.config.output_file("ccs.txt"))
         if not efficiency:
             masslen = len(self.data.massdat)
             ccslen = len(self.data.ccsdata)
             zlen = len(self.data.ztab)
             self.data.massccs = np.fromfile(
-                self.config.outfname + "_massccs.bin", dtype=self.config.dtype
+                self.config.output_file("massccs.bin"), dtype=self.config.dtype
             ).reshape((masslen, ccslen))
             self.data.ccsz = np.fromfile(
-                self.config.outfname + "_ccsz.bin", dtype=self.config.dtype
+                self.config.output_file("ccsz.bin"), dtype=self.config.dtype
             ).reshape((zlen, ccslen))
             self.data.mztgrid = np.fromfile(
-                self.config.outfname + "_mzgrid.bin", dtype=self.config.dtype
+                self.config.output_file("mzgrid.bin"), dtype=self.config.dtype
             )
             self.data.mztgrid = np.clip(self.data.mztgrid, 0.0, np.amax(self.data.mztgrid))
             self.data.mztgrid = self.data.mztgrid.reshape(
@@ -219,14 +237,27 @@ class UniDecIM(UniDecMS):
         print("Loading Zip File:", load_path)
         extension = "_imraw."
         with zipfile.ZipFile(load_path) as zipf:
+            short_cache = next(
+                (name for name in zipf.namelist() if os.path.basename(name) == "rawdata.npz"),
+                None,
+            )
             imfile = next(
                 (name for name in zipf.namelist() if fnmatch.fnmatch(name, "*" + extension + "*")),
                 None,
             )
-            if imfile is None:
+            cached_data = None
+            if short_cache is not None:
+                with np.load(io.BytesIO(zipf.read(short_cache)), allow_pickle=False) as cache:
+                    if str(cache["mode"]) != "imms":
+                        print("Broken Save File. Raw cache is not IM-MS data")
+                        return False
+                    cached_data = np.asarray(cache["data"])
+                    header = os.path.splitext(os.path.basename(str(cache["original_file"])))[0]
+            elif imfile is None:
                 print("Broken Save File. Unable to find _imraw")
                 return False
-            header = imfile[:-8]
+            else:
+                header = imfile[:-8]
             self.config.dirname = os.path.split(load_path)[0]
             basename = header.rsplit(sep="_", maxsplit=1)[0]
             print("Header:", basename, "Directory:", self.config.dirname)
@@ -238,11 +269,18 @@ class UniDecIM(UniDecMS):
         filename = basename + ".txt"
         destination = os.path.join(self.config.dirname, filename)
         print("Data file:", source, destination)
-        shutil.copy(source, destination)
+        if cached_data is not None:
+            np.savetxt(destination, cached_data)
+        else:
+            shutil.copy(source, destination)
         self.open_file(filename, self.config.dirname)
 
         if os.path.isfile(self.config.infname):
-            self.data.data3 = np.loadtxt(self.config.infname)
+            processed = np.fromfile(self.config.infname, dtype=np.single)
+            if processed.size % 3 != 0:
+                print("Broken Save File. Processed IM-MS data are not float32 triplets")
+                return False
+            self.data.data3 = processed.reshape((-1, 3)).astype(self.config.dtype, copy=False)
             intensity = self.data.data3[:, 2].reshape(
                 (len(np.unique(self.data.data3[:, 0])), len(np.unique(self.data.data3[:, 1])))
             )
