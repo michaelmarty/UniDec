@@ -55,7 +55,7 @@ class TextSpectrumImporter:
 
 def _unidec_importer_factory():
     try:
-        from unidec.UniDecImporter.ImporterFactory import ImporterFactory as UniDecImporterFactory
+        from UniDecImporter.ImporterFactory import ImporterFactory as UniDecImporterFactory
     except ImportError as error:
         raise ImportError(
             "This spectrum format requires UniDec. Install the optional "

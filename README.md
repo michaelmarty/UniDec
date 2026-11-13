@@ -17,7 +17,7 @@ including Windows ARM64 and Apple silicon. Native builds are also tested on
 ARM64 Linux; the Windows ARM64 wheel is tested with Python 3.14. Compatible
 wheels include the native IsoDec and IsoGen libraries. A source build requires
 CMake 3.22.1 or newer, a C/C++ compiler, FFTW, and an initialized IsoGen
-submodule. IsoDec pins IsoGen and the `pyisogen` package to version 1.1.3:
+submodule. IsoDec pins IsoGen and the `pyisogen` package to version 1.1.4:
 
 ```shell
 git clone --recurse-submodules https://github.com/michaelmarty/IsoDec.git
@@ -109,6 +109,11 @@ runtime notices. When using IsoDec, please cite Pavek et al.,
 provided in [CITATION.cff](CITATION.cff).
 
 ## Changelog
+
+### 2.0.6
+
+- Fixed UniDecImporter integration for batch processing mzML and other complex
+  spectrum formats from portable UniDec builds.
 
 ### 2.0.5
 

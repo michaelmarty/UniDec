@@ -1,10 +1,24 @@
+import sys
 from pathlib import Path
+from types import ModuleType
 
 import numpy as np
 import pytest
 
 from isodec import IsoDecRuntime
-from isodec.io import TextSpectrumImporter
+from isodec.io import TextSpectrumImporter, _unidec_importer_factory
+
+
+def test_unidec_importer_uses_standalone_package(monkeypatch):
+    importer_package = ModuleType("UniDecImporter")
+    importer_package.__path__ = []
+    factory_module = ModuleType("UniDecImporter.ImporterFactory")
+    expected_factory = object()
+    factory_module.ImporterFactory = expected_factory
+    monkeypatch.setitem(sys.modules, "UniDecImporter", importer_package)
+    monkeypatch.setitem(sys.modules, "UniDecImporter.ImporterFactory", factory_module)
+
+    assert _unidec_importer_factory() is expected_factory
 
 
 def test_supplied_spectrum_has_expected_shape_and_range(spectrum):
