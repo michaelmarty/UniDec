@@ -18,7 +18,7 @@ setup(
         "unidec": ["bin/unidec.exe", "bin/*.dll", "bin/unideclinux", "bin/*.so*",
                    "bin/unidecmac", "bin/libunideclib.dylib", "bin/TestSpectra/*.txt"],
     },
-    exclude_package_data={"": ["Scripts", "Scripts.*", "*.Scripts", "*.Scripts.*", ".gitignore", "unidec_doc"],
+    exclude_package_data={"": ["Scripts", "Scripts.*", "*.Scripts", "*.Scripts.*", ".gitignore", "docs"],
                           },
 
     classifiers=[],

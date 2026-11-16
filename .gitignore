@@ -65,6 +65,7 @@ unidec/src/.vs/
 *extracts.txt
 *sums.txt
 *Makefile
+!/docs/Makefile
 unidec/bin/recentCD.txt
 
 unidec/bin/Example Data/IsoDec/test2_unidecfiles*
@@ -78,8 +79,8 @@ unidec/src/Makefile
 unidec/src/UniDec
 unidec/src/out
 /unidec/src/Archive/dead_code.txt
-/unidec_doc/source/modules.rst
-/unidec_doc/source/unidec*.rst
+/docs/_build/
+/docs/api/generated/
 /Scripts/Aiden/farhana_cb2/
 unidec/src/CMakeFiles/
 /unidec/bin/Example Data/BSA_unidecfiles/BSA_mfile.dat

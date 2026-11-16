@@ -427,6 +427,12 @@ Fixed config text file parsing in C code.
 
 Added a EIC/TIC normalization option to UniChromCD.
 
+Some fixes and improvements to parameter names.
+
+Initial draft of an MCP system for AI interacting with UniDec. Currently only works via the Python API, but we are still developing this.
+
+Fixes to IsoDec mzML workflow.
+
 v.9.0.1
 
 Updated UniDecImporter to 1.0.4 to add in BPC support. Added this to UniChrom as an option.

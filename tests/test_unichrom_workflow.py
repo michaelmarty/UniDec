@@ -129,6 +129,31 @@ class TestUniChromWorkflow(unittest.TestCase):
         np.testing.assert_array_equal(engine.ticdat, tic)
         np.testing.assert_array_equal(engine.bpcdat, bpc)
 
+    @patch("unidec.modules.ChromEng.ImporterFactory.create_importer")
+    def test_chromatogram_can_route_hdf5_cache_to_managed_path(self, create_importer):
+        importer = create_importer.return_value
+        importer.get_polarity.return_value = "Positive"
+        importer.get_tic.return_value = [[0.0, 1.0], [1.0, 2.0]]
+        importer.get_bpc.return_value = [[0.0, 0.5], [1.0, 1.5]]
+        importer.scans = [1, 2]
+
+        engine = object.__new__(ChromEngine)
+        engine.data = Mock()
+        engine.setup_filenames = Mock()
+        engine.clear = Mock()
+        engine.open = Mock()
+        engine.update_history = Mock()
+
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory, "input", "sample.mzML")
+            managed = Path(directory, "work", "operation-1", "sample.hdf5")
+            engine.load_mzml(str(source), load_hdf5=False, output_path=managed)
+
+        self.assertEqual(engine.outpath, str(managed))
+        engine.setup_filenames.assert_called_once_with(str(managed))
+        engine.data.new_file.assert_called_once_with(str(managed))
+        engine.open.assert_called_once_with(str(managed))
+
     def test_chromatogram_folder_gets_retention_time_metadata(self):
         engine = object.__new__(ChromEngine)
         engine.chromdat = Mock()

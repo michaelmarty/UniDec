@@ -1,5 +1,7 @@
 import os
 import time
+from dataclasses import asdict, dataclass
+from numbers import Integral, Real
 import numpy as np
 import unidec.tools as ud
 import platform
@@ -13,6 +15,193 @@ import io
 __author__ = 'Michael.Marty'
 
 version = __version__
+
+
+class _RegistrySentinel:
+    pass
+
+
+NO_DEFAULT = _RegistrySentinel()
+NO_UNSET_VALUE = _RegistrySentinel()
+
+
+@dataclass(frozen=True)
+class ParameterSpec:
+    attribute: str
+    dtype: type
+    text_key: str | None
+    hdf5_key: str | None = None
+    minimum: float | None = None
+    maximum: float | None = None
+    choices: tuple | None = None
+    modes: tuple[str, ...] = ("ms", "imms", "cdms", "metaunidec", "unichrom")
+    affects: str = "deconvolution"
+    units: str | None = None
+    description: str = ""
+    public: bool = True
+    optional: bool = False
+    default: object = NO_DEFAULT
+    text_aliases: tuple[str, ...] = ()
+    hdf5_aliases: tuple[str, ...] = ()
+    text_unset: object = NO_UNSET_VALUE
+    hdf5_unset: object = NO_UNSET_VALUE
+
+    def schema(self):
+        schema = asdict(self)
+        for key in ("default", "text_aliases", "hdf5_aliases", "text_unset", "hdf5_unset"):
+            schema.pop(key)
+        schema["dtype"] = self.dtype.__name__
+        return schema
+
+
+CONVENTIONAL_PARAMETER_SPECS = (
+    ParameterSpec("minmz", float, "minmz", "minmz", 0, 1e9,
+                  affects="processing", units="m/z", optional=True, default="",
+                  text_unset=-1, hdf5_unset=0.0),
+    ParameterSpec("maxmz", float, "maxmz", "maxmz", 0, 1e9,
+                  affects="processing", units="m/z", optional=True, default="",
+                  text_unset=-1, hdf5_unset=1000000.0),
+    ParameterSpec("mzbins", float, "mzbins", "mzbins", 0, 1000,
+                  affects="processing", units="m/z", default=0),
+    ParameterSpec("startz", int, "startz", "startz", 1, 1000, units="charge", default=1),
+    ParameterSpec("endz", int, "endz", "endz", 1, 1000, units="charge", default=50),
+    ParameterSpec("masslb", float, "masslb", "masslb", 0, 1e9, units="Da", default=5000),
+    ParameterSpec("massub", float, "massub", "massub", 0, 1e9, units="Da", default=500000),
+    ParameterSpec("massbins", float, "massbins", "massbins", 1e-12, 1e6, units="Da", default=10),
+    ParameterSpec("numit", int, "numit", "numit", 1, 1000000, default=100),
+    ParameterSpec("mzsig", float, "mzsig", "mzsig", 1e-12, 1e6, units="m/z", default=0.85),
+    ParameterSpec("psig", float, "psig", "psig", 0, 1e6, default=1),
+    ParameterSpec("beta", float, "beta", "beta", 0, 1e6, default=0),
+    ParameterSpec("psfun", int, "psfun", "psfun", choices=(0, 1, 2), default=0),
+    ParameterSpec("psfunz", int, "zpsfn", "psfunz", choices=(0, 1, 2), default=0,
+                  hdf5_aliases=("zpsfn",)),
+    ParameterSpec("peakwindow", float, "peakwindow", "peakwindow", 0, 1e9,
+                  affects="peaks", units="Da", default=500),
+    ParameterSpec("peakthresh", float, "peakthresh", "peakthresh", 0, 1,
+                  affects="peaks", default=0.1),
+    ParameterSpec("imflag", int, "imflag", "imflag", public=False, default=0),
+    ParameterSpec("cdmsflag", int, "cdmsflag", "cdmsflag", public=False, default=0),
+    ParameterSpec("zzsig", float, "zzsig", "zzsig", public=False, default=1),
+    ParameterSpec("suppression_topn", int, "suppression_topn", "suppression_topn",
+                  public=False, default=0),
+    ParameterSpec("suppression_topx", float, "suppression_topx", "suppression_topx",
+                  public=False, default=0),
+    ParameterSpec("suppression_percent", float, "suppression_percent", "suppression_percent",
+                  public=False, default=0),
+    ParameterSpec("suppression_startit", int, "suppression_startit", "suppression_startit",
+                  public=False, default=3),
+    ParameterSpec("suppression_harmonic", int, "suppression_harmonic", "suppression_harmonic",
+                  public=False, default=0),
+    ParameterSpec("suppression_satellite", int, "suppression_satellite", "suppression_satellite",
+                  public=False, default=0),
+    ParameterSpec("variablepw", int, "variablepw", "variablepw", public=False, default=0),
+    ParameterSpec("minratio", float, "minratio", "minratio", public=False, default=0.0),
+    ParameterSpec("discreteplot", int, "discreteplot", "discreteplot", public=False, default=0),
+    ParameterSpec("smashflag", int, "smashflag", "smashflag", public=False, default=0),
+    ParameterSpec("msig", float, "msig", "msig", public=False, default=0),
+    ParameterSpec("molig", float, "molig", "molig", public=False, default=0),
+    ParameterSpec("mtabsig", float, "mtabsig", "mtabsig", public=False, default=0),
+    ParameterSpec("subbuff", float, "subbuff", "subbuff", public=False, default=0),
+    ParameterSpec("subtype", int, "subtype", "subtype", public=False, default=2),
+    ParameterSpec("smooth", float, "smooth", "smooth", public=False, default=0),
+    ParameterSpec("normthresh", int, "normthresh", "normthresh", public=False, default=1),
+    ParameterSpec("peakplotthresh", float, "peakplotthresh", "peakplotthresh",
+                  public=False, default=0.1),
+    ParameterSpec("separation", float, "plotsep", "plotsep", public=False, default=0.025,
+                  hdf5_aliases=("separation",)),
+    ParameterSpec("intthresh", float, "intthresh", "intthresh", public=False, default=0),
+    ParameterSpec("reductionpercent", float, "reductionpercent", "reductionpercent",
+                  public=False, default=0),
+    ParameterSpec("aggressiveflag", int, "aggressive", "aggressive", public=False, default=0,
+                  hdf5_aliases=("aggressiveflag",)),
+    ParameterSpec("rawflag", int, "rawflag", "rawflag", public=False, default=0),
+    ParameterSpec("rescale_newblur", int, "rescale_newblur", "rescale_newblur",
+                  public=False, default=1),
+    ParameterSpec("adductmass", float, "adductmass", "adductmass", public=False,
+                  default=1.007276467),
+    ParameterSpec("nativezub", float, "nativezub", "nativezub", public=False, default=1000),
+    ParameterSpec("nativezlb", float, "nativezlb", "nativezlb", public=False, default=-1000),
+    ParameterSpec("poolflag", int, "poolflag", "poolflag", public=False, default=2),
+    ParameterSpec("detectoreffva", float, "accvol", "accvol", public=False, default=0),
+    ParameterSpec("inflate", float, "peakshapeinflate", "peakshapeinflate",
+                  public=False, default=1),
+    ParameterSpec("noiseflag", int, "noiseflag", "noiseflag", public=False, default=0),
+    ParameterSpec("linflag", int, "linflag", "linflag", public=False, default=2),
+    ParameterSpec("cmap", str, "cmap", "cmap", public=False, default="nipy_spectral"),
+    ParameterSpec("peakcmap", str, "peakcmap", "peakcmap", public=False, default="rainbow"),
+    ParameterSpec("spectracmap", str, "spectracmap", "spectracmap", public=False,
+                  default="rainbow"),
+    ParameterSpec("publicationmode", int, "publicationmode", "publicationmode",
+                  public=False, default=1),
+    ParameterSpec("isotopemode", int, "isotopemode", "isotopemode", public=False, default=0),
+    ParameterSpec("peaknorm", int, "peaknorm", "peaknorm", public=False, default=1),
+    ParameterSpec("datanorm", int, "datanorm", "datanorm", public=False, default=1),
+    ParameterSpec("baselineflag", int, "baselineflag", "baselineflag", public=False, default=1),
+    ParameterSpec("orbimode", int, "orbimode", "orbimode", public=False, default=0),
+    ParameterSpec("integratelb", float, "integratelb", "integratelb", public=False,
+                  optional=True, default="", text_unset=-1, hdf5_unset=-1.0),
+    ParameterSpec("integrateub", float, "integrateub", "integrateub", public=False,
+                  optional=True, default="", text_unset=-1, hdf5_unset=-1.0),
+    ParameterSpec("filterwidth", int, "filterwidth", "filterwidth", public=False, default=20),
+    ParameterSpec("zerolog", float, "zerolog", "zerolog", public=False, default=-12),
+    ParameterSpec("doubledec", bool, "doubledec", "doubledec", public=False, default=False),
+    ParameterSpec("manualfileflag", int, None, "manualfileflag", public=False, default=0),
+    ParameterSpec("mfileflag", int, None, "mfileflag", public=False, default=0),
+)
+
+
+ION_MOBILITY_PARAMETER_SPECS = (
+    ParameterSpec("mindt", float, "mindt", "mindt", 0, 1e9,
+                  modes=("imms",), affects="processing", units="ms", optional=True),
+    ParameterSpec("maxdt", float, "maxdt", "maxdt", 0, 1e9,
+                  modes=("imms",), affects="processing", units="ms", optional=True),
+    ParameterSpec("smoothdt", float, "smoothdt", "smoothdt", 0, 1e6,
+                  modes=("imms",), affects="processing"),
+    ParameterSpec("subbufdt", float, "subbufdt", "subbufdt", 0, 1e6,
+                  modes=("imms",), affects="processing"),
+    ParameterSpec("dtsig", float, "dtsig", "dtsig", 0, 1e6,
+                  modes=("imms",), units="ms"),
+    ParameterSpec("ccslb", float, "ccslb", "ccslb", 0, 1e9,
+                  modes=("imms",), units="CCS"),
+    ParameterSpec("ccsub", float, "ccsub", "ccsub", 0, 1e9,
+                  modes=("imms",), units="CCS"),
+    ParameterSpec("ccsbins", float, "ccsbins", "ccsbins", 1e-12, 1e9,
+                  modes=("imms",), units="CCS"),
+)
+
+
+CDMS_PARAMETER_SPECS = (
+    ParameterSpec("CDslope", float, "CDslope", "CDslope", -1e12, 1e12,
+                  modes=("cdms",), affects="processing"),
+    ParameterSpec("CDzbins", int, "CDzbins", "CDzbins", 1, 1000,
+                  modes=("cdms",), affects="processing", units="charge"),
+    ParameterSpec("CDres", float, "CDres", "CDres", 0, 1e6,
+                  modes=("cdms",), affects="processing", units="m/z"),
+    ParameterSpec("csig", float, "csig", "csig", 0, 1e6,
+                  modes=("cdms",), units="charge"),
+    ParameterSpec("zzsig", float, "zzsig", "zzsig", 0, 1e6,
+                  modes=("cdms",), units="charge"),
+    ParameterSpec("subtype", int, "subtype", "subtype", choices=(0, 1),
+                  modes=("cdms",), affects="processing"),
+)
+
+
+UNICHROM_PARAMETER_SPECS = (
+    ParameterSpec("chromatogram_type", int, "chromatogram_type", "chromatogram_type",
+                  choices=(0, 1), modes=("unichrom",), affects="windowing"),
+    ParameterSpec("time_window", float, "chrom_time_window", "chrom_time_window", 1e-12, 1e9,
+                  modes=("unichrom",), affects="windowing", units="time"),
+    ParameterSpec("chrom_peak_width", float, "chrom_peak_width", "chrom_peak_width", 1e-12, 1e9,
+                  modes=("unichrom",), affects="windowing", units="time"),
+    ParameterSpec("scan_window", float, "scan_window", "scan_window", 1e-12, 1e9,
+                  modes=("unichrom",), affects="windowing", units="scan"),
+    ParameterSpec("time_start", float, "time_start", "time_start", 0, 1e12,
+                  modes=("unichrom",), affects="windowing", units="time", optional=True),
+    ParameterSpec("time_end", float, "time_end", "time_end", 0, 1e12,
+                  modes=("unichrom",), affects="windowing", units="time", optional=True),
+    ParameterSpec("dtsig", float, "dtsig", "dtsig", 0, 1e6,
+                  modes=("unichrom",), units="time"),
+)
 
 
 def ofile_reader(path):
@@ -45,6 +234,245 @@ class UniDecConfig(object):
     Class containing all options and configurations for UniDec GUI and Program. Contains methods to export and import
     config to text file for running UniDec core binaries and for storing parameters for GUI.
     """
+
+    _HDF5_INT_KEYS = frozenset({
+        "numit", "endz", "startz", "suppression_topn", "suppression_startit",
+        "suppression_harmonic", "suppression_satellite", "psfun", "psfunz",
+        "variablepw", "discreteplot", "subtype", "normthresh", "aggressive",
+        "rawflag", "rescale_newblur", "poolflag", "noiseflag", "linflag",
+        "publicationmode", "isotopemode", "peaknorm", "datanorm", "baselineflag",
+        "orbimode", "filterwidth", "manualfileflag", "mfileflag", "imflag",
+        "cdmsflag", "smashflag",
+    })
+    _HDF5_FLOAT_KEYS = frozenset({
+        "zzsig", "psig", "mzsig", "beta", "suppression_topx",
+        "suppression_percent", "massub", "masslb", "msig", "molig", "massbins",
+        "mtabsig", "minmz", "maxmz", "subbuff", "smooth", "mzbins", "peakwindow",
+        "peakthresh", "peakplotthresh", "plotsep", "intthresh", "reductionpercent",
+        "minratio", "adductmass", "nativezub", "nativezlb", "accvol",
+        "peakshapeinflate", "integratelb", "integrateub", "zerolog",
+    })
+    _HDF5_BOOL_KEYS = frozenset({"doubledec"})
+    _HDF5_STRING_KEYS = frozenset({
+        "version", "original_file", "cmap", "peakcmap", "spectracmap",
+    })
+
+    @staticmethod
+    def scalar_parameter_specs():
+        """Return the reviewed conventional-MS scalar persistence registry."""
+        return CONVENTIONAL_PARAMETER_SPECS
+
+    @classmethod
+    def validate_parameter_registry(cls):
+        """Raise ``ValueError`` when the conventional scalar registry is ambiguous."""
+        specs = cls.scalar_parameter_specs()
+        attributes = set()
+        errors = []
+        for spec in specs:
+            if spec.attribute in attributes:
+                errors.append(f"duplicate attribute {spec.attribute}")
+            attributes.add(spec.attribute)
+            if spec.dtype not in (bool, int, float, str):
+                errors.append(f"unsupported dtype for {spec.attribute}: {spec.dtype}")
+            if spec.default is NO_DEFAULT:
+                errors.append(f"missing default for {spec.attribute}")
+            elif not spec.optional or spec.default not in ("", None):
+                if spec.dtype is bool and not isinstance(spec.default, bool):
+                    errors.append(f"invalid bool default for {spec.attribute}")
+                elif spec.dtype is int and (isinstance(spec.default, bool)
+                                            or not isinstance(spec.default, Integral)):
+                    errors.append(f"invalid int default for {spec.attribute}")
+                elif spec.dtype is float and (isinstance(spec.default, bool)
+                                              or not isinstance(spec.default, Real)):
+                    errors.append(f"invalid float default for {spec.attribute}")
+                elif spec.dtype is str and not isinstance(spec.default, str):
+                    errors.append(f"invalid string default for {spec.attribute}")
+            if spec.text_key is None and spec.hdf5_key is None:
+                errors.append(f"no persistence key for {spec.attribute}")
+
+        for file_format in ("text", "hdf5"):
+            try:
+                cls.serialized_parameter_index(file_format)
+            except ValueError as error:
+                errors.append(str(error))
+        if errors:
+            raise ValueError("Invalid parameter registry: " + "; ".join(errors))
+
+    @classmethod
+    def serialized_parameter_index(cls, file_format):
+        """Return canonical and legacy key lookups for one persistence format."""
+        if file_format not in ("text", "hdf5"):
+            raise ValueError("file_format must be 'text' or 'hdf5'")
+        key_name = f"{file_format}_key"
+        aliases_name = f"{file_format}_aliases"
+        index = {}
+        for spec in cls.scalar_parameter_specs():
+            keys = (getattr(spec, key_name),) + getattr(spec, aliases_name)
+            for key in keys:
+                if key is None:
+                    continue
+                existing = index.get(key)
+                if existing is not None and existing is not spec:
+                    raise ValueError(
+                        f"duplicate {file_format} key {key} for "
+                        f"{existing.attribute} and {spec.attribute}")
+                index[key] = spec
+        return index
+
+    def iter_serialized_parameters(self, file_format):
+        """Yield registry-backed scalar keys, converted values, and declared types."""
+        if file_format not in ("text", "hdf5"):
+            raise ValueError("file_format must be 'text' or 'hdf5'")
+        key_name = f"{file_format}_key"
+        unset_name = f"{file_format}_unset"
+        for spec in self.scalar_parameter_specs():
+            key = getattr(spec, key_name)
+            if key is None:
+                continue
+            value = getattr(self, spec.attribute)
+            using_unset_value = False
+            if spec.optional and value in ("", None):
+                unset_value = getattr(spec, unset_name)
+                if unset_value is NO_UNSET_VALUE:
+                    continue
+                value = unset_value
+                using_unset_value = True
+            if not (file_format == "text" and using_unset_value):
+                if spec.dtype is bool:
+                    value = bool(value)
+                elif spec.dtype is int:
+                    value = int(value)
+                elif spec.dtype is float:
+                    value = float(value)
+                elif spec.dtype is str:
+                    value = str(value)
+            yield key, value, spec.dtype
+
+    def _parameter_specs(self):
+        if getattr(self, "agent_mode", None) == "unichrom":
+            mode = "unichrom"
+        elif self.cdmsflag == 1:
+            mode = "cdms"
+        elif self.imflag == 1:
+            mode = "imms"
+        elif self.metamode == -1:
+            mode = "metaunidec"
+        else:
+            mode = "ms"
+        specs = (CONVENTIONAL_PARAMETER_SPECS + ION_MOBILITY_PARAMETER_SPECS
+                 + CDMS_PARAMETER_SPECS + UNICHROM_PARAMETER_SPECS)
+        return {
+            spec.attribute: spec
+            for spec in specs
+            if spec.public and mode in spec.modes
+        }
+
+    def parameter_schema(self):
+        """Return serializable metadata for supported conventional-MS parameters."""
+        return {name: spec.schema() for name, spec in self._parameter_specs().items()}
+
+    def parameter_values(self, names=None):
+        """Return public parameter values, representing unset optionals as ``None``."""
+        specs = self._parameter_specs()
+        if names is None:
+            names = tuple(specs)
+        elif isinstance(names, str):
+            names = (names,)
+        unknown = set(names) - set(specs)
+        if unknown:
+            raise ValueError("Unsupported parameters: " + ", ".join(sorted(unknown)))
+        values = {}
+        for name in names:
+            value = getattr(self, name)
+            if specs[name].optional and value in ("", -1, None):
+                value = None
+            values[name] = value
+        return values
+
+    @staticmethod
+    def _validate_parameter_value(spec, value):
+        if value is None:
+            if spec.optional:
+                return None
+            raise ValueError("may not be None")
+        if isinstance(value, (bool, np.bool_)):
+            raise ValueError("must be a number, not a boolean")
+        if spec.dtype is int:
+            if not isinstance(value, Integral):
+                raise ValueError("must be an integer")
+            normalized = int(value)
+        elif spec.dtype is float:
+            if not isinstance(value, Real):
+                raise ValueError("must be a number")
+            normalized = float(value)
+        else:
+            if not isinstance(value, spec.dtype):
+                raise ValueError(f"must be {spec.dtype.__name__}")
+            normalized = value
+        if isinstance(normalized, (int, float)) and not np.isfinite(normalized):
+            raise ValueError("must be finite")
+        if spec.minimum is not None and normalized < spec.minimum:
+            raise ValueError(f"must be at least {spec.minimum:g}")
+        if spec.maximum is not None and normalized > spec.maximum:
+            raise ValueError(f"must be at most {spec.maximum:g}")
+        if spec.choices is not None and normalized not in spec.choices:
+            raise ValueError(f"must be one of {spec.choices}")
+        return normalized
+
+    def validate_parameters(self, values):
+        """Validate an update and return normalized values without changing this config."""
+        if not hasattr(values, "items"):
+            raise ValueError("Parameter updates must be a mapping")
+        specs = self._parameter_specs()
+        unknown = set(values) - set(specs)
+        if unknown:
+            raise ValueError("Unsupported parameters: " + ", ".join(sorted(unknown)))
+        normalized = {}
+        errors = []
+        for name, value in values.items():
+            try:
+                normalized[name] = self._validate_parameter_value(specs[name], value)
+            except ValueError as error:
+                errors.append(f"{name} {error}")
+        if errors:
+            raise ValueError("; ".join(errors))
+
+        proposed = self.parameter_values()
+        proposed.update(normalized)
+        if proposed["startz"] > proposed["endz"]:
+            errors.append("startz must be less than or equal to endz")
+        if (proposed["minmz"] is not None and proposed["maxmz"] is not None
+                and proposed["minmz"] >= proposed["maxmz"]):
+            errors.append("minmz must be less than maxmz")
+        if proposed["masslb"] >= proposed["massub"]:
+            errors.append("masslb must be less than massub")
+        if self.imflag == 1:
+            if (proposed["mindt"] is not None and proposed["maxdt"] is not None
+                    and proposed["mindt"] >= proposed["maxdt"]):
+                errors.append("mindt must be less than maxdt")
+            if proposed["ccslb"] >= proposed["ccsub"]:
+                errors.append("ccslb must be less than ccsub")
+        if self.cdmsflag == 1 and proposed["CDslope"] == 0:
+            errors.append("CDslope must be nonzero")
+        if getattr(self, "agent_mode", None) == "unichrom":
+            time_start = proposed["time_start"]
+            time_end = proposed["time_end"]
+            if (time_start is None) != (time_end is None):
+                errors.append("time_start and time_end must either both be set or both be null")
+            elif time_start is not None and time_start >= time_end:
+                errors.append("time_start must be less than time_end")
+        if errors:
+            raise ValueError("; ".join(errors))
+        return normalized
+
+    def update_parameters(self, values):
+        """Atomically validate and apply supported conventional-MS parameters."""
+        normalized = self.validate_parameters(values)
+        for name, value in normalized.items():
+            spec = self._parameter_specs()[name]
+            setattr(self, name, "" if value is None and spec.optional else value)
+        self.numz = self.endz - self.startz + 1
+        return normalized
 
     def __init__(self):
         """
@@ -328,6 +756,7 @@ class UniDecConfig(object):
 
         self.doubledec = False
         self.kernel = ""
+        self.kerneldata = np.array([])
 
         # IsoDec specific
         self.isomode = 0
@@ -704,6 +1133,7 @@ class UniDecConfig(object):
 
         self.doubledec = False
         self.kernel = ""
+        self.kerneldata = np.array([])
 
     def default_colormaps(self):
         """
@@ -829,6 +1259,9 @@ class UniDecConfig(object):
         :return: None
         """
         if self.batchflag != 1:
+            config_dir = os.path.dirname(os.path.abspath(name))
+            loaded_endz = False
+            loaded_numz = False
             f = open(name, 'r', encoding="utf-8")
             self.manualfileflag = 0
             self.mfileflag = 0
@@ -857,8 +1290,10 @@ class UniDecConfig(object):
                             self.numit = ud.string_to_int(line.split()[1])
                         if key == "numz":
                             self.numz = ud.string_to_int(line.split()[1])
+                            loaded_numz = True
                         if key == "endz":
                             self.endz = ud.string_to_int(line.split()[1])
+                            loaded_endz = True
                         if key == "startz":
                             self.startz = ud.string_to_int(line.split()[1])
                         if key == "centroided":
@@ -958,7 +1393,7 @@ class UniDecConfig(object):
                         if key == "minratio":
                             self.minratio = ud.string_to_value(line.split()[1])
                         if key == "fwhmfile":
-                            self.fwhmfile = os.path.join(os.path.dirname(os.path.abspath(name)), line.partition(" ")[2].strip())
+                            self.fwhmfile = os.path.join(config_dir, line.partition(" ")[2].strip())
                         if key == "discreteplot":
                             self.discreteplot = ud.string_to_int(line.split()[1])
                         if key == "smashflag":
@@ -976,10 +1411,10 @@ class UniDecConfig(object):
                         if key == "mtabsig":
                             self.mtabsig = ud.string_to_value(line.split()[1])
                         if key == "mfile":
-                            # self.mfile = line.split()[1]
+                            self.mfile = os.path.join(config_dir, line.partition(" ")[2].strip())
                             self.mfileflag = 1
                         if key == "manualfile":
-                            # self.manualfile = line.split()[1]
+                            self.manualfile = os.path.join(config_dir, line.partition(" ")[2].strip())
                             self.manualfileflag = 1
                         if key == "subbuff":
                             self.subbuff = ud.string_to_value(line.split()[1])
@@ -1061,7 +1496,7 @@ class UniDecConfig(object):
                             else:
                                 self.doubledec = True
                         if key == "kernel":
-                            self.kernel = line.strip()[7:]
+                            self.kernel = os.path.join(config_dir, line.partition(" ")[2].strip())
 
                         # IM Imports
                         if key == "ccsub":
@@ -1117,7 +1552,10 @@ class UniDecConfig(object):
 
             self.idconfig.config_import(name)
 
-            self.endz = self.startz + self.numz - 1
+            if loaded_endz or not loaded_numz:
+                self.numz = self.endz - self.startz + 1
+            else:
+                self.endz = self.startz + self.numz - 1
 
             # Import massfile
             if os.path.isfile(self.mfile):
@@ -1171,18 +1609,24 @@ class UniDecConfig(object):
         if self.metamode != -2:
             self.linflag = 2
         try:
-            self.maxmz = float(self.maxmz)
+            maxmz = float(self.maxmz)
         except Exception:
-            self.maxmz = 1000000
+            maxmz = 1000000.0
         try:
-            self.minmz = float(self.minmz)
+            minmz = float(self.minmz)
         except Exception:
-            self.minmz = 0
+            minmz = 0.0
 
-        if self.tcal3 == "":
-            self.tcal3 = 0
-        if self.tcal4 == "":
-            self.tcal4 = 0
+        tcal3 = 0.0 if self.tcal3 == "" else self.tcal3
+        tcal4 = 0.0 if self.tcal4 == "" else self.tcal4
+        try:
+            integratelb = float(self.integratelb)
+        except (TypeError, ValueError):
+            integratelb = -1.0
+        try:
+            integrateub = float(self.integrateub)
+        except (TypeError, ValueError):
+            integrateub = -1.0
 
         cdict = {  # "input": self.infname, "output": self.outfname,
             "numit": self.numit, "version": self.version,
@@ -1194,7 +1638,7 @@ class UniDecConfig(object):
             "minratio": self.minratio, "discreteplot": self.discreteplot, "massub": self.massub,
             "masslb": self.masslb,
             "msig": self.msig, "molig": self.molig, "massbins": self.massbins, "mtabsig": self.mtabsig,
-            "minmz": self.minmz, "maxmz": self.maxmz, "subbuff": self.subbuff, "subtype": self.subtype,
+            "minmz": minmz, "maxmz": maxmz, "subbuff": self.subbuff, "subtype": self.subtype,
             "smooth": self.smooth,
             "mzbins": self.mzbins, "peakwindow": self.peakwindow, "peakthresh": self.peakthresh,
             "normthresh": self.normthresh,
@@ -1217,11 +1661,12 @@ class UniDecConfig(object):
             "ubnativeccs": self.nativeccsub, "lbnativeccs": self.nativeccslb, "twaveflag": self.twaveflag,
             "temp": self.temp, "pressure": self.pressure, "volt": self.volt,
             "tnaught": self.to, "driftlength": self.driftlength, "tcal1": self.tcal1, "tcal2": self.tcal2,
-            "tcal3": self.tcal3, "tcal4": self.tcal4,
-            "edc": self.edc, "gasmass": self.gasmass, "integratelb": self.integratelb,
-            "integrateub": self.integrateub, "filterwidth": self.filterwidth, "zerolog": self.zerolog,
+            "tcal3": tcal3, "tcal4": tcal4,
+            "edc": self.edc, "gasmass": self.gasmass, "integratelb": integratelb,
+            "integrateub": integrateub, "filterwidth": self.filterwidth, "zerolog": self.zerolog,
             "manualfileflag": self.manualfileflag, "mfileflag": self.mfileflag, "imflag": self.imflag,
-            "cdmsflag": self.cdmsflag,
+            "cdmsflag": self.cdmsflag, "doubledec": self.doubledec, "smashflag": self.smashflag,
+            "original_file": self.original_file,
             "exwindow": self.exwindow, "exchoice": self.exchoice, "exchoicez": self.exchoicez,
             "exthresh": self.exthresh,
             "exnorm": self.exnorm, "exnormz": self.exnormz, "metamode": self.metamode,
@@ -1243,8 +1688,14 @@ class UniDecConfig(object):
         for key, value in cdict.items():
             if value is not None:
                 try:
-                    # if value is None:
-                    #    value = ""
+                    if key in self._HDF5_INT_KEYS:
+                        value = int(value)
+                    elif key in self._HDF5_FLOAT_KEYS:
+                        value = float(value)
+                    elif key in self._HDF5_BOOL_KEYS:
+                        value = bool(value)
+                    elif key in self._HDF5_STRING_KEYS:
+                        value = str(value)
                     config_group.attrs[key] = value
                 except Exception as e:
                     print("Error with key, value:", key, value, e)
@@ -1257,6 +1708,21 @@ class UniDecConfig(object):
             self.oligomerlist = np.array(self.oligomerlist)
             replace_dataset(config_group, "oligomerlist", data=self.oligomerlist.astype(np.string_))
             np.savetxt(self.ofile, self.oligomerlist, fmt='%s')
+
+        kerneldata = np.asarray(self.kerneldata)
+        if ud.isempty(kerneldata) and self.kernel and os.path.isfile(self.kernel):
+            kerneldata = np.loadtxt(self.kernel)
+        if not ud.isempty(kerneldata):
+            self.kerneldata = np.atleast_2d(kerneldata)
+            replace_dataset(config_group, "doubledec_kernel", data=self.kerneldata)
+        elif "doubledec_kernel" in config_group:
+            del config_group["doubledec_kernel"]
+
+        if not ud.isempty(self.smashlist):
+            self.smashlist = np.atleast_2d(self.smashlist)
+            replace_dataset(config_group, "smashlist", data=self.smashlist)
+        elif "smashlist" in config_group:
+            del config_group["smashlist"]
 
         hdf.close()
         pass
@@ -1372,6 +1838,9 @@ class UniDecConfig(object):
         self.manualfileflag = read_attr(self.manualfileflag, "manualfileflag", config_group)
         self.imflag = read_attr(self.imflag, "imflag", config_group)
         self.cdmsflag = read_attr(self.cdmsflag, "cdmsflag", config_group)
+        self.doubledec = bool(read_attr(self.doubledec, "doubledec", config_group))
+        self.smashflag = read_attr(self.smashflag, "smashflag", config_group)
+        self.original_file = read_attr(self.original_file, "original_file", config_group)
 
         self.exchoice = read_attr(self.exchoice, "exchoice", config_group)
         self.exchoicez = read_attr(self.exchoicez, "exchoicez", config_group)
@@ -1384,6 +1853,8 @@ class UniDecConfig(object):
         self.masslist = get_dataset(config_group, "masslist")
         self.manuallist = get_dataset(config_group, "manuallist")
         self.oligomerlist = get_dataset(config_group, "oligomerlist").astype(np.str_)
+        self.kerneldata = get_dataset(config_group, "doubledec_kernel")
+        self.smashlist = get_dataset(config_group, "smashlist")
 
         self.time_window = read_attr(self.time_window, "chrom_time_window", config_group)
         self.chrom_peak_width = read_attr(self.chrom_peak_width, "chrom_peak_width", config_group)
@@ -1397,6 +1868,16 @@ class UniDecConfig(object):
         self.time_end = read_attr(self.time_end, "time_end", config_group)
 
         hdf.close()
+
+    def materialize_doubledec_kernel(self):
+        """Return a usable kernel path, exporting embedded HDF5 data when needed."""
+        if self.kernel and os.path.isfile(self.kernel):
+            return self.kernel
+        if ud.isempty(self.kerneldata):
+            return self.kernel
+        self.kernel = self.output_file("doubledec_kernel.txt")
+        np.savetxt(self.kernel, np.atleast_2d(self.kerneldata))
+        return self.kernel
 
     def print_config(self):
         """
