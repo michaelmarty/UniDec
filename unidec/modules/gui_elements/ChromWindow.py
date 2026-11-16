@@ -1,4 +1,5 @@
 import wx
+import os
 from unidec.metaunidec.gui_elements.list_ctrls import ListCtrlPanel
 from unidec.metaunidec.gui_elements.ud_cont_meta import main_controls
 from unidec.metaunidec.gui_elements.ud_menu_meta import meta_menu
