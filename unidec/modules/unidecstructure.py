@@ -17,11 +17,19 @@ __author__ = 'Michael.Marty'
 version = __version__
 
 
+class _RegistrySentinel:
+    pass
+
+
+NO_DEFAULT = _RegistrySentinel()
+NO_UNSET_VALUE = _RegistrySentinel()
+
+
 @dataclass(frozen=True)
 class ParameterSpec:
     attribute: str
     dtype: type
-    text_key: str
+    text_key: str | None
     hdf5_key: str | None = None
     minimum: float | None = None
     maximum: float | None = None
@@ -32,35 +40,113 @@ class ParameterSpec:
     description: str = ""
     public: bool = True
     optional: bool = False
+    default: object = NO_DEFAULT
+    text_aliases: tuple[str, ...] = ()
+    hdf5_aliases: tuple[str, ...] = ()
+    text_unset: object = NO_UNSET_VALUE
+    hdf5_unset: object = NO_UNSET_VALUE
 
     def schema(self):
         schema = asdict(self)
+        for key in ("default", "text_aliases", "hdf5_aliases", "text_unset", "hdf5_unset"):
+            schema.pop(key)
         schema["dtype"] = self.dtype.__name__
         return schema
 
 
 CONVENTIONAL_PARAMETER_SPECS = (
     ParameterSpec("minmz", float, "minmz", "minmz", 0, 1e9,
-                  affects="processing", units="m/z", optional=True),
+                  affects="processing", units="m/z", optional=True, default="",
+                  text_unset=-1, hdf5_unset=0.0),
     ParameterSpec("maxmz", float, "maxmz", "maxmz", 0, 1e9,
-                  affects="processing", units="m/z", optional=True),
+                  affects="processing", units="m/z", optional=True, default="",
+                  text_unset=-1, hdf5_unset=1000000.0),
     ParameterSpec("mzbins", float, "mzbins", "mzbins", 0, 1000,
-                  affects="processing", units="m/z"),
-    ParameterSpec("startz", int, "startz", "startz", 1, 1000, units="charge"),
-    ParameterSpec("endz", int, "endz", "endz", 1, 1000, units="charge"),
-    ParameterSpec("masslb", float, "masslb", "masslb", 0, 1e9, units="Da"),
-    ParameterSpec("massub", float, "massub", "massub", 0, 1e9, units="Da"),
-    ParameterSpec("massbins", float, "massbins", "massbins", 1e-12, 1e6, units="Da"),
-    ParameterSpec("numit", int, "numit", "numit", 1, 1000000),
-    ParameterSpec("mzsig", float, "mzsig", "mzsig", 1e-12, 1e6, units="m/z"),
-    ParameterSpec("psig", float, "psig", "psig", 0, 1e6),
-    ParameterSpec("beta", float, "beta", "beta", 0, 1e6),
-    ParameterSpec("psfun", int, "psfun", "psfun", choices=(0, 1, 2)),
-    ParameterSpec("psfunz", int, "zpsfn", "psfunz", choices=(0, 1, 2)),
+                  affects="processing", units="m/z", default=0),
+    ParameterSpec("startz", int, "startz", "startz", 1, 1000, units="charge", default=1),
+    ParameterSpec("endz", int, "endz", "endz", 1, 1000, units="charge", default=50),
+    ParameterSpec("masslb", float, "masslb", "masslb", 0, 1e9, units="Da", default=5000),
+    ParameterSpec("massub", float, "massub", "massub", 0, 1e9, units="Da", default=500000),
+    ParameterSpec("massbins", float, "massbins", "massbins", 1e-12, 1e6, units="Da", default=10),
+    ParameterSpec("numit", int, "numit", "numit", 1, 1000000, default=100),
+    ParameterSpec("mzsig", float, "mzsig", "mzsig", 1e-12, 1e6, units="m/z", default=0.85),
+    ParameterSpec("psig", float, "psig", "psig", 0, 1e6, default=1),
+    ParameterSpec("beta", float, "beta", "beta", 0, 1e6, default=0),
+    ParameterSpec("psfun", int, "psfun", "psfun", choices=(0, 1, 2), default=0),
+    ParameterSpec("psfunz", int, "zpsfn", "psfunz", choices=(0, 1, 2), default=0,
+                  hdf5_aliases=("zpsfn",)),
     ParameterSpec("peakwindow", float, "peakwindow", "peakwindow", 0, 1e9,
-                  affects="peaks", units="Da"),
+                  affects="peaks", units="Da", default=500),
     ParameterSpec("peakthresh", float, "peakthresh", "peakthresh", 0, 1,
-                  affects="peaks"),
+                  affects="peaks", default=0.1),
+    ParameterSpec("imflag", int, "imflag", "imflag", public=False, default=0),
+    ParameterSpec("cdmsflag", int, "cdmsflag", "cdmsflag", public=False, default=0),
+    ParameterSpec("zzsig", float, "zzsig", "zzsig", public=False, default=1),
+    ParameterSpec("suppression_topn", int, "suppression_topn", "suppression_topn",
+                  public=False, default=0),
+    ParameterSpec("suppression_topx", float, "suppression_topx", "suppression_topx",
+                  public=False, default=0),
+    ParameterSpec("suppression_percent", float, "suppression_percent", "suppression_percent",
+                  public=False, default=0),
+    ParameterSpec("suppression_startit", int, "suppression_startit", "suppression_startit",
+                  public=False, default=3),
+    ParameterSpec("suppression_harmonic", int, "suppression_harmonic", "suppression_harmonic",
+                  public=False, default=0),
+    ParameterSpec("suppression_satellite", int, "suppression_satellite", "suppression_satellite",
+                  public=False, default=0),
+    ParameterSpec("variablepw", int, "variablepw", "variablepw", public=False, default=0),
+    ParameterSpec("minratio", float, "minratio", "minratio", public=False, default=0.0),
+    ParameterSpec("discreteplot", int, "discreteplot", "discreteplot", public=False, default=0),
+    ParameterSpec("smashflag", int, "smashflag", "smashflag", public=False, default=0),
+    ParameterSpec("msig", float, "msig", "msig", public=False, default=0),
+    ParameterSpec("molig", float, "molig", "molig", public=False, default=0),
+    ParameterSpec("mtabsig", float, "mtabsig", "mtabsig", public=False, default=0),
+    ParameterSpec("subbuff", float, "subbuff", "subbuff", public=False, default=0),
+    ParameterSpec("subtype", int, "subtype", "subtype", public=False, default=2),
+    ParameterSpec("smooth", float, "smooth", "smooth", public=False, default=0),
+    ParameterSpec("normthresh", int, "normthresh", "normthresh", public=False, default=1),
+    ParameterSpec("peakplotthresh", float, "peakplotthresh", "peakplotthresh",
+                  public=False, default=0.1),
+    ParameterSpec("separation", float, "plotsep", "plotsep", public=False, default=0.025,
+                  hdf5_aliases=("separation",)),
+    ParameterSpec("intthresh", float, "intthresh", "intthresh", public=False, default=0),
+    ParameterSpec("reductionpercent", float, "reductionpercent", "reductionpercent",
+                  public=False, default=0),
+    ParameterSpec("aggressiveflag", int, "aggressive", "aggressive", public=False, default=0,
+                  hdf5_aliases=("aggressiveflag",)),
+    ParameterSpec("rawflag", int, "rawflag", "rawflag", public=False, default=0),
+    ParameterSpec("rescale_newblur", int, "rescale_newblur", "rescale_newblur",
+                  public=False, default=1),
+    ParameterSpec("adductmass", float, "adductmass", "adductmass", public=False,
+                  default=1.007276467),
+    ParameterSpec("nativezub", float, "nativezub", "nativezub", public=False, default=1000),
+    ParameterSpec("nativezlb", float, "nativezlb", "nativezlb", public=False, default=-1000),
+    ParameterSpec("poolflag", int, "poolflag", "poolflag", public=False, default=2),
+    ParameterSpec("detectoreffva", float, "accvol", "accvol", public=False, default=0),
+    ParameterSpec("inflate", float, "peakshapeinflate", "peakshapeinflate",
+                  public=False, default=1),
+    ParameterSpec("noiseflag", int, "noiseflag", "noiseflag", public=False, default=0),
+    ParameterSpec("linflag", int, "linflag", "linflag", public=False, default=2),
+    ParameterSpec("cmap", str, "cmap", "cmap", public=False, default="nipy_spectral"),
+    ParameterSpec("peakcmap", str, "peakcmap", "peakcmap", public=False, default="rainbow"),
+    ParameterSpec("spectracmap", str, "spectracmap", "spectracmap", public=False,
+                  default="rainbow"),
+    ParameterSpec("publicationmode", int, "publicationmode", "publicationmode",
+                  public=False, default=1),
+    ParameterSpec("isotopemode", int, "isotopemode", "isotopemode", public=False, default=0),
+    ParameterSpec("peaknorm", int, "peaknorm", "peaknorm", public=False, default=1),
+    ParameterSpec("datanorm", int, "datanorm", "datanorm", public=False, default=1),
+    ParameterSpec("baselineflag", int, "baselineflag", "baselineflag", public=False, default=1),
+    ParameterSpec("orbimode", int, "orbimode", "orbimode", public=False, default=0),
+    ParameterSpec("integratelb", float, "integratelb", "integratelb", public=False,
+                  optional=True, default="", text_unset=-1, hdf5_unset=-1.0),
+    ParameterSpec("integrateub", float, "integrateub", "integrateub", public=False,
+                  optional=True, default="", text_unset=-1, hdf5_unset=-1.0),
+    ParameterSpec("filterwidth", int, "filterwidth", "filterwidth", public=False, default=20),
+    ParameterSpec("zerolog", float, "zerolog", "zerolog", public=False, default=-12),
+    ParameterSpec("doubledec", bool, "doubledec", "doubledec", public=False, default=False),
+    ParameterSpec("manualfileflag", int, None, "manualfileflag", public=False, default=0),
+    ParameterSpec("mfileflag", int, None, "mfileflag", public=False, default=0),
 )
 
 
@@ -170,6 +256,97 @@ class UniDecConfig(object):
     _HDF5_STRING_KEYS = frozenset({
         "version", "original_file", "cmap", "peakcmap", "spectracmap",
     })
+
+    @staticmethod
+    def scalar_parameter_specs():
+        """Return the reviewed conventional-MS scalar persistence registry."""
+        return CONVENTIONAL_PARAMETER_SPECS
+
+    @classmethod
+    def validate_parameter_registry(cls):
+        """Raise ``ValueError`` when the conventional scalar registry is ambiguous."""
+        specs = cls.scalar_parameter_specs()
+        attributes = set()
+        errors = []
+        for spec in specs:
+            if spec.attribute in attributes:
+                errors.append(f"duplicate attribute {spec.attribute}")
+            attributes.add(spec.attribute)
+            if spec.dtype not in (bool, int, float, str):
+                errors.append(f"unsupported dtype for {spec.attribute}: {spec.dtype}")
+            if spec.default is NO_DEFAULT:
+                errors.append(f"missing default for {spec.attribute}")
+            elif not spec.optional or spec.default not in ("", None):
+                if spec.dtype is bool and not isinstance(spec.default, bool):
+                    errors.append(f"invalid bool default for {spec.attribute}")
+                elif spec.dtype is int and (isinstance(spec.default, bool)
+                                            or not isinstance(spec.default, Integral)):
+                    errors.append(f"invalid int default for {spec.attribute}")
+                elif spec.dtype is float and (isinstance(spec.default, bool)
+                                              or not isinstance(spec.default, Real)):
+                    errors.append(f"invalid float default for {spec.attribute}")
+                elif spec.dtype is str and not isinstance(spec.default, str):
+                    errors.append(f"invalid string default for {spec.attribute}")
+            if spec.text_key is None and spec.hdf5_key is None:
+                errors.append(f"no persistence key for {spec.attribute}")
+
+        for file_format in ("text", "hdf5"):
+            try:
+                cls.serialized_parameter_index(file_format)
+            except ValueError as error:
+                errors.append(str(error))
+        if errors:
+            raise ValueError("Invalid parameter registry: " + "; ".join(errors))
+
+    @classmethod
+    def serialized_parameter_index(cls, file_format):
+        """Return canonical and legacy key lookups for one persistence format."""
+        if file_format not in ("text", "hdf5"):
+            raise ValueError("file_format must be 'text' or 'hdf5'")
+        key_name = f"{file_format}_key"
+        aliases_name = f"{file_format}_aliases"
+        index = {}
+        for spec in cls.scalar_parameter_specs():
+            keys = (getattr(spec, key_name),) + getattr(spec, aliases_name)
+            for key in keys:
+                if key is None:
+                    continue
+                existing = index.get(key)
+                if existing is not None and existing is not spec:
+                    raise ValueError(
+                        f"duplicate {file_format} key {key} for "
+                        f"{existing.attribute} and {spec.attribute}")
+                index[key] = spec
+        return index
+
+    def iter_serialized_parameters(self, file_format):
+        """Yield registry-backed scalar keys, converted values, and declared types."""
+        if file_format not in ("text", "hdf5"):
+            raise ValueError("file_format must be 'text' or 'hdf5'")
+        key_name = f"{file_format}_key"
+        unset_name = f"{file_format}_unset"
+        for spec in self.scalar_parameter_specs():
+            key = getattr(spec, key_name)
+            if key is None:
+                continue
+            value = getattr(self, spec.attribute)
+            using_unset_value = False
+            if spec.optional and value in ("", None):
+                unset_value = getattr(spec, unset_name)
+                if unset_value is NO_UNSET_VALUE:
+                    continue
+                value = unset_value
+                using_unset_value = True
+            if not (file_format == "text" and using_unset_value):
+                if spec.dtype is bool:
+                    value = bool(value)
+                elif spec.dtype is int:
+                    value = int(value)
+                elif spec.dtype is float:
+                    value = float(value)
+                elif spec.dtype is str:
+                    value = str(value)
+            yield key, value, spec.dtype
 
     def _parameter_specs(self):
         if getattr(self, "agent_mode", None) == "unichrom":

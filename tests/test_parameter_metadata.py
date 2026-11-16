@@ -6,6 +6,37 @@ from unidec.modules.unidecstructure import UniDecConfig
 
 
 class TestConventionalParameterMetadata(unittest.TestCase):
+    def test_scalar_registry_is_valid_and_keeps_internal_fields_private(self):
+        config = UniDecConfig()
+        config.validate_parameter_registry()
+
+        specs = {spec.attribute: spec for spec in config.scalar_parameter_specs()}
+        self.assertEqual(specs["startz"].default, 1)
+        self.assertEqual(specs["minmz"].text_unset, -1.0)
+        self.assertEqual(specs["minmz"].hdf5_unset, 0.0)
+        self.assertFalse(specs["aggressiveflag"].public)
+        self.assertNotIn("aggressiveflag", config.parameter_schema())
+
+        text_index = config.serialized_parameter_index("text")
+        hdf5_index = config.serialized_parameter_index("hdf5")
+        self.assertEqual(text_index["zpsfn"].attribute, "psfunz")
+        self.assertEqual(hdf5_index["psfunz"].attribute, "psfunz")
+        self.assertEqual(hdf5_index["zpsfn"].attribute, "psfunz")
+        self.assertEqual(hdf5_index["aggressiveflag"].attribute, "aggressiveflag")
+        self.assertEqual(hdf5_index["separation"].attribute, "separation")
+
+        with self.assertRaisesRegex(ValueError, "file_format"):
+            config.serialized_parameter_index("json")
+        with self.assertRaisesRegex(ValueError, "file_format"):
+            list(config.iter_serialized_parameters("json"))
+
+    def test_public_schema_shape_is_unchanged_by_persistence_metadata(self):
+        schema = UniDecConfig().parameter_schema()["startz"]
+        self.assertEqual(set(schema), {
+            "attribute", "dtype", "text_key", "hdf5_key", "minimum", "maximum",
+            "choices", "modes", "affects", "units", "description", "public", "optional",
+        })
+
     def test_schema_is_serializable_and_records_aliases_and_invalidation(self):
         config = UniDecConfig()
         schema = config.parameter_schema()

@@ -6,8 +6,8 @@ from pathlib import Path
 from sphinx.ext.apidoc import main as apidoc_main
 
 
-REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
-SOURCE_DIRECTORY = REPOSITORY_ROOT / "unidec_doc" / "source"
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+SOURCE_DIRECTORY = REPOSITORY_ROOT / "docs" / "api" / "generated"
 PACKAGE_DIRECTORY = REPOSITORY_ROOT / "unidec"
 
 # These are executable training, test, data-generation, or native-library
@@ -32,13 +32,15 @@ def parse_args() -> argparse.Namespace:
 
 if __name__ == "__main__":
     arguments = parse_args()
+    output_directory = arguments.output_dir.resolve()
+    output_directory.mkdir(parents=True, exist_ok=True)
     apidoc_main(
         [
             "--force",
             "--remove-old",
             "--module-first",
             "--output-dir",
-            str(arguments.output_dir.resolve()),
+            str(output_directory),
             str(PACKAGE_DIRECTORY),
             *(str(pattern) for pattern in EXCLUDE_PATTERNS),
         ]

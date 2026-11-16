@@ -148,6 +148,70 @@ class TestUniDecConfigSerialization(unittest.TestCase):
                 hdf5_keys = set(hdf["config"].attrs)
             self.assertEqual(self.conventional_hdf5_scalar_keys - hdf5_keys, set())
 
+    def test_scalar_registry_iterators_shadow_production_serializers(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-registry-shadow-") as directory:
+            root = Path(directory)
+            source = UniDecConfig()
+            for name, value in self.values.items():
+                setattr(source, name, value)
+            source.minmz = ""
+            source.maxmz = ""
+            source.integratelb = ""
+            source.integrateub = ""
+
+            before = {
+                spec.attribute: getattr(source, spec.attribute)
+                for spec in source.scalar_parameter_specs()
+            }
+            text_values = {
+                key: (value, dtype)
+                for key, value, dtype in source.iter_serialized_parameters("text")
+            }
+            hdf5_values = {
+                key: (value, dtype)
+                for key, value, dtype in source.iter_serialized_parameters("hdf5")
+            }
+            expected_text_keys = self.conventional_text_scalar_keys - {
+                "version", "input", "output", "original_file", "numz", "isomode",
+                "centroided", "verbose",
+            }
+            expected_hdf5_keys = self.conventional_hdf5_scalar_keys - {
+                "version", "original_file",
+            }
+            self.assertEqual(set(text_values), expected_text_keys)
+            self.assertEqual(set(hdf5_values), expected_hdf5_keys)
+
+            text_path = root / "config.dat"
+            source.config_export(str(text_path))
+            production_text = {
+                line.split(maxsplit=1)[0]: line.split(maxsplit=1)[1]
+                for line in text_path.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            }
+            for key, (value, _) in text_values.items():
+                self.assertIn(key, production_text)
+                self.assertEqual(production_text[key], str(value), key)
+
+            hdf5_path = root / "config.hdf5"
+            source.write_hdf5(str(hdf5_path))
+            with h5py.File(hdf5_path, "r") as hdf:
+                production_hdf5 = hdf["config"].attrs
+                for key, (value, dtype) in hdf5_values.items():
+                    self.assertIn(key, production_hdf5)
+                    if dtype is float:
+                        self.assertAlmostEqual(production_hdf5[key], value, places=12, msg=key)
+                    else:
+                        self.assertEqual(production_hdf5[key], value, key)
+
+            after = {
+                spec.attribute: getattr(source, spec.attribute)
+                for spec in source.scalar_parameter_specs()
+            }
+            self.assertEqual(after, before)
+            self.assertNotIn("aggressiveflag", hdf5_values)
+            self.assertNotIn("separation", hdf5_values)
+            self.assertNotIn("zpsfn", hdf5_values)
+
     def test_managed_output_names_support_short_and_legacy_modes(self):
         with tempfile.TemporaryDirectory(prefix="unidec-names-") as directory:
             config = UniDecConfig()

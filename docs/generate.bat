@@ -1,6 +1,6 @@
 @ECHO OFF
 pushd %~dp0
-python generate_api_docs.py
+python _scripts\generate_api_docs.py
 if errorlevel 1 goto end
 call make.bat html
 
