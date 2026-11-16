@@ -36,6 +36,28 @@ class TestMetaUniDecConfigPersistence(unittest.TestCase):
             self.assertEqual(Path(engine.config.udir), Path(str(second) + "_unidecfiles"))
             self.assertNotEqual(Path(str(first) + "_unidecfiles"), Path(engine.config.udir))
 
+    def test_legacy_project_outputs_are_discovered_without_redirecting_writes(self):
+        with tempfile.TemporaryDirectory(prefix="metaunidec-legacy-outputs-") as directory:
+            root = Path(directory)
+            project = root / "sample.hdf5"
+            project.touch()
+            legacy_directory = root / "UniDec_Figures_and_Files"
+            legacy_directory.mkdir()
+            legacy_output = legacy_directory / "sample_peaks.txt"
+            legacy_output.write_text("legacy", encoding="utf-8")
+
+            engine = MetaUniDec()
+            engine.setup_filenames(str(project))
+
+            self.assertEqual(Path(engine.find_output_file("peaks.txt")), legacy_output)
+            self.assertEqual(Path(engine.config.output_file("peaks.txt")),
+                             Path(str(project) + "_unidecfiles") / "peaks.txt")
+
+            current_output = Path(engine.config.output_file("peaks.txt"))
+            current_output.write_text("current", encoding="utf-8")
+            self.assertEqual(Path(engine.find_output_file("peaks.txt")), current_output)
+            self.assertIsNone(engine.find_output_file("missing.txt"))
+
     def test_implicit_config_writes_require_an_active_dataset(self):
         presenter = UniDecPres.__new__(UniDecPres)
         presenter.view = Mock()

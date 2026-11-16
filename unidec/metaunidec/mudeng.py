@@ -76,12 +76,25 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
     def setup_filenames(self, path):
         self.config.hdf_file = path
         self.config.dirname, self.config.filename = os.path.split(path)
+        legacy_directory = os.path.join(self.config.dirname, "UniDec_Figures_and_Files")
+        legacy_prefix = os.path.splitext(self.config.filename)[0]
+        self.legacy_outfname = os.path.join(legacy_directory, legacy_prefix)
         dirnew = path + "_unidecfiles"
         if not os.path.isdir(dirnew):
             os.mkdir(dirnew)
         self.config.udir = dirnew
         self.config.outfname = os.path.join(dirnew, "")
         self.config.default_file_names(s="")
+
+    def find_output_file(self, name):
+        """Find a project output without redirecting new writes to the legacy folder."""
+        current = self.config.output_file(name)
+        if os.path.isfile(current):
+            return current
+        legacy = self.legacy_outfname + "_" + name
+        if os.path.isfile(legacy):
+            return legacy
+        return None
 
     def process_data(self):
         self.pks.peaks = []

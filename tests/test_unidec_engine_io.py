@@ -7,6 +7,7 @@ import h5py
 import numpy as np
 
 from unidec.engine import UniDec
+from unidec.modules.IMEng import UniDecIM
 from unidec.modules.unidecstructure import DataContainer, UniDecConfig
 
 
@@ -247,6 +248,24 @@ class TestUniDecConfigSerialization(unittest.TestCase):
             restored.config_import(source.confname)
             self.assertEqual(restored.original_file, "destination.raw")
 
+    def test_config_paths_recognize_absolute_paths_from_supported_platforms(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-platform-paths-") as directory:
+            config_dir = os.path.abspath(directory)
+            absolute_paths = (
+                r"C:\data\sample.dat",
+                r"\\server\share\sample.dat",
+                "/var/data/sample.dat",
+            )
+            for path in absolute_paths:
+                with self.subTest(path=path):
+                    self.assertEqual(UniDecConfig._resolve_config_path(path, config_dir), path)
+                    self.assertEqual(UniDecConfig._path_for_config(path, config_dir), path)
+
+            self.assertEqual(
+                UniDecConfig._resolve_config_path("sidecars/sample.dat", config_dir),
+                os.path.normpath(os.path.join(config_dir, "sidecars/sample.dat")),
+            )
+
     def test_variable_peak_width_text_sidecar_path_round_trip(self):
         with tempfile.TemporaryDirectory(prefix="unidec-fwhm-config-") as directory:
             path = Path(directory, "config.dat")
@@ -419,6 +438,55 @@ class TestUniDecConfigSerialization(unittest.TestCase):
             repaired.open_file(spectrum.name, directory, silent=True)
             with np.load(output / "rawdata.npz", allow_pickle=False) as cache:
                 np.testing.assert_allclose(cache["data"], engine.data.rawdata)
+
+    def test_mismatched_raw_cache_is_regenerated_from_active_source(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-cache-mismatch-") as directory:
+            spectrum = Path(directory, "sample.txt")
+            source_data = np.array([[500.0, 1.0], [501.0, 2.0], [502.0, 1.0]])
+            np.savetxt(spectrum, source_data)
+
+            engine = UniDec(ignore_args=True, silent=True)
+            engine.open_file(spectrum.name, directory, silent=True)
+            cache_path = Path(directory, "sample_unidecfiles", "rawdata.npz")
+
+            for mode, original_file in (("imms", spectrum.name), ("ms", "other.raw")):
+                with self.subTest(mode=mode, original_file=original_file):
+                    np.savez_compressed(
+                        cache_path,
+                        data=np.array([[900.0, 9.0], [901.0, 8.0]]),
+                        unidec_rawdata_version=np.array(1),
+                        mode=np.array(mode),
+                        original_file=np.array(original_file),
+                    )
+                    restored = UniDec(ignore_args=True, silent=True)
+                    restored.open_file(spectrum.name, directory, silent=True)
+                    with np.load(cache_path, allow_pickle=False) as cache:
+                        self.assertEqual(str(cache["mode"]), "ms")
+                        self.assertEqual(str(cache["original_file"]), spectrum.name)
+                        np.testing.assert_allclose(cache["data"], source_data)
+
+    def test_imms_managed_cache_round_trip_preserves_mode_and_provenance(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-imms-cache-") as directory:
+            cache_path = Path(directory, "rawdata.npz")
+            sparse_data = np.array([
+                [100.0, 1.0, 1.0],
+                [100.0, 2.0, 2.0],
+                [101.0, 1.0, 3.0],
+                [101.0, 2.0, 4.0],
+            ])
+            np.savez_compressed(
+                cache_path,
+                data=sparse_data,
+                unidec_rawdata_version=np.array(1),
+                mode=np.array("imms"),
+                original_file=np.array("sample.raw"),
+            )
+
+            engine = UniDecIM(ignore_args=True, silent=True)
+            engine.open_file(cache_path.name, directory, silent=True)
+
+            self.assertEqual(engine.config.original_file, "sample.raw")
+            np.testing.assert_allclose(engine.data.rawdata3, sparse_data)
 
     def test_text_and_hdf5_round_trip(self):
         with tempfile.TemporaryDirectory(prefix="unidec-config-") as directory:
