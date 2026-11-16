@@ -18,6 +18,7 @@ package_paths = [str(root)]
 # installed importer's source root while retaining normal site-package installs.
 importer_base, _ = get_package_paths("UniDecImporter")
 package_paths.insert(0, importer_base)
+pymzml_dir = Path(get_package_paths("pymzml")[1])
 if (isodec_checkout / "isodec" / "__init__.py").is_file():
     package_paths.insert(0, str(isodec_checkout))
 isogen_checkout = isodec_checkout / "extern" / "IsoGen"
@@ -94,6 +95,8 @@ coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name=outputdir)
 
 # Respect --distpath and package without launching an interactive GUI during builds.
 destination = Path(DISTPATH) / outputdir
+# Frozen pymzML looks beside the executable instead of inside its package.
+shutil.copytree(pymzml_dir / "obo", destination / "obo", dirs_exist_ok=True)
 for name in ("readme.md", "LICENSE", "installer.bat"):
     shutil.copy2(root / name, destination / name)
 

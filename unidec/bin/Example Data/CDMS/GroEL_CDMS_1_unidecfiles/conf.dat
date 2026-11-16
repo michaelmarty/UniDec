@@ -1,8 +1,9 @@
-version 9.0.0
+version 9.0.2
 imflag 0
 cdmsflag 1
-input C:\Python\UniDecDev\public\UniDec\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\input.dat
-output C:\Python\UniDecDev\public\UniDec\unidec\bin\Example Data\CDMS\GroEL_CDMS_1_unidecfiles\
+input input.dat
+output ./
+original_file GroEL_CDMS_1.RAW
 numit 50
 numz 36
 endz 85
@@ -43,6 +44,7 @@ intthresh 0.0
 reductionpercent 0.0
 aggressive 0
 rawflag 1
+rescale_newblur 1
 adductmass 1.007276467
 nativezub 100.0
 nativezlb -100.0
@@ -73,6 +75,8 @@ CDScanEnd -1
 CDprethresh 0.0
 HTksmooth 0.0
 CDScanCompress 0
+chromatogram_type 0
+chromatogram_norm 0
 HTmaxscans -1
 HToutlb -1.0
 HToutub -1.0
@@ -97,7 +101,7 @@ subbufdt 0.0
 centroided False
 verbose False
 zout 0
-pusher 0
+pusher 0.0
 mindt -1.0
 maxdt -1.0
 ccsub 25000.0
