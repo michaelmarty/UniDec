@@ -1,4 +1,34 @@
+"""Quantify Skyline lipid exports and compare replicate groups.
+
+Products excludes named precursors and renamed rows at or above precursor
+m/z (0.005 m/z tolerance, same charge when supplied). This also rejects
+over-shifted labelled precursor/isotope rows in re-imported standard lists.
+For PC/EtherPC +H, Products uses only the phosphocholine headgroup: m/z 184.0733
+for both analytes and glycerol-d5 PC standards (0.005 m/z window). The glycerol
+label does not shift this fragment. Previously exported standard transitions at
+189.1047 require corrected Skyline transitions and re-extraction, not relabeling.
+Acetate still uses the existing product sum. Selection uses measured Product Mz,
+so it works with both original fragment names and re-imported "Ion [...]" names.
+PC/EtherPC uses acetate when quantifiable in a replicate, otherwise +H, after
+normalizing each adduct against its matching standard adduct. Quant Adduct
+columns record the choice. Standards with >5-fold raw-area ranges within a group
+are retained and flagged for review; different standard species use their own
+catalogue concentrations. Analyte/standard area ratios >50 are also warnings,
+not rejection thresholds. Neither is a calibrated assay acceptance limit.
+Standards with missing/nonpositive areas cannot serve as denominators.
+TIC normalization remains
+optional and produces relative lipid composition rather than absolute abundance.
+compare_pipeline keeps the union of input lipids without lipid/class exclusion
+lists. Each run writes <input-stem>_quantification_notes.csv to record warnings
+and unavailable quantification; every lipid remains in the comparison tables.
+With missing_set2_as_zero enabled, input entries absent from set2 for a lipid
+present in the control become zero detected signal. Quantification failures
+remain unavailable. Tests using zeros explicitly assume those zero signals;
+infinite fold changes appear as labelled boundary triangles in the volcano.
+"""
+
 import os
+from pathlib import Path
 import pandas as pd
 import numpy as np
 import scipy.stats as stats
@@ -42,7 +72,7 @@ DG,17:0-18:1 DG-d5,IS DG(+[2]H5) 17:0_18:1,75,614.57,612.57,11,800824,OC([C@]([2
 DG,17:0-20:3 DG-d5,IS DG(+[2]H5) 17:0_20:3,50,638.57,636.57,10.7,800825,OC([C@]([2H])(OC(CCCCCC/C=C\C/C=C\C/C=C\CCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H]
 DG,17:0-16:1 DG-d5,IS DG(+[2]H5) 16:1_17:0,50,586.54,584.54,10.2,800826,OC([C@]([2H])(OC(CCCCCCC/C=C\CCCCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H]
 DG,17:0-14:1 DG-d5,IS DG(+[2]H5) 14:1_17:0,25,558.51,556.51,9,800827,OC([C@]([2H])(OC(CCCCCCC/C=C\CCCC)=O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H]
-LPA,17:0 Lyso PA-d5, IS LPA 18:1(+[2]H9),25,446.3, 444.3, 1.75, 793074, [2H]C([2H])([2H])C([2H])([2H])C([2H])([2H])CCCC/C=C\CCCCCCC(=O)OC[C@H](O)COP([O-])([O-])=O.[Na+]
+LPA,18:1 Lyso PA-d5, IS LPA 18:1(+[2]H9),25,446.3, 444.3, 1.75, 793074, [2H]C([2H])([2H])C([2H])([2H])C([2H])([2H])CCCC/C=C\CCCCCCC(=O)OC[C@H](O)COP([O-])([O-])=O.[Na+]
 LPC,17:0 Lyso PC-d5,IS LPC 17:0(+[2]H5),50,492.38,490.38,3,855679,[O-]P(OCC[N+](C)(C)C)(OC([C@]([2H])(O)C(OC(CCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
 LPC,19:0 Lyso PC-d5,IS LPC 19:0(+[2]H5),25,520.41,518.41,4,855778,[O-]P(OCC[N+](C)(C)C)(OC([C@]([2H])(O)C(OC(CCCCCCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
 LPC,15:0 Lyso PC-d5,IS LPC 15:0(+[2]H5),25,464.35,462.35,2,870309,[O-]P(OCC[N+](C)(C)C)(OC([C@]([2H])(O)C(OC(CCCCCCCCCCCCCC)=O)([2H])[2H])([2H])[2H])=O
@@ -106,7 +136,7 @@ default_isdf = pd.read_csv(io.StringIO(israw))
 # Rename "Lipid" column to "Name 1" and "Name 2" to "Lipid"
 default_isdf = default_isdf.rename(columns={"Lipid": "Name 1", "Name 2": "Lipid"})
 # Drop "IS " prefix from "Lipid" column
-default_isdf["Lipid"] = default_isdf["Lipid"].str.replace(r"^IS\s+", "", regex=True)
+default_isdf["Lipid"] = default_isdf["Lipid"].str.strip().str.replace(r"^IS\s+", "", regex=True)
 # Replace - in "Lipid" column with _
 default_isdf["Lipid"] = default_isdf["Lipid"].str.replace("-", "_")
 # Replace TAG with TG and DAG with DG in "Lipid" column
@@ -126,6 +156,12 @@ default_isdf["Concentration (uM)"] = default_isdf["Concentration (ug/mL)"] / def
 default_is_mapper = {"GM3": "PI", "PEtOH": "PG", "SHexCer": "Cer", "EtherPC": "PC", "HexCer": "Cer", "Hex2Cer": "Cer"}
 area_match_is_classes = {"PC", "EtherPC", "EtherPE","PE", "PI", "SM"}
 preferred_quant_adducts = {"PC": "[M+CH3COO]", "EtherPC": "[M+CH3COO]"}
+# QC compares replicate areas within experimental groups, never between groups.
+IS_AREA_VARIATION_WARNING_FOLD = 5.0
+PC_HEADGROUP_MZ = 184.0733
+PC_HEADGROUP_TOLERANCE = 0.005
+QUANTIFICATION_NOTE_COLUMNS = ["Input", "Molecule", "Class", "Adduct", "Reason", "Stage",
+                   "Rows removed", "Row unit", "Replicates"]
 # print(default_isdf.to_string())
 # exit()
 
@@ -238,7 +274,33 @@ def split_names(df, mol_col="Molecule"):
 def filter_transition_mode(df, mode):
     """Return the transitions used by the requested quantification mode."""
     if mode == "Products":
-        return df[~df["Fragment Ion"].str.contains("precursor", case=False, na=False)]
+        precursor = df["Fragment Ion"].str.contains("precursor", case=False, na=False)
+        # Re-imported Skyline projects can rename precursor rows to "Ion [...]".
+        # Same-charge products at/above the precursor include unfragmented ions
+        # and over-shifted labelled isotope rows, not genuine neutral-loss products.
+        if {"Precursor Mz", "Product Mz"}.issubset(df.columns):
+            precursor_mz = pd.to_numeric(df["Precursor Mz"], errors="coerce")
+            product_mz = pd.to_numeric(df["Product Mz"], errors="coerce")
+            unfragmented = (np.isfinite(precursor_mz) & np.isfinite(product_mz)
+                            & (precursor_mz > 0) & (product_mz >= precursor_mz - 0.005))
+            if {"Precursor Charge", "Product Charge"}.issubset(df.columns):
+                unfragmented &= (pd.to_numeric(df["Precursor Charge"], errors="coerce")
+                                 == pd.to_numeric(df["Product Charge"], errors="coerce"))
+            precursor |= unfragmented
+        products = df[~precursor]
+        adduct_col = "Precursor Adduct" if "Precursor Adduct" in products.columns else "Adduct"
+        if {"Molecule", "Molecule List Name", adduct_col}.issubset(products.columns):
+            pc_h = (products["Molecule List Name"].isin(["PC", "EtherPC"])
+                    & products[adduct_col].isin(["[M+H]", "[M5H2+H]"]))
+            if pc_h.any():
+                if "Product Mz" not in products:
+                    raise ValueError("PC +H headgroup quantification requires Product Mz")
+                # UltimateSPLASH PC-d5 labels the glycerol, not phosphocholine.
+                # Analytes and these standards share the unshifted headgroup.
+                matched = np.isclose(pd.to_numeric(products["Product Mz"], errors="coerce"),
+                                     PC_HEADGROUP_MZ, rtol=0, atol=PC_HEADGROUP_TOLERANCE)
+                products = products[~pc_h | matched]
+        return products
     if mode == "Precursors":
         return df[df["Fragment Ion"].str.contains("precursor", case=False, na=False)]
     if mode == "Tails":
@@ -251,7 +313,8 @@ def filter_transition_mode(df, mode):
 
 
 def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normalize_TIC=True,
-                    conc_col="Concentration (uM)", customisdf="Default"):
+                    conc_col="Concentration (uM)", customisdf="Default", is_replicate_groups=None,
+                    exclusion_audit=None):
     adduct_col="Precursor Adduct" if "Precursor Adduct" in df.columns else "Adduct"
     mol_col = "Molecule"
     class_col = "Molecule List Name"
@@ -281,6 +344,10 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
     mzcol = "Precursor Mz"
     mz_df = df.groupby(mol_col)[mzcol].mean().reset_index()
 
+    # Filter once, consistently for every lipid and project, before summing.
+    # Retain the existing RT/mass metadata calculation above.
+    df = filter_transition_mode(df, mode)
+
     newrows = []
     for m in molecules:
         # Get all adducts for the molecule
@@ -294,18 +361,22 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
             for r in replicates:
                 mask = (df[mol_col] == m) & (df[rep_col] == r) & (df[adduct_col] == a)
                 subset = df[mask]
-                subset = filter_transition_mode(subset, mode)
 
                 # if m == "IS LPE(+[2]H5) 17:0":
                 #     print(f"DEBUG: Subset for {m} {a} {r}:")
                 #     print(subset)
 
-                total_area = subset["Area"].sum()
+                total_area = subset["Area"].sum(min_count=1)
                 newrow[r] = total_area
             if normalize_IS:
                 # If any IS values have a zero in any replicate, skip this IS compound
-                if any(newrow[r] == 0 for r in replicates) and m.startswith("IS"):
+                if any(not np.isfinite(newrow[r]) or newrow[r] <= 0 for r in replicates) and m.startswith("IS"):
                     print(f"WARNING: Removing IS compound {m} with adduct {a} because it is 0")
+                    if exclusion_audit is not None:
+                        exclusion_audit.append({"Molecule": m, "Class": newrow[class_col], "Adduct": a,
+                            "Reason": "Internal standard has zero or missing product area in at least one replicate.",
+                            "Stage": "IS QC", "Rows removed": 1, "Row unit": "Lipid-adduct estimates",
+                            "Replicates": "; ".join(r for r in replicates if not np.isfinite(newrow[r]) or newrow[r] <= 0)})
                     # print(newrow)
                     continue
             newrows.append(newrow)
@@ -314,7 +385,8 @@ def sum_transitions(df, mode="Products", drop_IS=True, normalize_IS=True, normal
 
     if normalize_IS:
         print("Normalizing IS")
-        outdf = normalize_is(outdf, replicates, conc_col, isdf=customisdf)
+        outdf = normalize_is(outdf, replicates, conc_col, isdf=customisdf,
+                             replicate_groups=is_replicate_groups, exclusion_audit=exclusion_audit)
         if len(outdf) == 0:
             raise ValueError("No data left after IS normalization. Check if IS compounds are present.")
         # Drop species that are 0 in all replicates after IS normalization
@@ -483,12 +555,13 @@ def get_is_conc_from_isdf(isrow, isdf, conc_col):
         isname = isname[3:].strip()
     # Skyline and the standard table may use '-' and '_' interchangeably in lipid tails.
     normalized_isname = isname.replace("-", "_")
-    normalized_isdf_names = isdf["Lipid"].astype(str).str.replace("-", "_", regex=False)
+    normalized_isdf_names = (isdf["Lipid"].astype(str).str.strip()
+                             .str.replace(r"^IS\s+", "", regex=True).str.replace("-", "_", regex=False))
     # Find matches
     isdf_row = isdf[(normalized_isdf_names == normalized_isname) & (isdf["Class"] == isclass)]
     # If none or multiple matches, print warning and return None
     if len(isdf_row) == 0:
-        print(f"WARNING: No matching IS found in IS dataframe for '{isname}' of class '{isclass}'. Assuming concentration of 1 for this compound.")
+        print(f"WARNING: No matching IS concentration found for '{isname}' of class '{isclass}'. Quantification unavailable.")
         return None
     if len(isdf_row) > 1:
         print(f"WARNING: Multiple matching IS found in IS dataframe for {isname}")
@@ -578,11 +651,10 @@ def calc_is(df, isrows, replicates, conc_col, isdf=default_isdf, match_by_area=F
                                 standard_name = closest_isrow["Molecule"].iloc[0]
                                 print(f"WARNING: Analyte/internal standard peak-area ratio of {intratio} for "
                                       f"{row['Molecule']} ({adduct}, {r}) exceeds 50. Using {standard_name}, "
-                                      f"the closest-area standard, is still out of range. Excluding this adduct from quantification.")
+                                      f"the closest-area standard; retaining concentration-corrected quantification. "
+                                      f"Review the assay's validated range.")
                             else:
                                 print(f"WARNING: High internal standard ratio of {intratio} for row {i} in class {cls} and adduct {adduct} in replicate {r}. This may indicate an issue with the IS normalization.")
-                            normdata.at[i, r] = np.nan
-                            continue
                         isval /= conc
                         #
                         # corrected = float(rawarea) / isval
@@ -624,29 +696,93 @@ def dereplicate_adducts(normdf, replicates):
         newrow = subdf.iloc[0].copy()
         if len(adducts) > 1:
             newrow["Adduct"] = "+".join(adducts)
+        preferred = preferred_quant_adducts.get(newrow["Molecule List Name"])
+        used_adducts = []
         for r in replicates:
+            if preferred is not None:
+                # Each adduct was already normalized to its own matching IS.
+                # Choose acetate per replicate when usable; otherwise use +H.
+                newrow[r] = np.nan
+                newrow[f"Quant Adduct {r}"] = ""
+                for adduct in [preferred, "[M+H]"]:
+                    values = pd.to_numeric(subdf.loc[subdf["Adduct"] == adduct, r], errors="coerce")
+                    values = values[np.isfinite(values) & (values > 0)]
+                    if len(values):
+                        newrow[r] = float(values.iloc[0])
+                        newrow[f"Quant Adduct {r}"] = adduct
+                        used_adducts.append(adduct)
+                        break
+                if not np.isfinite(newrow[r]):
+                    # Retain a measured zero only if neither adduct is usable.
+                    values = pd.to_numeric(subdf[r], errors="coerce")
+                    if np.isfinite(values).all() and values.eq(0).all():
+                        newrow[r] = 0.
+                    else:
+                        print(f"WARNING: No valid acetate or +H quantification for {lipid} "
+                              f"in {r}; retaining a missing estimate, not zero.")
+                continue
             valid_values = pd.to_numeric(subdf[r], errors="coerce").dropna()
-            newrow[r] = valid_values.mean() if len(valid_values) > 0 else 0
+            newrow[r] = valid_values.mean() if len(valid_values) > 0 else np.nan
+        if preferred is not None:
+            newrow["Adduct"] = "+".join(dict.fromkeys(used_adducts))
         outrows.append(newrow)
     outdf = pd.DataFrame(outrows)
     print(len(normdf), "rows before dereplication, ", len(outdf), "rows after dereplication.")
     return outdf
 
 
-def normalize_is(df, replicates, conc_col, isdf="Default", dereplicate=True):
+def check_standard_variation(df, replicate_groups, exclusion_audit=None):
+    """Flag within-standard area variation without rejecting valid standards.
+
+    Different concentrations between standard species are expected and handled
+    by calc_is. Nonpositive/nonfinite denominators remain unusable.
+    """
+    if replicate_groups is None:
+        return df
+    keep = pd.Series(True, index=df.index)
+    for index, row in df.loc[df["Molecule"].str.startswith("IS ")].iterrows():
+        for group in replicate_groups:
+            if len(group) < 2:
+                continue
+            values = pd.to_numeric(row[group], errors="coerce").to_numpy(dtype=float)
+            invalid = not np.isfinite(values).all() or (values <= 0).any()
+            ratio = np.inf if invalid else values.max() / values.min()
+            if invalid:
+                keep.at[index] = False
+                reason = "Internal standard has nonpositive/nonfinite area within comparison group."
+                print(f"WARNING: Removing IS {row['Molecule']} ({row['Adduct']}): {reason}")
+            elif ratio > IS_AREA_VARIATION_WARNING_FOLD:
+                reason = (f"IS area varies {ratio:.2f}-fold within comparison group; "
+                          "retained for concentration-corrected normalization. Review peaks and standard loading.")
+                print(f"WARNING: {row['Molecule']} ({row['Adduct']}): {reason}")
+            else:
+                continue
+            if exclusion_audit is not None:
+                exclusion_audit.append({"Molecule": row["Molecule"], "Class": row["Molecule List Name"],
+                        "Adduct": row["Adduct"], "Reason": reason,
+                        "Stage": "IS QC" if invalid else "IS QC warning", "Rows removed": int(invalid),
+                        "Row unit": "Lipid-adduct estimates",
+                        "Replicates": "; ".join(group)})
+            if invalid:
+                break
+    return df.loc[keep].copy()
+
+
+def normalize_is(df, replicates, conc_col, isdf="Default", dereplicate=True, replicate_groups=None,
+                 exclusion_audit=None):
     if type(isdf) == str:
         if isdf == "Default":
             isdf = default_isdf
         else:
             raise ValueError(f"Invalid value for isdf: {isdf}. Must be 'Default' or a custom IS dataframe.")
 
-    normdf = df.copy()
+    normdf = check_standard_variation(df.copy(), replicate_groups, exclusion_audit=exclusion_audit)
     for class_name, preferred_adduct in preferred_quant_adducts.items():
         class_mask = normdf["Molecule List Name"] == class_name
-        excluded_mask = class_mask & (normdf["Adduct"] != preferred_adduct)
+        excluded_mask = class_mask & ~normdf["Adduct"].isin([preferred_adduct, "[M+H]"])
         excluded_count = excluded_mask.sum()
         if excluded_count > 0:
-            print(f"Using {preferred_adduct} only for {class_name} quantification; "
+            print(f"Using {preferred_adduct} with +H fallback for {class_name} quantification; "
                   f"excluding {excluded_count} rows with other adducts.")
             normdf = normdf[~excluded_mask].copy()
 
@@ -701,7 +837,81 @@ def normalize_is(df, replicates, conc_col, isdf="Default", dereplicate=True):
     return normdf
 
 
-def stats_calcs(df, replicates_set1, replicates_set2, paired=False, bh_correction=True):
+def detection_table(quantified, source, replicates, drop_IS=True):
+    """Restore the input catalogue and distinguish missing rows from failed quantification.
+
+    source is captured BEFORE transition filtering. An input row that fails
+    quantification must never become a zero measurement.
+    """
+    source = source.copy()
+    clean_classes(source)
+    keys = ["Molecule", "Molecule List Name"]
+    catalogue = source[keys].drop_duplicates()
+    if drop_IS:
+        catalogue = catalogue.loc[~catalogue["Molecule"].str.startswith("IS")]
+    out = catalogue.merge(quantified, on=keys, how="left", validate="one_to_one")
+    for r in replicates:
+        present = pd.MultiIndex.from_frame(source.loc[source["Replicate Name"].eq(r), keys].drop_duplicates())
+        has_rows = pd.MultiIndex.from_frame(out[keys]).isin(present)
+        out.loc[~has_rows, r] = np.nan
+        out[f"Detection {r}"] = np.where(
+            ~has_rows, "Not measured",
+            np.where(np.isfinite(out[r]) & out[r].gt(0), "Quantified",
+            np.where(out[r].eq(0), "Not detected", "Quantification failed")))
+    return out
+
+
+def comparison_stats(df, set1, set2, paired=False, bh_correction=True, include_nondetections=False):
+    """Keep every lipid and optionally test complete measurements containing zeros.
+
+    Tests including non-detections assume zero signal, not known biological
+    absence. Preserve infinite log2 fold changes rather than adding a pseudocount.
+    """
+    out = df.copy()
+    replicates = set1 + set2
+    out["Mean"] = out[replicates].mean(axis=1)
+    for label, group in [("Set1", set1), ("Set2", set2)]:
+        values = out[group]
+        out[f"{label}_Detected"] = (np.isfinite(values) & values.gt(0)).sum(axis=1)
+        out[f"{label}_Available"] = np.isfinite(values).sum(axis=1)
+        complete = np.isfinite(values).all(axis=1)
+        out[f"{label}_Mean"] = values.mean(axis=1).where(complete)
+        out[f"{label}_CV"] = (values.std(axis=1) / values.mean(axis=1)).where(complete)
+    d1, d2 = out["Set1_Detected"], out["Set2_Detected"]
+    a1, a2 = out["Set1_Available"], out["Set2_Available"]
+    out["Detection change"] = np.select(
+        [(d1 > 0) & (d2 == 0) & (a2 == len(set2)),
+         (d2 > 0) & (d1 == 0) & (a1 == len(set1)),
+         (d1 > 0) & (d2 == 0), (d2 > 0) & (d1 == 0), (d1 > 0) & (d2 > 0)],
+        ["Set1 only; Set2 ND", "Set2 only; Set1 ND", "Set1 detected; Set2 unavailable",
+         "Set2 detected; Set1 unavailable", "Detected in both"], default="No quantified detection")
+    eligible = np.isfinite(out[replicates]).all(axis=1) & out[replicates].gt(0).all(axis=1)
+    if include_nondetections:
+        eligible = (np.isfinite(out[replicates]).all(axis=1)
+                    & out[replicates].ge(0).all(axis=1) & out[replicates].gt(0).any(axis=1))
+        if paired:
+            # Paired ratios require a positive denominator in every control replicate.
+            eligible &= out[set1].gt(0).all(axis=1)
+    if min(len(set1), len(set2)) < 2:
+        eligible[:] = False
+    out["Comparison status"] = "Not tested: ND or unavailable measurements"
+    out["Test basis"] = np.where(out[replicates].eq(0).any(axis=1),
+                                "Includes zero non-detections", "Positive measurements")
+    metrics = ["FC", "Log2FC", "StdDevFC", "CI95_FC", "p-value", "Raw p-value", "Log10p"]
+    summarycols = [f"Ratio_{i + 1}" for i in range(len(set1))] if paired else ["Set1_Mean", "Set2_Mean"]
+    for col in metrics + ([c for c in summarycols] if paired else []):
+        out[col] = np.nan
+    if eligible.any():
+        tested, _ = stats_calcs(out.loc[eligible].copy(), set1, set2, paired, bh_correction,
+                               allow_zeros=include_nondetections)
+        out.loc[eligible, "Comparison status"] = "Not tested: undefined t-test"
+        out.loc[tested.index, "Comparison status"] = "Tested"
+        for col in metrics + (summarycols if paired else []):
+            out.loc[tested.index, col] = tested[col]
+    return out, summarycols
+
+
+def stats_calcs(df, replicates_set1, replicates_set2, paired=False, bh_correction=True, allow_zeros=False):
 
     df["Mean"] = df[replicates_set1 + replicates_set2].mean(axis=1)
     set1_means = df[replicates_set1].mean(axis=1)
@@ -724,15 +934,17 @@ def stats_calcs(df, replicates_set1, replicates_set2, paired=False, bh_correctio
             summarycols.append(f"Ratio_{i + 1}")
         ratiomean = ratios.mean(axis=1)
         df["FC"] = ratiomean
-        df["Log2FC"] = np.log2(np.array(ratiomean) + 1e-10)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            df["Log2FC"] = np.log2(np.array(ratiomean))
         df["StdDevFC"] = np.std(ratios, axis=1, ddof=1)
         df["CI95_FC"] = stats.t.ppf(0.975, df=len(replicates_set1) - 1) * (df["StdDevFC"] / np.sqrt(len(replicates_set1)))
 
     else:
         summarycols.append("Set1_Mean")
         summarycols.append("Set2_Mean")
-        df["FC"] = set2_means / set1_means
-        df["Log2FC"] = np.log2(set2_means + 1e-10) - np.log2(set1_means + 1e-10)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            df["FC"] = set2_means / set1_means
+            df["Log2FC"] = np.log2(set2_means) - np.log2(set1_means)
         # Propagate standard deviation
         set1_std = df[replicates_set1].std(axis=1, ddof=1)
         set2_std = df[replicates_set2].std(axis=1, ddof=1)
@@ -742,7 +954,8 @@ def stats_calcs(df, replicates_set1, replicates_set2, paired=False, bh_correctio
                     df["StdDevFC"] / np.sqrt(len(replicates_set1) + len(replicates_set2)))
 
     # Drop any with a fold change of 0
-    df = df[df["FC"] != 0].copy()
+    if not allow_zeros:
+        df = df[df["FC"] != 0].copy()
 
     p_values = []
     for index, row in df.iterrows():
@@ -763,9 +976,15 @@ def stats_calcs(df, replicates_set1, replicates_set2, paired=False, bh_correctio
     df["p-value"] = p_values
 
     # Drop any that are inf or nan in Log2FC or Log10p
-    df = df.replace([np.inf, -np.inf], np.nan).dropna(subset=["FC", "p-value"])
+    if allow_zeros:
+        df = df.loc[df["FC"].notna() & np.isfinite(df["p-value"])].copy()
+        # Ratio uncertainty is undefined when a group mean is zero.
+        df.loc[df["Set1_Mean"].eq(0) | df["Set2_Mean"].eq(0), ["StdDevFC", "CI95_FC"]] = np.nan
+    else:
+        df = df.replace([np.inf, -np.inf], np.nan).dropna(subset=["FC", "p-value"])
+    df["Raw p-value"] = df["p-value"]
 
-    if bh_correction:
+    if bh_correction and len(df):
         corrected = multipletests(df["p-value"], method='fdr_bh')
         df["p-value"] = corrected[1]
 
@@ -775,7 +994,7 @@ def stats_calcs(df, replicates_set1, replicates_set2, paired=False, bh_correctio
 
 
 def class_calcs(df, replicate_set1, replicate_set2, class_col="Molecule List Name", normalize=True, paired=True,
-                bh_correction=True):
+                bh_correction=True, retain_unavailable=False, include_nondetections=False):
     classes = df[class_col].unique()
     replicates = replicate_set1 + replicate_set2
 
@@ -784,7 +1003,7 @@ def class_calcs(df, replicate_set1, replicate_set2, class_col="Molecule List Nam
         newrow = {class_col: cls}
         for r in replicates:
             mask = df[class_col] == cls
-            class_sum = df[mask][r].sum()
+            class_sum = df[mask][r].sum(min_count=1)
             newrow[r] = class_sum
         results.append(newrow)
     outdf = pd.DataFrame(results)
@@ -792,18 +1011,34 @@ def class_calcs(df, replicate_set1, replicate_set2, class_col="Molecule List Nam
     if normalize:
         outdf = normalize_tic(outdf, replicates)
 
-    outdf, summarycols = stats_calcs(outdf, replicate_set1, replicate_set2, paired=paired, bh_correction=bh_correction)
+    calculate = comparison_stats if retain_unavailable else stats_calcs
+    extra = {"include_nondetections": include_nondetections} if retain_unavailable else {}
+    outdf, summarycols = calculate(outdf, replicate_set1, replicate_set2, paired=paired,
+                                  bh_correction=bh_correction, **extra)
     # print(outdf)
     return outdf, summarycols
 
 
 def make_volcano_plot(df, log2fc_col="Log2FC", neglogp_col="Log10p", title="Volcano Plot", ax=None, xlims=[-8, 8],
-                      fold_range=1.):
+                      fold_range=1., show_detection_summary=True, show_group_label=True):
     if ax is None:
         plt.figure(figsize=(8, 6))
     else:
         plt.sca(ax)
     # Color by Molecule List Name
+    ax = plt.gca()
+    if show_detection_summary and "Detection change" in df:
+        changes = df["Detection change"].value_counts()
+        notes = [f"{name}: {count}" for name, count in changes.items() if name != "Detected in both"]
+        if notes:
+            ax.text(0.5, -0.24, "Detection changes\n" + "\n".join(notes),
+                    transform=ax.transAxes, va="top", ha="center", fontsize=8)
+    group_label = ""
+    if show_group_label and len(df) and "Set1 name" in df:
+        group_label = f"\nSet2 / Set1: {df['Set2 name'].iloc[0]} / {df['Set1 name'].iloc[0]}"
+    # Infinite FC values retain their statistical y-coordinate and get distinct
+    # boundary markers. Clipping changes display positions only.
+    df = df.loc[df[log2fc_col].notna() & np.isfinite(df[neglogp_col])].copy()
     classes = df["Molecule List Name"].unique()
     # colors = plt.cm.get_cmap('tab10', len(classes))
     # class_color_map = {cls: colors(i) for i, cls in enumerate(classes)}
@@ -812,11 +1047,22 @@ def make_volcano_plot(df, log2fc_col="Log2FC", neglogp_col="Log10p", title="Volc
     # sizes = 20 + (sizes - sizes.min()) / (sizes.max() - sizes.min()) * (50 - 20)
 
     # Clip log2fc values to xlims for better visualization
-    df[log2fc_col] = df[log2fc_col].clip(lower=xlims[0]+0.15, upper=xlims[1]-0.15)
-    plt.scatter(df[log2fc_col], df[neglogp_col], alpha=0.7, c=df["Molecule List Name"].map(get_color_for_class))
+    plot_x = df[log2fc_col].clip(lower=xlims[0]+0.15, upper=xlims[1]-0.15)
+    finite = np.isfinite(df[log2fc_col])
+    plt.scatter(plot_x[finite], df.loc[finite, neglogp_col], alpha=0.7,
+                c=df.loc[finite, "Molecule List Name"].map(get_color_for_class))
+    for mask, marker, label in [(np.isneginf(df[log2fc_col]), "<", "Set2 ND (log2 FC = -infinity)"),
+                                (np.isposinf(df[log2fc_col]), ">", "Set1 ND (log2 FC = +infinity)")]:
+        if mask.any():
+            plt.scatter(plot_x[mask], df.loc[mask, neglogp_col], marker=marker, s=45,
+                        c=df.loc[mask, "Molecule List Name"].map(get_color_for_class),
+                        edgecolors="black", linewidths=0.4, alpha=0.7, label=label)
+    if (~finite).any():
+        plt.legend(loc="best", fontsize=8, frameon=False)
     plt.title(title)
-    plt.xlabel("Log\u2082 Fold Change")
-    plt.ylabel("-Log\u2081\u2080 p-value")
+    plt.xlabel("Log\u2082 Fold Change" + group_label, fontsize=9)
+    ylabel = "-Log\u2081\u2080 adjusted p-value" if df.attrs.get("bh_correction", False) else "-Log\u2081\u2080 p-value"
+    plt.ylabel(ylabel)
     plt.axhline(y=-np.log10(0.05), color='r', linestyle='--')
     plt.axvline(x=fold_range, color='g', linestyle='--')
     plt.axvline(x=-fold_range, color='g', linestyle='--')
@@ -847,7 +1093,7 @@ def make_volcano_plot(df, log2fc_col="Log2FC", neglogp_col="Log10p", title="Volc
                     annot.set_visible(False)
                     plt.draw()
 
-    sc = plt.scatter(df[log2fc_col], df[neglogp_col], alpha=0)  # Invisible scatter for hover
+    sc = plt.scatter(plot_x, df[neglogp_col], alpha=0)  # Invisible scatter for hover
     plt.gcf().canvas.mpl_connect("motion_notify_event", hover)
 
 
@@ -858,6 +1104,11 @@ def make_class_plots(classdf, ax=None, fclimit=None):
         plt.figure(figsize=(10, 6))
     else:
         plt.sca(ax)
+    classdf = classdf.loc[np.isfinite(classdf["FC"]) & np.isfinite(classdf["CI95_FC"])]
+    if classdf.empty:
+        plt.text(0.5, 0.5, "No testable class fold changes", ha="center", transform=plt.gca().transAxes)
+        plt.title("Class Fold Changes")
+        return
     # classes = classdf["Molecule List Name"].unique()
     # class_color_map = {cls: colors(i) for i, cls in enumerate(classes)}
     colors = [get_color_for_class(cls) for cls in classdf["Molecule List Name"]]
@@ -884,6 +1135,12 @@ def make_class_plots(classdf, ax=None, fclimit=None):
 
 def pca_plot(df, replicates_set1, replicates_set2, title="PCA Plot", ax=None):
     replicates = replicates_set1 + replicates_set2
+    df = df.loc[np.isfinite(df[replicates]).all(axis=1)]
+    if len(df) < 2:
+        if ax is None:
+            _, ax = plt.subplots()
+        ax.text(0.5, 0.5, "PCA unavailable: fewer than two complete lipids", ha="center", transform=ax.transAxes)
+        return
     data = df[replicates].values
     data = StandardScaler().fit_transform(data.T)
 
@@ -908,23 +1165,30 @@ def pca_plot(df, replicates_set1, replicates_set2, title="PCA Plot", ax=None):
 
 def heatmap_plot(df, replicates, title="Heatmap", ax=None, lindex=0, colormap='viridis', normtype="minmax",
                  scale="linear", class_rect=False, fontsize=5, color_classes=False, colorbar=None):
-    data = df[replicates].values
+    data = df[replicates].to_numpy(dtype=float, copy=True)
+    data[~np.isfinite(data)] = np.nan
+    if not np.isfinite(data).any():
+        if ax is None:
+            _, ax = plt.subplots()
+        ax.text(0.5, 0.5, "No defined values", ha="center", transform=ax.transAxes)
+        ax.set_title(title)
+        return
     vmax = 1-1e-12
     vmin = 1e-12
-    dmax = np.max(data)
-    dmin = np.min(data)
+    dmax = np.nanmax(data)
+    dmin = np.nanmin(data)
     if normtype=="minmax":
         # Normalize data to 0-1 for better color mapping
-        data = (data - dmin) / (dmax - dmin)
+        data = (data - dmin) / (dmax - dmin if dmax != dmin else 1.)
     elif normtype=="zscore":
         data = StandardScaler().fit_transform(data)
     elif normtype=="zerocentered":
-        data = (data / (2 * np.amax(np.abs(data)))) + 0.5
+        data = (data / (2 * (np.nanmax(np.abs(data)) or 1.))) + 0.5
         extreme = np.amax(np.abs([dmin, dmax]))
         dmin = -extreme
         dmax = extreme
     elif normtype=="onecentered":
-        data = ((data - 1) / (2 * np.amax(np.abs(data - 1)))) + 0.5
+        data = ((data - 1) / (2 * (np.nanmax(np.abs(data - 1)) or 1.))) + 0.5
         extreme = np.amax(np.abs([dmin, dmax]))
         dmin = -extreme
         dmax = extreme
@@ -943,10 +1207,13 @@ def heatmap_plot(df, replicates, title="Heatmap", ax=None, lindex=0, colormap='v
     else:
         plt.sca(ax)
 
-    plt.imshow(data, aspect='auto', cmap=colormap, norm=scale, vmax=vmax, vmin=vmin)
+    cmap = plt.get_cmap(colormap).copy()
+    cmap.set_bad("lightgray")
+    plt.imshow(np.ma.masked_invalid(data), aspect='auto', cmap=cmap, norm=scale, vmax=vmax, vmin=vmin)
     # Labels are last 3 characters of replicates
     labels = [r[lindex:] for r in replicates]
-    plt.xticks(ticks=np.arange(len(replicates)), labels=labels, rotation=0, fontsize=12)
+    plt.xticks(ticks=np.arange(len(replicates)), labels=labels,
+               rotation=30 if len(replicates) > 4 else 0, fontsize=9)
     # If color classes, color ytick labels by class with a colored dot ahead of the label
     ylabels = df['Molecule']
     if color_classes:
@@ -956,7 +1223,15 @@ def heatmap_plot(df, replicates, title="Heatmap", ax=None, lindex=0, colormap='v
         # Add 3 spaces to the end of each label to avoid overlap with the colored dot
         ylabels = [label + "     " for label in ylabels]
 
-    plt.yticks(ticks=np.arange(len(df)), labels=ylabels, fontsize=fontsize)
+    # Retain every data row while avoiding hundreds of overlapping tick labels.
+    tickrows = np.arange(0, len(df), max(1, int(np.ceil(len(df) / 25.))))
+    plt.yticks(ticks=tickrows, labels=np.asarray(ylabels)[tickrows], fontsize=fontsize)
+    def describe_cell(x, y):
+        row, col = int(round(y)), int(round(x))
+        if 0 <= row < len(df) and 0 <= col < len(replicates):
+            return f"{df['Molecule'].iloc[row]} | {replicates[col]}: {df[replicates[col]].iloc[row]}"
+        return ""
+    plt.gca().format_coord = describe_cell
 
     if colorbar is not None:
         cb = plt.colorbar(label=colorbar, pad=0.02, aspect=75)
@@ -981,7 +1256,7 @@ def heatmap_plot(df, replicates, title="Heatmap", ax=None, lindex=0, colormap='v
             plt.gca().add_patch(rect)
 
 
-    plt.title(title)
+    plt.title(title + "\nGray = unavailable / undefined")
 
 def pie_chart(df, set, ax=None, title="Class Distribution", otherthresh=0.035):
     class_sums = df.groupby("Molecule List Name")[set].sum()
@@ -992,6 +1267,10 @@ def pie_chart(df, set, ax=None, title="Class Distribution", otherthresh=0.035):
 
     # For sums that are less than 1% of total, group into "Other"
     total = class_sums.sum()
+    if not np.isfinite(total) or total <= 0:
+        plt.text(0.5, 0.5, "No quantified signal", ha="center", transform=plt.gca().transAxes)
+        plt.title(title)
+        return
     b1 = class_sums / total >= otherthresh
     class_sums_filtered = class_sums[b1]
     colors = [get_color_for_class(cls) for cls in class_sums_filtered.index]
@@ -1083,64 +1362,208 @@ def filter_normdf(normdf, fold_range=1.):
     # Filter normdfsorted to only include rows where -log10p > 1.3 (p<0.05) and abs(log2FC) > 1
     normdfsorted = normdfsorted[
         (normdfsorted["Log10p"] > -np.log10(0.05)) & (normdfsorted["Log2FC"].abs() > fold_range)]
+    if "Comparison status" in normdf:
+        # Keep detection changes even when the statistical cutoff is not met.
+        retain = normdf["Comparison status"].ne("Tested") | normdf["Detection change"].ne("Detected in both")
+        normdfsorted = pd.concat([normdfsorted, normdf.loc[retain]]).drop_duplicates(subset=["Molecule"])
     if len(normdfsorted) == 0:
         print("No significant molecules found for heatmap after applying cutoffs.")
         # normdfsorted = normdf.sort_values(by=["Molecule List Name", "Mean"], ascending=[True, False])
         normdfsorted = normdf.sort_values(by=["Log2FC"], ascending=[False])
     return normdfsorted
 
-def compare_pipeline(files, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
+def select_internal_standards(df, overrides, replicates, exclusion_audit=None):
+    """Apply manually reviewed class-specific IS choices identically to both groups."""
+    keep = pd.Series(True, index=df.index)
+    for lipid_class, standard in (overrides or {}).items():
+        if not isinstance(standard, str) or not standard.startswith("IS "):
+            raise ValueError(f"{lipid_class}: specify the exact internal-standard Molecule name")
+        class_rows = df["Molecule List Name"].eq(lipid_class)
+        selected = df.loc[class_rows & df["Molecule"].eq(standard)]
+        missing = set(replicates).difference(selected["Replicate Name"].dropna())
+        if missing:
+            raise ValueError(f"Selected {lipid_class} standard {standard} is missing product rows in: "
+                             + ", ".join(sorted(missing)))
+        excluded = class_rows & df["Molecule"].str.startswith("IS ") & df["Molecule"].ne(standard)
+        if exclusion_audit is not None:
+            for name, group in df.loc[excluded].groupby("Molecule", sort=False):
+                exclusion_audit.append({"Molecule": name, "Class": lipid_class, "Adduct": "All",
+                    "Reason": f"Reviewed IS selection: use {standard} in both comparison groups.",
+                    "Stage": "IS selection", "Rows removed": len(group), "Row unit": "Input result rows",
+                    "Replicates": "; ".join(sorted(group["Replicate Name"].unique()))})
+        keep &= ~excluded
+        print(f"Using reviewed {lipid_class} standard {standard} in both comparison groups.")
+    return df.loc[keep].copy()
+
+
+def compare_pipeline(file1, set1, set2, mode="Products", drop_IS=True, normalize_IS=True,
                   normalize_TIC=True, norm_tmm=False,
                      paired=True, bh_correction=True, plot_results=True, heatplots=True,
                   piecharts=True, figsavepath=None, heatmap_cutoffs=True, write_output=True, fold_range=1.5,
-                     otherthresh=0.035, set1_name="Set 1", set2_name="Set 2", drop_lipids=[], drop_class=[],
-                     file_modes=None):
+                     otherthresh=0.035, set1_name="Set 1", set2_name="Set 2",
+                     show_plots=True,
+                     is_standard_overrides=None, file2=None, missing_set2_as_zero=True):
+    """Compare replicate groups from one or two Skyline results CSVs.
 
-    if file_modes is not None and len(file_modes) != len(files):
-        raise ValueError("file_modes must contain one transition mode for each input file")
+    set1/set2 can each be {"file1": [replicate names], "file2": [replicate names]}.
+    Either group can select samples from either or both files. A plain list
+    searches both CSVs and requires each name to occur in only one file.
+    File prefixes distinguish samples with identical names in different CSVs.
+    set1_name/set2_name are the freely editable group labels for plots/exports.
+    Set show_plots=False to build the dashboard and defer display until a later
+    plt.show(), allowing a separate summary figure to be saved first.
+    is_standard_overrides maps a class to one reviewed IS Molecule name to use
+    in both groups. Other standards in that class are excluded and audited.
+    missing_set2_as_zero treats absent input rows in set2 as zero signal when
+    the lipid is present in set1. Quantification failures remain visible as missing estimates.
+    Tests then include zeros, with this assumption recorded in Test basis.
+    """
+    file1 = os.path.abspath(os.fspath(file1))
+    paths = {"file1": file1}
+    if file2 is not None:
+        paths["file2"] = os.path.abspath(os.fspath(file2))
+    sources = {label: pd.read_csv(path) for label, path in paths.items()}
+    available = {label: set(frame["Replicate Name"].dropna()) for label, frame in sources.items()}
+    selections = {label: {} for label in paths}
+    used_samples = set()
+    resolved_groups = []
+    sample_selection = []
+    for group_number, requested, group_name in [(1, set1, set1_name), (2, set2, set2_name)]:
+        samples = []
+        if isinstance(requested, dict):
+            for label, names in requested.items():
+                if label not in paths:
+                    if not names:
+                        continue
+                    raise ValueError(f"No input configured for {label}")
+                if not isinstance(names, (list, tuple)):
+                    raise ValueError(f"Set{group_number} {label}: provide a list of replicate names")
+                samples.extend((label, name) for name in names)
+        else:
+            if not isinstance(requested, (list, tuple)):
+                raise ValueError(f"Set{group_number}: provide a replicate list or file-selection dictionary")
+            for name in requested:
+                matches = [label for label in paths if name in available[label]]
+                if not matches:
+                    raise ValueError(f"Comparison replicates not found in CSV: {name}")
+                if len(matches) > 1:
+                    raise ValueError(f"Replicate {name} occurs in both CSVs; select file1/file2 explicitly")
+                samples.append((matches[0], name))
+        if not samples:
+            raise ValueError(f"Set{group_number} must select at least one sample")
+        resolved = []
+        for label, name in samples:
+            if name not in available[label]:
+                raise ValueError(f"Comparison replicates not found in CSV: {name} ({paths[label]})")
+            if (label, name) in used_samples:
+                raise ValueError(f"Sample {label}: {name} is selected more than once")
+            used_samples.add((label, name))
+            alias = f"{label}::{name}" if len(paths) > 1 else name
+            selections[label][name] = alias
+            resolved.append(alias)
+            sample_selection.append({"Group": f"Set{group_number}", "Group label": group_name,
+                                     "File": label, "Input": paths[label],
+                                     "Original replicate": name, "Comparison replicate": alias})
+        resolved_groups.append(resolved)
+    set1, set2 = resolved_groups
+    frames = []
+    exclusion_audit = []
+    for label, selected in selections.items():
+        if not selected:
+            continue
+        input_file = paths[label]
+        frame = sources[label].loc[sources[label]["Replicate Name"].isin(selected)].copy()
+        frame["Original Replicate Name"] = frame["Replicate Name"]
+        frame["Replicate Name"] = frame["Replicate Name"].map(selected)
+        frame["Input Source"] = input_file
+        frames.append(frame)
+    df = pd.concat(frames, ignore_index=True)
+    input_label = "; ".join(paths[label] for label, selected in selections.items() if selected)
+    source_df = df.copy()
+    df = filter_transition_mode(df, mode)
 
-    dfs = []
-    for i, filepath in enumerate(files):
-        df = pd.read_csv(filepath)
-        os.chdir(os.path.dirname(filepath))
-        if file_modes is not None:
-            df = filter_transition_mode(df, file_modes[i])
-        dfs.append(df)
-    df = pd.concat(dfs, ignore_index=True)
-
-
-    if len(drop_lipids) > 0:
-        df = df[~df["Molecule"].isin(drop_lipids)]
-        print(f"Dropped {len(drop_lipids)} lipids from the dataset: {drop_lipids}")
+    notes_path = os.path.splitext(file1)[0] + "_quantification_notes.csv"
+    if write_output:
+        # Create the notes file before normalization, even if quantification later fails.
+        pd.DataFrame(exclusion_audit, columns=QUANTIFICATION_NOTE_COLUMNS).to_csv(notes_path, index=False)
+    if df.empty:
+        raise ValueError("No result rows remain for the selected transition mode")
+    missing = set(set1 + set2).difference(df["Replicate Name"].dropna())
+    if missing:
+        raise ValueError("Comparison replicates not found after selection: " + ", ".join(sorted(missing)))
 
     # Limit to molecule list name of pc for testing
     # df = df[df["Molecule List Name"] == "PC"]
 
-    if len(drop_class) > 0:
-        for cls in drop_class:
-            df = df[df["Molecule List Name"] != cls]
-            print(f"Dropped {len(drop_class)} class from the dataset: {cls}")
-
-    combined_mode = "All" if file_modes is not None else mode
-    normdf, replicates = sum_transitions(df, mode=combined_mode, drop_IS=drop_IS, normalize_IS=normalize_IS,
-                                         normalize_TIC=normalize_TIC)
+    if is_standard_overrides:
+        if not normalize_IS:
+            raise ValueError("is_standard_overrides requires normalize_IS=True")
+        df = select_internal_standards(df, is_standard_overrides, set1 + set2, exclusion_audit)
+    normdf, replicates = sum_transitions(df, mode="All", drop_IS=drop_IS, normalize_IS=normalize_IS,
+                                         normalize_TIC=normalize_TIC, is_replicate_groups=[set1, set2],
+                                         exclusion_audit=exclusion_audit)
     if norm_tmm:
         print("TMM Normalization")
         normdf = normalize_trimmed_mean_mvalues(normdf, set1, set2)
 
-    classdf, classsummarycols = class_calcs(normdf, set1, set2, paired=paired)
-    normdf, summarycols = stats_calcs(normdf, set1, set2, paired=paired, bh_correction=bh_correction)
+    # Keep missing quantification estimates and per-replicate PC adduct choices
+    # reviewable even when downstream statistics exclude incomplete molecules.
+    quantified = detection_table(normdf, source_df,
+                                 set1 + set2, drop_IS=drop_IS)
+    quantified["Set2_AssignedZeros"] = 0
+    if missing_set2_as_zero:
+        control_present = quantified[[f"Detection {r}" for r in set1]].ne("Not measured").any(axis=1)
+        for r in set2:
+            absent = control_present & quantified[f"Detection {r}"].eq("Not measured")
+            quantified.loc[absent, r] = 0.
+            quantified.loc[absent, f"Detection {r}"] = "Absent in set2; assigned zero"
+            quantified.loc[absent, "Set2_AssignedZeros"] += 1
+    classdf, classsummarycols = class_calcs(quantified, set1, set2, paired=paired,
+                                           bh_correction=bh_correction, retain_unavailable=True,
+                                           include_nondetections=missing_set2_as_zero)
+    normdf, summarycols = comparison_stats(quantified, set1, set2, paired=paired,
+                                           bh_correction=bh_correction, include_nondetections=missing_set2_as_zero)
+    normdf.attrs["bh_correction"] = bh_correction
+    normdf["Major difference"] = normdf["Log2FC"].abs().ge(fold_range)
+    normdf["Significant difference"] = normdf["Major difference"] & normdf["p-value"].lt(0.05)
+    normdf["Set1 name"] = set1_name
+    normdf["Set2 name"] = set2_name
+    if is_standard_overrides:
+        normdf["Configured IS"] = normdf["Molecule List Name"].map(is_standard_overrides)
     print(len(normdf), "molecules after stats calculations.")
+    unavailable = quantified.loc[~quantified["Molecule"].isin(normdf.loc[normdf["Comparison status"].eq("Tested"), "Molecule"])]
+    for _, row in unavailable.iterrows():
+        missing_replicates = [r for r in set1 + set2 if not np.isfinite(row[r])]
+        reason = ("Retained without t-test: missing quantification estimates."
+                  if missing_replicates else "Retained without t-test: non-detections or undefined t-test; see Detection Changes.")
+        exclusion_audit.append({"Input": input_label, "Molecule": row["Molecule"],
+                               "Class": row["Molecule List Name"], "Adduct": row["Adduct"],
+                               "Reason": reason, "Stage": "Comparison statistics only",
+                               "Rows removed": 0, "Row unit": "Retained molecule; not t-tested",
+                               "Replicates": "; ".join(missing_replicates)})
 
     normdf = split_names(normdf)
     print(normdf.to_string())
 
     if write_output:
+        detection_changes = normdf.loc[normdf["Comparison status"].ne("Tested")
+                                       | normdf["Detection change"].ne("Detected in both")
+                                       | normdf["Test basis"].eq("Includes zero non-detections")]
+        detection_changes.to_csv(os.path.splitext(file1)[0] + "_detection_changes.csv", index=False)
+        for record in exclusion_audit:
+            record.setdefault("Input", input_label)
+        notes = pd.DataFrame(exclusion_audit, columns=QUANTIFICATION_NOTE_COLUMNS)
+        notes.to_csv(notes_path, index=False)
+        print(f"Saved quantification notes to {notes_path}")
         try:
             # Write to two sheets in an Excel file
-            with pd.ExcelWriter(os.path.splitext(files[0])[0] + "_stats.xlsx") as writer:
+            with pd.ExcelWriter(os.path.splitext(file1)[0] + "_stats.xlsx") as writer:
+                pd.DataFrame(sample_selection).to_excel(writer, sheet_name="Sample Selection", index=False)
                 classdf.to_excel(writer, sheet_name="Class Stats", index=False)
                 normdf.to_excel(writer, sheet_name="Molecule Stats", index=False)
+                detection_changes.to_excel(writer, sheet_name="Detection Changes", index=False)
+                quantified.to_excel(writer, sheet_name="Quantified Molecules", index=False)
+                notes.to_excel(writer, sheet_name="Quantification Notes", index=False)
                 df.to_excel(writer, sheet_name="Raw Data", index=False)
         except:
             print("ERROR writing to Excel file. Close file and try again!")
@@ -1169,7 +1592,7 @@ def compare_pipeline(files, set1, set2, mode="Products", drop_IS=True, normalize
 
         # ax2 = plt.subplot(nrow, ncol, 2)
         ax2 = fig.add_subplot(gs[0, 1])
-        make_volcano_plot(normdf, title="Volcano Plot", ax=ax2, fold_range=fold_range)
+        make_volcano_plot(normdf, title="Volcano Plot", ax=ax2, fold_range=fold_range, show_detection_summary=False)
 
         # ax3 = plt.subplot(nrow, ncol, 3)
         ax3 = fig.add_subplot(gs[0, 2])
@@ -1218,7 +1641,8 @@ def compare_pipeline(files, set1, set2, mode="Products", drop_IS=True, normalize
         if figsavepath is not None:
             plt.savefig(figsavepath)
 
-        plt.show()
+        if show_plots:
+            plt.show()
 
     return normdf, classdf
 
@@ -1298,40 +1722,62 @@ def lipid_bar_chart_compare(df, classes=["PC"], ax=None, fontsize=8, s1name="Set
 
 
 if __name__ == "__main__":
-    file = r"Z:\Group Share\Annika\Stellar\FAM\B2 Discs\Molecule Transition Results.csv"
-    cholesterol_file = r"Z:\Group Share\Annika\Stellar\FAM\B2 Discs\Cholesterol\Molecule Transition Results_cholesterol.csv"
-    # file = r"C:\Users\marty\Downloads\Extr_US_MoleculeTransResults.csv"
+    file1 = r"Z:\Group Share\Annika\Stellar\EC\B2 Discs\MSP Titr\MolTransResults_MSP_Titr_vs_B2.csv"
+    file2 = None
+    output_dir = Path(r"Z:\Group Share\Annika\Stellar\EC\B2 Discs\Comparison Results")
+    output_name = "MSP_E1vs_B2_volcano_pies"
+    set1_name = "B2 Membrane Extract"
+    set2_name = "MSP Titr E1"
+    #cholesterol_file = r"Z:\Group Share\Annika\Stellar\FAM\B2 Discs\Cholesterol\Molecule Transition Results_cholesterol.csv"
+    # file1 = r"C:\Users\marty\Downloads\Extr_US_MoleculeTransResults.csv"
 
-    set1 = ["R1 FT2", "R2 FT2", "R3 FT2"]
-    set2 = ["R1 E", "R2 E", "R3 E"]
+    # set1 = ["noEDTA_E_01", "noEDTA_E_02", "noEDTA_E_03"]
+    # set2 = ["EDTA_E_01", "EDTA_E_02", "EDTA_E_03"]
+
+    # set1 = ["noEDTA_FT_01", "noEDTA_FT_02", "noEDTA_FT_03"]
+    # set2 = ["noEDTA_E_01", "noEDTA_E_02", "noEDTA_E_03"]
+    #
+    # set1 = ["EDTA_FT_01", "EDTA_FT_02", "EDTA_FT_03"]
+    # set2 = ["EDTA_E_01", "EDTA_E_02", "EDTA_E_03"]
+
+    # Select exact Replicate Name values from either or both files for each group.
+    # Leave a file's list empty to omit its samples from that group.
+    set2 = {"file1": ["MSP_Titr_1_E_01", "MSP_Titr_1_E_02", "MSP_Titr_1_E_03"]}
+    set1 = {"file1": ["B2_01", "B2_02", "B2_03"]}
+    # Count missing analyte rows as zero detected signal; preserve measured low values.
+    missing_set2_as_zero = True
+    fold_range = np.log2(2)  # Twofold effect-size cutoff, shared by plots and export flags.
+    # Only this LPI standard passed manual review in EDTA; use it in B2 too.
+    # is_standard_overrides = {"LPI": "IS LPI(+[2]H5) 17:0"}
 
 
-    # set1 = ["Memb Extr 1", "Memb Extr 2", "Memb Extr 3"]
-    # is_analysis(file)
+    # is_analysis(file1)
     # exit()
 
-    # cv_pipeline(file, results_set=set2, mode="Products", drop_IS=False, normalize_IS=False, normalize_TIC=False,
+    # cv_pipeline(file1, results_set=set2["file1"], mode="Products", drop_IS=False, normalize_IS=False, normalize_TIC=False,
     #             write_output=True, plot_results=True)
     #
     # exit()
 
-    normdf, classdf = compare_pipeline([file, cholesterol_file], set1, set2, mode="Products",
-                                       file_modes=["Products", "Precursors"], drop_IS=True, normalize_IS=True,
-                                       norm_tmm=False,
-                  normalize_TIC=True, paired=True, bh_correction=True, plot_results=True, write_output=True,
-                     fold_range=np.log2(2), otherthresh=0.03, set1_name="FT", set2_name="E", drop_lipids=["LPI 16:0", "PE 36:2|PE 18:1_18:1_A","PE P_37:1"],
-                                       drop_class=[])
+    normdf, classdf = compare_pipeline(file1, set1, set2, mode="Products", file2=file2,
+                                       missing_set2_as_zero=missing_set2_as_zero,
+                                       drop_IS=True, normalize_IS=True, norm_tmm=False,
+                  normalize_TIC=True, paired=False, bh_correction=True, plot_results=True, show_plots=False, write_output=True,
+                     fold_range=fold_range, otherthresh=0.03, set1_name=set1_name, set2_name=set2_name)
 
-    exit()
+
+
     # Figure with pie 1 volcano pie 2 in a row
-    plt.figure(figsize=(18, 6))
-    ax1 = plt.subplot(1, 3, 1)
-    pie_chart(classdf, "Set1_Mean", ax=ax1, title="FT Control Discs", otherthresh=0.015)
-    ax2 = plt.subplot(1, 3, 2)
-    make_volcano_plot(normdf, title="Volcano Plot", ax=ax2, fold_range=np.log2(1.75), xlims=[-6, 6])
-    ax3 = plt.subplot(1, 3, 3)
-    pie_chart(classdf, "Set2_Mean", ax=ax3, title="CB2 Nanodiscs", otherthresh=0.015)
-    plt.tight_layout()
-    plt.savefig(os.path.splitext(file)[0] + "_volcano_pies.png")
-    plt.savefig(os.path.splitext(file)[0] + "_volcano_pies.pdf")
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 6))
+    pie_chart(classdf, "Set1_Mean", ax=ax1, title=set1_name, otherthresh=0.015)
+    make_volcano_plot(normdf, title="Volcano Plot", ax=ax2, fold_range=fold_range, xlims=[-6, 6],
+                      show_detection_summary=False, show_group_label=False)
+    pie_chart(classdf, "Set2_Mean", ax=ax3, title=set2_name, otherthresh=0.015)
+    fig.tight_layout()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for extension in ["png", "pdf"]:
+        output_path = output_dir / f"{output_name}.{extension}"
+        fig.savefig(output_path, dpi=600)
+        print(f"Saved figure to {output_path}")
+    # Display both the full dashboard and the saved three-panel summary.
     plt.show()
