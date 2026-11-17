@@ -62,7 +62,9 @@ class TestMetaUniDecCollectionSession(unittest.TestCase):
             self.assertNotEqual(managed_project, source)
             self.assertEqual(file_digest(source), original_digest)
             self.assertFalse(Path(str(source) + "_unidecfiles").exists())
-            self.assertTrue(Path(str(managed_project) + "_unidecfiles").is_dir())
+            self.assertFalse(Path(source.parent, source.stem + "_unidecfiles").exists())
+            self.assertTrue(Path(managed_project.parent,
+                                 managed_project.stem + "_unidecfiles").is_dir())
 
             parameters = session.get_parameters(("startz", "endz"))
             self.assertTrue(parameters["ok"], parameters)

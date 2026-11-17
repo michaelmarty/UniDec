@@ -29,12 +29,12 @@ class TestMetaUniDecConfigPersistence(unittest.TestCase):
 
             engine = MetaUniDec()
             engine.setup_filenames(str(first))
-            self.assertEqual(Path(engine.config.udir), Path(str(first) + "_unidecfiles"))
+            self.assertEqual(Path(engine.config.udir), Path(directory, "first_unidecfiles"))
             self.assertEqual(Path(engine.config.confname), Path(engine.config.udir, "conf.dat"))
 
             engine.setup_filenames(str(second))
-            self.assertEqual(Path(engine.config.udir), Path(str(second) + "_unidecfiles"))
-            self.assertNotEqual(Path(str(first) + "_unidecfiles"), Path(engine.config.udir))
+            self.assertEqual(Path(engine.config.udir), Path(directory, "second_unidecfiles"))
+            self.assertNotEqual(Path(directory, "first_unidecfiles"), Path(engine.config.udir))
 
     def test_legacy_project_outputs_are_discovered_without_redirecting_writes(self):
         with tempfile.TemporaryDirectory(prefix="metaunidec-legacy-outputs-") as directory:
@@ -51,7 +51,7 @@ class TestMetaUniDecConfigPersistence(unittest.TestCase):
 
             self.assertEqual(Path(engine.find_output_file("peaks.txt")), legacy_output)
             self.assertEqual(Path(engine.config.output_file("peaks.txt")),
-                             Path(str(project) + "_unidecfiles") / "peaks.txt")
+                             root / "sample_unidecfiles" / "peaks.txt")
 
             current_output = Path(engine.config.output_file("peaks.txt"))
             current_output.write_text("current", encoding="utf-8")

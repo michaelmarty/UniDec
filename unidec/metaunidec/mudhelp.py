@@ -92,7 +92,7 @@ class HelpDlg(wx.Frame):
                                                  " File->Save Figure As will allow you to select the directory "
                                                  "and file name header, along with the extension and image dimensions. File->Save Figure Presets will save "
                                                  "your figures as .pdf/.png/.pdf thumbnails to the project sidecar next to the original "
-                                                 ".HDF5 file. Ex: C:\\HDF5-location\\sample.hdf5_unidecfiles\\Fig1.pdf</p>"
+                                                 ".HDF5 file. Ex: C:\\HDF5-location\\sample_unidecfiles\\Fig1.pdf</p>"
                                                  "<h2>Importing Configs</h2>"
                                                  "<p>File->Load External Config will load the parameters from a previous run."
                                                  " This can be a conf.dat (or legacy _conf.dat) file from UniDec or an HDF5 file from MetaUniDec.  "

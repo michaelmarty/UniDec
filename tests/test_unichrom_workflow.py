@@ -26,7 +26,7 @@ class TestUniChromWorkflow(unittest.TestCase):
 
             self.assertEqual(Path(engine.find_output_file("report.html")), legacy_output)
             self.assertEqual(Path(engine.config.output_file("report.html")),
-                             Path(str(project) + "_unidecfiles") / "report.html")
+                             root / "sample_unidecfiles" / "report.html")
 
     def test_unichrom_settings_round_trip_through_hdf5(self):
         with tempfile.TemporaryDirectory() as directory:

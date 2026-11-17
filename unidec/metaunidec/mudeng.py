@@ -79,7 +79,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         legacy_directory = os.path.join(self.config.dirname, "UniDec_Figures_and_Files")
         legacy_prefix = os.path.splitext(self.config.filename)[0]
         self.legacy_outfname = os.path.join(legacy_directory, legacy_prefix)
-        dirnew = path + "_unidecfiles"
+        dirnew = os.path.splitext(path)[0] + "_unidecfiles"
         if not os.path.isdir(dirnew):
             os.mkdir(dirnew)
         self.config.udir = dirnew
