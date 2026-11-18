@@ -16,7 +16,7 @@ Please contact mtmarty@utexas.edu for questions, suggestions, or with any bugs.
 New analyses keep managed files under a dedicated `<input-stem>_unidecfiles`
 folder and use standard names such as `conf.dat`, `input.dat`, `mass.txt`, and
 `peaks.dat`. MetaUniDec and UniChrom use an adjacent
-`<project-name>.hdf5_unidecfiles` sidecar so projects in the same directory do
+`<project-name>_unidecfiles` sidecar so projects in the same directory do
 not share external outputs.
 
 Managed paths in `conf.dat` are relative to the config file by default;

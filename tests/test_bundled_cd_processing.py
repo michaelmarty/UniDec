@@ -11,6 +11,25 @@ from tests._test_support import copy_unidec_example
 
 
 class TestBundledCDProcessing(unittest.TestCase):
+    def test_engine_opens_legacy_data_only_npz_cache(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-legacy-cd-cache-") as directory:
+            path = Path(directory, "sample_rawdata.npz")
+            data = np.array([
+                [5000.0, 1000.0, 1.0, 10.0, 2.0],
+                [5001.0, 1100.0, 2.0, 11.0, 2.0],
+                [5002.0, 1200.0, 3.0, 12.0, 2.0],
+            ])
+            np.savez_compressed(path, data=data)
+
+            engine = UniDecCD()
+            try:
+                engine.open_file(str(path))
+                np.testing.assert_allclose(engine.darray, data)
+                self.assertEqual(engine.config.original_file, path.name)
+            finally:
+                if getattr(engine, "importer", None) is not None:
+                    engine.importer.close()
+
     def test_new_cd_run_uses_standard_names_and_versioned_cache(self):
         with tempfile.TemporaryDirectory(prefix="unidec-bundled-cd-short-") as directory:
             root = Path(directory)

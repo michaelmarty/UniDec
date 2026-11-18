@@ -56,7 +56,7 @@ class TestUniChromSession(unittest.TestCase):
             self.assertTrue(managed.resolve().is_relative_to(Path(working_directory).resolve()))
             self.assertTrue(managed.is_file())
             self.assertFalse(Path(input_directory, "sample.hdf5").exists())
-            self.assertFalse(Path(input_directory, "sample.hdf5_unidecfiles").exists())
+            self.assertFalse(Path(input_directory, "sample_unidecfiles").exists())
 
             parameters = session.get_parameters(("chromatogram_type", "time_window", "dtsig"))
             self.assertTrue(parameters["ok"], parameters)

@@ -1,4 +1,5 @@
 import os
+import ntpath
 import time
 from dataclasses import asdict, dataclass
 from numbers import Integral, Real
@@ -1393,7 +1394,7 @@ class UniDecConfig(object):
                         if key == "minratio":
                             self.minratio = ud.string_to_value(line.split()[1])
                         if key == "fwhmfile":
-                            self.fwhmfile = os.path.join(config_dir, line.partition(" ")[2].strip())
+                            self.fwhmfile = self._resolve_config_path(line.partition(" ")[2].strip(), config_dir)
                         if key == "discreteplot":
                             self.discreteplot = ud.string_to_int(line.split()[1])
                         if key == "smashflag":
@@ -1411,10 +1412,10 @@ class UniDecConfig(object):
                         if key == "mtabsig":
                             self.mtabsig = ud.string_to_value(line.split()[1])
                         if key == "mfile":
-                            self.mfile = os.path.join(config_dir, line.partition(" ")[2].strip())
+                            self.mfile = self._resolve_config_path(line.partition(" ")[2].strip(), config_dir)
                             self.mfileflag = 1
                         if key == "manualfile":
-                            self.manualfile = os.path.join(config_dir, line.partition(" ")[2].strip())
+                            self.manualfile = self._resolve_config_path(line.partition(" ")[2].strip(), config_dir)
                             self.manualfileflag = 1
                         if key == "subbuff":
                             self.subbuff = ud.string_to_value(line.split()[1])
@@ -1496,7 +1497,7 @@ class UniDecConfig(object):
                             else:
                                 self.doubledec = True
                         if key == "kernel":
-                            self.kernel = os.path.join(config_dir, line.partition(" ")[2].strip())
+                            self.kernel = self._resolve_config_path(line.partition(" ")[2].strip(), config_dir)
 
                         # IM Imports
                         if key == "ccsub":
@@ -1924,9 +1925,27 @@ class UniDecConfig(object):
         return self.outfname + separator + name
 
     @staticmethod
-    def _path_for_config(path, config_dir):
+    def _is_absolute_path(path):
+        """Recognize POSIX, drive-letter, and UNC absolute paths on every host OS."""
+        drive, tail = ntpath.splitdrive(path)
+        return path.startswith(("/", "\\")) or bool(drive and tail.startswith(("/", "\\")))
+
+    @classmethod
+    def _resolve_config_path(cls, path, config_dir):
+        """Resolve a relative config value without rewriting foreign absolute paths."""
+        if not path or cls._is_absolute_path(path):
+            return path
+        return os.path.normpath(os.path.join(config_dir, path))
+
+    @classmethod
+    def _path_for_config(cls, path, config_dir):
         """Serialize managed paths relative to the config file when possible."""
         if not path:
+            return str(path)
+        if os.name == "nt":
+            if path.startswith("/") and not path.startswith("//"):
+                return str(path)
+        elif ntpath.isabs(path) and not path.startswith("/"):
             return str(path)
         absolute = os.path.abspath(path)
         try:
