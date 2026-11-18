@@ -1,4 +1,4 @@
-""Plot lipid class composition and unique lipid counts by acquisition method.
+"""Plot lipid class composition and unique lipid counts by acquisition method.
 
 Classes use Figure 4's grouping of related Ontology subclasses. Accepted
 IDs are selected using Overall Match Status. Following Figure 4, each distinct

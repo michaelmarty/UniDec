@@ -258,6 +258,9 @@ def prepare_strength(source, all_ids=True, excluded_only=False, allow_empty=Fals
            "Class Strength": ("Class Strength", "median"),
            "Feature rows": ("Class Strength", "size"), "Accepted rows": ("Accepted", "sum")}
     ).reset_index()
+    for _, point in points.loc[points["Feature rows"].gt(1)].iterrows():
+        print(f"Merged {point['Feature rows']} rows for {point['Lipid Name']} in {point['Dataset']} / "
+              f"{point['Polarity']} / {point['Adduct type']} using median Class Strength {point['Class Strength']}", flush=True)
     points["Normalization population"] = ("Excluded only" if excluded_only else
                                           "Accepted only" if accepted_only else "Accepted + excluded")
     points["Normalization unit"] = "Per-lipid-adduct median strength; maximum within adduct"
@@ -496,7 +499,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.min_lipids < 2:
         parser.error("--min-lipids must be at least 2")
+
     source = pd.read_csv(args.input) if args.input.suffix.lower() == ".csv" else pd.read_excel(args.input, sheet_name="Sheet1")
+
     source, _ = recompute_adduct_networks(source, accepted_only=not (args.all_ids or args.excluded_only))
     output_root = args.output_dir or args.input.parent / "Final Figures"
     output_root.mkdir(parents=True, exist_ok=True)
