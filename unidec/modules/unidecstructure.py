@@ -1177,6 +1177,8 @@ class UniDecConfig(object):
                             value = -1
                         else:
                             raise ValueError(f"Value for {key} is not a valid float: {value}")
+                elif dtype == bool:
+                    value = int(bool(value))
                 elif dtype == int:
                     try:
                         value = int(value)

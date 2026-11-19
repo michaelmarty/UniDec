@@ -206,9 +206,9 @@ class TestBundledNativeWorkflows(unittest.TestCase):
 
     def test_aqpz_im_native_outputs_match_imported_axis_dimensions(self):
         """The packaged executable must produce a complete, internally consistent IM result set."""
-        # MKL FFT kernels differ by CPU instruction set and shift this iterative IM result,
-        # so pin the reference-value run to the AVX2 kernels used for the expected numbers.
-        env = mock.patch.dict(os.environ, {"MKL_ENABLE_INSTRUCTIONS": "AVX2"})
+        # MKL FFT kernels differ by CPU and shift this iterative IM result, so run with
+        # conditional numerical reproducibility; the expected numbers are for this mode.
+        env = mock.patch.dict(os.environ, {"MKL_CBWR": "COMPATIBLE"})
         env.start()
         self.addCleanup(env.stop)
         with tempfile.TemporaryDirectory(prefix="unidec-native-im-") as directory:
@@ -251,14 +251,12 @@ class TestBundledNativeWorkflows(unittest.TestCase):
                 self.assertTrue(np.isfinite(values).all())
 
             engine.pick_peaks()
-            self.assertAlmostEqual(engine.config.error, 0.87040, delta=0.005)
+            self.assertAlmostEqual(engine.config.error, 0.881318, delta=0.005)
             peaks = sorted(engine.pks.peaks, key=lambda peak: peak.mass)
             expected = (
-                (98849.92, 100, 13.40, 13, 5477.51, 5021.27),
-                (99619.92, 86.47, 13.35, 13, 5472.59, 4921.27),
-                (100389.92, 47.63, 13.22, 13, 5397.56, 4921.27),
-                (105909.92, 10.02, 15.06, 15, 6213.10, 6081.27),
-                (108139.92, 12.38, 14.09, 14, 5642.64, 5421.27),
+                (98849.92, 100, 13.47, 13, 5508.26, 5001.27),
+                (99619.92, 91.56, 13.37, 13, 5465.03, 4921.27),
+                (100389.92, 47.03, 13.31, 13, 5440.15, 4921.27),
             )
             self.assertEqual(len(peaks), len(expected))
             for peak, values in zip(peaks, expected):

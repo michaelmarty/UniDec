@@ -83,7 +83,7 @@ class TestDoubleDecReconstruction(unittest.TestCase):
                 + 0.1 * np.exp(-0.5 * ((offsets - 11) / 0.5) ** 2),
             ))
             kernel = make_kernel(kernel_table.copy())
-            python_result = DoubleDec().dd_core(baseline[:, 1].copy(), kernel.copy())
+            python_result = DoubleDec().dd_core(baseline[:, 1] / np.max(baseline[:, 1]), kernel.copy())
             kernel_path = root / "kernel.txt"
             np.savetxt(kernel_path, kernel_table)
             engine.config.doubledec = True
