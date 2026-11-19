@@ -18,16 +18,22 @@ void readfile(const char *infile, const int lengthmz, float *dataMZ, float *data
 
 
     for (int i = 0; i < lengthmz; i++) {
-        const int match = fscanf(file_ptr, "%s %s", x, y);
-        if (match != 0) {
+        const int match = fscanf(file_ptr, "%499s %499s", x, y);
+        if (match != 2) {
+            fprintf(stderr, "Invalid text spectrum at point %d: expected two numeric fields.\n", i);
+            fclose(file_ptr);
+            exit(12);
+        }
+        else {
             // dataMZ[i] = atof(x);
             // dataInt[i] = atof(y);
             char * endptr, * endptr2;
             dataMZ[i] = strtof(x, &endptr);
             dataInt[i] = strtof(y, &endptr2);
             if (*endptr != '\0' || *endptr2 != '\0') {
-                printf("Error converting string to float: %s %s\n", x, y);
-                exit(2);
+                fprintf(stderr, "Invalid text spectrum at point %d: %s %s.\n", i, x, y);
+                fclose(file_ptr);
+                exit(12);
             }
         }
     }
@@ -226,6 +232,24 @@ int getfilelengthbin(const char *infile, const int size, const int width) {
     return l;
 }
 
+static void validate_spectrum_length(const int lengthmz)
+{
+	if (lengthmz < 2) {
+		fprintf(stderr, "Invalid spectrum: expected at least two m/z-intensity points, got %d.\n", lengthmz);
+		exit(12);
+	}
+}
+
+static void validate_spectrum_values(const int lengthmz, const float *dataMZ, const float *dataInt)
+{
+	for (int i = 0; i < lengthmz; i++) {
+		if (!isfinite(dataMZ[i]) || !isfinite(dataInt[i])) {
+			fprintf(stderr, "Invalid spectrum: non-finite value at point %d.\n", i);
+			exit(12);
+		}
+	}
+}
+
 
 void ReadInputs(Config* config, Input* inp)
 {
@@ -249,6 +273,7 @@ void ReadInputs(Config* config, Input* inp)
 		//config->file_id = H5Fopen(argv[1], H5F_ACC_RDWR, H5P_DEFAULT);
 
 		config->lengthmz = mh5getfilelength(config->file_id, outdat);
+		validate_spectrum_length(config->lengthmz);
 		inp->dataMZ = (float*)calloc(config->lengthmz, sizeof(float));
 		inp->dataInt = (float*)calloc(config->lengthmz, sizeof(float));
 		if (inp->dataMZ == NULL || inp->dataInt == NULL) {
@@ -291,6 +316,7 @@ void ReadInputs(Config* config, Input* inp)
 
 		//Calculate the length of the data file automatically
 		config->lengthmz = getfilelength(config->infile);
+		validate_spectrum_length(config->lengthmz);
 		inp->dataMZ = (float*)calloc(config->lengthmz, sizeof(float));
 		inp->dataInt = (float*)calloc(config->lengthmz, sizeof(float));
 		if (inp->dataMZ == NULL || inp->dataInt == NULL) {
@@ -333,6 +359,7 @@ void ReadInputs(Config* config, Input* inp)
 		}
 	}
 
+	validate_spectrum_values(config->lengthmz, inp->dataMZ, inp->dataInt);
 	SetupZtab(*config, inp);
 }
 

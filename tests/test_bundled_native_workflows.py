@@ -122,6 +122,72 @@ class TestBundledNativeWorkflows(unittest.TestCase):
             self.assertEqual(invalid_hdf5.returncode, 12)
             self.assertIn("does not match processed data length", invalid_hdf5.stderr)
 
+    def test_native_rejects_invalid_text_and_hdf5_spectra_before_writing_outputs(self):
+        engine = UniDec(ignore_args=True, silent=True)
+        if not os.path.isfile(engine.config.UniDecPath):
+            self.skipTest(f"Packaged native executable is unavailable: {engine.config.UniDecPath}")
+
+        text_cases = {
+            "empty": ("", "at least two"),
+            "singleton": ("1000 1\n", "at least two"),
+            "nonfinite-mz": ("nan 1\n1001 2\n", "non-finite"),
+            "nonfinite-intensity": ("1000 1\n1001 inf\n", "non-finite"),
+            "truncated": ("1000 1\n1001\n", "two numeric fields"),
+        }
+        with tempfile.TemporaryDirectory(prefix="unidec-native-invalid-") as directory:
+            root = Path(directory)
+            for name, (contents, message) in text_cases.items():
+                with self.subTest(format="text", case=name):
+                    case_dir = root / f"text-{name}"
+                    case_dir.mkdir()
+                    shutil.copy2(REVIEWED_CONFIGS / "BSA_conf.dat", case_dir / "BSA_conf.dat")
+                    (case_dir / "BSA_input.dat").write_text(contents, encoding="ascii")
+
+                    result = subprocess.run(
+                        [engine.config.UniDecPath, str(case_dir / "BSA_conf.dat")],
+                        cwd=case_dir,
+                        capture_output=True,
+                        text=True,
+                        timeout=60,
+                    )
+
+                    self.assertEqual(result.returncode, 12, result.stdout + result.stderr)
+                    self.assertIn(message, result.stderr)
+                    self.assertEqual(
+                        {path.name for path in case_dir.iterdir()},
+                        {"BSA_conf.dat", "BSA_input.dat"},
+                    )
+
+            hdf5_cases = {
+                "empty": (np.empty((0, 2)), "at least two"),
+                "singleton": (np.array([[1000.0, 1.0]]), "at least two"),
+                "nonfinite": (np.array([[1000.0, 1.0], [1001.0, np.nan]]), "non-finite"),
+            }
+            for name, (data, message) in hdf5_cases.items():
+                with self.subTest(format="hdf5", case=name):
+                    hdf_path = root / f"{name}.hdf5"
+                    config = UniDecConfig()
+                    config.config_import(str(REVIEWED_CONFIGS / "BSA_conf.dat"))
+                    config.write_hdf5(str(hdf_path))
+                    with h5py.File(hdf_path, "a") as hdf:
+                        hdf.require_group("ms_data").create_dataset("processed_data", data=data)
+                        before = []
+                        hdf.visit(before.append)
+
+                    result = subprocess.run(
+                        [engine.config.UniDecPath, str(hdf_path)],
+                        capture_output=True,
+                        text=True,
+                        timeout=60,
+                    )
+
+                    self.assertEqual(result.returncode, 12, result.stdout + result.stderr)
+                    self.assertIn(message, result.stderr)
+                    with h5py.File(hdf_path, "r") as hdf:
+                        after = []
+                        hdf.visit(after.append)
+                    self.assertEqual(after, before)
+
     def test_native_text_config_uses_exact_parameter_keys(self):
         with tempfile.TemporaryDirectory(prefix="unidec-native-config-keys-") as directory:
             root = Path(directory)
