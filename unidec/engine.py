@@ -1128,6 +1128,11 @@ class UniDec(UniDecEngine):
             ints = p.zstack[1:]  # mzgrid
             msum = np.sum(ints, axis=0)
             zsum = np.sum(ints, axis=1)
+            if not np.any(ints):
+                p.mdist = np.transpose([m, msum])
+                p.zdist = np.transpose([self.data.ztab, zsum])
+                p.mscore = 0
+                continue
             msum /= np.amax(msum)
             zsum /= np.amax(zsum)
             p.mdist = np.transpose([m, msum])
@@ -1166,6 +1171,9 @@ class UniDec(UniDecEngine):
             # mmax = np.argmax(msum)
             sumz = np.sum(ints, axis=1)
             # sumz = deepcopy(ints[:, mmax]) # Switch to peak center only
+            if not np.any(sumz):
+                p.cs_score = 0
+                continue
             sumz /= np.amax(sumz)
             # sumz = deepcopy(p.pca_zdist[:, 1])
             # sumz -= np.amin(sumz)
@@ -1247,7 +1255,7 @@ class UniDec(UniDecEngine):
                 sy = np.sum(Y)
                 # r = 1 - ud.safedivide1(np.abs(sy - sz), sy)
                 sae = np.sum(np.abs(X - Y))  # ** 2)
-                U = 1 - ud.safedivide1(sae, sx)
+                U = 0 if sx == 0 else 1 - sae / sx
                 rats.append(U)
                 weights.append(sy)
                 # try:
@@ -1271,6 +1279,9 @@ class UniDec(UniDecEngine):
             diff = np.abs(np.array(p.intervalFWHM) - p.mass)
 
             p.fscore = 1
+            if height == 0:
+                p.fscore = 0
+                continue
             if p.badFWHM:
                 if diff[0] > diff[1]:
                     dcut1 = ud.datachop(self.data.massdat, interval[0] - self.config.massbins, p.mass)

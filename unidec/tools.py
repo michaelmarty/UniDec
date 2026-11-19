@@ -1152,9 +1152,10 @@ def calc_local_mins(data, w):
 
     localmins = []
     for winstart in windows:
-        chopdata = datachop(data, winstart, winstart + w)
+        winend = min(winstart + w, stop)
+        chopdata = datachop(data, winstart, winend)
         localmin = np.amin(chopdata[:, 1])
-        localminpos = chopdata[np.argmin(chopdata[:, 1]), 0]
+        localminpos = (winstart + winend) / 2
         localmins.append([localminpos, localmin])
     return np.array(localmins)
 
@@ -1653,6 +1654,13 @@ def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
     :param silent: Boolean to suppress output
     :return: Processed data
     """
+    invalid_columns = [
+        name for index, name in enumerate(("m/z", "intensity"))
+        if np.any(~np.isfinite(datatop[:, index]))
+    ]
+    if invalid_columns:
+        raise ValueError(f"Input data contains non-finite values in {' and '.join(invalid_columns)}")
+
     newmin = config.minmz
     newmax = config.maxmz
     buff = config.subbuff

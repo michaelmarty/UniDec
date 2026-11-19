@@ -252,6 +252,43 @@ class TestPeakScoreComponents(unittest.TestCase):
         self.assertEqual(peak.lscore, 0.75)
         self.assertAlmostEqual(engine.pks.uniscore, 0.6, places=12)
 
+    def test_all_zero_evidence_produces_finite_zero_scores(self):
+        """A picked location without mass, m/z, charge, or height evidence scores zero."""
+        engine = UniDec(silent=True)
+        engine.config = SimpleNamespace(
+            massbins=1.0,
+            adductmass=0.0,
+            orbimode=0,
+            error=1.0,
+        )
+        engine.data = SimpleNamespace(
+            ztab=np.array([1.0, 2.0]),
+            massdat=np.array([[9.0, 0.0], [10.0, 0.0], [11.0, 0.0]]),
+            massgrid=np.zeros(6),
+            data2=np.array([[4.0, 0.0], [5.0, 0.0], [6.0, 0.0]]),
+            fitdat=np.zeros(3),
+            mzgrid=np.array([
+                [4.0, 1.0, 1.0], [4.0, 2.0, 1.0],
+                [5.0, 1.0, 1.0], [5.0, 2.0, 1.0],
+                [6.0, 1.0, 1.0], [6.0, 2.0, 1.0],
+            ]),
+        )
+        engine.pks = peakstructure.Peaks()
+        engine.pks.add_peaks([[10.0, 0.0]])
+        peak = engine.pks.peaks[0]
+        peak.intervalFWHM = [9.0, 11.0]
+
+        engine.dscore()
+
+        np.testing.assert_array_equal(peak.mdist[:, 1], 0)
+        np.testing.assert_array_equal(peak.zdist[:, 1], 0)
+        scores = np.array([
+            peak.mscore, peak.uscore, peak.cs_score, peak.fscore,
+            peak.lscore, peak.dscore, engine.pks.uniscore,
+        ])
+        self.assertTrue(np.isfinite(scores).all())
+        np.testing.assert_array_equal(scores, 0)
+
     def test_asymmetric_bad_fwhm_applies_minimum_penalty(self):
         engine = UniDec(silent=True)
         engine.config = SimpleNamespace(massbins=1.0)
