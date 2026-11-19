@@ -695,6 +695,14 @@ class UniDecBatchProcessor(object):
         # Set up the lists for the results
         htmlfiles = []
         npeaks = []
+        batch_errors = []
+
+        def record_failed_row(stage, error):
+            message = f"{stage}: {error}"
+            print("Batch row failed:", message)
+            htmlfiles.append("")
+            npeaks.append(0)
+            batch_errors.append(message)
 
         # Check if the "Correct" column is in the DataFrame to start correct pair mode
         self.correct_pair_mode = check_for_word_in_keys(self.rundf, "Correct")
@@ -727,12 +735,16 @@ class UniDecBatchProcessor(object):
                 print("Opening:", path)
                 if not use_converted:
                     print("Refreshing")
-                self.eng.open_file(
-                    path,
-                    time_range=self.time_range,
-                    refresh=not use_converted,
-                    silent=True,
-                )
+                try:
+                    self.eng.open_file(
+                        path,
+                        time_range=self.time_range,
+                        refresh=not use_converted,
+                        silent=True,
+                    )
+                except Exception as err:
+                    record_failed_row("open_file", err)
+                    continue
 
                 # If the config file is specified, load it
                 if "Config File" in row:
@@ -762,7 +774,11 @@ class UniDecBatchProcessor(object):
                             row, "Config m/z Peak FWHM"
                         )
                     print("Auto Peak Width", self.autopw)
-                    self.eng.autorun(auto_peak_width=self.autopw, silent=True)
+                    try:
+                        self.eng.autorun(auto_peak_width=self.autopw, silent=True)
+                    except Exception as err:
+                        record_failed_row("autorun", err)
+                        continue
                 else:
                     try:
                         self.eng.unidec_imports(efficiency=False)
@@ -774,7 +790,11 @@ class UniDecBatchProcessor(object):
                                 row, "Config m/z Peak FWHM"
                             )
                         print("Auto Peak Width", self.autopw)
-                        self.eng.autorun(auto_peak_width=self.autopw, silent=True)
+                        try:
+                            self.eng.autorun(auto_peak_width=self.autopw, silent=True)
+                        except Exception as err:
+                            record_failed_row("autorun", err)
+                            continue
 
                 # Integrate the peaks
                 if self.integrate:
@@ -837,23 +857,31 @@ class UniDecBatchProcessor(object):
                 else:
                     findex = None
                 if individual_html or write_html:
-                    outfile = self.eng.gen_html_report(
-                        open_in_browser=False,
-                        interactive=interactive,
-                        findex=findex,
-                        results_string=results_string,
-                        del_columns=del_columns,
-                        allpng=allpng,
-                    )
-                    if individual_html:
-                        htmlfiles.append(outfile)
-                    else:
+                    try:
+                        outfile = self.eng.gen_html_report(
+                            open_in_browser=False,
+                            interactive=interactive,
+                            findex=findex,
+                            results_string=results_string,
+                            del_columns=del_columns,
+                            allpng=allpng,
+                        )
+                    except Exception as err:
+                        batch_errors.append(f"gen_html_report: {err}")
                         htmlfiles.append("")
-                    if write_html:
-                        # Add the HTML report to the global HTML string
-                        self.global_html_str += self.eng.html_str
+                        print("Batch report failed:", err)
+                    else:
+                        batch_errors.append("")
+                        if individual_html:
+                            htmlfiles.append(outfile)
+                        else:
+                            htmlfiles.append("")
+                        if write_html:
+                            # Add the HTML report to the global HTML string
+                            self.global_html_str += self.eng.html_str
                 else:
                     htmlfiles.append("")
+                    batch_errors.append("")
                 # Add the peaks to the global peaks
                 self.pks.merge_in_peaks(self.eng.pks, filename=path, filenumber=i)
             else:
@@ -861,9 +889,11 @@ class UniDecBatchProcessor(object):
                 print("File not found:", path)
                 htmlfiles.append("")
                 npeaks.append(0)
+                batch_errors.append("")
 
         # Write the number of peaks IDed
         self.rundf["NumPeaks"] = npeaks
+        self.rundf["Batch Error"] = batch_errors
 
         if individual_html:
             # Set the HTML file names in the DataFrame

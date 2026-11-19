@@ -48,6 +48,28 @@ class TestModificationParsing(unittest.TestCase):
         np.testing.assert_array_equal(masses, [320.0])
         np.testing.assert_array_equal(labels, ["Correct"])
 
+    def test_sequence_chemistry_uses_average_disulfide_and_pyroglutamate_masses(self):
+        """Selected cysteines lose H; N-terminal E/Q lose H2O/NH3 case-insensitively."""
+        for sequence, kwargs, expected in (
+            ("AC", {"all_cyst_ox": True}, 191.22),
+            ("ACC", {"all_cyst_ox": True}, 293.36),
+            ("EAAA", {"pyroglu": True}, 342.35),
+            ("eaaa", {"pyroglu": True}, 342.35),
+            ("QAAA", {"pyroglu": True}, 342.35),
+            ("qaaa", {"pyroglu": True}, 342.35),
+        ):
+            with self.subTest(sequence=sequence):
+                self.assertAlmostEqual(matchtools.calc_pep_mass(sequence, **kwargs), expected, delta=0.01)
+
+        masses, labels = matchtools.calc_pairs({
+            "Sequence 1": "qac",
+            "Disulfides Oxidized": "Seq1",
+            "PyroGlu": True,
+            "Correct": "Seq1",
+        })
+        np.testing.assert_allclose(masses, [302.33], atol=0.01, rtol=0)
+        np.testing.assert_array_equal(labels, ["Correct"])
+
 
 class TestScientificMatching(unittest.TestCase):
     @staticmethod

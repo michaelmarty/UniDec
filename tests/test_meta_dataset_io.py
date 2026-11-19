@@ -70,6 +70,51 @@ class TestMetaDataSetIO(unittest.TestCase):
             self.assertEqual(dataset.spectra[0].mzgrid.size, 0)
             self.assertEqual(dataset.spectra[0].massgrid.size, 0)
 
+            with h5py.File(path, "r") as hdf:
+                self.assertNotIn("v1name", hdf["ms_dataset"].attrs)
+                self.assertNotIn("v2name", hdf["ms_dataset"].attrs)
+
+    def test_missing_required_structure_rejects_collection_without_modifying_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory, "invalid.hdf5")
+            with h5py.File(path, "w") as hdf:
+                hdf.create_group("unrelated")
+
+            dataset = MetaDataSet(self._engine())
+            with self.assertRaisesRegex(ValueError, "missing the ms_dataset group"):
+                dataset.import_hdf5(str(path))
+            self.assertIsNone(dataset.filename)
+            with h5py.File(path, "r") as hdf:
+                self.assertEqual(list(hdf.keys()), ["unrelated"])
+
+    def test_invalid_raw_data_rejects_entire_collection_in_full_and_speedy_modes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory, "invalid-raw-data.hdf5")
+            dataset = MetaDataSet(self._engine())
+            dataset.new_file(str(path))
+            dataset.add_data(np.array([[100.0, 1.0]], dtype=np.float32), name="first", export=False)
+            dataset.add_data(np.array([[200.0, 2.0]], dtype=np.float32), name="second", export=False)
+            dataset.export_hdf5()
+            dataset.import_hdf5(str(path))
+            original_first = dataset.spectra[0]
+            original_rawdata = original_first.rawdata.copy()
+
+            with h5py.File(path, "a") as hdf:
+                hdf["ms_dataset/0/raw_data"][:] = [[999.0, 9.0]]
+                del hdf["ms_dataset/1/raw_data"]
+
+            for speedy in (False, True):
+                with self.subTest(speedy=speedy):
+                    with self.assertRaisesRegex(ValueError, "spectrum 1.*raw_data"):
+                        dataset.import_hdf5(str(path), speedy=speedy)
+                    self.assertIs(dataset.spectra[0], original_first)
+                    np.testing.assert_array_equal(dataset.spectra[0].rawdata, original_rawdata)
+
+            with h5py.File(path, "a") as hdf:
+                hdf["ms_dataset/1"].create_dataset("raw_data", data=np.ones((2, 3), dtype=np.float32))
+            with self.assertRaisesRegex(ValueError, r"raw_data must have shape \(N, 2\)"):
+                dataset.import_hdf5(str(path))
+
     def test_reused_object_tracks_external_membership_growth_and_shrinkage(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory, "external-edits.hdf5")

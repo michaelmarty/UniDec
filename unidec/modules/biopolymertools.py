@@ -24,6 +24,7 @@ s2 = "MKTVVLAVAVLFLTGSQARHFWQRDDPQTPWDRVKDFATVYVDAVKDSGREYVSQFETSALGKQLNLNLLENWD
 
 mass_water = 18.0153
 mass_OH = 17.008
+mass_NH3 = 17.03052
 mass_O = 15.9994
 mass_HPO4 = 95.9793
 mass_H = 1.00794
@@ -84,11 +85,12 @@ def calc_pep_mass(sequence, allow_float=True, remove_nan=True, all_cyst_ox=False
         mass = np.sum([get_aa_mass(s) for s in seq]) + mass_water
     # print(sequence, mass)
     # Look for pyroglutamate mod if set
-    if pyroglu:
-        if sequence[0] == "E":
+    if pyroglu and isinstance(sequence, str):
+        n_terminal = sequence[0].upper()
+        if n_terminal == "E":
             modmass -= mass_water
-        if sequence[0] == "Q":
-            modmass -= mass_OH
+        if n_terminal == "Q":
+            modmass -= mass_NH3
 
     massoutput = np.round(mass + modmass, round_to)
     return massoutput

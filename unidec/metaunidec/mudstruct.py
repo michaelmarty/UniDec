@@ -40,20 +40,32 @@ class MetaDataSet:
     def import_hdf5(self, file=None, speedy=False):
         if file is None:
             file = self.filename
-        else:
-            self.filename = file
-        hdf = h5py.File(file, 'r+')
-        msdata = hdf.require_group(self.topname)
+        hdf = h5py.File(file, 'r')
+        if self.topname not in hdf or not isinstance(hdf[self.topname], h5py.Group):
+            hdf.close()
+            raise ValueError("MetaUniDec HDF5 file is missing the ms_dataset group")
+        msdata = hdf[self.topname]
         keys = list(msdata.keys())
-        self.indexes = []
+        indexes = []
         for k in keys:
             try:
-                self.indexes.append(int(k))
+                indexes.append(int(k))
             except:
                 pass
-        self.indexes = np.array(self.indexes)
-        self.indexes = sorted(self.indexes)
-        self.len = len(self.indexes)
+        indexes = sorted(indexes)
+        for i in indexes:
+            group = msdata.get(str(i))
+            if not isinstance(group, h5py.Group) or "raw_data" not in group:
+                hdf.close()
+                raise ValueError(f"MetaUniDec spectrum {i} is missing required raw_data")
+            raw_data = group["raw_data"]
+            if not isinstance(raw_data, h5py.Dataset) or len(raw_data.shape) != 2 or raw_data.shape[1] != 2:
+                hdf.close()
+                raise ValueError(f"MetaUniDec spectrum {i} raw_data must have shape (N, 2)")
+
+        self.filename = file
+        self.indexes = indexes
+        self.len = len(indexes)
 
         loaded_indexes = [int(s.index) for s in self.spectra]
         if loaded_indexes != self.indexes:
@@ -313,19 +325,23 @@ class MetaDataSet:
 
     def import_vars(self, get_vnames=True, hdfobj=None):
         if hdfobj is None:
-            hdf = h5py.File(self.filename, 'a')
+            hdf = h5py.File(self.filename, 'r' if get_vnames else 'a')
         else:
             hdf = hdfobj
-        msdata = hdf.require_group(self.topname)
+        msdata = hdf.get(self.topname) if get_vnames else hdf.require_group(self.topname)
+        if msdata is None:
+            if hdfobj is None:
+                hdf.close()
+            raise ValueError("MetaUniDec HDF5 file is missing the ms_dataset group")
         if get_vnames:
             try:
                 self.v1name = ud.smartdecode(msdata.attrs["v1name"])
             except:
-                msdata.attrs["v1name"] = self.v1name
+                pass
             try:
                 self.v2name = ud.smartdecode(msdata.attrs["v2name"])
             except:
-                msdata.attrs["v2name"] = self.v2name
+                pass
         else:
             msdata.attrs["v1name"] = str(self.v1name)
             msdata.attrs["v2name"] = str(self.v2name)
