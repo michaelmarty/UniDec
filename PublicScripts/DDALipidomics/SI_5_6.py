@@ -17,8 +17,8 @@ analyzer before resampling its lipid scores. Intervals
 condition on the observed networks, normalization, and coverage assignments;
 they do not quantify network-estimation or instrument-run uncertainty. Empty
 and singleton groups have no interval; constant groups have degenerate bounds.
-Save SI_5 and SI_6 as PNG/PDF figures only.
-The first six-panel figure puts Combined in panel A, followed by the five
+Save SI_6 and SI_7 as PNG/PDF figures only.
+SI_7 puts Combined in panel A, followed by the five
 datasets in panels B-F. It compares coverage-group means within each dataset
 and in Combined using robust ANOVA-style F tests and two-sided t-tests of mean contrasts.
 Each lipid contributes once per panel; singleton lipid clusters give HC1-equivalent
@@ -26,14 +26,14 @@ covariance with n-1 denominator degrees of freedom. Combined uses the already
 averaged lipid scores, not pooled lipid-dataset observations. Holm-adjust six
 overall tests together and 60 planned pairwise tests together, separately from
 the second figure. Retain shared axes and a 6.5 x 6.75-inch canvas.
-A second 6.5 x 6.75-inch figure compares analyzers in panel order Combined,
+SI_6 compares analyzers on a 6.5 x 6.75-inch canvas in panel order Combined,
 5, 4, 3, 2, 1 in lettered panels A-F, with shared axes. Panel A (Combined) pools
 all coverage levels, retaining one within-dataset score per lipid per analyzer.
 Each lipid contributes its within-dataset mean score once per analyzer.
-Use categorical-analyzer OLS mean comparisons with CR1 covariance clustered
+Compare analyzer means directly with CR1 covariance clustered
 by lipid identity and G-1 denominator degrees of freedom. The overall robust
 ANOVA-style F test compares analyzer means; pairwise tests are two-sided t
-contrasts from the same model. Shared lipid identities stay in the same cluster.
+contrasts of the analyzer means. Shared lipid identities stay in the same cluster.
 These overall F tests jointly compare means, rather than testing equal variances;
 the pairwise t-tests compare individual mean differences.
 Combined compares marginal analyzer means across all coverage levels, without
@@ -57,10 +57,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.stats import bootstrap
-from statsmodels.regression.linear_model import OLS
 from statsmodels.stats.multitest import multipletests
 
 from Figure3 import DATASET_LABELS, coverage_colors, datasets, topdir
+from mean_comparisons import group_means_and_covariance, overall_mean_test, pairwise_mean_test
 from SI_8_9 import NORMALIZED, prepare_strength, recompute_adduct_networks
 
 
@@ -137,21 +137,13 @@ def compare_coverage_scores(by_dataset, coverage):
                "F statistic": np.nan, "Numerator df": np.nan,
                "Denominator df": clusters - 1, "p-value": np.nan,
                "Status": "Unavailable: insufficient data or singular covariance"}
-    fit = None
+    means = covariance = None
     if len(levels) > 1 and clusters > 1 and modeled[SCORE].nunique() > 1:
-        design = np.column_stack([np.ones(len(modeled))] + [
-            modeled["Dataset"].eq(name).to_numpy(dtype=float) for name in levels[1:]])
-        if len(modeled) > design.shape[1]:
-            fit = OLS(modeled[SCORE].to_numpy(), design).fit().get_robustcov_results(
-                cov_type="cluster", groups=modeled["Lipid ID"].to_numpy(),
-                use_correction=True, df_correction=True, use_t=True)
-            contrasts = np.eye(len(levels))[1:]
-            covariance = contrasts @ fit.cov_params() @ contrasts.T
-            if np.isfinite(covariance).all() and np.linalg.matrix_rank(covariance) == len(levels) - 1:
-                test = fit.f_test(contrasts)
-                overall.update({"F statistic": float(np.asarray(test.fvalue).item()),
-                                "Numerator df": test.df_num, "p-value": float(test.pvalue),
-                                "Status": "Exploratory clustered analyzer mean test"})
+        means, covariance = group_means_and_covariance(
+            modeled, "Dataset", SCORE, levels, modeled["Lipid ID"])
+        test = overall_mean_test(means, covariance, clusters - 1)
+        if test:
+            overall.update(test, Status="Exploratory clustered analyzer mean test")
     rows = []
     for left, right in combinations(datasets, 2):
         x = selected.loc[selected["Dataset"].eq(left)].set_index("Lipid ID")[SCORE]
@@ -165,19 +157,11 @@ def compare_coverage_scores(by_dataset, coverage):
                "Standard error": np.nan, "t statistic": np.nan,
                "Denominator df": clusters - 1, "p-value": np.nan,
                "Status": "Unavailable: insufficient data or singular covariance"}
-        if fit is not None and left in levels and right in levels:
-            contrast = np.zeros(len(levels))
-            for name, sign in [(left, -1), (right, 1)]:
-                if name != levels[0]:
-                    contrast[levels.index(name)] = sign
-            variance = float(contrast @ fit.cov_params() @ contrast)
-            if np.isfinite(variance) and variance > 0:
-                test = fit.t_test(contrast)
-                row.update({"Mean difference (Dataset - Reference)": float(np.asarray(test.effect).item()),
-                            "Standard error": float(np.asarray(test.sd).item()),
-                            "t statistic": float(np.asarray(test.tvalue).item()),
-                            "p-value": float(np.asarray(test.pvalue).item()),
-                            "Status": "Exploratory clustered analyzer mean contrast"})
+        if means is not None and left in levels and right in levels:
+            test = pairwise_mean_test(means, covariance, levels.index(left), levels.index(right),
+                                      clusters - 1, "Mean difference (Dataset - Reference)")
+            if test:
+                row.update(test, Status="Exploratory clustered analyzer mean contrast")
         rows.append(row)
     return selected, pd.DataFrame(rows), overall
 
@@ -218,20 +202,13 @@ def coverage_mean_statistics(by_dataset, combined):
         result = {"Dataset": dataset, "Lipids": n, "Coverage groups tested": "; ".join(map(str, levels)),
                   "F statistic": np.nan, "Numerator df": np.nan, "Denominator df": n - 1,
                   "p-value": np.nan, "Status": "Unavailable: insufficient data or singular covariance"}
-        fit = None
+        means = covariance = None
         if len(levels) > 1 and modeled[SCORE].nunique() > 1:
-            design = np.column_stack([np.ones(n)] + [
-                modeled["Dataset coverage"].eq(level).to_numpy(dtype=float) for level in levels[1:]])
-            fit = OLS(modeled[SCORE].to_numpy(), design).fit().get_robustcov_results(
-                cov_type="cluster", groups=modeled["Lipid ID"].to_numpy(),
-                use_correction=True, df_correction=True, use_t=True)
-            contrasts = np.eye(len(levels))[1:]
-            covariance = contrasts @ fit.cov_params() @ contrasts.T
-            if np.isfinite(covariance).all() and np.linalg.matrix_rank(covariance) == len(levels) - 1:
-                test = fit.f_test(contrasts)
-                result.update({"F statistic": float(np.asarray(test.fvalue).item()),
-                               "Numerator df": test.df_num, "p-value": float(test.pvalue),
-                               "Status": "Exploratory robust coverage mean test"})
+            means, covariance = group_means_and_covariance(
+                modeled, "Dataset coverage", SCORE, levels, modeled["Lipid ID"])
+            test = overall_mean_test(means, covariance, n - 1)
+            if test:
+                result.update(test, Status="Exploratory robust coverage mean test")
         overall.append(result)
         for left, right in combinations(range(1, 6), 2):
             x = selected.loc[selected["Dataset coverage"].eq(left), SCORE]
@@ -241,19 +218,11 @@ def coverage_mean_statistics(by_dataset, combined):
                    "Mean difference (B - A)": np.nan, "Standard error": np.nan,
                    "t statistic": np.nan, "Denominator df": n - 1, "p-value": np.nan,
                    "Status": "Unavailable: insufficient data or singular covariance"}
-            if fit is not None and left in levels and right in levels:
-                contrast = np.zeros(len(levels))
-                for level, sign in [(left, -1), (right, 1)]:
-                    if level != levels[0]:
-                        contrast[levels.index(level)] = sign
-                variance = float(contrast @ fit.cov_params() @ contrast)
-                if np.isfinite(variance) and variance > 0:
-                    test = fit.t_test(contrast)
-                    row.update({"Mean difference (B - A)": float(np.asarray(test.effect).item()),
-                                "Standard error": float(np.asarray(test.sd).item()),
-                                "t statistic": float(np.asarray(test.tvalue).item()),
-                                "p-value": float(np.asarray(test.pvalue).item()),
-                                "Status": "Exploratory robust coverage mean contrast"})
+            if means is not None and left in levels and right in levels:
+                test = pairwise_mean_test(means, covariance, levels.index(left), levels.index(right),
+                                          n - 1, "Mean difference (B - A)")
+                if test:
+                    row.update(test, Status="Exploratory robust coverage mean contrast")
             pairwise.append(row)
     overall, pairwise = pd.DataFrame(overall), pd.DataFrame(pairwise)
     for table in [overall, pairwise]:
@@ -474,13 +443,13 @@ def main(argv=None):
     output_dir = args.output_dir or args.input.parent / "Final Figures"
     output_dir.mkdir(parents=True, exist_ok=True)
     for extension in ["png", "pdf"]:
-        dataset_fig.savefig(output_dir / f"SI_6.{extension}", dpi=600)
+        dataset_fig.savefig(output_dir / f"SI_7.{extension}", dpi=600)
     comparisons, overall = analyzer_comparisons(by_dataset)
     for selected, statistics, coverage in comparisons:
         print(statistics.to_string(index=False))
     comparison_fig = plot_coverage_panels(comparisons, overall)
     for extension in ["png", "pdf"]:
-        comparison_fig.savefig(output_dir / f"SI_5.{extension}", dpi=600)
+        comparison_fig.savefig(output_dir / f"SI_6.{extension}", dpi=600)
     print(overall.to_string(index=False))
     print("Exploratory robust ANOVA-style F tests of means and two-sided t-tests of mean contrasts, clustered by lipid. "
           "Holm correction across 6 overall tests and across 60 pairwise tests. "

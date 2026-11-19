@@ -27,7 +27,7 @@ Violins show distributions/medians; jittered dots show every lipid. Constant
 and singleton groups use a horizontal mark instead of a density estimate.
 
 Run directly; set MPLBACKEND=Agg for headless export. Save PNG (600 dpi), editable
-PDF figures only, named SI_7_MS1 and SI_7_MS2.
+PDF figures only, named SI_5_MS1 and SI_5_MS2.
 The main figures use a shared linear percentage axis. Optional log-y exports
 are controlled by EXPORT_LOG_Y. Log violins estimate density in displayed log
 coordinates; medians/dots retain their original values. If zeros occur, use a
@@ -35,11 +35,12 @@ shared symmetric-log scale with a linear region below the smallest positive
 intensity, retaining zeros without adding a pseudocount.
 
 Statistics use original percentage intensities, identically for both displays.
-OLS tests mean intensity differences across coverage categories, with CR1
+Tests compare mean intensity directly across coverage categories, with CR1
 covariance clustered by lipid identity and G-1 denominator degrees of freedom.
 The overall ANOVA-style F test jointly compares means, not variances;
 the pairwise two-sided t contrasts compare individual mean differences.
-Combined includes dataset fixed effects and keeps all lipid-dataset observations.
+Combined compares the pooled coverage-group means shown in the panel, with
+each lipid-dataset observation weighted equally.
 Report the overall coverage F test (Holm-adjusted across 12 planned MS1/MS2 panels)
 on each panel and calculate all 120 planned two-sided pairwise t contrasts with
 one Holm correction across both intensity types and all panels. Missing or
@@ -66,11 +67,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from itertools import combinations
-from statsmodels.regression.linear_model import OLS
+from mean_comparisons import group_means_and_covariance, overall_mean_test, pairwise_mean_test
 
 INPUT_FILE = Path(r"Z:\Group Share\Annika\Stellar\Untargeted DDA\Final Results\DDA Pipeline\Combined_Fragment_Assignment_Colored.xlsx")
 OUTPUT_DIR = INPUT_FILE.parent / "Final Figures"
-BASENAME = "SI_7"
+BASENAME = "SI_5"
 DATASETS = ["OTOT", "OTIT", "ITIT", "Stellar", "Stellarboth"]
 PANEL_ORDER = ["Combined"] + DATASETS
 EXPORT_LOG_Y = False
@@ -213,7 +214,7 @@ def holm_adjust(table, column):
 
 
 def coverage_statistics(combined):
-    """Coverage mean tests with lipid-clustered covariance; dataset-adjust pooled."""
+    """Compare coverage-group means directly with lipid-clustered covariance."""
     overall, pairwise = [], []
     for kind in ["MS1", "MS2"]:
         population = combined.loc[combined["Intensity type"].eq(kind)]
@@ -225,31 +226,16 @@ def coverage_statistics(combined):
             row = {"Intensity type": kind, "Dataset": dataset, "Observations": len(selected),
                    "Lipid clusters": clusters,
                    "F statistic": np.nan, "Numerator df": np.nan, "Denominator df": clusters - 1,
-                   "p-value": np.nan, "Status": "Unavailable: insufficient data or singular model"}
-            fit = None
-            columns = []
+                   "p-value": np.nan, "Status": "Unavailable: insufficient data or singular covariance"}
+            means = covariance = None
             # Singleton strata have no useful variance estimate for their contrasts.
             if (len(levels) > 1 and clusters > 1 and selected[RELATIVE].nunique() > 1
                     and all(counts[level] >= 2 for level in levels)):
-                design = np.ones((len(selected), 1))
-                columns = levels[1:]
-                for level in columns:
-                    design = np.column_stack((design, selected["Dataset coverage"].eq(level).astype(float)))
-                if dataset == "Combined":
-                    for name in sorted(selected["Dataset"].unique())[1:]:
-                        design = np.column_stack((design, selected["Dataset"].eq(name).astype(float)))
-                if len(selected) > design.shape[1] and np.linalg.matrix_rank(design) == design.shape[1]:
-                    model = OLS(selected[RELATIVE].to_numpy(), design).fit()
-                    fit = model.get_robustcov_results(
-                        cov_type="cluster", groups=selected["Lipid ID"].to_numpy(),
-                        use_correction=True, df_correction=True, use_t=True)
-                    contrasts = np.eye(design.shape[1])[1:len(columns) + 1]
-                    covariance = contrasts @ fit.cov_params() @ contrasts.T
-                    if np.isfinite(covariance).all() and np.linalg.matrix_rank(covariance) == len(columns):
-                        test = fit.f_test(contrasts)
-                        row.update({"F statistic": float(np.asarray(test.fvalue).item()),
-                                    "Numerator df": test.df_num, "p-value": float(test.pvalue),
-                                    "Status": "Exploratory clustered mean test"})
+                means, covariance = group_means_and_covariance(
+                    selected, "Dataset coverage", RELATIVE, levels, selected["Lipid ID"])
+                test = overall_mean_test(means, covariance, clusters - 1)
+                if test:
+                    row.update(test, Status="Exploratory clustered mean test")
             overall.append(row)
             for left, right in combinations(range(1, 6), 2):
                 comparison = {"Intensity type": kind, "Dataset": dataset,
@@ -260,19 +246,11 @@ def coverage_statistics(combined):
                               "Standard error": np.nan, "t statistic": np.nan,
                               "Denominator df": clusters - 1,
                               "Status": "Unavailable: insufficient data or singular covariance"}
-                if fit is not None and left in levels and right in levels:
-                    contrast = np.zeros(len(fit.params))
-                    for level, sign in [(left, -1), (right, 1)]:
-                        if level in columns:
-                            contrast[1 + columns.index(level)] = sign
-                    variance = float(contrast @ fit.cov_params() @ contrast)
-                    if np.isfinite(variance) and variance > 0:
-                        test = fit.t_test(contrast)
-                        comparison.update({"Mean difference (B - A)": float(np.asarray(test.effect).item()),
-                                           "Standard error": float(np.asarray(test.sd).item()),
-                                           "t statistic": float(np.asarray(test.tvalue).item()),
-                                           "p-value": float(np.asarray(test.pvalue).item()),
-                                           "Status": "Exploratory clustered mean contrast"})
+                if means is not None and left in levels and right in levels:
+                    test = pairwise_mean_test(means, covariance, levels.index(left), levels.index(right),
+                                              clusters - 1, "Mean difference (B - A)")
+                    if test:
+                        comparison.update(test, Status="Exploratory clustered mean contrast")
                 pairwise.append(comparison)
     overall, pairwise = pd.DataFrame(overall), pd.DataFrame(pairwise)
     for table in [overall, pairwise]:
