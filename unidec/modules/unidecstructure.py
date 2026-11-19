@@ -236,27 +236,7 @@ class UniDecConfig(object):
     config to text file for running UniDec core binaries and for storing parameters for GUI.
     """
 
-    _HDF5_INT_KEYS = frozenset({
-        "numit", "endz", "startz", "suppression_topn", "suppression_startit",
-        "suppression_harmonic", "suppression_satellite", "psfun", "psfunz",
-        "variablepw", "discreteplot", "subtype", "normthresh", "aggressive",
-        "rawflag", "rescale_newblur", "poolflag", "noiseflag", "linflag",
-        "publicationmode", "isotopemode", "peaknorm", "datanorm", "baselineflag",
-        "orbimode", "filterwidth", "manualfileflag", "mfileflag", "imflag",
-        "cdmsflag", "smashflag",
-    })
-    _HDF5_FLOAT_KEYS = frozenset({
-        "zzsig", "psig", "mzsig", "beta", "suppression_topx",
-        "suppression_percent", "massub", "masslb", "msig", "molig", "massbins",
-        "mtabsig", "minmz", "maxmz", "subbuff", "smooth", "mzbins", "peakwindow",
-        "peakthresh", "peakplotthresh", "plotsep", "intthresh", "reductionpercent",
-        "minratio", "adductmass", "nativezub", "nativezlb", "accvol",
-        "peakshapeinflate", "integratelb", "integrateub", "zerolog",
-    })
-    _HDF5_BOOL_KEYS = frozenset({"doubledec"})
-    _HDF5_STRING_KEYS = frozenset({
-        "version", "original_file", "cmap", "peakcmap", "spectracmap",
-    })
+    _HDF5_COMPAT_STRING_KEYS = frozenset({"version", "original_file"})
 
     @staticmethod
     def scalar_parameter_specs():
@@ -348,6 +328,26 @@ class UniDecConfig(object):
                 elif spec.dtype is str:
                     value = str(value)
             yield key, value, spec.dtype
+
+    def _read_hdf5_scalar_parameters(self, config_group):
+        """Read reviewed conventional scalars with canonical-key precedence."""
+        if config_group is None:
+            return
+        index = self.serialized_parameter_index("hdf5")
+        attributes = config_group.attrs
+        for spec in self.scalar_parameter_specs():
+            keys = (spec.hdf5_key,) + spec.hdf5_aliases
+            for key in keys:
+                if key is None or key not in attributes:
+                    continue
+                matched_spec = index[key]
+                value = attributes[key]
+                if isinstance(value, np.ndarray):
+                    value = value[0]
+                if matched_spec.dtype is bool:
+                    value = bool(value)
+                setattr(self, matched_spec.attribute, value)
+                break
 
     def _parameter_specs(self):
         if getattr(self, "agent_mode", None) == "unichrom":
@@ -1685,17 +1685,19 @@ class UniDecConfig(object):
         config_group = hdf.require_group("config")
 
         cdict = self.get_config_dict()
+        scalar_keys = {
+            spec.hdf5_key
+            for spec in self.scalar_parameter_specs()
+            if spec.hdf5_key is not None
+        }
+
+        for key, value, _ in self.iter_serialized_parameters("hdf5"):
+            config_group.attrs[key] = value
 
         for key, value in cdict.items():
-            if value is not None:
+            if key not in scalar_keys and value is not None:
                 try:
-                    if key in self._HDF5_INT_KEYS:
-                        value = int(value)
-                    elif key in self._HDF5_FLOAT_KEYS:
-                        value = float(value)
-                    elif key in self._HDF5_BOOL_KEYS:
-                        value = bool(value)
-                    elif key in self._HDF5_STRING_KEYS:
+                    if key in self._HDF5_COMPAT_STRING_KEYS:
                         value = str(value)
                     config_group.attrs[key] = value
                 except Exception as e:
@@ -1733,72 +1735,11 @@ class UniDecConfig(object):
             file_name = self.hdf_file
         hdf = h5py.File(file_name, 'r')
         config_group = hdf.get("config")
+        self._read_hdf5_scalar_parameters(config_group)
         # self.infname = self.read_attr(self.infname, "input", config_group)
         self.inputversion = read_attr(self.inputversion, "version", config_group)
-        self.maxmz = read_attr(self.maxmz, "maxmz", config_group)
-        self.minmz = read_attr(self.minmz, "minmz", config_group)
         self.metamode = read_attr(self.metamode, "metamode", config_group)
         # self.outfname = self.read_attr(self.outfname, "output", config_group)
-        self.numit = read_attr(self.numit, "numit", config_group)
-        self.endz = read_attr(self.endz, "endz", config_group)
-        self.startz = read_attr(self.startz, "startz", config_group)
-        self.zzsig = read_attr(self.zzsig, "zzsig", config_group)
-        self.psig = read_attr(self.psig, "psig", config_group)
-        self.beta = read_attr(self.beta, "beta", config_group)
-        # self.suppression_topn = read_attr(self.suppression_topn, "topncharges", config_group)
-        self.suppression_topn = read_attr(self.suppression_topn, "suppression_topn", config_group)
-        # self.suppression_topx = read_attr(self.suppression_topx, "zcutoff", config_group)
-        self.suppression_topx = read_attr(self.suppression_topx, "suppression_topx", config_group)
-        # self.suppression_percent = read_attr(self.suppression_percent, "zcutpercent", config_group)
-        self.suppression_percent = read_attr(self.suppression_percent, "suppression_percent", config_group)
-        # self.suppression_startit = read_attr(self.suppression_startit, "zcutstartit", config_group)
-        self.suppression_startit = read_attr(self.suppression_startit, "suppression_startit", config_group)
-        self.suppression_harmonic = read_attr(self.suppression_harmonic, "suppression_harmonic", config_group)
-        self.suppression_satellite = read_attr(self.suppression_satellite, "suppression_satellite", config_group)
-        self.mzsig = read_attr(self.mzsig, "mzsig", config_group)
-        self.psfun = read_attr(self.psfun, "psfun", config_group)
-        self.psfunz = read_attr(self.psfunz, "psfunz", config_group)
-        self.variablepw = read_attr(self.variablepw, "variablepw", config_group)
-        self.minratio = read_attr(self.minratio, "minratio", config_group)
-        self.discreteplot = read_attr(self.discreteplot, "discreteplot", config_group)
-        self.massub = read_attr(self.massub, "massub", config_group)
-        self.masslb = read_attr(self.masslb, "masslb", config_group)
-        self.molig = read_attr(self.molig, "molig", config_group)
-        self.msig = read_attr(self.msig, "msig", config_group)
-        self.massbins = read_attr(self.massbins, "massbins", config_group)
-        self.mtabsig = read_attr(self.mtabsig, "mtabsig", config_group)
-        self.subbuff = read_attr(self.subbuff, "subbuff", config_group)
-        self.subtype = read_attr(self.subtype, "subtype", config_group)
-        self.smooth = read_attr(self.smooth, "smooth", config_group)
-        self.mzbins = read_attr(self.mzbins, "mzbins", config_group)
-        self.peakwindow = read_attr(self.peakwindow, "peakwindow", config_group)
-        self.peakthresh = read_attr(self.peakthresh, "peakthresh", config_group)
-        self.normthresh = read_attr(self.normthresh, "normthresh", config_group)
-        self.peakplotthresh = read_attr(self.peakplotthresh, "peakplotthresh", config_group)
-        self.separation = read_attr(self.separation, "separation", config_group)
-        self.separation = read_attr(self.separation, "plotsep", config_group)
-        self.intthresh = read_attr(self.intthresh, "intthresh", config_group)
-        self.reductionpercent = read_attr(self.reductionpercent, "reductionpercent", config_group)
-        self.aggressiveflag = read_attr(self.aggressiveflag, "aggressiveflag", config_group)
-        self.aggressiveflag = read_attr(self.aggressiveflag, "aggressive", config_group)
-        self.rawflag = read_attr(self.rawflag, "rawflag", config_group)
-        self.rescale_newblur = read_attr(self.rescale_newblur, "rescale_newblur", config_group)
-        self.adductmass = read_attr(self.adductmass, "adductmass", config_group)
-        self.nativezub = read_attr(self.nativezub, "nativezub", config_group)
-        self.nativezlb = read_attr(self.nativezlb, "nativezlb", config_group)
-        self.poolflag = read_attr(self.poolflag, "poolflag", config_group)
-        self.detectoreffva = read_attr(self.detectoreffva, "accvol", config_group)
-        self.inflate = read_attr(self.inflate, "peakshapeinflate", config_group)
-        self.noiseflag = read_attr(self.noiseflag, "noiseflag", config_group)
-        self.linflag = read_attr(self.linflag, "linflag", config_group)
-        self.cmap = read_attr(self.cmap, "cmap", config_group)
-        self.peakcmap = read_attr(self.peakcmap, "peakcmap", config_group)
-        self.spectracmap = read_attr(self.spectracmap, "spectracmap", config_group)
-        self.publicationmode = read_attr(self.publicationmode, "publicationmode", config_group)
-        self.isotopemode = read_attr(self.isotopemode, "isotopemode", config_group)
-        self.peaknorm = read_attr(self.peaknorm, "peaknorm", config_group)
-        self.baselineflag = read_attr(self.baselineflag, "baselineflag", config_group)
-        self.orbimode = read_attr(self.orbimode, "orbimode", config_group)
         self.zout = read_attr(self.zout, "zout", config_group)
 
         self.pusher = read_attr(self.pusher, "pusher", config_group)
@@ -1831,16 +1772,6 @@ class UniDecConfig(object):
         self.edc = read_attr(self.edc, "edc", config_group)
         self.gasmass = read_attr(self.gasmass, "gasmass", config_group)
 
-        self.integratelb = read_attr(self.integratelb, "integratelb", config_group)
-        self.integrateub = read_attr(self.integrateub, "integrateub", config_group)
-        self.filterwidth = read_attr(self.filterwidth, "filterwidth", config_group)
-        self.zerolog = read_attr(self.zerolog, "zerolog", config_group)
-        self.mfileflag = read_attr(self.mfileflag, "mfileflag", config_group)
-        self.manualfileflag = read_attr(self.manualfileflag, "manualfileflag", config_group)
-        self.imflag = read_attr(self.imflag, "imflag", config_group)
-        self.cdmsflag = read_attr(self.cdmsflag, "cdmsflag", config_group)
-        self.doubledec = bool(read_attr(self.doubledec, "doubledec", config_group))
-        self.smashflag = read_attr(self.smashflag, "smashflag", config_group)
         self.original_file = read_attr(self.original_file, "original_file", config_group)
 
         self.exchoice = read_attr(self.exchoice, "exchoice", config_group)
@@ -1848,7 +1779,6 @@ class UniDecConfig(object):
         self.exthresh = read_attr(self.exthresh, "exthresh", config_group)
         self.exnorm = read_attr(self.exnorm, "exnorm", config_group)
         self.exnormz = read_attr(self.exnormz, "exnormz", config_group)
-        self.datanorm = read_attr(self.datanorm, "datanorm", config_group)
         self.exwindow = read_attr(self.exwindow, "exwindow", config_group)
 
         self.masslist = get_dataset(config_group, "masslist")

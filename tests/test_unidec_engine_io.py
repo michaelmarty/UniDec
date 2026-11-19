@@ -557,6 +557,7 @@ class TestUniDecConfigSerialization(unittest.TestCase):
                 attrs["startz"] = 9
                 attrs["aggressiveflag"] = 1
                 attrs["separation"] = 0.5
+                attrs["zpsfn"] = 2
             restored = UniDecConfig()
             default_dtsig = restored.dtsig
             default_suppression = restored.suppression_topn
@@ -565,9 +566,24 @@ class TestUniDecConfigSerialization(unittest.TestCase):
             self.assertEqual(restored.startz, 9)
             self.assertEqual(restored.aggressiveflag, 1)
             self.assertEqual(restored.separation, 0.5)
+            self.assertEqual(restored.psfunz, 2)
             self.assertEqual(restored.dtsig, default_dtsig)
             self.assertEqual(restored.suppression_topn, default_suppression)
             self.assertEqual(restored.rescale_newblur, default_rescale_newblur)
+
+            mixed = Path(directory, "mixed-aliases.hdf5")
+            with h5py.File(mixed, "w") as hdf:
+                attrs = hdf.create_group("config").attrs
+                attrs["aggressive"] = 2
+                attrs["aggressiveflag"] = 1
+                attrs["plotsep"] = 0.25
+                attrs["separation"] = 0.5
+                attrs["psfunz"] = 1
+                attrs["zpsfn"] = 2
+            restored.read_hdf5(str(mixed))
+            self.assertEqual(restored.aggressiveflag, 2)
+            self.assertEqual(restored.separation, 0.25)
+            self.assertEqual(restored.psfunz, 1)
 
     def test_hdf5_optional_defaults_do_not_mutate_config(self):
         with tempfile.TemporaryDirectory(prefix="unidec-hdf-optionals-") as directory:
