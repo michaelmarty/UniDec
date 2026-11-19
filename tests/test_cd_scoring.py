@@ -325,6 +325,26 @@ class TestCDScoring(unittest.TestCase):
             np.testing.assert_allclose(eng.fit2d, native_fit * eng.fit_scale, rtol=1e-6)
             self.assertAlmostEqual(np.sum(eng.harray), observed_sum, places=5)
 
+    def test_packaged_native_singleton_stack_matches_sequential_entry_point(self):
+        """A one-scan UCCD stack is the same problem as one conventional CD call."""
+        with tempfile.TemporaryDirectory() as directory:
+            eng = self.make_engine()
+            if not Path(eng.config.UniDecPath).is_file():
+                self.skipTest("Packaged UniDec executable is unavailable")
+            eng.config.CDzbins = 1
+            eng.config.outfname = str(Path(directory, "singleton"))
+            eng.config.default_file_names()
+            observed = eng.harray * 7
+
+            eng.export_config()
+            sequential = eng.decon_external_call_sequential(observed.copy())
+            stacked = eng.decon_external_call_all(
+                observed[np.newaxis, :, :].copy(), chromaxis=np.array([0.0])
+            )
+
+            self.assertEqual(stacked.shape, (1,) + observed.shape)
+            np.testing.assert_allclose(stacked[0], sequential, rtol=1e-6, atol=1e-6)
+
     def test_full_python_workflow_scores_and_exports_after_transform(self):
         for rawflag in (0, 1):
             with self.subTest(rawflag=rawflag), tempfile.TemporaryDirectory() as directory:
