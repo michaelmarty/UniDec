@@ -321,6 +321,8 @@ class UniDecConfig(object):
             if not (file_format == "text" and using_unset_value):
                 if spec.dtype is bool:
                     value = bool(value)
+                    if file_format == "text":
+                        value = int(value)
                 elif spec.dtype is int:
                     value = int(value)
                 elif spec.dtype is float:
