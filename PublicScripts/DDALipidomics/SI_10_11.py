@@ -17,11 +17,10 @@ Panels separate tail counts because products decrease as chain count increases.
 Single-tail scores are -log10(f_tail). Violins show distributions with black
 median marks; dots are unique lipids with visual-only jitter (seed 42).
 Singleton/constant groups use a horizontal mark instead of a density estimate.
-Match the normalized-intensity analysis: categorical coverage OLS mean tests,
+Compare coverage-group means directly using
 CR1 covariance clustered by unique class/chain composition, G-1 denominator df,
 and two-sided pairwise t contrasts. Each lipid appears once, so clusters are
-singletons (equivalent to HC1); dataset fixed effects are not applicable to
-these pooled composition scores. Holm-adjust overall tests across tail-count
+singletons (equivalent to HC1). Holm-adjust overall tests across tail-count
 panels and pairwise tests across all panel/coverage pairs (4 and 40 planned
 tests with the default 1-4 tail panels and five datasets). Additional observed
 tail counts extend both families. Missing/singleton strata are unavailable;
@@ -45,9 +44,9 @@ from matplotlib.colors import Normalize
 from matplotlib.ticker import PercentFormatter
 import numpy as np
 import pandas as pd
-from statsmodels.regression.linear_model import OLS
 from statsmodels.stats.multitest import multipletests
 
+from mean_comparisons import group_means_and_covariance, overall_mean_test, pairwise_mean_test
 from Figure5 import (
     DATASETS, DATASET_LABELS, TOPDIR, frequency_summary, prepare_lipids,
     tail_composition_table,
@@ -123,20 +122,13 @@ def lipid_product_statistics(scored, datasets):
         result = {"Tail count": count, "Lipids": n,
                   "F statistic": np.nan, "Numerator df": np.nan, "Denominator df": n - 1,
                   "p-value": np.nan, "Status": "Unavailable: insufficient data or singular covariance"}
-        fit = None
-        columns = levels[1:]
+        means = covariance = None
         if len(levels) > 1 and all(sizes[level] >= 2 for level in levels) and group[PRODUCT_SCORE].nunique() > 1:
-            design = np.column_stack([np.ones(n)] + [group["Dataset Coverage"].eq(level) for level in columns])
-            fit = OLS(group[PRODUCT_SCORE].to_numpy(), design).fit().get_robustcov_results(
-                cov_type="cluster", groups=np.arange(n), use_correction=True,
-                df_correction=True, use_t=True)
-            contrasts = np.eye(design.shape[1])[1:]
-            covariance = contrasts @ fit.cov_params() @ contrasts.T
-            if np.isfinite(covariance).all() and np.linalg.matrix_rank(covariance) == len(columns):
-                test = fit.f_test(contrasts)
-                result.update({"F statistic": float(np.asarray(test.fvalue).item()),
-                               "Numerator df": test.df_num, "p-value": float(test.pvalue),
-                               "Status": "Exploratory clustered mean test"})
+            means, covariance = group_means_and_covariance(
+                group, "Dataset Coverage", PRODUCT_SCORE, levels, np.arange(n))
+            test = overall_mean_test(means, covariance, n - 1)
+            if test:
+                result.update(test, Status="Exploratory clustered mean test")
         overall.append(result)
         for coverage in range(1, len(datasets) + 1):
             values = group.loc[group["Dataset Coverage"].eq(coverage), PRODUCT_SCORE]
@@ -148,16 +140,12 @@ def lipid_product_statistics(scored, datasets):
                           "Lipids A": int(sizes.get(left, 0)), "Lipids B": int(sizes.get(right, 0)),
                           "Mean difference (B - A)": np.nan, "p-value": np.nan,
                           "Status": "Unavailable: insufficient data or singular covariance"}
-            if fit is not None and left in levels and right in levels:
-                contrast = np.zeros(len(fit.params))
-                for level, sign in [(left, -1), (right, 1)]:
-                    if level in columns:
-                        contrast[1 + columns.index(level)] = sign
-                variance = float(contrast @ fit.cov_params() @ contrast)
-                if np.isfinite(variance) and variance > 0:
-                    test = fit.t_test(contrast)
-                    comparison.update({"Mean difference (B - A)": float(np.asarray(test.effect).item()),
-                                       "p-value": float(np.asarray(test.pvalue).item()),
+            if means is not None and left in levels and right in levels:
+                test = pairwise_mean_test(means, covariance, levels.index(left), levels.index(right),
+                                          n - 1, "Mean difference (B - A)")
+                if test:
+                    comparison.update({"Mean difference (B - A)": test["Mean difference (B - A)"],
+                                       "p-value": test["p-value"],
                                        "Status": "Exploratory clustered mean contrast"})
             pairwise.append(comparison)
     overall, pairwise = pd.DataFrame(overall), pd.DataFrame(pairwise)

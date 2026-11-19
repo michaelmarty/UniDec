@@ -29,7 +29,7 @@ all-zero dataset groups exclude the entire panel. Exactly 10 qualifies. Override
 threshold with --min-lipids (>=2).
 All eligible lipid identities contribute; no shared-lipid requirement.
 
-For each retained class/adduct/polarity, estimate instrument means by OLS with
+For each retained class/adduct/polarity, calculate instrument means directly, with
 CR1 covariance clustered by lipid identity. Test all ten planned pairwise mean
 contrasts using two-sided Student t, G-1 degrees of freedom (G lipid clusters).
 Holm-adjust all planned comparisons across retained panels and both polarities,
@@ -66,13 +66,13 @@ from matplotlib.ticker import MaxNLocator
 import numpy as np
 import pandas as pd
 from scipy.stats import t as t_distribution
-from statsmodels.regression.linear_model import OLS
 
 from Figure3 import datasets, topdir
 from SI_Class_Heatmap import DATASET_LABELS
+from mean_comparisons import group_means_and_covariance
 
 INPUT_FILE = Path(topdir) / "Combined_Fragment_Assignment_Colored.xlsx"
-OUTPUT_BASENAMES = {"positive": "SI_8", "negative": "SI_9"}
+OUTPUT_BASENAMES = {"positive": "SI_9", "negative": "SI_8"}
 NORMALIZED = "Within-Dataset Max-Normalized Class Strength"
 POLARITY_COLORS = {"positive": "#347FA8", "negative": "#C43C39"}
 FIGURE_SIZE = (6.5, 7.5)
@@ -258,6 +258,9 @@ def prepare_strength(source, all_ids=True, excluded_only=False, allow_empty=Fals
            "Class Strength": ("Class Strength", "median"),
            "Feature rows": ("Class Strength", "size"), "Accepted rows": ("Accepted", "sum")}
     ).reset_index()
+    for _, point in points.loc[points["Feature rows"].gt(1)].iterrows():
+        print(f"Merged {point['Feature rows']} rows for {point['Lipid Name']} in {point['Dataset']} / "
+              f"{point['Polarity']} / {point['Adduct type']} using median Class Strength {point['Class Strength']}", flush=True)
     points["Normalization population"] = ("Excluded only" if excluded_only else
                                           "Accepted only" if accepted_only else "Accepted + excluded")
     points["Normalization unit"] = "Per-lipid-adduct median strength; maximum within adduct"
@@ -316,12 +319,8 @@ def instrument_statistics(points, reference=None, all_pairs=False, value_column=
         clusters = eligible["Lipid ID"].nunique()
         df = clusters - 1
         if len(instruments) >= 2 and clusters >= 2:
-            design = np.column_stack([eligible["Dataset"].eq(d).to_numpy(dtype=float) for d in instruments])
-            ids = pd.factorize(eligible["Lipid ID"])[0]
-            result = OLS(eligible[value_column].to_numpy(dtype=float), design).fit()
-            robust = result.get_robustcov_results(cov_type="cluster", groups=ids,
-                                                use_correction=True, df_correction=True, use_t=True)
-            means, covariance = np.asarray(robust.params), np.asarray(robust.cov_params())
+            means, covariance = group_means_and_covariance(
+                eligible, "Dataset", value_column, instruments, eligible["Lipid ID"])
         for baseline, dataset in pairs:
             row = {"Plot Class": lipid_class, "Polarity": polarity, "Dataset": dataset,
                    difference_column: np.nan, "Standard error": np.nan,
@@ -496,7 +495,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.min_lipids < 2:
         parser.error("--min-lipids must be at least 2")
+
     source = pd.read_csv(args.input) if args.input.suffix.lower() == ".csv" else pd.read_excel(args.input, sheet_name="Sheet1")
+
     source, _ = recompute_adduct_networks(source, accepted_only=not (args.all_ids or args.excluded_only))
     output_root = args.output_dir or args.input.parent / "Final Figures"
     output_root.mkdir(parents=True, exist_ok=True)

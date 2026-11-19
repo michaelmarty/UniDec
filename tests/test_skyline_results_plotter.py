@@ -452,6 +452,87 @@ class TestSkylineResultsPlotter(unittest.TestCase):
             finally:
                 os.chdir(original_cwd)
 
+    def test_cholesterol_precursors_join_selected_samples_before_tic_normalization(self):
+        with TemporaryDirectory() as temporary:
+            first = Path(temporary) / "lipids.csv"
+            second = Path(temporary) / "other.csv"
+            cholesterol = Path(temporary) / "cholesterol.csv"
+            reps = ["a1", "a2", "b1", "b2"]
+            rows = [{"Molecule": "PE ordinary", "Molecule List Name": "PE",
+                     "Replicate Name": rep, "Precursor Adduct": "[M+H]",
+                     "Precursor Mz": 700., "Product Mz": 100., "Fragment Ion": "product",
+                     "Area": 10., "Retention Time": 5.} for rep in reps]
+            pd.DataFrame(rows).to_csv(first, index=False)
+            pd.DataFrame(rows[2:]).to_csv(second, index=False)
+            chol_rows = []
+            for row, area in zip(rows, [10., 20., 30., 40.]):
+                precursor = dict(row, Molecule="ST 27:1;1", Area=area,
+                                 **{"Molecule List Name": "ST", "Fragment Ion": "precursor",
+                                    "Precursor Mz": 369., "Product Mz": 369.})
+                chol_rows.extend([precursor, dict(precursor, Area=999., **{"Fragment Ion": "product"})])
+            chol_rows.append(dict(chol_rows[0], **{"Replicate Name": "unselected", "Area": 999.}))
+            pd.DataFrame(chol_rows).to_csv(cholesterol, index=False)
+            for file2 in [None, second]:
+                with self.subTest(file2=file2):
+                    result, classes = self.quant["compare_pipeline"](
+                        first, {"file1": reps[:2]}, {"file2" if file2 else "file1": reps[2:]},
+                        file2=file2, cholesterol_file=cholesterol, normalize_IS=False,
+                        normalize_TIC=True, paired=False, plot_results=False, write_output=True)
+                    aliases = [f"file{1 if i < 2 else 2}::{r}" if file2 else r
+                               for i, r in enumerate(reps)]
+                    indexed = result.set_index("Molecule")
+                    actual = indexed.loc["ST 27:1;1", aliases].to_numpy(dtype=float)
+                    np.testing.assert_allclose(actual, [.5, 2 / 3, .75, .8])
+                    self.assertIn("ST", set(classes["Molecule List Name"]))
+                    with pd.ExcelFile(Path(temporary) / "lipids_stats.xlsx") as book:
+                        raw = pd.read_excel(book, "Raw Data")
+                    exported = raw.loc[raw.Molecule.eq("ST 27:1;1")]
+                    self.assertEqual(len(exported), 4)
+                    self.assertEqual(set(exported["Input Source"]), {str(cholesterol.resolve())})
+                    self.assertEqual(set(exported["Fragment Ion"]), {"precursor"})
+            # Identically named samples in separate inputs cannot share one cholesterol measurement.
+            with self.assertRaisesRegex(ValueError, "matches selected samples in both CSVs"):
+                self.quant["compare_pipeline"](
+                    first, {"file1": ["b1"]}, {"file2": ["b1"]}, file2=second,
+                    cholesterol_file=cholesterol, plot_results=False, write_output=False)
+            with self.assertRaisesRegex(ValueError, "No cholesterol precursor transitions"):
+                pd.DataFrame(chol_rows).query("`Fragment Ion` == 'product'").to_csv(cholesterol, index=False)
+                self.quant["compare_pipeline"](
+                    first, reps[:2], reps[2:], cholesterol_file=cholesterol,
+                    plot_results=False, write_output=False)
+
+    def test_apci_cholesterol_identifies_d7_standard_named_as_analyte(self):
+        with TemporaryDirectory() as temporary:
+            first = Path(temporary) / "lipids.csv"
+            cholesterol = Path(temporary) / "cholesterol.csv"
+            reps = ["a1", "a2", "b1", "b2"]
+            rows = [{"Molecule": "PE ordinary", "Molecule List Name": "PE",
+                     "Replicate Name": rep, "Precursor Adduct": "[M-H]",
+                     "Precursor Mz": 700., "Product Mz": 100., "Fragment Ion": "product",
+                     "Area": 10., "Retention Time": 5.} for rep in reps]
+            pd.DataFrame(rows).to_csv(first, index=False)
+            chol_rows = []
+            for row, area, standard_area in zip(rows, [100., 120., 240., 300.], [10., 20., 30., 50.]):
+                for adduct, mz, value in [("[M+H-H2O]", 369.35, area),
+                                           ("[M7H2+H-H2O]", 376.40, standard_area)]:
+                    chol_rows.append(dict(row, Molecule="ST 27:1;1", Area=value,
+                                          **{"Molecule List Name": "ST 27:1;1", "Fragment Ion": "precursor",
+                                             "Precursor Adduct": adduct, "Precursor Mz": mz, "Product Mz": mz}))
+            pd.DataFrame(chol_rows).to_csv(cholesterol, index=False)
+            catalogue = pd.DataFrame({"Class": ["ST"], "Lipid": ["ST 27:1;1(+[2]H7)"],
+                                      "Concentration (uM)": [10.]})
+            with patch.dict(self.quant, {"default_isdf": catalogue}):
+                result, classes = self.quant["compare_pipeline"](
+                    first, reps[:2], reps[2:], cholesterol_file=cholesterol,
+                    normalize_IS=True, normalize_TIC=False, paired=False,
+                    plot_results=False, write_output=False)
+            chol = result.set_index("Molecule").loc["ST 27:1;1"]
+            np.testing.assert_allclose(chol[reps].to_numpy(dtype=float), [100., 60., 80., 60.])
+            self.assertEqual(chol["Comparison status"], "Tested")
+            self.assertEqual(chol["Adduct"], "[M+H-H2O]")
+            self.assertNotIn("IS ST 27:1;1(+[2]H7)", set(result.Molecule))
+            self.assertIn("ST", set(classes["Molecule List Name"]))
+
     def test_two_csvs_select_each_group_only_from_its_assigned_file(self):
         with TemporaryDirectory() as temporary:
             first = Path(temporary) / "b2.csv"

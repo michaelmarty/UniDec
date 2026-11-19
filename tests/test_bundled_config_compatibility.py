@@ -14,7 +14,6 @@ class TestBundledConfigCompatibility(unittest.TestCase):
         (
             ("ADH_unidecfiles", "ADH_conf.dat"),
             {
-                "inputversion": "9.0.0b1",
                 "imflag": 0,
                 "cdmsflag": 0,
                 "startz": 1,
@@ -28,7 +27,6 @@ class TestBundledConfigCompatibility(unittest.TestCase):
         (
             ("IMMS", "aqpz_unidecfiles", "aqpz_conf.dat"),
             {
-                "inputversion": "9.0.0b1",
                 "imflag": 1,
                 "cdmsflag": 0,
                 "startz": 10,
@@ -42,7 +40,6 @@ class TestBundledConfigCompatibility(unittest.TestCase):
         (
             ("CDMS", "BgalGroEL_unidecfiles", "BgalGroEL_conf.dat"),
             {
-                "inputversion": "8.1.3",
                 "imflag": 0,
                 "cdmsflag": 1,
                 "startz": 30,

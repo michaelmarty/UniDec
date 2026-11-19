@@ -79,6 +79,17 @@ class TestNativeBuild(unittest.TestCase):
         input_source = source.with_name("udio.c").read_text(encoding="utf-8")
         self.assertIn('strjoin(config->dataset, "/fwhm", fwhmdat)', input_source)
 
+    def test_native_background_windows_are_symmetric(self):
+        source = Path(__file__).resolve().parents[1] / "unidec" / "src" / "UD_dataproc.c"
+        text = source.read_text(encoding="utf-8")
+
+        self.assertIn("int start = i - radius;", text)
+        self.assertIn("int end = i + radius + 1;", text)
+        self.assertIn("const int threshold = gaussian_radius * 2 + 1;", text)
+        self.assertIn("int start = i - gaussian_radius;", text)
+        self.assertIn("int end = i + gaussian_radius + 1;", text)
+        self.assertIn("gaussian[j - i + gaussian_radius]", text)
+
     def test_in_process_wrapper_rejects_invalid_fwhm_arrays(self):
         import numpy as np
         from types import SimpleNamespace

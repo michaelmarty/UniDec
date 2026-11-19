@@ -150,6 +150,81 @@ class TestHTDemultiplexing(unittest.TestCase):
                 np.testing.assert_allclose(output, expected, atol=1e-12)
                 np.testing.assert_array_equal(returned_data, data)
 
+    def test_masked_ht_uses_literal_negative_classification(self):
+        """Exact zero is neutral, but every representable negative increments the divisor."""
+        engine = self._engine(htbit=3, HTtimeshift=-1, HTcycleindex=0)
+        engine.fulltime = np.arange(4.0)
+        engine.fullscans = np.arange(4)
+        tiny_negative = np.nextafter(0.0, -1.0)
+        transforms = (
+            (np.full(4, 8.0), np.arange(4.0)),
+            (np.array([0.0, tiny_negative, 0.0, -1.0]), np.arange(4.0)),
+            (np.array([0.0, 0.0, tiny_negative, 1.0]), np.arange(4.0)),
+        )
+
+        with patch("numpy.random.randint", return_value=0), \
+                patch.object(engine, "setup_ht"), patch.object(
+                    engine, "htdecon", side_effect=transforms):
+            output, returned_data = engine.masked_demultiplex_ht(
+                np.arange(4.0), win=0, n=2, mode="con")
+
+        np.testing.assert_array_equal(output, [8.0, 4.0, 4.0, 4.0])
+        np.testing.assert_array_equal(returned_data, np.arange(4.0))
+
+    def test_masked_ht_wraparound_selects_circular_sequence_positions(self):
+        """Consecutive and alternating windows wrap on the seven-bit sequence."""
+        original = np.array([1, 1, 1, 0, 1, 0, 0])
+        cases = (
+            ("con", 5, 3, (5, 6, 0)),
+            ("alt", 6, 2, (6, 1)),
+        )
+        for mode, start, win, masked_indexes in cases:
+            with self.subTest(mode=mode):
+                engine = self._engine(htbit=3, HTtimeshift=-1, HTcycleindex=0)
+                engine.fulltime = np.arange(7.0)
+                engine.fullscans = np.arange(7)
+                sequences = []
+
+                def record_sequence(seq):
+                    sequences.append(np.asarray(seq).copy())
+
+                with patch("numpy.random.randint", return_value=start), \
+                        patch.object(engine, "setup_ht", side_effect=record_sequence), \
+                        patch.object(engine, "htdecon", return_value=(np.ones(7), np.ones(7))):
+                    engine.masked_demultiplex_ht(np.ones(7), win=win, n=1, mode=mode)
+
+                expected = original.copy()
+                expected[list(masked_indexes)] = -1
+                np.testing.assert_array_equal(sequences, [original, expected])
+
+    def test_ht_padding_shift_and_masked_kernel_origin_match_direct_correlation(self):
+        """Padding and a masked first bit preserve the explicitly shifted time origin."""
+        engine = self._engine(
+            htbit=3, HTtimeshift=1.0, HTcycleindex=0, HTtimepad=2.0,
+        )
+        engine.fulltime = np.arange(14.0)
+        engine.fullscans = np.arange(14)
+        engine.padindex = engine.shiftindex = 0
+        engine.setup_ht(seq=np.array([-1, 1, 1, 0, 1, 0, 0]))
+        data = np.array([0.2, 1.1, 0.4, 2.3, 1.7, 0.8, 3.2,
+                         0.6, 1.4, 2.8, 0.1, 1.9, 0.7, 2.1])
+
+        output, returned_data = engine.htdecon(data)
+
+        segment = data[1:13]
+        direct = np.array([
+            sum(segment[(i + j) % len(segment)] * engine.htkernel[j]
+                for j in range(len(segment)))
+            for i in range(len(segment))
+        ])
+        expected = np.roll(np.concatenate((np.zeros(2), direct)), -3)
+        self.assertEqual(engine.padindex, 2)
+        self.assertEqual(engine.shiftindex, 1)
+        self.assertEqual(engine.kernelroll, -1)
+        self.assertEqual(engine.rollindex, -3)
+        np.testing.assert_allclose(output, expected, atol=1e-12)
+        self.assertIs(returned_data, data)
+
     def test_run_demultiplex_chops_time_axis_and_unknown_mode_is_identity(self):
         engine = self._engine(HToutputlb=1.5, HToutputub=4.5)
         engine.decontime = np.arange(6.0)
