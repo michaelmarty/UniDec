@@ -4,6 +4,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import h5py
 import numpy as np
@@ -205,6 +206,11 @@ class TestBundledNativeWorkflows(unittest.TestCase):
 
     def test_aqpz_im_native_outputs_match_imported_axis_dimensions(self):
         """The packaged executable must produce a complete, internally consistent IM result set."""
+        # MKL FFT kernels differ by CPU instruction set and shift this iterative IM result,
+        # so pin the reference-value run to the AVX2 kernels used for the expected numbers.
+        env = mock.patch.dict(os.environ, {"MKL_ENABLE_INSTRUCTIONS": "AVX2"})
+        env.start()
+        self.addCleanup(env.stop)
         with tempfile.TemporaryDirectory(prefix="unidec-native-im-") as directory:
             root = Path(directory)
             spectrum = copy_unidec_example(root, "IMMS", "aqpz.dat")

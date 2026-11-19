@@ -2228,10 +2228,8 @@ void DoubleDecon(const Config *config, Decon *decon) {
     // printf("Results copied to Decon.\n");
 
     // Free memory
-    if (kernel_x && kernel_y) {
-        free(kernel_x);
-        free(kernel_y);
-    }
+    if (kernel_x != kernel_x_init) free(kernel_x);
+    if (kernel_y != kernel_y_init) free(kernel_y);
 
     free(real_kernel_y);
     free(data_x);
