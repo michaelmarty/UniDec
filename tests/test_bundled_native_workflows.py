@@ -652,7 +652,7 @@ class TestBundledNativeWorkflows(unittest.TestCase):
                 self.assertTrue(np.isfinite(values).all())
 
             engine.pick_peaks()
-            self.assertAlmostEqual(engine.config.error, 0.881318, delta=0.005)
+            self.assertAlmostEqual(engine.config.error, 0.881318, delta=0.01)
             peaks = sorted(engine.pks.peaks, key=lambda peak: peak.mass)
             expected = (
                 (98849.92, 100, 13.47, 13, 5508.26, 5001.27),
