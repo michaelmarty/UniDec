@@ -12,7 +12,7 @@ import h5py
 import numpy as np
 
 from unidec.engine import UniDec
-from unidec.modules import IM_functions
+from unidec.modules import IM_functions, MassSpecBuilder
 from unidec.modules.IMEng import UniDecIM
 from unidec.modules.unidecstructure import UniDecConfig
 
@@ -393,6 +393,100 @@ class TestBundledNativeWorkflows(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertTrue(Path(engine.config.udir, "mass.txt").is_file())
+
+    def test_synthetic_native_mass_and_charge_reconstruction(self):
+        """A known 50 kDa charge series reconstructs its independently defined mass and charges."""
+        target_mass = 50_000.0
+        adduct_mass = 1.007276467
+        source_charges = np.arange(8, 13)
+        spectrum, _ = MassSpecBuilder.make_mass_spectrum(
+            [[target_mass, 8.5, 10.2, 1.0, 1.0]],
+            zrange=(source_charges[0], source_charges[-1]),
+            mzrange=(4000, 6501),
+            mz_bin_size=0.5,
+            adductmass=adduct_mass,
+            psfun=0,
+            noise=0,
+            baseline=0,
+        )
+        source_mz = (target_mass + adduct_mass * source_charges) / source_charges
+        source_heights = spectrum[
+            [np.argmin(np.abs(spectrum[:, 0] - mz)) for mz in source_mz], 1
+        ]
+        self.assertFalse(np.allclose(source_heights, source_heights[::-1]))
+
+        with tempfile.TemporaryDirectory(prefix="unidec-native-synthetic-") as directory:
+            spectrum_path = Path(directory, "synthetic.txt")
+            np.savetxt(spectrum_path, spectrum)
+
+            engine = UniDec(ignore_args=True, silent=True)
+            _require_native_executable(engine)
+            engine.open_file(spectrum_path.name, directory, silent=True)
+
+            for name, value in {
+                "smooth": 0,
+                "subbuff": 0,
+                "intthresh": 0,
+                "reductionpercent": 0,
+                "mzbins": 0,
+                "linflag": 2,
+                "startz": 1,
+                "endz": 50,
+                "masslb": -45_000,
+                "massub": -55_000,
+                "massbins": 10,
+                "adductmass": adduct_mass,
+                "numit": 100,
+                "mzsig": 0.85,
+                "psfun": 0,
+                "zzsig": 1,
+                "psig": 0,
+                "beta": 0,
+                "msig": 0,
+                "molig": 0,
+                "baselineflag": 0,
+                "poolflag": 0,
+                "suppression_topn": 0,
+                "suppression_topx": 0,
+                "suppression_percent": 0,
+                "suppression_harmonic": 0,
+                "suppression_satellite": 0,
+                "peakwindow": 100,
+                "peakthresh": 0.1,
+            }.items():
+                setattr(engine.config, name, value)
+
+            engine.process_data(silent=True)
+            self.assertEqual(engine.run_unidec(silent=True), 0)
+
+            expected_mass_axis = np.arange(45_000, 55_000, 10, dtype=float)
+            np.testing.assert_array_equal(engine.data.massdat[:, 0], expected_mass_axis)
+            self.assertEqual(engine.data.massgrid.size, len(expected_mass_axis) * 50)
+            self.assertEqual(engine.data.mzgrid.shape, (len(engine.data.data2) * 50, 3))
+            for values in (engine.data.massdat, engine.data.massgrid, engine.data.mzgrid, engine.data.fitdat):
+                self.assertTrue(np.isfinite(values).all())
+            for intensities in (
+                engine.data.massdat[:, 1], engine.data.massgrid,
+                engine.data.mzgrid[:, 2], engine.data.fitdat,
+            ):
+                self.assertTrue((intensities >= 0).all())
+
+            dominant_mass = engine.data.massdat[np.argmax(engine.data.massdat[:, 1]), 0]
+            self.assertAlmostEqual(dominant_mass, target_mass, delta=engine.config.massbins)
+
+            charge_grid = engine.data.mzgrid[:, 2].reshape(len(engine.data.data2), 50)
+            charge_axis = np.arange(1, 51)
+            for mz, charge in zip(source_mz, source_charges):
+                row = np.argmin(np.abs(engine.data.data2[:, 0] - mz))
+                self.assertEqual(charge_axis[np.argmax(charge_grid[row])], charge)
+
+            observed = engine.data.data2[:, 1] / np.max(engine.data.data2[:, 1])
+            fitted = engine.data.fitdat / np.max(engine.data.fitdat)
+            self.assertLessEqual(np.sqrt(np.mean((observed - fitted) ** 2)), 0.05)
+
+            engine.pick_peaks(calc_dscore=False)
+            self.assertEqual(len(engine.pks.peaks), 1)
+            self.assertAlmostEqual(engine.pks.peaks[0].mass, target_mass, delta=engine.config.massbins)
 
     def test_adh_reviewed_native_results(self):
         """Reviewed 2026-11-18: bundled ADH settings produce three known mass/charge species."""
