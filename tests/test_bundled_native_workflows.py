@@ -20,6 +20,22 @@ from tests._test_support import copy_unidec_example
 
 
 REVIEWED_CONFIGS = Path(__file__).parent / "fixtures" / "native_regression"
+REQUIRE_NATIVE_WORKFLOWS = os.environ.get("UNIDEC_REQUIRE_NATIVE_WORKFLOWS") == "1"
+
+
+def _require_native(condition, message):
+    if condition:
+        return
+    if REQUIRE_NATIVE_WORKFLOWS:
+        raise AssertionError(message)
+    raise unittest.SkipTest(message)
+
+
+def _require_native_executable(engine):
+    _require_native(
+        os.path.isfile(engine.config.UniDecPath),
+        f"Packaged native executable is unavailable: {engine.config.UniDecPath}",
+    )
 
 
 def _load_native_library():
@@ -154,8 +170,7 @@ class TestBundledNativeWorkflows(unittest.TestCase):
             _copy_reviewed_config(config_dir, "BSA_conf.dat")
 
             engine = UniDec(ignore_args=True, silent=True)
-            if not os.path.isfile(engine.config.UniDecPath):
-                self.skipTest(f"Packaged native executable is unavailable: {engine.config.UniDecPath}")
+            _require_native_executable(engine)
             engine.open_file(spectrum.name, directory, silent=True)
             engine.process_data(silent=True)
 
@@ -229,8 +244,7 @@ class TestBundledNativeWorkflows(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="unidec-variable-pw-") as directory:
             spectrum = copy_unidec_example(Path(directory), "BSA.txt")
             engine = UniDec(ignore_args=True, silent=True)
-            if not os.path.isfile(engine.config.UniDecPath):
-                self.skipTest(f"Packaged native executable is unavailable: {engine.config.UniDecPath}")
+            _require_native_executable(engine)
             engine.open_file(spectrum.name, directory, silent=True)
             engine.process_data(silent=True)
             engine.config.variablepw = 1
@@ -273,8 +287,7 @@ class TestBundledNativeWorkflows(unittest.TestCase):
 
     def test_native_rejects_invalid_text_and_hdf5_spectra_before_writing_outputs(self):
         engine = UniDec(ignore_args=True, silent=True)
-        if not os.path.isfile(engine.config.UniDecPath):
-            self.skipTest(f"Packaged native executable is unavailable: {engine.config.UniDecPath}")
+        _require_native_executable(engine)
 
         text_cases = {
             "empty": ("", "at least two"),
@@ -342,8 +355,7 @@ class TestBundledNativeWorkflows(unittest.TestCase):
             root = Path(directory)
             spectrum = copy_unidec_example(root, "BSA.txt")
             engine = UniDec(ignore_args=True, silent=True)
-            if not os.path.isfile(engine.config.UniDecPath):
-                self.skipTest(f"Packaged native executable is unavailable: {engine.config.UniDecPath}")
+            _require_native_executable(engine)
             engine.open_file(spectrum.name, directory, silent=True)
             engine.process_data(silent=True)
 
@@ -368,8 +380,7 @@ class TestBundledNativeWorkflows(unittest.TestCase):
             root = Path(directory)
             spectrum = copy_unidec_example(root, "BSA.txt")
             engine = UniDec(ignore_args=True, silent=True)
-            if not os.path.isfile(engine.config.UniDecPath):
-                self.skipTest(f"Packaged native executable is unavailable: {engine.config.UniDecPath}")
+            _require_native_executable(engine)
             engine.open_file(spectrum.name, directory, silent=True)
             engine.process_data(silent=True)
 
@@ -393,8 +404,7 @@ class TestBundledNativeWorkflows(unittest.TestCase):
             _copy_reviewed_config(config_dir, "ADH_conf.dat")
 
             engine = UniDec(ignore_args=True, silent=True)
-            if not os.path.isfile(engine.config.UniDecPath):
-                self.skipTest(f"Packaged native executable is unavailable: {engine.config.UniDecPath}")
+            _require_native_executable(engine)
             engine.open_file(spectrum.name, directory, silent=True)
             engine.process_data(silent=True)
             self.assertEqual(engine.run_unidec(silent=True), 0)
@@ -426,8 +436,7 @@ class TestBundledNativeWorkflows(unittest.TestCase):
             _copy_reviewed_config(config_dir, "BSA_conf.dat")
 
             engine = UniDec(ignore_args=True, silent=True)
-            if not os.path.isfile(engine.config.UniDecPath):
-                self.skipTest(f"Packaged native executable is unavailable: {engine.config.UniDecPath}")
+            _require_native_executable(engine)
             engine.open_file(spectrum.name, directory, silent=True)
             engine.process_data(silent=True)
 
@@ -466,8 +475,7 @@ class TestBundledNativeWorkflows(unittest.TestCase):
             _copy_reviewed_config(config_dir, "BSA_conf.dat")
 
             engine = UniDec(ignore_args=True, silent=True)
-            if not os.path.isfile(engine.config.UniDecPath):
-                self.skipTest(f"Packaged native executable is unavailable: {engine.config.UniDecPath}")
+            _require_native_executable(engine)
             engine.open_file(spectrum.name, directory, silent=True)
             engine.process_data(silent=True)
 
@@ -481,7 +489,7 @@ class TestBundledNativeWorkflows(unittest.TestCase):
                 )
                 output = result.stdout + result.stderr
                 if "OpenMP is unavailable" in output:
-                    self.skipTest("Packaged native executable does not support OpenMP")
+                    _require_native(False, "Packaged native executable does not support OpenMP")
                 self.assertEqual(result.returncode, 0, output)
                 self.assertIn(f"Number of Threads: {threads}", output)
                 engine.unidec_imports()
@@ -519,8 +527,7 @@ class TestBundledNativeWorkflows(unittest.TestCase):
             _copy_reviewed_config(config_dir, "aqpz_conf.dat")
 
             engine = UniDecIM(ignore_args=True, silent=True)
-            if not os.path.isfile(engine.config.UniDecPath):
-                self.skipTest(f"Packaged native executable is unavailable: {engine.config.UniDecPath}")
+            _require_native_executable(engine)
             engine.open_file(spectrum.name, directory, silent=True)
             engine.process_data(silent=True)
 
@@ -583,8 +590,7 @@ class TestBundledNativeWorkflows(unittest.TestCase):
             _copy_reviewed_config(config_dir, "aqpz_conf.dat")
 
             engine = UniDecIM(ignore_args=True, silent=True)
-            if not os.path.isfile(engine.config.UniDecPath):
-                self.skipTest(f"Packaged native executable is unavailable: {engine.config.UniDecPath}")
+            _require_native_executable(engine)
             engine.open_file(spectrum.name, directory, silent=True)
             engine.process_data(silent=True)
             engine.config.poolflag = 0
