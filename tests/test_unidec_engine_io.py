@@ -109,14 +109,119 @@ class TestUniDecConfigSerialization(unittest.TestCase):
     }
     text_only_values = {
         "CDslope": 0.42,
-        "CDzbins": 2.0,
+        "CDzbins": 2,
         "CDres": 1.5,
         "CDScanStart": 3,
         "CDScanEnd": 30,
+        "CDiitflag": True,
         "HTksmooth": 4.0,
         "HTcycleindex": 17,
         "demultiplexmode": "MRS",
     }
+
+    im_values = {
+        "zout": 1,
+        "pusher": 1.25,
+        "mindt": 0.5,
+        "maxdt": 9.5,
+        "ccsub": 2500.0,
+        "ccslb": 100.0,
+        "dtsig": 2.5,
+        "csig": 1.5,
+        "ccsbins": 2.0,
+        "subbufdt": 1.5,
+        "smoothdt": 2.5,
+        "nativeccsub": 150.0,
+        "nativeccslb": -150.0,
+        "twaveflag": 2,
+        "temp": 30.0,
+        "pressure": 3.0,
+        "volt": 150.0,
+        "gasmass": 28.0,
+        "to": 0.5,
+        "driftlength": 1.2,
+        "tcal1": 2.1,
+        "tcal2": 3.2,
+        "tcal3": 4.3,
+        "tcal4": 5.4,
+        "edc": 0.7,
+    }
+    im_serialized_keys = {
+        "zout", "pusher", "mindt", "maxdt", "ccsub", "ccslb", "dtsig", "csig",
+        "ccsbins", "subbufdt", "smoothdt", "ubnativeccs", "lbnativeccs", "twaveflag",
+        "temp", "pressure", "volt", "gasmass", "tnaught", "driftlength", "tcal1",
+        "tcal2", "tcal3", "tcal4", "edc",
+    }
+    cd_ht_text_values = {
+        "CDslope": 0.42,
+        "CDzbins": 2,
+        "CDres": 1.5,
+        "CDScanStart": 3,
+        "CDScanEnd": 30,
+        "CDiitflag": True,
+        "CDprethresh": 0.2,
+        "HTksmooth": 4.0,
+        "CDScanCompress": 5,
+        "chromatogram_type": 1,
+        "chromatogram_norm": 1,
+        "HTmaxscans": 50,
+        "HToutputlb": 2.2,
+        "HToutputub": 9.9,
+        "HTtimepad": 1.1,
+        "HTanalysistime": 37.0,
+        "HTxaxis": "Scan",
+        "HTcycleindex": 17,
+        "HTcycletime": 3.0,
+        "HTtimeshift": 6.0,
+        "htbit": "101",
+        "FTstart": 1.0,
+        "FTend": 9.0,
+        "FTflatten": True,
+        "FTapodize": 2,
+        "demultiplexmode": "MRS",
+        "FTsmooth": 3.0,
+        "HTmaskn": 99,
+        "HTwin": 7,
+    }
+    cd_ht_text_keys = {
+        "CDslope", "CDzbins", "CDres", "CDScanStart", "CDScanEnd", "CDiitflag",
+        "CDprethresh", "HTksmooth", "CDScanCompress", "chromatogram_type",
+        "chromatogram_norm", "HTmaxscans", "HToutlb", "HToutub", "HTtimepad",
+        "HTanalysistime", "HTxaxis", "HTcycleindex", "HTcylctime", "HTtimeshift",
+        "htbit", "FTstart", "FTend", "FTflatten", "FTapodize", "demultiplexmode",
+        "FTsmooth", "HTmaskn", "HTwin",
+    }
+    hdf5_mode_values = {
+        "metamode": -1,
+        "exwindow": 12.5,
+        "exchoice": 4,
+        "exchoicez": 2,
+        "exthresh": 0.4,
+        "exnorm": 3,
+        "exnormz": 4,
+        "UClineardecon": 0,
+        "UCtype": 1,
+        "unichromzeropad": 3,
+        "calc_unichrom_scores": True,
+        "time_window": 2.5,
+        "chrom_peak_width": 0.8,
+        "chromatogram_type": 1,
+        "chromatogram_norm": 1,
+        "sw_time_window": 3.0,
+        "sw_scan_offset": 5,
+        "time_start": 4.0,
+        "time_end": 14.0,
+        "scan_window": 6.0,
+    }
+    hdf5_mode_keys = {
+        "metamode", "exwindow", "exchoice", "exchoicez", "exthresh", "exnorm", "exnormz",
+        "UClineardecon", "UCtype", "unichromzeropad", "calc_unichrom_scores",
+        "chrom_time_window", "chrom_peak_width", "chromatogram_type",
+        "chromatogram_norm", "sw_time_window", "sw_scan_offset", "time_start",
+        "time_end", "scan_window",
+    }
+    text_only_mode_keys = cd_ht_text_keys - {"chromatogram_type", "chromatogram_norm"}
+    hdf5_only_mode_keys = hdf5_mode_keys - {"chromatogram_type", "chromatogram_norm"}
 
     def test_newblur_rescaling_defaults_on(self):
         self.assertEqual(UniDecConfig().rescale_newblur, 1)
@@ -212,6 +317,66 @@ class TestUniDecConfigSerialization(unittest.TestCase):
             self.assertNotIn("aggressiveflag", hdf5_values)
             self.assertNotIn("separation", hdf5_values)
             self.assertNotIn("zpsfn", hdf5_values)
+
+    def test_mode_specific_text_inventories_round_trip(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-mode-text-") as directory:
+            path = Path(directory, "config.dat")
+            source = UniDecConfig()
+            expected = self.im_values | self.cd_ht_text_values
+            for name, value in expected.items():
+                setattr(source, name, value)
+
+            source.config_export(str(path))
+            keys = {
+                line.split(maxsplit=1)[0]
+                for line in path.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            }
+            self.assertEqual(self.im_serialized_keys | self.cd_ht_text_keys, keys &
+                             (self.im_serialized_keys | self.cd_ht_text_keys))
+            self.assertEqual(keys & self.hdf5_only_mode_keys, set())
+
+            restored = UniDecConfig()
+            restored.config_import(str(path))
+            for name, value in expected.items():
+                self.assertEqual(getattr(restored, name), value, name)
+            for name in ("zout", "CDzbins", "CDScanStart", "CDScanEnd", "CDScanCompress",
+                         "HTmaxscans", "HTcycleindex", "FTapodize", "HTmaskn", "HTwin"):
+                self.assertIsInstance(getattr(restored, name), int, name)
+            for name in ("CDiitflag", "FTflatten"):
+                self.assertIsInstance(getattr(restored, name), bool, name)
+
+    def test_mode_specific_hdf5_inventories_round_trip(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-mode-hdf5-") as directory:
+            path = Path(directory, "config.hdf5")
+            source = UniDecConfig()
+            expected = self.im_values | self.hdf5_mode_values
+            for name, value in expected.items():
+                setattr(source, name, value)
+            source.write_hdf5(str(path))
+
+            expected_keys = self.im_serialized_keys | self.hdf5_mode_keys
+            with h5py.File(path, "a") as hdf:
+                attrs = hdf["config"].attrs
+                self.assertEqual(expected_keys, set(attrs) & expected_keys)
+                self.assertEqual(set(attrs) & self.text_only_mode_keys, set())
+                attrs["nativeccsub"] = 999.0
+                attrs["nativeccslb"] = -999.0
+                attrs["future_mode_setting"] = 123
+
+            restored = UniDecConfig()
+            restored.read_hdf5(str(path))
+            for name, value in expected.items():
+                self.assertEqual(getattr(restored, name), value, name)
+            self.assertFalse(hasattr(restored, "future_mode_setting"))
+
+            with h5py.File(path, "a") as hdf:
+                del hdf["config"].attrs["ubnativeccs"]
+                del hdf["config"].attrs["lbnativeccs"]
+            legacy = UniDecConfig()
+            legacy.read_hdf5(str(path))
+            self.assertEqual(legacy.nativeccsub, 999.0)
+            self.assertEqual(legacy.nativeccslb, -999.0)
 
     def test_managed_output_names_support_short_and_legacy_modes(self):
         with tempfile.TemporaryDirectory(prefix="unidec-names-") as directory:

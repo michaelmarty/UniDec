@@ -1,4 +1,6 @@
+import ctypes
 import os
+import platform
 import shutil
 import subprocess
 import tempfile
@@ -18,6 +20,15 @@ from tests._test_support import copy_unidec_example
 
 
 REVIEWED_CONFIGS = Path(__file__).parent / "fixtures" / "native_regression"
+
+
+def _load_native_library():
+    name = {
+        "Windows": "unideclib.dll",
+        "Darwin": "libunideclib.dylib",
+        "Linux": "libunideclib.so",
+    }[platform.system()]
+    return ctypes.CDLL(str(Path(__file__).resolve().parents[1] / "unidec" / "bin" / name))
 
 
 def _copy_reviewed_config(destination, name):
@@ -61,6 +72,144 @@ def _linear_ccs_reference(mass, charge, drift_time, config):
 
 
 class TestBundledNativeWorkflows(unittest.TestCase):
+    def test_native_regularization_and_suppression_operations(self):
+        """Native regularizers preserve their conservative operation-level contracts."""
+        library = _load_native_library()
+        float_pointer = ctypes.POINTER(ctypes.c_float)
+        int_pointer = ctypes.POINTER(ctypes.c_int)
+        char_pointer = ctypes.POINTER(ctypes.c_char)
+        library.softargmax.argtypes = [float_pointer, ctypes.c_int, ctypes.c_int, ctypes.c_float]
+        library.softargmax.restype = None
+        library.point_smoothing.argtypes = [
+            float_pointer, float_pointer, float_pointer, char_pointer,
+            ctypes.c_int, ctypes.c_int, ctypes.c_int,
+        ]
+        library.point_smoothing.restype = None
+        library.apply_suppressions.argtypes = [
+            float_pointer, float_pointer, ctypes.c_int, ctypes.c_int,
+            ctypes.c_int, ctypes.c_int, int_pointer, ctypes.c_int,
+            ctypes.c_float, ctypes.c_float,
+        ]
+        library.apply_suppressions.restype = None
+
+        def floats(values):
+            return np.ascontiguousarray(values, dtype=np.float32)
+
+        charge_rows = floats([[1, 2, 4], [4, 3, 1]])
+        original_sums = charge_rows.sum(axis=1)
+        original_fractions = charge_rows.max(axis=1) / original_sums
+        library.softargmax(charge_rows.ctypes.data_as(float_pointer), 2, 3, 1.0)
+        np.testing.assert_allclose(charge_rows.sum(axis=1), original_sums, rtol=1e-6, atol=1e-7)
+        self.assertTrue(np.all(charge_rows.max(axis=1) / charge_rows.sum(axis=1) > original_fractions))
+        self.assertTrue(np.isfinite(charge_rows).all())
+        self.assertTrue((charge_rows >= 0).all())
+
+        unsmoothed = floats([[4, 0], [0, 4], [4, 0], [0, 4], [4, 0]])
+        smoothed = unsmoothed.copy()
+        scratch = np.empty_like(smoothed)
+        sums = np.empty(smoothed.shape[1], dtype=np.float32)
+        mask = np.ones(smoothed.shape, dtype=np.int8)
+        library.point_smoothing(
+            smoothed.ctypes.data_as(float_pointer), scratch.ctypes.data_as(float_pointer),
+            sums.ctypes.data_as(float_pointer), mask.ctypes.data_as(char_pointer), 5, 2, 1,
+        )
+        self.assertLess(np.abs(np.diff(smoothed, axis=0)).sum(), np.abs(np.diff(unsmoothed, axis=0)).sum())
+        self.assertTrue(np.isfinite(smoothed).all())
+        self.assertTrue((smoothed >= 0).all())
+
+        ztab = np.arange(2, 9, dtype=np.int32)
+
+        def suppress(values, *, satellite=0, harmonic=0, top_n=0, top_x=0):
+            grid = floats([values])
+            temporary = np.empty_like(grid)
+            library.apply_suppressions(
+                grid.ctypes.data_as(float_pointer), temporary.ctypes.data_as(float_pointer),
+                1, grid.shape[1], satellite, harmonic, ztab.ctypes.data_as(int_pointer),
+                top_n, top_x, 0.0,
+            )
+            return grid[0]
+
+        np.testing.assert_allclose(
+            suppress([5, 5, 2, 1], top_n=1), [5, 5, 0, 0], rtol=1e-6, atol=1e-7
+        )
+        np.testing.assert_allclose(
+            suppress([5, 2, 1.99, 0], top_x=0.4), [5, 2, 0, 0], rtol=1e-6, atol=1e-7
+        )
+        np.testing.assert_allclose(
+            suppress([0, 1, 5, 2, 0, 0, 0], satellite=1), [0, 0, 5, 0, 0, 0, 0],
+            rtol=1e-6, atol=1e-7,
+        )
+        np.testing.assert_allclose(
+            suppress([3, 0, 7, 0, 0, 0, 0], harmonic=1), [0, 0, 7, 0, 0, 0, 0],
+            rtol=1e-6, atol=1e-7,
+        )
+
+    def test_native_regularization_and_suppression_workflow(self):
+        """Enabled regularizers reach the executable without moving the BSA mass assignment."""
+        with tempfile.TemporaryDirectory(prefix="unidec-native-regularization-") as directory:
+            root = Path(directory)
+            spectrum = copy_unidec_example(root, "BSA.txt")
+            config_dir = root / "BSA_unidecfiles"
+            config_dir.mkdir()
+            _copy_reviewed_config(config_dir, "BSA_conf.dat")
+
+            engine = UniDec(ignore_args=True, silent=True)
+            if not os.path.isfile(engine.config.UniDecPath):
+                self.skipTest(f"Packaged native executable is unavailable: {engine.config.UniDecPath}")
+            engine.open_file(spectrum.name, directory, silent=True)
+            engine.process_data(silent=True)
+
+            def run(settings, iterations=100):
+                engine.config.numit = iterations
+                engine.config.beta = 0
+                engine.config.psig = 0
+                engine.config.suppression_topn = 0
+                engine.config.suppression_topx = 0
+                engine.config.suppression_percent = 0
+                engine.config.suppression_startit = 3
+                engine.config.suppression_harmonic = 0
+                engine.config.suppression_satellite = 0
+                for name, value in settings.items():
+                    setattr(engine.config, name, value)
+                self.assertEqual(engine.run_unidec(silent=True), 0)
+                mass_data = engine.data.massdat.copy()
+                mz_grid = engine.data.mzgrid[:, 2].reshape(len(engine.data.data2), -1).copy()
+                self.assertTrue(np.isfinite(mass_data).all())
+                self.assertTrue(np.isfinite(mz_grid).all())
+                self.assertTrue((mass_data[:, 1] >= 0).all())
+                self.assertTrue((mz_grid >= 0).all())
+                return mass_data, mz_grid, mass_data[np.argmax(mass_data[:, 1]), 0]
+
+            control = run({})
+            beta = run({"beta": 50})
+            point_smoothed = run({"psig": 10})
+            for result in (beta, point_smoothed):
+                self.assertAlmostEqual(result[2], control[2], delta=engine.config.massbins)
+                self.assertGreater(np.max(np.abs(result[1] - control[1])), 1e-6)
+            self.assertLess(
+                np.abs(np.diff(point_smoothed[1], axis=0)).sum(),
+                np.abs(np.diff(control[1], axis=0)).sum(),
+            )
+
+            suppressed = run({
+                "suppression_topn": 1,
+                "suppression_topx": 0.4,
+                "suppression_satellite": 1,
+                "suppression_harmonic": 1,
+                "suppression_startit": 0,
+            })
+            self.assertAlmostEqual(suppressed[2], control[2], delta=engine.config.massbins)
+            self.assertGreater(np.max(np.abs(suppressed[1] - control[1])), 1e-6)
+            self.assertAlmostEqual(suppressed[1].sum(), control[1].sum(), delta=0.25 * control[1].sum())
+
+            short_control = run({}, iterations=4)
+            boundary_inactive = run({"suppression_topn": 1, "suppression_startit": 3}, iterations=4)
+            boundary_active = run({"suppression_topn": 1, "suppression_startit": 2}, iterations=4)
+            np.testing.assert_array_equal(boundary_inactive[0], short_control[0])
+            np.testing.assert_array_equal(boundary_inactive[1], short_control[1])
+            self.assertGreater(np.max(np.abs(boundary_active[1] - short_control[1])), 1e-6)
+            self.assertAlmostEqual(boundary_active[2], short_control[2], delta=engine.config.massbins)
+
     def test_aqpz_linear_ccs_formula_and_round_trip(self):
         """The saved aqpz drift-tube calibration defines CCS in square angstroms."""
         config = UniDecConfig()

@@ -853,6 +853,7 @@ class UniDecConfig(object):
             "CDres": (self.CDres, float),
             "CDScanStart": (self.CDScanStart, int),
             "CDScanEnd": (self.CDScanEnd, int),
+            "CDiitflag": (self.CDiitflag, bool),
             "CDprethresh": (self.CDprethresh, float),
             "HTksmooth": (self.HTksmooth, float),
             "CDScanCompress": (self.CDScanCompress, int),
@@ -1308,7 +1309,7 @@ class UniDecConfig(object):
                         if key == "CDslope":
                             self.CDslope = ud.string_to_value(line.split()[1])
                         if key == "CDzbins":
-                            self.CDzbins = ud.string_to_value(line.split()[1])
+                            self.CDzbins = ud.string_to_int(line.split()[1])
                         if key == "CDres":
                             self.CDres = ud.string_to_value(line.split()[1])
                         if key == "CDScanStart":
@@ -1317,6 +1318,8 @@ class UniDecConfig(object):
                             self.CDprethresh = ud.string_to_value(line.split()[1])
                         if key == "CDScanEnd":
                             self.CDScanEnd = ud.string_to_int(line.split()[1])
+                        if key == "CDiitflag":
+                            self.CDiitflag = bool(ud.string_to_int(line.split()[1]))
                         if key == "HTksmooth":
                             self.HTksmooth = ud.string_to_value(line.split()[1])
                         if key == "HTtimeshift":
@@ -1328,13 +1331,13 @@ class UniDecConfig(object):
                         if key == "HTxaxis":
                             self.HTxaxis = line.split()[1]
                         if key == "HTcycleindex":
-                            self.HTcycleindex = ud.string_to_value(line.split()[1])
+                            self.HTcycleindex = ud.string_to_int(line.split()[1])
                         if key == "HTcylctime":
                             self.HTcycletime = ud.string_to_value(line.split()[1])
                         if key == "htbit":
                             self.htbit = str(line.split()[1])
                         if key == "CDScanCompress":
-                            self.CDScanCompress = ud.string_to_value(line.split()[1])
+                            self.CDScanCompress = ud.string_to_int(line.split()[1])
                         if key == "chromatogram_type":
                             self.chromatogram_type = ud.string_to_int(line.split()[1])
                         if key == "chromatogram_norm":
@@ -1352,15 +1355,15 @@ class UniDecConfig(object):
                         if key == "FTend":
                             self.FTend = ud.string_to_value(line.split()[1])
                         if key == "FTflatten":
-                            self.FTflatten = ud.string_to_int(line.split()[1])
+                            self.FTflatten = bool(ud.string_to_int(line.split()[1]))
                         if key == "FTapodize":
                             self.FTapodize = ud.string_to_int(line.split()[1])
                         if key == "FTsmooth":
                             self.FTsmooth = ud.string_to_value(line.split()[1])
                         if key == "HTmaskn":
-                            self.HTmaskn = ud.string_to_value(line.split()[1])
+                            self.HTmaskn = ud.string_to_int(line.split()[1])
                         if key == "HTwin":
-                            self.HTwin = ud.string_to_value(line.split()[1])
+                            self.HTwin = ud.string_to_int(line.split()[1])
                         if key == "zzsig":
                             self.zzsig = ud.string_to_value(line.split()[1])
                         if key == "psig":
@@ -1545,7 +1548,7 @@ class UniDecConfig(object):
                         if key == "pusher":
                             self.pusher = ud.string_to_value(line.split()[1])
                         if key == "zout":
-                            self.zout = ud.string_to_value(line.split()[1])
+                            self.zout = ud.string_to_int(line.split()[1])
                         if key == "nativeccsub" or key == "ubnativeccs":
                             self.nativeccsub = ud.string_to_value(line.split()[1])
                         if key == "nativeccslb" or key == "lbnativeccs":
@@ -1761,8 +1764,10 @@ class UniDecConfig(object):
         self.ccsbins = read_attr(self.ccsbins, "ccsbins", config_group)
         self.subbufdt = read_attr(self.subbufdt, "subbufdt", config_group)
         self.smoothdt = read_attr(self.smoothdt, "smoothdt", config_group)
-        self.nativeccsub = read_attr(self.nativeccsub, "nativeccsub", config_group)
-        self.nativeccslb = read_attr(self.nativeccslb, "nativeccslb", config_group)
+        self.nativeccsub = read_attr(
+            read_attr(self.nativeccsub, "nativeccsub", config_group), "ubnativeccs", config_group)
+        self.nativeccslb = read_attr(
+            read_attr(self.nativeccslb, "nativeccslb", config_group), "lbnativeccs", config_group)
         self.twaveflag = read_attr(self.twaveflag, "twaveflag", config_group)
         self.temp = read_attr(self.temp, "temp", config_group)
         self.pressure = read_attr(self.pressure, "pressure", config_group)
