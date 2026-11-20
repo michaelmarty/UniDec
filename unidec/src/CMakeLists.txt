@@ -52,6 +52,8 @@ add_library(unideclib SHARED udmain.c udmain.h
         UD_dataproc.h
         UD_conv.h
         UD_conv.c
+        UniDecIM.c
+        UniDecIM.h
         udinterface.cpp
         udinterface.hpp
 )

@@ -27,22 +27,23 @@
 
 #include "udtools.h"
 #include "udio.h"
+#include "udmain.h"
 
 void fftconvolve2D(float *corr, const float *list1, const float *list2, const int *size);
 void convolve3D(float *out, const float *in, const float *peakshape, const int *size);
 
 float calcCCS(const float mass, const int z, const float dt, const float ccsconst, const float hmass, const float to, const int type);
-float calcCCSTwaveLog(float mass, int z, float dt, float tcal1, float tcal2, float hmass, float edc);
-float calcCCSTwaveLinear(float mass, int z, float dt, float tcal1, float tcal2, float hmass, float edc);
-float calcCCSTwavePower(float mass, int z, float dt, float tcal1, float tcal2, float hmass, float edc);
-float calcDtTwaveLog(float mass, int z, float ccs, float tcal1, float tcal2, float hmass, float edc);
-float calcDtTwaveLinear(float mass, int z, float ccs, float tcal1, float tcal2, float hmass, float edc);
-float calcDtTwavePower(float mass, int z, float ccs, float tcal1, float tcal2, float hmass, float edc);
+UNIDECLIB_EXPORTS float calcCCSTwaveLog(float mass, int z, float dt, float tcal1, float tcal2, float hmass, float edc);
+UNIDECLIB_EXPORTS float calcCCSTwaveLinear(float mass, int z, float dt, float tcal1, float tcal2, float hmass, float edc);
+UNIDECLIB_EXPORTS float calcCCSTwavePower(float mass, int z, float dt, float tcal1, float tcal2, float hmass, float edc);
+UNIDECLIB_EXPORTS float calcDtTwaveLog(float mass, int z, float ccs, float tcal1, float tcal2, float hmass, float edc);
+UNIDECLIB_EXPORTS float calcDtTwaveLinear(float mass, int z, float ccs, float tcal1, float tcal2, float hmass, float edc);
+UNIDECLIB_EXPORTS float calcDtTwavePower(float mass, int z, float ccs, float tcal1, float tcal2, float hmass, float edc);
 float calcDt(const float mass, const int z, const float ccs, const float ccsconst, const float hmass, const float to, const int type);
-float calcCCSSLIMpoly3(float mass, int z, float dt, float tcal1, float tcal2, float tcal3, float tcal4, float hmass, float edc);
-float calcDtSLIMpoly3(float mass, int z, float ccs, float tcal1, float tcal2, float tcal3, float tcal4, float hmass, float edc);
-float calcCCSSLIMpoly2(float mass, int z, float dt, float tcal1, float tcal2, float tcal3, float hmass, float edc);
-float calcDtSLIMpoly2(float mass, int z, float ccs, float tcal1, float tcal2, float tcal3, float hmass, float edc);
+UNIDECLIB_EXPORTS float calcCCSSLIMpoly3(float mass, int z, float dt, float tcal1, float tcal2, float tcal3, float tcal4, float hmass, float edc);
+UNIDECLIB_EXPORTS float calcDtSLIMpoly3(float mass, int z, float ccs, float tcal1, float tcal2, float tcal3, float tcal4, float hmass, float edc);
+UNIDECLIB_EXPORTS float calcCCSSLIMpoly2(float mass, int z, float dt, float tcal1, float tcal2, float tcal3, float hmass, float edc);
+UNIDECLIB_EXPORTS float calcDtSLIMpoly2(float mass, int z, float ccs, float tcal1, float tcal2, float tcal3, float hmass, float edc);
 
 void blur_it_IM(const int *size, float *blur, float *newblur, const int *closetab, const int *barr, float csig);
 void sumdeltas(const int *size, float *deltas, const float *newblur);

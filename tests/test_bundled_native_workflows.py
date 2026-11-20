@@ -87,7 +87,86 @@ def _linear_ccs_reference(mass, charge, drift_time, config):
     return charge * (drift_time - config.to) * 0.001 * np.sqrt(1 / reduced_mass) * ccs_constant
 
 
+def _twave_ccs_reference(mode, mass, charge, drift_time, tcal1, tcal2, gas_mass, edc):
+    """Independently evaluate the three documented T-wave calibration equations."""
+    corrected_time = drift_time - edc * np.sqrt(mass / charge) / 1000
+    if mode == "log":
+        reduced_ccs = np.exp(tcal1 * np.log(corrected_time) + tcal2)
+    elif mode == "linear":
+        reduced_ccs = tcal1 * corrected_time + tcal2
+    else:
+        reduced_ccs = tcal1 * corrected_time ** tcal2
+    reduced_mass = mass * gas_mass / (mass + gas_mass)
+    return reduced_ccs * charge * np.sqrt(1 / reduced_mass)
+
+
+def _slim_ccs_reference(mass, charge, drift_time, coefficients, edc):
+    """Independently evaluate the documented SLIM constant-first polynomial."""
+    corrected_time = drift_time - edc * np.sqrt(mass / charge) / 1000
+    return charge * sum(value * corrected_time ** power for power, value in enumerate(coefficients))
+
+
 class TestBundledNativeWorkflows(unittest.TestCase):
+    def test_native_twave_and_slim_ccs_calibrations(self):
+        """All native calibration modes match their equations and invert on one physical branch."""
+        library = _load_native_library()
+        float_type = ctypes.c_float
+        common_args = [float_type, ctypes.c_int, float_type, float_type, float_type, float_type, float_type]
+        for name in ("Log", "Linear", "Power"):
+            for prefix in ("calcCCSTwave", "calcDtTwave"):
+                function = getattr(library, prefix + name)
+                function.argtypes = common_args
+                function.restype = float_type
+        for suffix, extra_parameters in (("SLIMpoly2", 1), ("SLIMpoly3", 2)):
+            args = common_args[:5] + [float_type] * extra_parameters + common_args[5:]
+            for prefix in ("calcCCS", "calcDt"):
+                function = getattr(library, prefix + suffix)
+                function.argtypes = args
+                function.restype = float_type
+
+        mass = 50000.0
+        charge = 10
+        gas_mass = 28.0134
+        edc = 1.25
+        drift_times = (5.0, 12.0)
+        twave_modes = (
+            ("log", library.calcCCSTwaveLog, library.calcDtTwaveLog, 0.3293, 6.3597),
+            ("linear", library.calcCCSTwaveLinear, library.calcDtTwaveLinear, 50.0, 1000.0),
+            ("power", library.calcCCSTwavePower, library.calcDtTwavePower, 100.0, 0.5),
+        )
+        for mode, forward, inverse, tcal1, tcal2 in twave_modes:
+            for drift_time in drift_times:
+                with self.subTest(mode=mode, drift_time=drift_time):
+                    expected = _twave_ccs_reference(
+                        mode, mass, charge, drift_time, tcal1, tcal2, gas_mass, edc
+                    )
+                    actual = forward(mass, charge, drift_time, tcal1, tcal2, gas_mass, edc)
+                    np.testing.assert_allclose(actual, expected, rtol=1e-5, atol=0.05)
+                    np.testing.assert_allclose(
+                        inverse(mass, charge, actual, tcal1, tcal2, gas_mass, edc),
+                        drift_time, rtol=1e-5, atol=0.001,
+                    )
+                    self.assertEqual(forward(mass, charge, 0.0, tcal1, tcal2, gas_mass, edc), 0)
+                    self.assertEqual(inverse(mass, charge, 0.0, tcal1, tcal2, gas_mass, edc), 0)
+
+        slim_modes = (
+            ("SLIM poly2", library.calcCCSSLIMpoly2, library.calcDtSLIMpoly2, (100.0, 10.0, 1.0)),
+            ("SLIM poly3", library.calcCCSSLIMpoly3, library.calcDtSLIMpoly3, (100.0, 10.0, 1.0, 0.1)),
+        )
+        for mode, forward, inverse, coefficients in slim_modes:
+            for drift_time in drift_times:
+                with self.subTest(mode=mode, drift_time=drift_time):
+                    expected = _slim_ccs_reference(mass, charge, drift_time, coefficients, edc)
+                    args = (mass, charge, drift_time, *coefficients, gas_mass, edc)
+                    actual = forward(*args)
+                    np.testing.assert_allclose(actual, expected, rtol=1e-5, atol=0.05)
+                    np.testing.assert_allclose(
+                        inverse(mass, charge, actual, *coefficients, gas_mass, edc),
+                        drift_time, rtol=1e-5, atol=0.001,
+                    )
+                    self.assertEqual(forward(mass, charge, 0.0, *coefficients, gas_mass, edc), 0)
+                    self.assertEqual(inverse(mass, charge, 0.0, *coefficients, gas_mass, edc), 0)
+
     def test_native_regularization_and_suppression_operations(self):
         """Native regularizers preserve their conservative operation-level contracts."""
         library = _load_native_library()

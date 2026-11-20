@@ -269,11 +269,11 @@ float calcDtSLIMpoly2(const float mass, const int z, const float ccs, const floa
 
 	float rdt = (-b + d1)/(2*a);
 	//printf("x = %f \n", rdt);
-	if (rdt > 0) { return rdt; }// + (edc * sqrt(mass / z) / 1000);}
+	if (rdt > 0) { return rdt + (edc * sqrtf(mass / (float) z) / 1000.f); }
 
 	rdt = (-b - d1) / (2 * a);
 	//printf("x = %f \n", rdt);
-	if (rdt > 0) { return rdt; }// +(edc * sqrt(mass / z) / 1000); }
+	if (rdt > 0) { return rdt + (edc * sqrtf(mass / (float) z) / 1000.f); }
 
 	return 0;
 }
