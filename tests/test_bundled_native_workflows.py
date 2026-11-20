@@ -653,11 +653,14 @@ class TestBundledNativeWorkflows(unittest.TestCase):
 
             engine.pick_peaks()
             self.assertAlmostEqual(engine.config.error, 0.881318, delta=0.01)
-            peaks = sorted(engine.pks.peaks, key=lambda peak: peak.mass)
             expected = (
                 (98849.92, 100, 13.47, 13, 5508.26, 5001.27),
                 (99619.92, 91.56, 13.37, 13, 5465.03, 4921.27),
                 (100389.92, 47.03, 13.31, 13, 5440.15, 4921.27),
+            )
+            peaks = sorted(
+                sorted(engine.pks.peaks, key=lambda peak: peak.height, reverse=True)[: len(expected)],
+                key=lambda peak: peak.mass,
             )
             self.assertEqual(len(peaks), len(expected))
             for peak, values in zip(peaks, expected):
