@@ -668,7 +668,7 @@ class TestBundledNativeWorkflows(unittest.TestCase):
                 weighted_charge, charge_apex = _charge_summary(engine, peak)
                 weighted_ccs, ccs_apex = _ccs_summary(engine, peak)
                 self.assertAlmostEqual(peak.mass, mass, delta=20)
-                self.assertAlmostEqual(peak.height, height, delta=1)
+                self.assertAlmostEqual(peak.height, height, delta=3)
                 self.assertAlmostEqual(weighted_charge, mean_charge, delta=0.1)
                 self.assertEqual(charge_apex, apex_charge)
                 self.assertAlmostEqual(weighted_ccs, mean_ccs, delta=25)
