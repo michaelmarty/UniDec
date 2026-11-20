@@ -119,6 +119,50 @@ class TestScientificMatching(unittest.TestCase):
         self.assertEqual(peaks.peaks[0].match, 110.0)
         self.assertEqual(peaks.peaks[0].label, "Correct+Ox")
 
+    def test_reviewed_upp_sequence_modification_and_quantitation_contract(self):
+        row = {
+            "Sequence 1": "QAC",
+            "Sequence 2": "MCK",
+            "Sequence 3": "GAS",
+            "Disulfides Oxidized": "Seq1+Seq2",
+            "PyroGlu": True,
+            "Apply Fixed Mods": "Seq1",
+            "Correct": "Seq1+Seq2",
+            "Incorrect": "2*Seq1",
+            "Ignore": "Seq3",
+        }
+        fixed = pd.DataFrame([{"Mass": 57.0513, "Name": "Carbamidomethyl", "Number": 1}])
+        variable = pd.DataFrame({"Mass": [0.0, 15.9994], "Name": ["", "Ox"]})
+
+        candidate_masses, candidate_labels = matchtools.calc_pairs(row, fmoddf=fixed)
+        np.testing.assert_array_equal(candidate_labels, ["Correct", "Incorrect", "Ignore"])
+        np.testing.assert_allclose(candidate_masses, [738.8913, 718.7626, 233.22], atol=0.02, rtol=0)
+
+        peak_masses = [738.8913, 734.7620, 233.22, 900.0]
+        heights = [6.0, 2.0, 4.0, 2.0]
+        integrals = [3.0, 4.0, 5.0, 8.0]
+        height_peaks = make_peaks(peak_masses, heights, integrals)
+        height_result = matchtools.UPP_check_peaks(
+            row.copy(), height_peaks, 0.02, vmoddf=variable, fmoddf=fixed
+        )
+        self.assertEqual([p.label for p in height_peaks.peaks],
+                         ["Correct", "Incorrect+Ox", "Ignore", "Unknown"])
+        self.assertAlmostEqual(height_result["Total Height"], 10.0)
+        self.assertAlmostEqual(height_result["correct %"], 60.0, delta=0.01)
+        self.assertAlmostEqual(height_result["incorrect %"], 20.0, delta=0.01)
+        self.assertAlmostEqual(height_result["unmatched %"], 20.0, delta=0.01)
+        self.assertAlmostEqual(height_result["correct % Matched Only"], 75.0, delta=0.01)
+
+        integral_peaks = make_peaks(peak_masses, heights, integrals)
+        integral_result = matchtools.UPP_check_peaks(
+            row.copy(), integral_peaks, 0.02, vmoddf=variable, fmoddf=fixed, integrate=True
+        )
+        self.assertAlmostEqual(integral_result["Total Height"], 15.0)
+        self.assertAlmostEqual(integral_result["correct %"], 20.0, delta=0.01)
+        self.assertAlmostEqual(integral_result["incorrect %"], 26.6666667, delta=0.01)
+        self.assertAlmostEqual(integral_result["unmatched %"], 53.3333333, delta=0.01)
+        self.assertAlmostEqual(integral_result["correct % Matched Only"], 42.8571429, delta=0.01)
+
 
 class TestBispecificAndDar(unittest.TestCase):
     def test_bispecific_classification_hand_calculation(self):
