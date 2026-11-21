@@ -49,9 +49,10 @@ class UniDecPres(object):
             pass
 
     def start(self):
-        """
-        Launch view and start MainLoop
-        :return:
+        """Show the initialized view and run the presenter's wx event loop.
+
+        Call from the GUI thread after the subclass has assigned ``view``.
+        The call returns when the event loop exits.
         """
         self.wx_app.SetTopWindow(self.view)
         self.wx_app.SetAppName("GUniDec")

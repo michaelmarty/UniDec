@@ -5,7 +5,7 @@ UniDec provides Python and native tools for deconvolving mass and ion-mobility m
 - **Install or run UniDec.** See the [project README](https://github.com/michaelmarty/UniDec#readme) for installation, supported file types, GUI launch commands, and release information.
 - **Use UniDec from Python.** Start with the [Python API map](api/index.md) to choose an engine or session for your data.
 - **Automate UniDec with an agent.** Follow the [UniDec MCP agent interface](guides/agent-interface.md).
-- **Explore the implementation.** Browse the [internal module reference](api/internals/index.md) or the [architecture overview in the README](https://github.com/michaelmarty/UniDec#unidec-architecture).
+- **Explore the implementation.** Start with the [architecture overview](architecture/overview.md) or browse the [internal module reference](api/internals/index.md).
 
 ```{toctree}
 :caption: Guides
@@ -19,6 +19,14 @@ MetaUniDec collections from Python <guides/metaunidec>
 UniChrom time windows from Python <guides/unichrom>
 Scientific analysis from Python <guides/scientific-analysis>
 Import mass-spectrometry data <guides/importing>
+Extend the UniDec GUI <guides/gui-extensions>
+```
+
+```{toctree}
+:caption: Architecture
+:maxdepth: 2
+
+architecture/overview
 ```
 
 ```{toctree}

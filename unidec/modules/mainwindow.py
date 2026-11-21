@@ -248,15 +248,16 @@ class Mainwindow(MainwindowBase):
         self.plotpanel.SetMinSize(wx.Size(-1,-1))
 
     def setup_mode_tabbed_plots(self, plotwindow, figsize):
-        """Hook for mode-specific tabbed plots."""
+        """Construct mode plots parented by the notebook or its pages."""
 
     def add_mode_tabs(self, plotwindow, section):
-        """Hook for ordering mode-specific tabs among shared tabs."""
+        """Insert mode pages at the ``mz``, ``ccs``, or ``mass`` layout slot."""
 
     def setup_mode_scrolled_plots(self, plotwindow, figsize):
-        """Hook for mode-specific plots in the scrolling layout."""
+        """Construct mode plots parented by the scrolling plot window."""
 
     def layout_scrolled_plots(self):
+        """Place all shared and mode plots in the scrolling layout's sizer."""
         self.sizerplot.Add(self.plot1, (0, 0), span=(1, 1), flag=wx.EXPAND)
         self.sizerplot.Add(self.plot2, (0, 1), span=(1, 1), flag=wx.EXPAND)
         self.sizerplot.Add(self.plot3, (1, 0), span=(1, 1), flag=wx.EXPAND)
@@ -265,7 +266,7 @@ class Mainwindow(MainwindowBase):
         self.sizerplot.Add(self.plot6, (2, 1), span=(1, 1), flag=wx.EXPAND)
 
     def extend_mode_plot_metadata(self):
-        """Hook for plots exported only by a specialized mode."""
+        """Append custom plot widgets and export names in matching order."""
 
     # def resize(self, e=None):
     #     # fullsize = self.splitterwindow.GetSize()

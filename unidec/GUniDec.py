@@ -522,9 +522,10 @@ class UniDecApp(UniDecPres):
         pass
 
     def after_unidec_run(self):
-        """
-        Plots to make after running UniDec.
-        :return: None
+        """Refresh the fit and mass plots after successful result import.
+
+        Override in a derived presenter to update additional views.
+        Call the base method to keep the built-in plot and status updates.
         """
         self.view.SetStatusText("UniDec Plot", number=5)
         if self.view.system == "Linux":
@@ -563,6 +564,7 @@ class UniDecApp(UniDecPres):
         pass
 
     def after_pick_peaks(self):
+        """Refresh peak widgets and plots before the presenter scores the peaks."""
         self.view.peakpanel.add_data(self.eng.pks)
         self.makeplot2()
         self.makeplot6()
