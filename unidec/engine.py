@@ -33,7 +33,12 @@ def score_minimum(height, minimum):
 
 
 class UniDec(UniDecEngine):
-    """Engine for conventional one-dimensional mass spectra."""
+    """Engine for conventional one-dimensional mass spectra.
+
+    Pass ``ignore_args=True`` in Python scripts to skip command-line parsing.
+    Open a spectrum before processing. Configuration, arrays, and peak objects
+    are available through ``config``, ``data``, and ``pks``, respectively.
+    """
 
     mode_imflag = 0
 
@@ -172,21 +177,27 @@ class UniDec(UniDecEngine):
 
     def open_file(self, file_name, file_directory=None, time_range=None, refresh=False, load_results=False,
                  isodeceng=None, simple_output=None, *args, **kwargs):
-        """
-        Open text or mzML file. Will create _unidecfiles directory if it does not exist.
+        """Open a spectrum using its format-specific importer.
 
-        If it finds a _conf.dat file in _unidecfiles, it will import the old configuration.
-        Otherwise, it keeps the existing configuration but resets file names.
+        Use a full path or pass a filename and its directory separately.
+        For scan-based files, pass ``time_range`` to select the range to average.
+        This resets data and peaks and uses a sibling ``_unidecfiles`` directory
+        by default. Existing processed data and configuration can be reused
+        unless ``refresh=True``. Pass ``load_results=True`` to import native
+        results and pick peaks from the working files.
 
-        If silent=True is passed in kwargs, prints are suppressed.
-        :param: file_name: Name of file to open.
-        May be in  x y or x y z text format or in mzML format. May be tab or space delimited
-        :param file_directory: Directory in which filename is located.
-        Default is current directory. If None, will get from file_name.
-        :param time_range: Array or tuple of (start, end) times to load from data file. Default is to load all.
-        :param refresh: If True, will refresh the data file even if it already exists.
-        :param load_results: If True, will load the results from the _unidecfiles directory.
-        :return: None
+        Returns
+        -------
+        numpy.ndarray
+            The working spectrum in ``data.data2``, with columns for m/z
+            and intensity. Contains the imported spectrum when no processed
+            spectrum was restored.
+
+        Raises
+        ------
+        ImportError
+            If the imported spectrum is empty. The importer can also raise
+            format-specific errors.
         """
         tstart = time.perf_counter()
         self.pks = peakstructure.Peaks()
@@ -346,12 +357,17 @@ class UniDec(UniDecEngine):
 
 
     def process_data(self, **kwargs):
-        """
-        Process data according to parameters in config.
+        """Prepare the opened spectrum for native deconvolution.
 
-        Checks certain parameters to make sure the limits make sense.
-        Will accept silent=True kwarg to suppress printing.
-        :return: None
+        Exports configuration, writes the processed m/z and intensity array
+        to the native input file, and stores it in ``data.data2``. Sets
+        ``config.procflag`` on success. Pass ``silent=True`` to hide timing.
+
+        Returns
+        -------
+        int or None
+            ``1`` if the configuration check rejects the run, otherwise
+            ``None`` on success.
         """
         tstart = time.perf_counter()
         self.export_config()
@@ -403,16 +419,24 @@ class UniDec(UniDecEngine):
 
 
     def run_unidec(self, silent=False, efficiency=False):
-        """
-        Runs unidec.
+        """Run the native UniDec executable and import its output on success.
 
-        Checks that everything is set to go and then calls the UniDec executable.
+        Process the opened spectrum first to check preprocessing separately.
+        The engine attempts preprocessing if ``config.procflag`` is clear.
+        The run exports configuration and clears previous peak and fit data.
+        Use ``silent=True`` to suppress routine output and ``efficiency=True``
+        to skip importing large outputs such as the fit and charge grids.
 
-        If successful, calls self.unidec_imports()
-        If not, prints the error code.
-        :param silent: If True, it will suppress printing the output from unidec
-        :param efficiency: Passed to self.unidec_imports()
-        :return: out (stdout from external unidec call)
+        Returns
+        -------
+        int
+            Zero on success or a nonzero validation or execution status.
+            Check ``last_run_diagnostic`` for diagnostic text when available.
+
+        Raises
+        ------
+        ValueError
+            If the native process succeeds but the mass output is invalid.
         """
         # Check to make sure everything is in order
         if self.config.procflag == 0:
@@ -538,9 +562,16 @@ class UniDec(UniDecEngine):
                 self.config.avgscore = float(r[2])
 
     def pick_peaks(self, calc_dscore=True):
-        """
-        Detect, Normalize, and Output Peaks
-        :return: None
+        """Find peaks in the deconvolved mass distribution.
+
+        When peaks are found, writes the peak list, replaces ``pks``, and
+        normalizes peak heights and mass-distribution intensities. Attempts
+        to calculate peak quality scores when ``calc_dscore=True``.
+
+        Returns
+        -------
+        numpy.ndarray
+            Detected mass (Da) and height pairs, or an empty array.
         """
         self.export_config()
         # Detect Peaks and Normalize
@@ -960,15 +991,21 @@ class UniDec(UniDecEngine):
             return None
 
     def save_state(self, file_name):
+        """Write the current working directory to a ZIP, replacing an existing archive."""
         ud.zip_folder(file_name, directory=self.config.udir)
 
     def load_state(self, load_path):
-        """
-        Load unidec state from a zip save file.
+        """Restore an engine from a trusted ZIP produced by ``save_state``.
 
-        Note: save_state is located under unidectools (ud.savestate)
-        :param load_path: .zip file to load
-        :return: True is successful, False if failed
+        Extracts working files and writes a reconstructed text spectrum
+        alongside the ZIP. Use an isolated directory because files there can
+        be overwritten. Imports processed data and results when present.
+
+        Returns
+        -------
+        bool
+            True when restored, or False if no raw spectrum is in the archive.
+            Archive and file I/O errors can propagate.
         """
         print("Loading Zip File:", load_path)
         # Set up extensions

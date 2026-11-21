@@ -4,7 +4,7 @@ The following direct call paths are **Tier 1** for Python scripts and notebooks.
 
 | Mode | Import | Start the workflow |
 | --- | --- | --- |
-| Conventional MS | `from unidec.engine import UniDec` | Call `open_file`, `process_data`, `run_unidec`, then `pick_peaks`. |
+| Conventional MS | `from unidec.engine import UniDec` | Follow the [conventional-MS example](../guides/conventional-ms.md) to open, process, deconvolve, and pick peaks. |
 | IM-MS | `from unidec.modules.IMEng import UniDecIM` | Use the same method sequence with the IM-MS engine and a mobility spectrum. |
 | CD-MS | `from unidec.modules.CDEng import UniDecCD` | Open with `open_cdms_file`. Call `run_deconvolution` to process and deconvolve by default, then `pick_peaks`. |
 | MetaUniDec | `from unidec.metaunidec.mudeng import MetaUniDec` | Open the HDF5 project with `open`. Call `process_data`, `run_unidec`, and `pick_peaks` to work on the collection. |

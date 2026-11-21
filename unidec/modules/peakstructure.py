@@ -13,8 +13,11 @@ __author__ = 'Michael.Marty'
 
 
 class Peak:
-    """
-    Class for a single peak. Contains all key parameters for describing and plotting the peak.
+    """A detected peak with measurements and plotting metadata.
+
+    For a conventional mass peak, ``mass`` is in daltons and ``height``
+    uses the configured normalization. ``integral`` and ``dscore`` default
+    to zero until peak integration or scoring populates them.
     """
 
     def __init__(self):

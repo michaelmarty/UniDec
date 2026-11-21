@@ -28,6 +28,13 @@ NO_UNSET_VALUE = _RegistrySentinel()
 
 @dataclass(frozen=True)
 class ParameterSpec:
+    """Metadata for one setting and its applicable acquisition modes.
+
+    Public specs appear in the automation schema. Bounds are inclusive,
+    optional specs accept ``None``, and ``affects`` identifies the stage
+    associated with the setting.
+    """
+
     attribute: str
     dtype: type
     text_key: str | None
@@ -58,28 +65,44 @@ class ParameterSpec:
 CONVENTIONAL_PARAMETER_SPECS = (
     ParameterSpec("minmz", float, "minmz", "minmz", 0, 1e9,
                   affects="processing", units="m/z", optional=True, default="",
-                  text_unset=-1, hdf5_unset=0.0),
+                  text_unset=-1, hdf5_unset=0.0,
+                  description="Lower m/z limit. Unset uses the minimum of the input."),
     ParameterSpec("maxmz", float, "maxmz", "maxmz", 0, 1e9,
                   affects="processing", units="m/z", optional=True, default="",
-                  text_unset=-1, hdf5_unset=1000000.0),
+                  text_unset=-1, hdf5_unset=1000000.0,
+                  description="Upper m/z limit. Unset uses the maximum of the input."),
     ParameterSpec("mzbins", float, "mzbins", "mzbins", 0, 1000,
-                  affects="processing", units="m/z", default=0),
-    ParameterSpec("startz", int, "startz", "startz", 1, 1000, units="charge", default=1),
-    ParameterSpec("endz", int, "endz", "endz", 1, 1000, units="charge", default=50),
-    ParameterSpec("masslb", float, "masslb", "masslb", 0, 1e9, units="Da", default=5000),
-    ParameterSpec("massub", float, "massub", "massub", 0, 1e9, units="Da", default=500000),
-    ParameterSpec("massbins", float, "massbins", "massbins", 1e-12, 1e6, units="Da", default=10),
-    ParameterSpec("numit", int, "numit", "numit", 1, 1000000, default=100),
-    ParameterSpec("mzsig", float, "mzsig", "mzsig", 1e-12, 1e6, units="m/z", default=0.85),
-    ParameterSpec("psig", float, "psig", "psig", 0, 1e6, default=1),
-    ParameterSpec("beta", float, "beta", "beta", 0, 1e6, default=0),
-    ParameterSpec("psfun", int, "psfun", "psfun", choices=(0, 1, 2), default=0),
+                  affects="processing", units="m/z", default=0,
+                  description="m/z bin width. Zero skips resampling onto m/z bins."),
+    ParameterSpec("startz", int, "startz", "startz", 1, 1000, units="charge", default=1,
+                  description="Lowest charge state in the deconvolution range."),
+    ParameterSpec("endz", int, "endz", "endz", 1, 1000, units="charge", default=50,
+                  description="Highest charge state in the deconvolution range."),
+    ParameterSpec("masslb", float, "masslb", "masslb", 0, 1e9, units="Da", default=5000,
+                  description="Lower mass limit for deconvolution."),
+    ParameterSpec("massub", float, "massub", "massub", 0, 1e9, units="Da", default=500000,
+                  description="Upper mass limit for deconvolution."),
+    ParameterSpec("massbins", float, "massbins", "massbins", 1e-12, 1e6, units="Da", default=10,
+                  description="Mass-axis spacing in the deconvolved distribution."),
+    ParameterSpec("numit", int, "numit", "numit", 1, 1000000, default=100,
+                  description="Maximum number of deconvolution iterations."),
+    ParameterSpec("mzsig", float, "mzsig", "mzsig", 1e-12, 1e6, units="m/z", default=0.85,
+                  description="Expected m/z peak width at half maximum."),
+    ParameterSpec("psig", float, "psig", "psig", 0, 1e6, default=1,
+                  description="Width of smoothing across neighboring data points for the same charge state."),
+    ParameterSpec("beta", float, "beta", "beta", 0, 1e6, default=0,
+                  description="Strength of charge-state softmax. Zero disables it."),
+    ParameterSpec("psfun", int, "psfun", "psfun", choices=(0, 1, 2), default=0,
+                  description="Peak shape in the m/z dimension."),
     ParameterSpec("psfunz", int, "zpsfn", "psfunz", choices=(0, 1, 2), default=0,
-                  hdf5_aliases=("zpsfn",)),
+                  hdf5_aliases=("zpsfn",),
+                  description="Peak shape in the charge dimension."),
     ParameterSpec("peakwindow", float, "peakwindow", "peakwindow", 0, 1e9,
-                  affects="peaks", units="Da", default=500),
+                  affects="peaks", units="Da", default=500,
+                  description="Mass neighborhood used to identify local maxima during peak picking."),
     ParameterSpec("peakthresh", float, "peakthresh", "peakthresh", 0, 1,
-                  affects="peaks", default=0.1),
+                  affects="peaks", default=0.1,
+                  description="Minimum intensity relative to the maximum for peak picking."),
     ParameterSpec("imflag", int, "imflag", "imflag", public=False, default=0),
     ParameterSpec("cdmsflag", int, "cdmsflag", "cdmsflag", public=False, default=0),
     ParameterSpec("zzsig", float, "zzsig", "zzsig", public=False, default=1),
@@ -153,56 +176,81 @@ CONVENTIONAL_PARAMETER_SPECS = (
 
 ION_MOBILITY_PARAMETER_SPECS = (
     ParameterSpec("mindt", float, "mindt", "mindt", 0, 1e9,
-                  modes=("imms",), affects="processing", units="ms", optional=True),
+                  modes=("imms",), affects="processing", units="ms", optional=True,
+                  description="Lower drift-time limit for preprocessing."),
     ParameterSpec("maxdt", float, "maxdt", "maxdt", 0, 1e9,
-                  modes=("imms",), affects="processing", units="ms", optional=True),
+                  modes=("imms",), affects="processing", units="ms", optional=True,
+                  description="Upper drift-time limit for preprocessing."),
     ParameterSpec("smoothdt", float, "smoothdt", "smoothdt", 0, 1e6,
-                  modes=("imms",), affects="processing"),
+                  modes=("imms",), affects="processing",
+                  description="Smoothing width along the drift-time axis."),
     ParameterSpec("subbufdt", float, "subbufdt", "subbufdt", 0, 1e6,
-                  modes=("imms",), affects="processing"),
+                  modes=("imms",), affects="processing",
+                  description="Background subtraction window along the drift-time axis."),
     ParameterSpec("dtsig", float, "dtsig", "dtsig", 0, 1e6,
-                  modes=("imms",), units="ms"),
+                  modes=("imms",), units="ms",
+                  description="Drift-time peak width used in IM-MS deconvolution."),
     ParameterSpec("ccslb", float, "ccslb", "ccslb", 0, 1e9,
-                  modes=("imms",), units="CCS"),
+                  modes=("imms",), units="CCS",
+                  description="Lower collision cross section limit."),
     ParameterSpec("ccsub", float, "ccsub", "ccsub", 0, 1e9,
-                  modes=("imms",), units="CCS"),
+                  modes=("imms",), units="CCS",
+                  description="Upper collision cross section limit."),
     ParameterSpec("ccsbins", float, "ccsbins", "ccsbins", 1e-12, 1e9,
-                  modes=("imms",), units="CCS"),
+                  modes=("imms",), units="CCS",
+                  description="Collision cross section bin width."),
 )
 
 
 CDMS_PARAMETER_SPECS = (
     ParameterSpec("CDslope", float, "CDslope", "CDslope", -1e12, 1e12,
-                  modes=("cdms",), affects="processing"),
+                  modes=("cdms",), affects="processing",
+                  description="Calibration slope used to estimate charge from ion intensity."),
     ParameterSpec("CDzbins", int, "CDzbins", "CDzbins", 1, 1000,
-                  modes=("cdms",), affects="processing", units="charge"),
+                  modes=("cdms",), affects="processing", units="charge",
+                  description="Charge binning setting for the CD-MS histogram."),
     ParameterSpec("CDres", float, "CDres", "CDres", 0, 1e6,
-                  modes=("cdms",), affects="processing", units="m/z"),
+                  modes=("cdms",), affects="processing", units="m/z",
+                  description="m/z resolution setting used to filter centroids in CD-MS preprocessing."),
     ParameterSpec("csig", float, "csig", "csig", 0, 1e6,
-                  modes=("cdms",), units="charge"),
+                  modes=("cdms",), units="charge",
+                  description="Charge-domain smoothing width."),
     ParameterSpec("zzsig", float, "zzsig", "zzsig", 0, 1e6,
-                  modes=("cdms",), units="charge"),
+                  modes=("cdms",), units="charge",
+                  description="Charge-state smoothing width."),
     ParameterSpec("subtype", int, "subtype", "subtype", choices=(0, 1),
-                  modes=("cdms",), affects="processing"),
+                  modes=("cdms",), affects="processing",
+                  description="CD-MS background subtraction mode."),
 )
 
 
 UNICHROM_PARAMETER_SPECS = (
     ParameterSpec("chromatogram_type", int, "chromatogram_type", "chromatogram_type",
-                  choices=(0, 1), modes=("unichrom",), affects="windowing"),
+                  choices=(0, 1), modes=("unichrom",), affects="windowing",
+                  description="Chromatogram selection. Use 0 for TIC or 1 for BPC."),
     ParameterSpec("time_window", float, "chrom_time_window", "chrom_time_window", 1e-12, 1e9,
-                  modes=("unichrom",), affects="windowing", units="time"),
+                  modes=("unichrom",), affects="windowing", units="time",
+                  description="Width of regular chromatographic time windows."),
     ParameterSpec("chrom_peak_width", float, "chrom_peak_width", "chrom_peak_width", 1e-12, 1e9,
-                  modes=("unichrom",), affects="windowing", units="time"),
+                  modes=("unichrom",), affects="windowing", units="time",
+                  description="Time window used to average a spectrum around a chromatographic peak."),
     ParameterSpec("scan_window", float, "scan_window", "scan_window", 1e-12, 1e9,
-                  modes=("unichrom",), affects="windowing", units="scan"),
+                  modes=("unichrom",), affects="windowing", units="scan",
+                  description="Number of scans per scan window."),
     ParameterSpec("time_start", float, "time_start", "time_start", 0, 1e12,
-                  modes=("unichrom",), affects="windowing", units="time", optional=True),
+                  modes=("unichrom",), affects="windowing", units="time", optional=True,
+                  description="Lower time bound for chromatogram windowing."),
     ParameterSpec("time_end", float, "time_end", "time_end", 0, 1e12,
-                  modes=("unichrom",), affects="windowing", units="time", optional=True),
+                  modes=("unichrom",), affects="windowing", units="time", optional=True,
+                  description="Upper time bound for chromatogram windowing."),
     ParameterSpec("dtsig", float, "dtsig", "dtsig", 0, 1e6,
-                  modes=("unichrom",), units="time"),
+                  modes=("unichrom",), units="time",
+                  description="Width used for coupled chromatographic deconvolution."),
 )
+
+
+_PARAMETER_SPECS = (CONVENTIONAL_PARAMETER_SPECS + ION_MOBILITY_PARAMETER_SPECS
+                    + CDMS_PARAMETER_SPECS + UNICHROM_PARAMETER_SPECS)
 
 
 def ofile_reader(path):
@@ -231,6 +279,7 @@ def read_attr(thing, string, config_group):
 
 
 class UniDecConfig(object):
+    """Mutable engine settings, file paths, and mode-aware parameter validation."""
     """
     Class containing all options and configurations for UniDec GUI and Program. Contains methods to export and import
     config to text file for running UniDec core binaries and for storing parameters for GUI.
@@ -362,16 +411,14 @@ class UniDecConfig(object):
             mode = "metaunidec"
         else:
             mode = "ms"
-        specs = (CONVENTIONAL_PARAMETER_SPECS + ION_MOBILITY_PARAMETER_SPECS
-                 + CDMS_PARAMETER_SPECS + UNICHROM_PARAMETER_SPECS)
         return {
             spec.attribute: spec
-            for spec in specs
+            for spec in _PARAMETER_SPECS
             if spec.public and mode in spec.modes
         }
 
     def parameter_schema(self):
-        """Return serializable metadata for supported conventional-MS parameters."""
+        """Return serializable metadata by public parameter name for the active mode."""
         return {name: spec.schema() for name, spec in self._parameter_specs().items()}
 
     def parameter_values(self, names=None):
@@ -469,7 +516,11 @@ class UniDecConfig(object):
         return normalized
 
     def update_parameters(self, values):
-        """Atomically validate and apply supported conventional-MS parameters."""
+        """Apply a mapping of public settings and return the normalized values.
+
+        Raises ``ValueError`` without changing the configuration if validation
+        fails. This updates the in-memory configuration only.
+        """
         normalized = self.validate_parameters(values)
         for name, value in normalized.items():
             spec = self._parameter_specs()[name]
@@ -2527,6 +2578,14 @@ class OligomerContainer:
 
 
 class DataContainer:
+    """Mutable arrays from one engine run.
+
+    For conventional MS, ``rawdata`` and ``data2`` hold m/z and intensity
+    pairs before and after processing. ``massdat`` holds mass (Da) and
+    intensity after deconvolution, and ``ztab`` holds integer charge states.
+    Arrays start empty and stages can replace them.
+    """
+
     def __init__(self):
         """
         Initialize DataContainer with empty arrays.

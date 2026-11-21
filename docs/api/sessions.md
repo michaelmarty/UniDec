@@ -8,6 +8,8 @@ Import `UniDecSession` from `unidec.session`. It defaults to conventional MS. Fo
 
 Call `open_spectrum`, inspect or apply settings with `get_parameters` and `set_parameters`, then call `run("all")`. Use `get_results` for peak summaries and `get_plot` to write a managed plot. `save_state` creates a ZIP checkpoint. `load_state` restores a checkpoint from an allowed location.
 
+The [conventional-MS example](../guides/conventional-ms.md) shows the full session lifecycle from opening data through rerunning a restored checkpoint.
+
 ## MetaUniDec
 
 Import `MetaUniDecCollectionSession` from `unidec.meta_session`. Call `open_collection` to copy a source HDF5 project into the workspace, then call `run` and `get_results`. Use `save_checkpoint` and `load_checkpoint` for HDF5 snapshots.

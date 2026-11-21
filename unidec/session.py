@@ -114,7 +114,13 @@ class UniDecCDSessionEngineAdapter(UniDecSessionEngineAdapter):
 
 
 class UniDecSession:
-    """Own one conventional-MS engine and serialize its mutable operations."""
+    """Own one single-spectrum engine and serialize its mutations.
+
+    The default engine handles conventional MS. Pass a working directory
+    for artifacts and existing allowed roots for input files. Relative
+    output paths resolve under the workspace. Mutations return an
+    ``ok`` flag and session state, with a structured error on failure.
+    """
 
     STAGES = ("process", "deconvolve", "pick_peaks", "all")
     MAX_RUN_RECORDS = 100
@@ -170,9 +176,15 @@ class UniDecSession:
         }
 
     def get_state(self):
+        """Return the revision, status, and stage availability for the current spectrum."""
         return self._state()
 
     def get_parameters(self, names=None):
+        """Return selected values and the full mode schema.
+
+        Pass a name or sequence of names to select values. An unknown name
+        raises ``ValueError``.
+        """
         return {
             "session_id": self.session_id,
             "revision": self.revision,
@@ -234,6 +246,7 @@ class UniDecSession:
         return resolved
 
     def open_spectrum(self, path):
+        """Read an allowed spectrum file and allocate a new operation directory."""
         operation_id = self._begin_mutation()
         if operation_id is None:
             return self._failure("busy", "Another session mutation is running", set_error=False)
@@ -258,6 +271,7 @@ class UniDecSession:
             self._lock.release()
 
     def set_parameters(self, values):
+        """Validate a mapping, apply it atomically, and clear all stage freshness."""
         operation_id = self._begin_mutation()
         if operation_id is None:
             return self._failure("busy", "Another session mutation is running", set_error=False)
@@ -273,6 +287,7 @@ class UniDecSession:
             self._lock.release()
 
     def save_state(self, path):
+        """Write a new ZIP checkpoint below the workspace without overwriting."""
         previous_status = self.status
         operation_id = self._begin_mutation()
         if operation_id is None:
@@ -301,6 +316,7 @@ class UniDecSession:
             self._lock.release()
 
     def load_state(self, path):
+        """Copy and restore an allowed ZIP, leaving stages stale until rerun."""
         operation_id = self._begin_mutation()
         if operation_id is None:
             return self._failure("busy", "Another session mutation is running", set_error=False)
@@ -541,6 +557,11 @@ class UniDecSession:
             self._lock.release()
 
     def run(self, stage="all"):
+        """Run one stage or process, deconvolve, and pick peaks in order.
+
+        Individual stages require fresh prerequisites for the current
+        revision. Deconvolution calls the native UniDec executable.
+        """
         if stage not in self.STAGES:
             return self._failure("invalid_stage", f"Unsupported run stage: {stage}", set_error=False)
         operation_id = self._begin_mutation()
@@ -602,6 +623,7 @@ class UniDecSession:
             self._lock.release()
 
     def get_results(self, max_peaks=100):
+        """Return the fit and first ``max_peaks`` peaks after fresh peak picking."""
         if not isinstance(max_peaks, int) or isinstance(max_peaks, bool) or max_peaks < 0:
             return self._failure("invalid_limit", "max_peaks must be a nonnegative integer", set_error=False)
         if not self._require_fresh("pick_peaks"):

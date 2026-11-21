@@ -12,6 +12,7 @@ UniDec provides Python and native tools for deconvolving mass and ion-mobility m
 :maxdepth: 2
 
 Agent interface <guides/agent-interface>
+Conventional MS from Python <guides/conventional-ms>
 ```
 
 ```{toctree}
