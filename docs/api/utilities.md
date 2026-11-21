@@ -12,6 +12,7 @@ The [scientific analysis guide](../guides/scientific-analysis.md) gives runnable
 | Peak fitting | `unidec.modules.fitting.fit_peak` and `unidec.modules.MassFitter.MassFitter` | Fits a single peak or a mixture. Supply initial guesses and inspect fit parameters in their documented order. |
 | Mass matching | `unidec.modules.matchtools`, including `site_match` | Analyze picked peaks against candidate masses. Spreadsheet exporters such as `sitematch_to_excel` write a file. |
 | Mass defects | `unidec.tools.simple_mass_defect` and `unidec.tools.kendrick_analysis` | Computes an individual defect or a map in memory. The engine's `kendrick_continuous` method writes text exports. |
+| Isotope envelopes | `unidec.modules.isotopetools.fast_calc_averagine_isotope_dist` | Uses IsoGen to predict an envelope from a neutral mass in Da. Returns coordinate and intensity columns in memory. Use charge zero for the neutral mass axis or a signed integer charge for m/z. `threshold` is relative to the maximum intensity. |
 | Input readers | `UniDecImporter.get_importer` and the [importer guide](../guides/importing.md) | Selects a reader by extension and path type. The guide covers supported formats, vendor SDKs, array shapes, and scan or time selection. |
 
 Start with the [API map](index.md) if you need an end-to-end workflow. Search the [internal module reference](internals/index.md) for implementation details and additional expert symbols.

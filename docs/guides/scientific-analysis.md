@@ -14,7 +14,9 @@ Import these helpers from `unidec.tools`. Supply a floating-point array with sha
 | `integrate(data, start, end)` | Returns the trapezoidal area and the selected rows with `start <= x < end`. The area has intensity times x-axis units. An empty selection gives zero. A single selected point returns its intensity. |
 | `peakdetect(data, window=..., threshold=..., norm=...)` | With no configuration override or ppm window, use an integer half-window in samples. For `norm=True`, a threshold between zero and one is relative to maximum intensity. For `norm=False`, use an absolute intensity threshold. The cutoff is strict. The result is in input-axis order, with columns for x and original height. No detections produce an empty one-dimensional array. |
 
-```python
+```{code-block} python
+:name: preprocess-spectrum
+
 import numpy as np
 
 from unidec import tools
@@ -41,7 +43,9 @@ For CD-MS, use `unidec.modules.CDEng.UniDecCD.dscore()` after native or Python s
 
 For an extracted chromatographic peak, use `unidec.modules.ChromEng.chromatographic_peak_scores(time, intensity)` directly. Supply equal-length finite vectors with at least three samples and strictly increasing times. The first score is the ratio of the shorter to the longer half width at half maximum. The second penalizes signal rises when moving away from the apex within that region. Both are between zero and one. If either half-height crossing is missing, or the trace is invalid or has no positive peak, the function returns `(0.0, 0.0)`. It neither changes the inputs nor writes files.
 
-```python
+```{code-block} python
+:name: score-chromatographic-peak
+
 import numpy as np
 
 from unidec.modules.ChromEng import chromatographic_peak_scores
@@ -59,7 +63,9 @@ Use `unidec.modules.fitting.fit_peak` for one isolated peak plus a constant back
 
 For multiple peaks with a shared shape code and a baseline already removed, use `unidec.modules.MassFitter.MassFitter`. Supply an `(N, 2)` mass distribution. A two-column guess array contains center and an intensity seed per peak. The `"smallguess"` constructor option seeds each width at 0.5 x units. `perform_fit("sort")` stores and returns the fitted intensities and a center-sorted `(P, 3)` parameter array in **center, FWHM, area** order. Both fitting examples operate in memory.
 
-```python
+```{code-block} python
+:name: fit-peak-models
+
 import numpy as np
 
 from unidec import tools
@@ -92,7 +98,9 @@ Use `unidec.modules.matchtools.site_match` to annotate a `unidec.modules.peakstr
 
 `get_sitematch_list` can build that candidate matrix from a pandas table of option names, masses, and site probabilities. It enumerates combinations, so the candidate count grows with the product of option counts. `sitematch_to_target` filters candidate rows within a strict mass tolerance without mutating peaks. For UniDec Processing Pipeline tables, `calc_pairs` produces candidate masses and labels and `UPP_check_peaks` annotates the peaks and adds quantitation fields to the supplied row. It uses peak heights by default or already-populated integrals with `integrate=True`. These matching calls operate in memory. `sitematch_to_excel` writes a spreadsheet.
 
-```python
+```{code-block} python
+:name: match-candidate-masses
+
 import numpy as np
 
 from unidec.modules.matchtools import site_match
@@ -118,7 +126,9 @@ Use `unidec.tools.kendrick_analysis` for a mass distribution. Provide a finite, 
 
 The return tuple contains the defect projection `(defect, summed normalized intensity)`, the flattened map `(nominal mass, defect, normalized intensity)`, and three aligned grids for nominal mass, defect, and intensity. The grids have one row per distinct nominal repeat count and `nbins` columns. Nominal mass is always repeat count times reference mass. `xaxistype=0` selects fractional **defect** and `xaxistype=1` selects defect in mass units.
 
-```python
+```{code-block} python
+:name: map-mass-defects
+
 import numpy as np
 
 from unidec.tools import kendrick_analysis, simple_mass_defect

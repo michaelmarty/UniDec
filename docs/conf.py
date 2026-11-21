@@ -42,7 +42,6 @@ autodoc_mock_imports = [
     'Scripts',
     'System',
     'ThermoFisher',
-    'UniDecImporter',
     'clr',
     'isodec',
     'isogen',

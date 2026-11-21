@@ -7,7 +7,8 @@ from unidec.modules.plotting.ZoomCommon import *
 class NoZoomSpan(ZoomCommon):
     """
     Expansion of matplotlib embed in wx example by John Bender and Edward
-    Abraham, see https://www.scipy.org/Matplotlib_figure_in_a_wx_panel
+    Abraham. For current wx embedding examples, see
+    https://matplotlib.org/stable/gallery/user_interfaces/embedding_in_wx4_sgskip.html
 
     This version allows the user to zoom in on the figure using either
     a span selector or a box selector. You can also set a persistent span

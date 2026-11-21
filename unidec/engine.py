@@ -1447,6 +1447,13 @@ class UniDec(UniDecEngine):
         pass
 
     def pass_data_in(self, data, n=1, dirname=None, fname=None, **kwargs):
+        """Write an m/z and intensity array to text and open it as a spectrum.
+
+        Pass a finite ``(N, 2)`` array with an ascending m/z axis. Use
+        ``dirname`` and ``fname`` to choose the file location. The method
+        overwrites the input file if it exists and refreshes cached data
+        by default. It updates the m/z bounds from the array.
+        """
         # Specify the directory for the new file
         # If one is not specified, then use the TestSpectra location
         if dirname is None:

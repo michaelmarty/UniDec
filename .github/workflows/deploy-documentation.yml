@@ -29,6 +29,9 @@ jobs:
       - name: Install package and documentation tools
         run: python -m pip install --upgrade -e ".[docs]"
 
+      - name: Check supported APIs and headless examples
+        run: python -m tests.test_documentation
+
       - name: Generate API documentation
         run: python docs/_scripts/generate_api_docs.py
 

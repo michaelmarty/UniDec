@@ -153,6 +153,7 @@ class MetaUniDecCollectionSession:
         }
 
     def get_state(self):
+        """Return the collection summary and current revision's stage availability."""
         return self._state()
 
     def _manifest_workload(self):
@@ -175,6 +176,7 @@ class MetaUniDecCollectionSession:
         )
 
     def get_run_manifest(self, operation_id=None):
+        """Read a retained collection run record, defaulting to the latest run."""
         try:
             manifest = self._run_history.get(operation_id)
         except ValueError as error:
@@ -185,6 +187,7 @@ class MetaUniDecCollectionSession:
         return {"ok": True, "manifest": manifest}
 
     def compare_runs(self, before_operation_id, after_operation_id):
+        """Compare parameters and aggregate peak metrics across retained collection runs."""
         try:
             comparison = self._run_history.compare(before_operation_id, after_operation_id)
         except ValueError as error:
@@ -195,6 +198,7 @@ class MetaUniDecCollectionSession:
         return {"ok": True, **comparison}
 
     def get_parameters(self, names=None):
+        """Read selected parameter values and the full schema for the opened collection."""
         if self._active_project is None:
             return self._failure("no_collection", "Open a collection before reading parameters",
                                  set_error=False)
@@ -261,6 +265,7 @@ class MetaUniDecCollectionSession:
             self._lock.release()
 
     def set_parameters(self, values):
+        """Apply a validated update to the collection and invalidate current results."""
         if not self._lock.acquire(blocking=False):
             return self._failure("busy", "Another session mutation is running", set_error=False)
         self.operation_id += 1
@@ -380,6 +385,7 @@ class MetaUniDecCollectionSession:
         }
 
     def export_regression_fixture(self, operation_id, path):
+        """Write failed collection run metadata to a new JSON file inside the workspace."""
         previous_status = self.status
         previous_error = self.last_error
         if not self._lock.acquire(blocking=False):

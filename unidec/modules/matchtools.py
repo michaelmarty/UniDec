@@ -315,7 +315,7 @@ def calc_bispecific_correct(row, a_code="BsAb (Correct)", b_code="LC1 Mispair (I
                             c_code="LC2 Mispair (Incorrect)"):
     """
     Calculate the correct bispecific pairing from three columns of heights.
-    Ref: http://dx.doi.org/10.1080/19420862.2016.1232217
+    Ref: https://pubmed.ncbi.nlm.nih.gov/27610742/
     :param row: df row with the three columns
     :param a_code: the code for the first column with the correct pairing
     :param b_code: the code for the second column with the incorrect pairing

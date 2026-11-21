@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+import warnings
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -50,6 +51,28 @@ class TestMetaDataSetIO(unittest.TestCase):
             with h5py.File(path, "r") as hdf:
                 self.assertEqual(sorted(hdf["ms_dataset"].keys()), ["0"])
                 self.assertEqual(hdf["ms_dataset"].attrs["num"], 1)
+
+    def test_fresh_spectrum_keeps_zero_mass_placeholder_without_warning(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory, "dataset.hdf5")
+            engine = self._engine()
+            engine.config.datanorm = 1
+            dataset = MetaDataSet(engine)
+            dataset.new_file(str(path))
+            raw = np.array([[100.0, 1.0], [101.0, 2.0]])
+            dataset.add_data(raw, name="fresh", export=False)
+            dataset.add_data(raw, name="deconvolved", export=False)
+            dataset.spectra[1].massdat = np.array([[300.0, 2.0], [310.0, 4.0]])
+            dataset.export_hdf5()
+
+            reopened = MetaDataSet(engine)
+            with warnings.catch_warnings(record=True) as recorded:
+                warnings.simplefilter("always", RuntimeWarning)
+                reopened.import_hdf5(str(path))
+
+            self.assertEqual([str(w.message) for w in recorded if w.category is RuntimeWarning], [])
+            np.testing.assert_array_equal(reopened.spectra[0].massdat, [[0.0, 0.0], [1000.0, 0.0]])
+            np.testing.assert_array_equal(reopened.spectra[1].massdat, [[300.0, 0.5], [310.0, 1.0]])
 
     def test_missing_optional_spectrum_datasets_load_as_empty(self):
         with tempfile.TemporaryDirectory() as directory:

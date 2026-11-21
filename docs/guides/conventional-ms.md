@@ -59,6 +59,19 @@ with TemporaryDirectory() as directory:
 
 Direct configuration updates change the config object in memory. Explicitly reprocess and rerun after changing settings to get results for the new configuration. The direct engine can replace an existing archive when saving. Use a trusted archive in a dedicated directory when restoring. Restoration extracts the working files and writes a reconstructed text spectrum beside the ZIP.
 
+## Open an array from Python
+
+Use `UniDec.pass_data_in` when your input is already an `(N, 2)` NumPy array with finite values, ascending m/z in column zero, and intensity in column one. It writes a text file and then uses the usual file-opening workflow. Supply an explicit directory and filename to control where it writes. An existing file at that path is replaced, and the processed cache is refreshed by default.
+
+```python
+with TemporaryDirectory() as directory:
+    array = np.array([[500.0, 1.0], [501.0, 3.0], [502.0, 2.0]])
+    engine = UniDec(ignore_args=True, silent=True)
+    engine.pass_data_in(array, dirname=directory, fname="array.txt", silent=True)
+    np.testing.assert_array_equal(engine.data.rawdata, array)
+    assert (engine.config.minmz, engine.config.maxmz) == (500.0, 502.0)
+```
+
 ## Run a managed session
 
 A session tracks which stages are available at the current revision. The example runs the three stages together, inspects a bounded peak list, writes a plot, and saves and restores a checkpoint. Use individual stages `process`, `deconvolve`, and `pick_peaks` when you need to inspect intermediate results.

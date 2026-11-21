@@ -99,6 +99,8 @@ def chromatographic_peak_scores(xvalues, intensities):
 
 
 class ChromEngine(MetaUniDec):
+    """Turn chromatogram scan selections into a writable HDF5 spectrum collection."""
+
     """
     UniChrom Engine.
     """
@@ -142,6 +144,11 @@ class ChromEngine(MetaUniDec):
         return 1
 
     def pick_peaks(self, refresh=True):
+        """Load aggregate mass peaks and optionally score their retention traces.
+
+        With ``calc_unichrom_scores`` enabled, store peak score components
+        and UniScore in the project in addition to updating the peak objects.
+        """
         super().pick_peaks(refresh=refresh)
         if not self.config.calc_unichrom_scores:
             return

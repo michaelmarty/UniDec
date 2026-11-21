@@ -430,6 +430,7 @@ class UniDecSession:
         del self._run_records[:-self.MAX_RUN_RECORDS]
 
     def get_run_manifest(self, operation_id=None):
+        """Return a copy of a retained run record, defaulting to the latest run."""
         if operation_id is None:
             record = self._run_records[-1] if self._run_records else None
         elif isinstance(operation_id, int) and not isinstance(operation_id, bool):
@@ -445,6 +446,7 @@ class UniDecSession:
         return {"ok": True, "manifest": deepcopy(record)}
 
     def compare_runs(self, before_operation_id, after_operation_id):
+        """Compare retained runs by settings, fit R-squared, and peak metrics."""
         before_response = self.get_run_manifest(before_operation_id)
         after_response = self.get_run_manifest(after_operation_id)
         if not before_response.get("ok"):
@@ -489,6 +491,7 @@ class UniDecSession:
         }
 
     def export_regression_fixture(self, operation_id, path):
+        """Write metadata for a retained failed run to a new workspace JSON file."""
         previous_status = self.status
         previous_error = self.last_error
         export_operation_id = self._begin_mutation()

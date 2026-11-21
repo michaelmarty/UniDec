@@ -10,6 +10,8 @@ Choose an entry point by acquisition mode and by how much control you need over 
 
 The pages below give the current import paths, requirements, and file effects. For older IM-MS code that imports `UniDec` from `unidec.modules.IMEng`, use `UniDecIM` from that module. For conventional MS, use `UniDec` from `unidec.engine`. The curated names are defined in their respective modules.
 
+When changing a supported signature, parameter contract, array shape, state transition, or side effect, update the curated reference and callable docstring in the same change. From the UniDec package directory, run `python -m tests.test_documentation` before the Sphinx build. The check compares curated references with the maintained Tier 1 inventory, imports the symbols headlessly, and runs selected synthetic examples. A reviewer should check the docstrings against the implementation for units, return values, and file effects.
+
 ```{toctree}
 :maxdepth: 1
 

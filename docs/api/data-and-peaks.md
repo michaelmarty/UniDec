@@ -21,3 +21,23 @@ See the [MetaUniDec guide](../guides/metaunidec.md) for aggregate mass grids and
 - In a full native import, `fitdat` is a one-dimensional floating-point array of fitted intensities aligned with the processed m/z axis in `data2[:, 0]`. `engine.config.error` is the fit R-squared.
 - `pick_peaks()` returns a floating-point array of detected mass and height pairs when peaks are found. It returns an empty array when there are no detections. `Peak.mass` is in daltons, `Peak.height` follows the configured normalization, and `Peak.integral` records the integrated area when calculated separately. `Peak.dscore` holds the peak quality score when calculated.
 - Session `get_results(max_peaks=N)` returns the first `N` peaks in engine order, the total peak count, a truncation flag, and fit R-squared. Use a nonnegative integer. A limit of zero returns summary data with an empty peak list.
+
+To inspect the peak container independently of a deconvolution, populate it with synthetic mass and height pairs.
+
+```{code-block} python
+:name: inspect-peak-container
+
+from unidec.modules.peakstructure import Peaks
+
+peaks = Peaks()
+peaks.add_peaks([[100.0, 4.0], [110.0, 2.0]])
+assert [(peak.mass, peak.height) for peak in peaks.peaks] == [(100.0, 4.0), (110.0, 2.0)]
+```
+
+## Supported Python reference
+
+| Entry point | Supported operations |
+| --- | --- |
+| {any}`DataContainer <unidec.modules.unidecstructure.DataContainer>` | Holds mutable spectrum, grid, and fit arrays. |
+| {any}`Peak <unidec.modules.peakstructure.Peak>` | Holds measurements for a single detected peak. |
+| {any}`Peaks <unidec.modules.peakstructure.Peaks>` | {any}`add_peaks <unidec.modules.peakstructure.Peaks.add_peaks>` |

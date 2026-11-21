@@ -351,7 +351,7 @@ nativez_coefficients = [0.0467, 0.533]  # Coefficients for the native charge pre
 def predict_charge(mass):
     """
     Give predicted native charge state of species of defined mass
-    https://www.pnas.org/content/107/5/2007.long
+    https://ora.ox.ac.uk/objects/uuid%3A80bc4bde-76f2-49e0-bbef-bbb9dfc2e1c0
     :param mass: Mass in Da
     :return: Float, predicted average native charge state
     """

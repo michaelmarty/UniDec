@@ -15,8 +15,32 @@ For conventional MS, `parameter_values()` returns a snapshot of the public value
 
 Conventional MS requires `startz <= endz` and `masslb < massub`. When both m/z limits are set, `minmz < maxmz`. Native execution also checks run-specific settings and input requirements.
 
+This example checks that validation alone leaves the current settings intact, then applies the updates together.
+
+```{code-block} python
+:name: validate-parameters
+
+from unidec.modules.unidecstructure import UniDecConfig
+
+config = UniDecConfig()
+initial = config.parameter_values(("startz", "endz"))
+selection = {"startz": 8, "endz": 24}
+assert config.validate_parameters(selection) == selection
+assert config.parameter_values(("startz", "endz")) == initial
+assert config.update_parameters(selection) == selection
+assert config.parameter_values(("startz", "endz")) == selection
+assert config.numz == 17
+```
+
 ```{toctree}
 :maxdepth: 1
 
 generated/parameters
 ```
+
+## Supported Python reference
+
+| Entry point | Supported operations |
+| --- | --- |
+| {any}`ParameterSpec <unidec.modules.unidecstructure.ParameterSpec>` | Defines parameter metadata for the schema. |
+| {any}`UniDecConfig <unidec.modules.unidecstructure.UniDecConfig>` | {any}`parameter_schema <unidec.modules.unidecstructure.UniDecConfig.parameter_schema>`, {any}`parameter_values <unidec.modules.unidecstructure.UniDecConfig.parameter_values>`, {any}`validate_parameters <unidec.modules.unidecstructure.UniDecConfig.validate_parameters>`, {any}`update_parameters <unidec.modules.unidecstructure.UniDecConfig.update_parameters>` |

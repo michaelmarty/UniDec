@@ -249,7 +249,7 @@ recipe_w = [
         False,
         "This is a special mode for bispecific antibodies. If you specify all of these three columns, "
         "it will calculate the corrected percentages for bispecific antibodies and light chain scrambling. "
-        "Form more details, see https://dx.doi.org/10.1080/19420862.2016.1232217. ",
+        "For more details, see https://pubmed.ncbi.nlm.nih.gov/27610742/. ",
     ],
 ]
 

@@ -490,7 +490,9 @@ class Spectrum:
                 except:
                     pass
                 try:
-                    self.massdat[:, 1] /= np.amax(self.massdat[:, 1])
+                    max_intensity = np.amax(self.massdat[:, 1])
+                    if max_intensity != 0:
+                        self.massdat[:, 1] /= max_intensity
                 except:
                     pass
                 try:

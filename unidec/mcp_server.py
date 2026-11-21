@@ -283,6 +283,12 @@ def build_parser():
 
 
 def main(argv=None):
+    """Start the UniDec MCP STDIO server for the selected acquisition mode.
+
+    ``argv`` accepts command-line arguments without the executable name.
+    The server requires the optional ``agent`` dependencies, input roots,
+    and a working directory.
+    """
     args = build_parser().parse_args(argv)
     with redirect_stdout(sys.stderr):
         if args.mode == "metaunidec":

@@ -39,6 +39,8 @@ def metaunidec_call(config, *args, **kwargs):
 
 
 class MetaUniDec(unidec_enginebase.UniDecEngine):
+    """Process a spectrum collection stored in a writable HDF5 project."""
+
     def __init__(self):
         """
         UniDec Engine
@@ -98,6 +100,10 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         return None
 
     def process_data(self):
+        """Write settings, preprocess project spectra in place, and reload them.
+
+        Clears picked peaks and records the native exit status in ``out``.
+        """
         self.pks.peaks = []
         self.config.write_hdf5()
         self.out = metaunidec_call(self.config, "-proc")
@@ -105,6 +111,11 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         self.update_history()
 
     def run_unidec(self):
+        """Deconvolve the open project with the native executable.
+
+        Validates settings before dispatch. When dispatched, updates
+        ``out`` with the exit status and reloads the project spectra.
+        """
         if not self.check_badness():
             self.pks.peaks = []
             self.config.write_hdf5()
@@ -139,6 +150,11 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         self.data.import_grids_and_peaks(refresh=refresh)
 
     def pick_peaks(self, refresh=True):
+        """Populate aggregate peaks with per-spectrum extracts.
+
+        With ``refresh=True``, request native grid and peak extraction
+        first. Reloads aggregate arrays and writes peak parameter exports.
+        """
         if refresh:
             self.config.write_hdf5()
         s = time.perf_counter()
