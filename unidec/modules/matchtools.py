@@ -128,6 +128,20 @@ def index_to_sname(index, names, sitenames):
 
 
 def site_match(pks, oligomasslist, oligoindexes, onames, sitenames, tolerance=None):
+    """Annotate picked peaks with their nearest site-combination mass.
+
+    Supply a nonempty mass vector and an index matrix with one row per
+    candidate and one column per site. Its entries index the per-site
+    option names in ``onames``. Observed and candidate masses and the
+    tolerance must share units. A peak outside the strict tolerance still
+    records the match mass and signed error, with an empty label.
+
+    Returns
+    -------
+    numpy.ndarray
+        Four rows containing observed masses, match masses, signed errors,
+        and labels. Combining the rows can coerce the numbers to strings.
+    """
     print("Starting Match")
     starttime = time.perf_counter()
     matches = []

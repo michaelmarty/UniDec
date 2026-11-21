@@ -748,15 +748,20 @@ class UniDec(UniDecEngine):
             return None
 
     def kendrick_continuous(self, ref_mass=None, centermode=0, nbins=50, transformmode=0, xaxistype=1):
-        """
-        Runs continuous Kendrick analysis on self.data.massdat
-        :param ref_mass: Kendrick mass. Default is self.config.kendrickmass if it is already set and >0.
-        Otherwise, default is oligomer mass (self.config.molig)
-        :param centermode: Set range for normalization 0=(0,1),1=(-0.5,0.5). Default is 0.
-        :param nbins: Set mass defect axis density. Default is 50 bins.
-        :param transformmode: Set type of transformation. 0=Interpolation. 1=Integration. Default is 0.
-        :param xaxistype: Set x-axis dimensions. 0=Kendrick Mass Number, 1=Mass Number * Kendrick Mass. Default is 1.
-        :return: mass grid, mass defect grid, intensity grid. All with shape (len(self.data.massdat),nbins)
+        """Map mass defects in ``data.massdat`` and write 1D and 2D text exports.
+
+        Uses the configured repeat mass, falling back to the oligomer mass
+        when needed. As in ``tools.kendrick_analysis``, centering uses
+        rounding (``0``) or flooring (``1``), and the transform sums into
+        bins (``0``) or interpolates (``1``). ``xaxistype`` selects fractional
+        defects (``0``) or defects in mass units (``1``).
+
+        Returns
+        -------
+        tuple
+            Nominal mass, defect, and intensity grids with one row per
+            nominal repeat count and ``nbins`` columns. Returns three
+            ``None`` values if no positive repeat mass is available.
         """
         if ref_mass is not None:
             self.config.kendrickmass = ref_mass
@@ -1372,18 +1377,12 @@ class UniDec(UniDecEngine):
         return tscore'''
 
     def dscore(self, xfwhm=2, power=2, uscore_fitdat=True):
-        """
-        Combined score should include:
+        """Update scores for the picked peaks using current deconvolution outputs.
 
-        1) Fit to data -> Uniqueness Score
-        2) Background -> Uniqueness Score
-        3) Unique evidence for each peak -> Uniqueness Score
-        4) Noise -> M Score
-        5) Consistent peak shape -> M Score
-        6) Charge state distribution -> Z_Score
-        7) FWHM -> Penalties for poor FWHM
-
-        :return:
+        Each DScore is the product of mass shape, uniqueness, FWHM, and
+        charge-distribution scores. UniScore weights each DScore by peak
+        height raised to ``power`` and multiplies the weighted mean by fit
+        R-squared. ``xfwhm`` scales the scoring window around a peak.
         """
         if len(self.pks.peaks) > 0:
             self.pks_mscore(xfwhm=xfwhm, power=power)

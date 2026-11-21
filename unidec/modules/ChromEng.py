@@ -18,7 +18,12 @@ def plot_intensity(data, normalize=False):
 
 
 def chromatographic_peak_scores(xvalues, intensities):
-    """Return FWHM symmetry and within-FWHM monotonicity scores."""
+    """Return FWHM symmetry and within-FWHM monotonicity, each in [0, 1].
+
+    Supply equal-length finite vectors with at least three samples and
+    strictly increasing x coordinates. An invalid trace or one without
+    two half-height crossings returns ``(0.0, 0.0)``.
+    """
     xvalues = np.asarray(xvalues, dtype=float)
     intensities = np.asarray(intensities, dtype=float)
     if (xvalues.ndim != 1 or intensities.ndim != 1 or len(xvalues) != len(intensities)

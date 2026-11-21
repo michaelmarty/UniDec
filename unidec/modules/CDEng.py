@@ -400,6 +400,14 @@ class UniDecCD(engine.UniDec):
                                   for obs, fit in zip(self.observed, response)])
 
     def dscore(self, xfwhm=2, power=2, uscore_method=None):
+        """Score picked peaks in place using the observed and fitted histograms.
+
+        Pass UScore method ``1`` for convolution-based scoring, ``2`` for
+        local area agreement, or ``0`` to use a neutral UScore of one. With
+        ``None``, use the engine's current method. Scoring picked peaks
+        requires fit evidence, a positive finite FWHM window multiplier,
+        and a nonnegative finite weight exponent.
+        """
         self.pks.uniscore = 0
         if not self.pks.peaks:
             return

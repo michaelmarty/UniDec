@@ -429,6 +429,11 @@ def get_zvalue(ci=0.99):
 
 
 def integrate(data, start, end):
+    """Return the trapezoidal area and rows with ``start <= x < end``.
+
+    Column zero is the x axis and column one is intensity. The area for
+    an empty range is zero. A single row contributes its intensity.
+    """
     boo1 = data[:, 0] < end
     boo2 = data[:, 0] >= start
     intdat = data[np.all([boo1, boo2], axis=0)]
@@ -795,6 +800,12 @@ def normalize_extracts(grid, norm_method=0):
 
 
 def simple_mass_defect(mass, refmass, centermode=1, normtype=1):
+    """Return the residual from an integer multiple of a positive repeat mass.
+
+    Select flooring with ``centermode=1`` or nearest-integer rounding with
+    ``centermode=0``. The residual is in mass units for ``normtype=1``
+    and fractional otherwise.
+    """
     if refmass == 0:
         print("Error: Reference Mass is 0.")
         return None, None, None, None, None
@@ -810,6 +821,20 @@ def simple_mass_defect(mass, refmass, centermode=1, normtype=1):
 
 
 def kendrick_analysis(massdat, kendrickmass, centermode=1, nbins=50, transformmode=1, xaxistype=1, massrange=None):
+    """Map a mass/intensity distribution onto nominal mass and defect axes.
+
+    Pass an ascending mass axis, a positive repeat mass, and positive
+    signal in the mapped range. Use ``transformmode=0`` to sum intensities
+    into bins or ``1`` to interpolate. The grid is normalized to its maximum.
+    ``xaxistype=0`` gives fractional defects and ``1`` gives mass-unit defects.
+
+    Returns
+    -------
+    tuple of numpy.ndarray
+        The two-column defect projection, the flattened three-column map,
+        and aligned nominal mass, defect, and intensity grids. Each grid
+        has one row per nominal repeat count and ``nbins`` columns.
+    """
     # Calculate Defects for Deconvolved Masses
     if kendrickmass == 0:
         print("Error: Kendrick mass is 0.")

@@ -111,10 +111,15 @@ class MassFitter:
         print("Inital Guess: ", self.initguess)
 
     def perform_fit(self, *args):
-        """
-        Run least squares fitting
-        :param args: Arguments passed to fitting
-        :return: fitdat, fit (fit to data and fit parameters in a P x 3 array of (mid, fwhm, area))
+        """Fit the mixture and store the result on this instance.
+
+        Pass ``"sort"`` to sort parameter rows by center mass.
+
+        Returns
+        -------
+        tuple of numpy.ndarray
+            The fitted intensities on the original mass axis and the
+            ``(P, 3)`` array of peak center, FWHM, and area.
         """
         self.fit = least_squares_minimize(self.massdat, self.initguess, self.psfun, *args)
         self.fitdat = make_mass_list(self.massdat, self.fit, self.psfun, self.finarray, *args)
