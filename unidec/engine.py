@@ -180,7 +180,8 @@ class UniDec(UniDecEngine):
         """Open a spectrum using its format-specific importer.
 
         Use a full path or pass a filename and its directory separately.
-        For scan-based files, pass ``time_range`` to select the range to average.
+        For scan-based files, pass ``time_range=(start, end)`` in retention-time
+        minutes to select the range to average. Selection follows the reader.
         This resets data and peaks and uses a sibling ``_unidecfiles`` directory
         by default. Existing processed data and configuration can be reused
         unless ``refresh=True``. Pass ``load_results=True`` to import native

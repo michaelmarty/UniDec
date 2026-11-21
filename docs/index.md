@@ -18,6 +18,7 @@ Charge detection MS from Python <guides/cd-ms>
 MetaUniDec collections from Python <guides/metaunidec>
 UniChrom time windows from Python <guides/unichrom>
 Scientific analysis from Python <guides/scientific-analysis>
+Import mass-spectrometry data <guides/importing>
 ```
 
 ```{toctree}

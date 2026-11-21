@@ -4,7 +4,7 @@ Use `unidec.modules.CDEng.UniDecCD` for single-ion events. Its default workflow 
 
 ## Inputs and charge calibration
 
-Use a supported event file such as DMT or a text export with one row per ion. For text files, put **m/z and measured intensity** first. The optional remaining columns are scan number, injection-time field, and acquisition time, in that order. The importer fills missing metadata for single-scan files. It interprets metadata by format, so preserve the original units and scaling when exporting. The engine keeps only events with positive intensity. The intensity supplies the charge estimate and needs the calibration appropriate to the input.
+Use a supported event file such as DMT or a whitespace-delimited TXT or DAT export with one row per ion. Put **m/z and measured intensity** first. The optional remaining columns are scan number, inverse injection-time metadata, and acquisition time, in that order. The importer fills missing metadata for single-scan files. It interprets metadata by format, so preserve the original units and scaling when exporting. The engine keeps only events with positive intensity. The intensity supplies the charge estimate and needs the calibration appropriate to the input. See the [importer guide](importing.md) for the supported input formats.
 
 With a positive `CDslope` and `subtype=1`, charge is intensity divided by the slope. The noise-scaled branch (a negative slope or `subtype=0`) divides by the absolute slope times the estimated noise. Configure the m/z and charge ranges and both bin widths before processing. A nonzero `zzsig` requires unit charge bins (`CDzbins=1`). See the [parameter reference](../api/configuration.md) for validated settings.
 

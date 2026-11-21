@@ -2,6 +2,8 @@
 
 These are **Tier 1** automation routes. Select the mode when you construct the engine or start the MCP server. Each workflow uses native UniDec for deconvolution and can run without wxPython. Some input formats require a vendor importer and runtime.
 
+See [importing data](../guides/importing.md) for supported formats, expected array columns, selection rules, and vendor requirements.
+
 | Input and mode | Direct engine | Managed route | Main file effects |
 | --- | --- | --- | --- |
 | Conventional m/z and intensity spectrum (`ms`) | `unidec.engine.UniDec` | `unidec.session.UniDecSession` | The direct engine commonly writes configuration, input, and results in a per-spectrum work directory. The session uses its managed work directory. |
