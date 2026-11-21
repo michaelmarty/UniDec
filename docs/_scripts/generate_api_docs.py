@@ -13,6 +13,8 @@ PACKAGE_DIRECTORY = REPOSITORY_ROOT / "unidec"
 # These are executable training, test, data-generation, or native-library
 # wrappers rather than import-safe public API modules.
 EXCLUDE_PATTERNS = [
+    PACKAGE_DIRECTORY / "__main__.py",
+    PACKAGE_DIRECTORY / "gui_self_test.py",
     PACKAGE_DIRECTORY / "IsoDec" / "*.so",
     PACKAGE_DIRECTORY / "IsoDec" / "train.py",
     PACKAGE_DIRECTORY / "IsoDec" / "isogenwrapper.py",
