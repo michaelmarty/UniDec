@@ -58,6 +58,7 @@ class MetaUniDec(unidec_enginebase.UniDecEngine):
         self.config.rawflag = 2
 
     def open(self, path, speedy=False):
+        """Load configuration and spectra from an HDF5 project for in-place analysis."""
         st = time.perf_counter()
         self.clear()
         if path is None:

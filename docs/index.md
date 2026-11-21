@@ -15,6 +15,8 @@ Agent interface <guides/agent-interface>
 Conventional MS from Python <guides/conventional-ms>
 Ion mobility MS from Python <guides/im-ms>
 Charge detection MS from Python <guides/cd-ms>
+MetaUniDec collections from Python <guides/metaunidec>
+UniChrom time windows from Python <guides/unichrom>
 ```
 
 ```{toctree}

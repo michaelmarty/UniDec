@@ -14,10 +14,14 @@ The [conventional-MS example](../guides/conventional-ms.md) shows the full sessi
 
 Import `MetaUniDecCollectionSession` from `unidec.meta_session`. Call `open_collection` to copy a source HDF5 project into the workspace, then call `run` and `get_results`. Use `save_checkpoint` and `load_checkpoint` for HDF5 snapshots.
 
+The [MetaUniDec workflow](../guides/metaunidec.md) builds a collection, inspects its mass axis and peak extracts, and reruns a restored checkpoint.
+
 (unichrom)=
 ## UniChrom
 
 Import `UniChromSession` from `unidec.unichrom_session`. Call `open_chromatogram` to create the managed HDF5 project from a raw source, then call `create_time_windows`, `run`, and `get_results`.
+
+The [UniChrom workflow](../guides/unichrom.md) imports a small mzML, creates two time windows, and inspects the generated HDF5 project.
 
 ## MCP clients
 

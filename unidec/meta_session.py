@@ -223,6 +223,7 @@ class MetaUniDecCollectionSession:
             self._stage_revision[stage] = None
 
     def open_collection(self, path):
+        """Copy an allowed MetaUniDec HDF5 project into a new operation directory."""
         if not self._lock.acquire(blocking=False):
             return self._failure("busy", "Another session mutation is running", set_error=False)
         self.operation_id += 1
@@ -289,6 +290,7 @@ class MetaUniDecCollectionSession:
             self._lock.release()
 
     def run(self, stage="all"):
+        """Preprocess, deconvolve, and extract aggregate peaks in the managed copy."""
         if stage not in self.STAGES:
             return self._failure("invalid_stage", "MetaUniDec currently supports only stage='all'",
                                  set_error=False)
@@ -364,6 +366,7 @@ class MetaUniDecCollectionSession:
         }
 
     def get_results(self, max_peaks=100):
+        """Return current aggregate mass metadata and up to 100 height-ranked peaks."""
         if not isinstance(max_peaks, int) or isinstance(max_peaks, bool) or max_peaks < 1:
             return self._failure("invalid_limit", "max_peaks must be a positive integer",
                                  set_error=False)
@@ -419,6 +422,7 @@ class MetaUniDecCollectionSession:
             self._lock.release()
 
     def save_checkpoint(self, path):
+        """Write a new HDF5 snapshot of the managed collection below the workspace."""
         if not self._lock.acquire(blocking=False):
             return self._failure("busy", "Another session mutation is running", set_error=False)
         self.operation_id += 1
@@ -454,4 +458,5 @@ class MetaUniDecCollectionSession:
             self._lock.release()
 
     def load_checkpoint(self, path):
+        """Open a checkpoint through the managed-copy workflow and invalidate results."""
         return self.open_collection(path)

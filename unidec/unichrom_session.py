@@ -181,6 +181,7 @@ class UniChromSession:
             self._stage_revision[stage] = None
 
     def open_chromatogram(self, path):
+        """Open an allowed raw source and create an empty managed HDF5 project."""
         if not self._lock.acquire(blocking=False):
             return self._failure("busy", "Another session mutation is running", set_error=False)
         self.operation_id += 1
@@ -217,6 +218,12 @@ class UniChromSession:
             self._lock.release()
 
     def create_time_windows(self, width, start=None, end=None):
+        """Replace project spectra with averaged scans in regular time windows.
+
+        Use the importer's time units and a positive finite width. If set,
+        both bounds must be finite and increasing. They select window start
+        times. Each window requests a full interval of length ``width``.
+        """
         if not self._lock.acquire(blocking=False):
             return self._failure("busy", "Another session mutation is running", set_error=False)
         self.operation_id += 1
@@ -286,6 +293,7 @@ class UniChromSession:
             self._lock.release()
 
     def run(self, stage="all"):
+        """Preprocess current windows, deconvolve, and extract aggregate peaks."""
         if stage != "all":
             return self._failure("invalid_stage", "UniChrom currently supports only stage='all'",
                                  set_error=False)
@@ -360,6 +368,7 @@ class UniChromSession:
         }
 
     def get_results(self, max_peaks=100):
+        """Return current window and mass metadata and up to 100 height-ranked peaks."""
         if not isinstance(max_peaks, int) or isinstance(max_peaks, bool) or max_peaks < 1:
             return self._failure("invalid_limit", "max_peaks must be a positive integer",
                                  set_error=False)

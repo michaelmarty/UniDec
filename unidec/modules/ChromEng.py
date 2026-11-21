@@ -171,6 +171,11 @@ class ChromEngine(MetaUniDec):
         self.data.export_unichrom_scores(np.asarray(score_rows).reshape((-1, 5)), self.pks.uniscore)
 
     def open_chrom(self, path, load_hdf5=True, refresh=False, output_path=None):
+        """Open a chromatogram and initialize its derived HDF5 project.
+
+        For raw sources, use ``output_path`` to place the project in a chosen
+        directory. Otherwise the project path is derived from the source name.
+        """
         if os.path.splitext(path)[1] == ".hdf5":
             self.open_hdf5_file(path)
             return True
