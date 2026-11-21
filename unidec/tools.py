@@ -181,6 +181,16 @@ def string_to_value(s):
         return ""
 
 
+def string_to_optional_float(s):
+    """Convert a numeric string to ``float`` and an automatic/blank value to ``None``."""
+    if s is None or str(s).strip().lower() in ("", "auto", "none"):
+        return None
+    try:
+        return float(s)
+    except (ValueError, TypeError):
+        return None
+
+
 def simp_string_to_value(s):
     """
     Try to convert string to float. Raise False if not possible.

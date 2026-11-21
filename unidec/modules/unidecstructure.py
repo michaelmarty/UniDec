@@ -163,9 +163,9 @@ CONVENTIONAL_PARAMETER_SPECS = (
     ParameterSpec("baselineflag", int, "baselineflag", "baselineflag", public=False, default=1),
     ParameterSpec("orbimode", int, "orbimode", "orbimode", public=False, default=0),
     ParameterSpec("integratelb", float, "integratelb", "integratelb", public=False,
-                  optional=True, default="", text_unset=-1, hdf5_unset=-1.0),
+                  optional=True, default=None, text_unset="auto"),
     ParameterSpec("integrateub", float, "integrateub", "integrateub", public=False,
-                  optional=True, default="", text_unset=-1, hdf5_unset=-1.0),
+                  optional=True, default=None, text_unset="auto"),
     ParameterSpec("filterwidth", int, "filterwidth", "filterwidth", public=False, default=20),
     ParameterSpec("zerolog", float, "zerolog", "zerolog", public=False, default=-12),
     ParameterSpec("doubledec", bool, "doubledec", "doubledec", public=False, default=False),
@@ -382,6 +382,8 @@ class UniDecConfig(object):
 
     def _read_hdf5_scalar_parameters(self, config_group):
         """Read reviewed conventional scalars with canonical-key precedence."""
+        self.integratelb = None
+        self.integrateub = None
         if config_group is None:
             return
         index = self.serialized_parameter_index("hdf5")
@@ -399,6 +401,30 @@ class UniDecConfig(object):
                     value = bool(value)
                 setattr(self, matched_spec.attribute, value)
                 break
+        self.normalize_integration_bounds()
+
+    def normalize_integration_bounds(self):
+        """Normalize legacy automatic integration values to the runtime ``None`` form."""
+        for attribute in ("integratelb", "integrateub"):
+            value = getattr(self, attribute)
+            if value == "" or value is None:
+                setattr(self, attribute, None)
+        if self.integratelb == -1 and self.integrateub == -1:
+            self.integratelb = None
+            self.integrateub = None
+
+    def resolved_integration_bounds(self):
+        """Return effective offsets, or ``None`` when peak height should be used."""
+        self.normalize_integration_bounds()
+        if self.integratelb == 0 and self.integrateub == 0:
+            return None
+        lb = -float(self.peakwindow) if self.integratelb is None else float(self.integratelb)
+        ub = float(self.peakwindow) if self.integrateub is None else float(self.integrateub)
+        if not np.isfinite(lb) or not np.isfinite(ub):
+            raise ValueError("Integration bounds must be finite")
+        if lb >= ub:
+            raise ValueError("Integration lower bound must be less than upper bound")
+        return lb, ub
 
     def _parameter_specs(self):
         if getattr(self, "agent_mode", None) == "unichrom":
@@ -734,8 +760,8 @@ class UniDecConfig(object):
         self.nativezub = 1000
         self.nativezlb = -1000
         self.inflate = 1
-        self.integratelb = ""
-        self.integrateub = ""
+        self.integratelb = None
+        self.integrateub = None
         self.filterwidth = 20
         self.zerolog = -12
 
@@ -1136,8 +1162,8 @@ class UniDecConfig(object):
         self.nativezlb = -1000
         self.inflate = 1
         self.linflag = 2
-        self.integratelb = ""
-        self.integrateub = ""
+        self.integratelb = None
+        self.integrateub = None
         self.filterwidth = 20
         self.zerolog = -12
 
@@ -1226,9 +1252,9 @@ class UniDecConfig(object):
                 if dtype == float:
                     try:
                         value = float(value)
-                    except ValueError:
-                        if value == '':
-                            value = -1
+                    except (TypeError, ValueError):
+                        if value in ('', None):
+                            value = "auto" if key in ("integratelb", "integrateub") else -1
                         else:
                             raise ValueError(f"Value for {key} is not a valid float: {value}")
                 elif dtype == bool:
@@ -1533,9 +1559,9 @@ class UniDecConfig(object):
                         if key == "isotopemode":
                             self.isotopemode = ud.string_to_int(line.split()[1])
                         if key == "integratelb":
-                            self.integratelb = ud.string_to_value(line.split()[1])
+                            self.integratelb = ud.string_to_optional_float(line.split()[1])
                         if key == "integrateub":
-                            self.integrateub = ud.string_to_value(line.split()[1])
+                            self.integrateub = ud.string_to_optional_float(line.split()[1])
                         if key == "filterwidth":
                             self.filterwidth = ud.string_to_int(line.split()[1])
                         if key == "zerolog":
@@ -1609,6 +1635,8 @@ class UniDecConfig(object):
 
             f.close()
 
+            self.normalize_integration_bounds()
+
             self.idconfig.config_import(name)
 
             if loaded_endz or not loaded_numz:
@@ -1678,14 +1706,9 @@ class UniDecConfig(object):
 
         tcal3 = 0.0 if self.tcal3 == "" else self.tcal3
         tcal4 = 0.0 if self.tcal4 == "" else self.tcal4
-        try:
-            integratelb = float(self.integratelb)
-        except (TypeError, ValueError):
-            integratelb = -1.0
-        try:
-            integrateub = float(self.integrateub)
-        except (TypeError, ValueError):
-            integrateub = -1.0
+        self.normalize_integration_bounds()
+        integratelb = self.integratelb
+        integrateub = self.integrateub
 
         cdict = {  # "input": self.infname, "output": self.outfname,
             "numit": self.numit, "version": self.version,
@@ -1751,6 +1774,10 @@ class UniDecConfig(object):
 
         for key, value, _ in self.iter_serialized_parameters("hdf5"):
             config_group.attrs[key] = value
+
+        for key in ("integratelb", "integrateub"):
+            if getattr(self, key) is None and key in config_group.attrs:
+                del config_group.attrs[key]
 
         for key, value in cdict.items():
             if key not in scalar_keys and value is not None:
@@ -2047,6 +2074,12 @@ class UniDecConfig(object):
             badest = 1
             warning = "ERROR: PATH LENGTH TOO LONG: Windows sets a 260 character path length." \
                       "\nPlease shorten your file and folder path lengths."
+
+        try:
+            self.resolved_integration_bounds()
+        except (TypeError, ValueError):
+            badest = 1
+            warning = "Integration lower bound must be less than upper bound and both must be finite."
 
         return badest, warning
 

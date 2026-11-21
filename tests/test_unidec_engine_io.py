@@ -262,8 +262,8 @@ class TestUniDecConfigSerialization(unittest.TestCase):
                 setattr(source, name, value)
             source.minmz = ""
             source.maxmz = ""
-            source.integratelb = ""
-            source.integrateub = ""
+            source.integratelb = None
+            source.integrateub = None
 
             before = {
                 spec.attribute: getattr(source, spec.attribute)
@@ -282,7 +282,7 @@ class TestUniDecConfigSerialization(unittest.TestCase):
                 "centroided", "verbose",
             }
             expected_hdf5_keys = self.conventional_hdf5_scalar_keys - {
-                "version", "original_file",
+                "version", "original_file", "integratelb", "integrateub",
             }
             self.assertEqual(set(text_values), expected_text_keys)
             self.assertEqual(set(hdf5_values), expected_hdf5_keys)
@@ -758,8 +758,8 @@ class TestUniDecConfigSerialization(unittest.TestCase):
             source.maxmz = ""
             source.tcal3 = ""
             source.tcal4 = ""
-            source.integratelb = ""
-            source.integrateub = ""
+            source.integratelb = None
+            source.integrateub = None
             source.massbins = 10
             source.peakwindow = 500
             source.write_hdf5(str(path))
@@ -768,18 +768,72 @@ class TestUniDecConfigSerialization(unittest.TestCase):
             self.assertEqual(source.maxmz, "")
             self.assertEqual(source.tcal3, "")
             self.assertEqual(source.tcal4, "")
-            self.assertEqual(source.integratelb, "")
-            self.assertEqual(source.integrateub, "")
+            self.assertIsNone(source.integratelb)
+            self.assertIsNone(source.integrateub)
             with h5py.File(path, "r") as hdf:
                 attrs = hdf["config"].attrs
                 self.assertEqual(attrs["minmz"], 0.0)
                 self.assertEqual(attrs["maxmz"], 1000000.0)
                 self.assertEqual(attrs["tcal3"], 0.0)
                 self.assertEqual(attrs["tcal4"], 0.0)
-                self.assertEqual(attrs["integratelb"], -1.0)
-                self.assertEqual(attrs["integrateub"], -1.0)
+                self.assertNotIn("integratelb", attrs)
+                self.assertNotIn("integrateub", attrs)
                 self.assertTrue(np.issubdtype(type(attrs["massbins"]), np.floating))
                 self.assertTrue(np.issubdtype(type(attrs["peakwindow"]), np.floating))
+
+    def test_automatic_integration_bounds_round_trip_and_accept_legacy_pair(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-integration-bounds-") as directory:
+            root = Path(directory)
+            text_path = root / "config.dat"
+            source = UniDecConfig()
+            source.integratelb = None
+            source.integrateub = None
+            source.config_export(str(text_path))
+
+            text = text_path.read_text(encoding="utf-8")
+            self.assertIn("integratelb auto\n", text)
+            self.assertIn("integrateub auto\n", text)
+            restored = UniDecConfig()
+            restored.integratelb = 10.0
+            restored.integrateub = 20.0
+            restored.config_import(str(text_path))
+            self.assertIsNone(restored.integratelb)
+            self.assertIsNone(restored.integrateub)
+
+            legacy_path = root / "legacy.dat"
+            legacy_path.write_text(
+                text.replace("integratelb auto", "integratelb -1")
+                .replace("integrateub auto", "integrateub -1"),
+                encoding="utf-8",
+            )
+            restored.config_import(str(legacy_path))
+            self.assertIsNone(restored.integratelb)
+            self.assertIsNone(restored.integrateub)
+
+    def test_hdf5_automatic_bounds_remove_stale_values_and_accept_legacy_pair(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-integration-hdf5-") as directory:
+            path = Path(directory, "config.hdf5")
+            source = UniDecConfig()
+            source.integratelb = -2.0
+            source.integrateub = 3.0
+            source.write_hdf5(str(path))
+            source.integratelb = None
+            source.integrateub = None
+            source.write_hdf5(str(path))
+
+            with h5py.File(path, "r+") as hdf:
+                attrs = hdf["config"].attrs
+                self.assertNotIn("integratelb", attrs)
+                self.assertNotIn("integrateub", attrs)
+                attrs["integratelb"] = -1.0
+                attrs["integrateub"] = -1.0
+
+            restored = UniDecConfig()
+            restored.integratelb = 10.0
+            restored.integrateub = 20.0
+            restored.read_hdf5(str(path))
+            self.assertIsNone(restored.integratelb)
+            self.assertIsNone(restored.integrateub)
 
     def test_check_badness_repairs_malformed_limits_and_rejects_reversed_range(self):
         config = UniDecConfig()
@@ -795,6 +849,19 @@ class TestUniDecConfigSerialization(unittest.TestCase):
         badness, warning = config.check_badness()
         self.assertEqual(badness, 1)
         self.assertIn("Max m/z", warning)
+
+        config.minmz = 100
+        config.maxmz = 200
+        config.integratelb = 2.0
+        config.integrateub = 1.0
+        badness, warning = config.check_badness()
+        self.assertEqual(badness, 1)
+        self.assertIn("Integration lower bound", warning)
+
+        config.integratelb = 0.0
+        config.integrateub = 0.0
+        badness, warning = config.check_badness()
+        self.assertEqual((badness, warning), (0, ""))
 
 
 if __name__ == "__main__":

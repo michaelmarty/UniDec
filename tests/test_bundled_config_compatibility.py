@@ -85,6 +85,17 @@ class TestBundledConfigCompatibility(unittest.TestCase):
             for name, value in defaults.items():
                 self.assertEqual(getattr(config, name), value)
 
+    def test_bsa_legacy_minus_one_pair_uses_automatic_peak_window(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-bsa-integration-") as directory:
+            path = copy_unidec_example(directory, "BSA_unidecfiles", "BSA_conf.dat")
+            config = UniDecConfig()
+
+            config.config_import(str(path))
+
+            self.assertIsNone(config.integratelb)
+            self.assertIsNone(config.integrateub)
+            self.assertEqual(config.resolved_integration_bounds(), (-500.0, 500.0))
+
     def test_import_then_export_rebases_files_and_round_trips_values(self):
         with tempfile.TemporaryDirectory(prefix="unidec-config-roundtrip-") as directory:
             root = Path(directory)

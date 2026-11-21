@@ -903,14 +903,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
                     self.ctlgasmass.SetValue(str(self.config.gasmass))
                     self.ctltwavecaltype.SetSelection(list(self.config.twavedict.keys()).index(self.config.twaveflag))
 
-            try:
-                x = float(self.config.integratelb)
-                y = float(self.config.integrateub)
-                self.ctlintlb.SetValue(str(x))
-                self.ctlintub.SetValue(str(y))
-            except (ValueError, TypeError):
-                self.ctlintlb.SetValue("")
-                self.ctlintub.SetValue("")
+            self.ctlintlb.SetValue(
+                "" if self.config.integratelb is None else str(float(self.config.integratelb)))
+            self.ctlintub.SetValue(
+                "" if self.config.integrateub is None else str(float(self.config.integrateub)))
             if self.config.imflag == 0:
                 try:
                     if self.config.aggressiveflag == 1:
@@ -985,8 +981,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.config.numit = ud.string_to_int(self.ctlnumit.GetValue())
         self.config.nativezlb = ud.string_to_value(self.ctlminnativez.GetValue())
         self.config.nativezub = ud.string_to_value(self.ctlmaxnativez.GetValue())
-        self.config.integratelb = ud.string_to_value(self.ctlintlb.GetValue())
-        self.config.integrateub = ud.string_to_value(self.ctlintub.GetValue())
+        self.config.integratelb = ud.string_to_optional_float(self.ctlintlb.GetValue())
+        self.config.integrateub = ud.string_to_optional_float(self.ctlintub.GetValue())
         if self.config.imflag == 0:
             self.config.doubledec = self.doubledecflag.GetValue()  # DoubleDec config export
             self.config.reductionpercent = ud.string_to_value(self.ctldatareductionpercent.GetValue())
@@ -1180,10 +1176,12 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.ctlpeakcm.SetToolTip(wx.ToolTip("Set the color function for the peaks"))
         self.ctlintlb.SetToolTip(wx.ToolTip(
             "Controls range for integration.\nDefault is +/- Peak Detection Window."
-            "\nUses these boxes to manually set - and +"))
+            "\nSet both bounds to 0 to use peak height."
+            "\nUse these boxes to manually set - and +"))
         self.ctlintub.SetToolTip(wx.ToolTip(
             "Controls range for integration.\nDefault is +/- Peak Detection Window."
-            "\nUses these boxes to manually set - and +"))
+            "\nSet both bounds to 0 to use peak height."
+            "\nUse these boxes to manually set - and +"))
         self.ctlnorm.SetToolTip(wx.ToolTip(
             "Sets normalization of mass data.\nMaximum will normalize so that the maximum value is %100."
             "\nTotal will normalize so that the sum of all peaks is %100"))

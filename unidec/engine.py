@@ -807,8 +807,7 @@ class UniDec(UniDecEngine):
         """
         Perform automatic integration of peaks.
 
-        If self.config.integrateup is empty, the upperbound becomes self.config.peakwindow.
-        If self.config.integratelb is empty, the lowerbound becomes -self.config.peakwindow.
+        Automatic bounds use +/- self.config.peakwindow. A configured 0/0 range uses peak height.
 
         Integral range for each peak is set to peak.integralrange.
         Integral value is set to peak.integral.
@@ -819,16 +818,18 @@ class UniDec(UniDecEngine):
         :return: zarea: P x Z array where P is the number of peaks and Z is the number of charge states.
         Each value of the array is the integral of peak P at charge state Z.
         """
-        if self.config.integrateub == "":
-            ub = self.config.peakwindow
-        else:
-            ub = self.config.integrateub
-        if self.config.integratelb == "":
-            lb = -self.config.peakwindow
-        else:
-            lb = self.config.integratelb
+        bounds = self.config.resolved_integration_bounds()
         zarea = []
         for p in self.pks.peaks:
+            if bounds is None:
+                p.integralrange = []
+                p.integral = p.height
+                if ztab is None:
+                    zarea.append([])
+                else:
+                    zarea.append(np.asarray(p.mztab)[:, 1].tolist())
+                continue
+            lb, ub = bounds
             p.integralrange = [p.mass + lb, p.mass + ub]
             p.integral = self.integrate(p.integralrange)[0]
             zlist = []
@@ -851,6 +852,9 @@ class UniDec(UniDecEngine):
         :return: None
         """
         if self.pks.plen > 0:
+            # Validate the configured integration contract before export fallbacks
+            # can substitute heights for unrelated data/shape failures.
+            self.config.resolved_integration_bounds()
             # Export Peaks Height by Charge Grid
             mztab = np.array([p.mztab for p in self.pks.peaks])
             ud.dataexport(mztab[:, :, 1], self.config.output_file("chargedata.dat"))

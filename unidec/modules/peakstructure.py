@@ -336,6 +336,13 @@ class Peaks:
                 else:
                     print("ERROR IN INTEGRATION. Need to calc FWHM first.")
                     ub = 0
+            if lb == 0 and ub == 0:
+                p.integralrange = []
+                p.integral = p.height
+                self.areas.append(p.integral)
+                continue
+            if lb >= ub:
+                raise ValueError("Integration lower bound must be less than upper bound")
             p.integralrange = [p.mass + lb, p.mass + ub]
             p.integral = ud.integrate(data, p.integralrange[0], p.integralrange[1])[0]
             self.areas.append(p.integral)

@@ -485,14 +485,14 @@ def set_param_from_row(eng, row, dirname=""):
                 eng.config.integratelb = float(val)
             except Exception as e:
                 print("Error setting integral lower", k, val, e)
-                eng.config.integratelb = ""
+                eng.config.integratelb = None
 
         if "Config Integral Upper" in k:
             try:
                 eng.config.integrateub = float(val)
             except Exception as e:
                 print("Error setting integral upper", k, val, e)
-                eng.config.integrateub = ""
+                eng.config.integrateub = None
 
         if "Config Data Norm" in k:
             try:

@@ -1135,14 +1135,10 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
             if self.chrom_mode:
                 self.ctldtsig.SetValue(str(self.config.dtsig))
 
-            try:
-                x = float(self.config.integratelb)
-                y = float(self.config.integrateub)
-                self.ctlintlb.SetValue(str(x))
-                self.ctlintub.SetValue(str(y))
-            except (ValueError, TypeError):
-                self.ctlintlb.SetValue("")
-                self.ctlintub.SetValue("")
+            self.ctlintlb.SetValue(
+                "" if self.config.integratelb is None else str(float(self.config.integratelb)))
+            self.ctlintub.SetValue(
+                "" if self.config.integrateub is None else str(float(self.config.integrateub)))
 
             if self.config.msig > 0:
                 self.parent.SetStatusText(
@@ -1263,8 +1259,8 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
 
         self.config.numit = ud.string_to_int(self.ctlnumit.GetValue())
 
-        self.config.integratelb = ud.string_to_value(self.ctlintlb.GetValue())
-        self.config.integrateub = ud.string_to_value(self.ctlintub.GetValue())
+        self.config.integratelb = ud.string_to_optional_float(self.ctlintlb.GetValue())
+        self.config.integrateub = ud.string_to_optional_float(self.ctlintub.GetValue())
         self.config.reductionpercent = ud.string_to_value(self.ctldatareductionpercent.GetValue())
 
         self.config.smashflag = int(self.ctlsmashflag.GetValue())
@@ -1427,10 +1423,12 @@ class main_controls(wx.Panel):  # scrolled.ScrolledPanel):
         self.ctlpeakcm.SetToolTip(wx.ToolTip("Set the color function for the peaks"))
         self.ctlintlb.SetToolTip(wx.ToolTip(
             "Controls range for integration.\nDefault is +/- Peak Detection Window."
-            "\nUses these boxes to manually set - and +"))
+            "\nSet both bounds to 0 to use peak height."
+            "\nUse these boxes to manually set - and +"))
         self.ctlintub.SetToolTip(wx.ToolTip(
             "Controls range for integration.\nDefault is +/- Peak Detection Window."
-            "\nUses these boxes to manually set - and +"))
+            "\nSet both bounds to 0 to use peak height."
+            "\nUse these boxes to manually set - and +"))
         self.ctlnorm.SetToolTip(wx.ToolTip(
             "Sets normalization of mass data.\nMaximum will normalize so that the maximum value is %100."
             "\nTotal will normalize so that the sum of all peaks is %100"))

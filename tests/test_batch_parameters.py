@@ -73,8 +73,8 @@ class TestBatchParameters(unittest.TestCase):
             engine,
             {"Config Integral Lower": "bad", "Config Integral Upper": "bad"},
         )
-        self.assertEqual(engine.config.integratelb, "")
-        self.assertEqual(engine.config.integrateub, "")
+        self.assertIsNone(engine.config.integratelb)
+        self.assertIsNone(engine.config.integrateub)
 
     def test_kernel_and_smash_files_resolve_relative_to_batch_directory(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -286,6 +286,7 @@ class UniDecEngine:
 
     def oxidation_analysis(self, e=None):
         data = self.data.massdat
+        bounds = self.config.resolved_integration_bounds()
 
         pdata = []
         for p in self.pks.peaks:
@@ -298,9 +299,13 @@ class UniDecEngine:
         oxmasses = maxmass + nox * 16
         areas = []
         for i, m in enumerate(oxmasses):
-            low = m + self.config.integratelb
-            high = m + self.config.integrateub
-            area, intdat = ud.integrate(data, low, high)  # Peak Area
+            if bounds is None:
+                low = high = m
+                area = ud.data_extract(data, m, extract_method=0)
+            else:
+                low = m + bounds[0]
+                high = m + bounds[1]
+                area, intdat = ud.integrate(data, low, high)  # Peak Area
             # area = ud.data_extract(data, (high+low)/2., window=(high-low)/2., extract_method=1) # Peak Height
             areas.append(area)
             print("Peak:", m, "Number of Oxidations:", nox[i], "Range:", low, "to", high, "Local Max:", area)
