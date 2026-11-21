@@ -220,7 +220,7 @@ CDMS_PARAMETER_SPECS = (
                   description="Charge-state smoothing width."),
     ParameterSpec("subtype", int, "subtype", "subtype", choices=(0, 1),
                   modes=("cdms",), affects="processing",
-                  description="CD-MS background subtraction mode."),
+                  description="CD-MS calibration branch. Use 0 for noise-scaled calibration or 1 for direct calibration with a positive slope."),
 )
 
 

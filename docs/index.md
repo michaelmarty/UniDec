@@ -13,6 +13,8 @@ UniDec provides Python and native tools for deconvolving mass and ion-mobility m
 
 Agent interface <guides/agent-interface>
 Conventional MS from Python <guides/conventional-ms>
+Ion mobility MS from Python <guides/im-ms>
+Charge detection MS from Python <guides/cd-ms>
 ```
 
 ```{toctree}

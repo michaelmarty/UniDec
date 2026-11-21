@@ -24,7 +24,12 @@ import unidec.tools as ud
 
 
 class UniDecIM(UniDecMS):
-    """UniDec engine specialized for two-dimensional IM-MS data."""
+    """UniDec engine for m/z, arrival time (ms), and intensity triplets.
+
+    Opening a spectrum builds a dense grid in ``data.rawdata3`` and its m/z
+    projection in ``data.rawdata``. Set instrument calibration on ``config``
+    before native deconvolution to convert arrival time to CCS.
+    """
 
     mode_imflag = 1
 
@@ -118,7 +123,16 @@ class UniDecIM(UniDecMS):
         return self.config.filename, self.config.dirname
 
     def process_data(self, **kwargs):
-        """Process the m/z and arrival-time dimensions of IM-MS data."""
+        """Process an opened IM-MS spectrum and write binary input for UniDec.
+
+        Updates ``data.data3`` with processed m/z, time, and intensity
+        triplets. Arrival time varies fastest within each m/z block.
+
+        Returns
+        -------
+        int or None
+            ``1`` if the configuration check fails, or ``None`` on success.
+        """
         start = time.perf_counter()
         self.export_config()
 
@@ -158,7 +172,11 @@ class UniDecIM(UniDecMS):
             print("Data Prep Time: %.2gs" % (time.perf_counter() - start))
 
     def unidec_imports(self, efficiency=False, everything=False):
-        """Import the two-dimensional outputs produced by the UniDec core."""
+        """Import the native mass and CCS (Å²) distributions.
+
+        Unless ``efficiency=True``, also load fitted intensities and the
+        mass-by-CCS, charge-by-CCS, and m/z-by-time-by-charge grids.
+        """
         if everything:
             self.data.data3 = np.loadtxt(self.config.infname)
             intensity = self.data.data3[:, 2].reshape(

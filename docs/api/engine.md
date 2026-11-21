@@ -5,8 +5,8 @@ The following direct call paths are **Tier 1** for Python scripts and notebooks.
 | Mode | Import | Start the workflow |
 | --- | --- | --- |
 | Conventional MS | `from unidec.engine import UniDec` | Follow the [conventional-MS example](../guides/conventional-ms.md) to open, process, deconvolve, and pick peaks. |
-| IM-MS | `from unidec.modules.IMEng import UniDecIM` | Use the same method sequence with the IM-MS engine and a mobility spectrum. |
-| CD-MS | `from unidec.modules.CDEng import UniDecCD` | Open with `open_cdms_file`. Call `run_deconvolution` to process and deconvolve by default, then `pick_peaks`. |
+| IM-MS | `from unidec.modules.IMEng import UniDecIM` | Open, preprocess, and deconvolve a mobility spectrum. See the [IM-MS workflow](../guides/im-ms.md). |
+| CD-MS | `from unidec.modules.CDEng import UniDecCD` | Open with `open_cdms_file`. Call `run_deconvolution` to process and deconvolve by default, then pick and score peaks. See the [CD-MS workflow](../guides/cd-ms.md). |
 | MetaUniDec | `from unidec.metaunidec.mudeng import MetaUniDec` | Open the HDF5 project with `open`. Call `process_data`, `run_unidec`, and `pick_peaks` to work on the collection. |
 | UniChrom | `from unidec.modules.ChromEng import ChromEngine` | Open the raw source with `open_chrom`. Use the [UniChrom session](sessions.md#unichrom) when you want managed construction and analysis of time windows. |
 

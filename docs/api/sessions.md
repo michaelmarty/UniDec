@@ -8,7 +8,7 @@ Import `UniDecSession` from `unidec.session`. It defaults to conventional MS. Fo
 
 Call `open_spectrum`, inspect or apply settings with `get_parameters` and `set_parameters`, then call `run("all")`. Use `get_results` for peak summaries and `get_plot` to write a managed plot. `save_state` creates a ZIP checkpoint. `load_state` restores a checkpoint from an allowed location.
 
-The [conventional-MS example](../guides/conventional-ms.md) shows the full session lifecycle from opening data through rerunning a restored checkpoint.
+The [conventional-MS example](../guides/conventional-ms.md) shows the full session lifecycle from opening data through rerunning a restored checkpoint. The [IM-MS example](../guides/im-ms.md) inspects mobility and CCS grids. The [CD-MS example](../guides/cd-ms.md) inspects the charge histogram and fit.
 
 ## MetaUniDec
 

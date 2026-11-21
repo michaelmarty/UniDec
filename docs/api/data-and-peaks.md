@@ -10,6 +10,8 @@
 
 Arrays can be empty before their stage runs. Read the results after a successful run and copy arrays you need to retain independently of later engine operations. Reading a container or a session result summary does not write an export.
 
+See the [IM-MS guide](../guides/im-ms.md) for mobility and CCS arrays and the [CD-MS guide](../guides/cd-ms.md) for event, histogram, and fit arrays.
+
 ## Conventional-MS result fields
 
 - `rawdata` and `data2` are floating-point arrays with m/z in the first column and intensity in the second. The processed spectrum can have a different point count or grid after selection and preprocessing.
