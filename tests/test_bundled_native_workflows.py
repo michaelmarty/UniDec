@@ -582,22 +582,26 @@ class TestBundledNativeWorkflows(unittest.TestCase):
             engine.process_data(silent=True)
             self.assertEqual(engine.run_unidec(silent=True), 0)
             engine.pick_peaks()
+            engine.autointegrate()
 
             self.assertAlmostEqual(engine.config.error, 0.95644, delta=0.005)
             peaks = sorted(engine.pks.peaks, key=lambda peak: peak.mass)
             expected = (
-                (78560, 5.06, 560, 18.51, 19),
-                (110930, 2.19, 340, 10.24, 9),
-                (147980, 100, 800, 26.31, 26),
+                (78560, 5.06, 560, 18.51, 19, 3.719, 0.358),
+                (110930, 2.19, 340, 10.24, 9, 1.304, 0.314),
+                (147980, 100, 800, 26.31, 26, 100.0, 0.912),
             )
             self.assertEqual(len(peaks), len(expected))
-            for peak, (mass, height, fwhm, mean_charge, apex_charge) in zip(peaks, expected):
+            for peak, (mass, height, fwhm, mean_charge, apex_charge, integral, dscore) in zip(peaks, expected):
                 weighted_charge, charge_apex = _charge_summary(engine, peak)
                 self.assertAlmostEqual(peak.mass, mass, delta=20)
                 self.assertAlmostEqual(peak.height, height, delta=0.5)
                 self.assertAlmostEqual(peak.errorFWHM, fwhm, delta=20)
                 self.assertAlmostEqual(weighted_charge, mean_charge, delta=0.1)
                 self.assertEqual(charge_apex, apex_charge)
+                self.assertAlmostEqual(peak.integral, integral, delta=0.01)
+                self.assertAlmostEqual(peak.dscore, dscore, delta=0.01)
+            self.assertAlmostEqual(engine.pks.uniscore, 0.87070, delta=0.01)
 
     def test_bsa_native_outputs_match_imported_axis_dimensions(self):
         """Reviewed BSA results and native output dimensions remain stable."""
@@ -625,6 +629,7 @@ class TestBundledNativeWorkflows(unittest.TestCase):
             self.assertTrue(np.isfinite(engine.data.fitdat).all())
             self.assertTrue(np.isfinite(engine.data.mzgrid).all())
             engine.pick_peaks()
+            engine.autointegrate()
             self.assertAlmostEqual(engine.config.error, 0.99728, delta=0.005)
             self.assertEqual(len(engine.pks.peaks), 1)
             peak = engine.pks.peaks[0]
@@ -634,6 +639,10 @@ class TestBundledNativeWorkflows(unittest.TestCase):
             self.assertAlmostEqual(peak.errorFWHM, 30, delta=20)
             self.assertAlmostEqual(weighted_charge, 14.92, delta=0.1)
             self.assertEqual(charge_apex, 15)
+            self.assertEqual(peak.integralrange, [peak.mass - 500, peak.mass + 500])
+            self.assertAlmostEqual(peak.integral, 100.0, delta=0.01)
+            self.assertAlmostEqual(peak.dscore, 0.96988, delta=0.01)
+            self.assertAlmostEqual(engine.pks.uniscore, 0.96724, delta=0.01)
             self.assertTrue(
                 all(engine.config.masslb <= peak.mass <= engine.config.massub for peak in engine.pks.peaks)
             )

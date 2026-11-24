@@ -542,13 +542,21 @@ def limit_data(data, start, end):
 
 def data_extract(data, x, extract_method, window=None, **kwargs):
     """
-    Assumes a sorted array in data[:,0]
+    Assumes a sorted, finite array in data[:,0]. Non-finite inputs raise
+    ``ValueError`` before extraction begins.
     :param data:
     :param x:
     :param extract_method:
     :param window:
     :return:
     """
+    if not np.all(np.isfinite(data)):
+        raise ValueError("Extraction data must contain only finite values")
+    if not np.isfinite(x):
+        raise ValueError("Extraction target must be finite")
+    if window is not None and not np.isfinite(window):
+        raise ValueError("Extraction window must be finite")
+
     if extract_method == 0:
         val = simple_extract(data, x, **kwargs)
 
@@ -775,6 +783,10 @@ def extract_from_data_matrix(xaxis, matrix, midpoint, extract_method=0, window=0
 
 
 def normalize_extracts(grid, norm_method=0):
+    """Normalize an extraction grid in place after validating finite input."""
+    if not np.all(np.isfinite(grid)):
+        raise ValueError("Extraction grid must contain only finite values")
+
     xlen, ylen = grid.shape
     xarray = range(0, xlen)
     yarray = range(0, ylen)
