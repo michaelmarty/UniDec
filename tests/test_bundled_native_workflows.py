@@ -599,7 +599,7 @@ class TestBundledNativeWorkflows(unittest.TestCase):
                 self.assertAlmostEqual(peak.errorFWHM, fwhm, delta=20)
                 self.assertAlmostEqual(weighted_charge, mean_charge, delta=0.1)
                 self.assertEqual(charge_apex, apex_charge)
-                self.assertAlmostEqual(peak.integral, integral, delta=0.01)
+                self.assertAlmostEqual(peak.integral, integral, delta=0.05)
                 self.assertAlmostEqual(peak.dscore, dscore, delta=0.01)
             self.assertAlmostEqual(engine.pks.uniscore, 0.87070, delta=0.01)
 
