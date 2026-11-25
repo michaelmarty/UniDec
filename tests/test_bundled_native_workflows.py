@@ -107,6 +107,98 @@ def _slim_ccs_reference(mass, charge, drift_time, coefficients, edc):
 
 
 class TestBundledNativeWorkflows(unittest.TestCase):
+    def test_agilent_vp3_traces_match_published_ccs(self):
+        """Convert two measured VP3 traces using Ryan et al. Tables S4 and S6A."""
+        engine = UniDecIM(ignore_args=True, silent=True)
+        _require_native_executable(engine)
+        traces = np.loadtxt(REVIEWED_CONFIGS / "AAV2_empty1_vp3.csv", delimiter=",")
+        settings = {
+            "input": "input.dat", "output": "result", "imflag": 1, "twaveflag": 0,
+            "volt": 0, "press": 0, "temp": 0, "pusher": 0, "gasmass": 28.00615,
+            "tnaught": -0.4272, "driftlength": 0.14, "adductmass": 1.007276,
+            # Negative masslb requests fixed output axes for forward integration.
+            "masslb": -59900, "massub": 60100, "massbins": 10,
+            "ccslb": 12000, "ccsub": 15500, "ccsbins": 100,
+            "poolflag": 0, "rawflag": 1, "numit": 0,
+            "mzsig": 0.1, "dtsig": 0.1, "msig": 0, "zzsig": 0, "csig": 0,
+        }
+        for charge, expected_ccs in ((45, 13591), (49, 14238)):
+            with self.subTest(charge=charge), tempfile.TemporaryDirectory(prefix="unidec-agilent-") as directory:
+                root = Path(directory)
+                config = {**settings, "startz": charge, "endz": charge}
+                config_path = root / "conf.dat"
+                config_path.write_text("".join(f"{key} {value}\n" for key, value in config.items()), encoding="ascii")
+                trace = traces[traces[:, 0] == charge, 1:]
+                self.assertGreater(len(trace), 1)
+                # Add zero-intensity neighbors to form the native rectangular input grid.
+                left, right = trace.copy(), trace.copy()
+                left[:, 0] -= 0.1
+                right[:, 0] += 0.1
+                left[:, 2] = right[:, 2] = 0
+                np.concatenate((left, trace, right)).astype(np.float32).tofile(root / "input.dat")
+                result = subprocess.run(
+                    [str(Path(engine.config.UniDecPath).resolve()), config_path.name],
+                    cwd=root, capture_output=True, text=True, env={**os.environ, "OMP_NUM_THREADS": "1"},
+                )
+                self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+
+                ccs, intensity = np.loadtxt(root / "result_ccs.txt", unpack=True)
+                self.assertTrue(np.isfinite(ccs).all() and np.isfinite(intensity).all())
+                self.assertGreater(intensity.sum(), 0)
+                centroid = np.average(ccs, weights=intensity)
+                # The paper reports averages at a CCS grid spacing of 100 Å².
+                self.assertAlmostEqual(centroid, expected_ccs, delta=settings["ccsbins"])
+
+    def test_mobilion_calibrations_match_ccs_baseline(self):
+        """Load both saved calibration modes and convert three synthetic arrival times each."""
+        engine = UniDecIM(ignore_args=True, silent=True)
+        _require_native_executable(engine)
+        # Negative masslb requests fixed output axes for forward integration.
+        settings = {
+            "input": "input.dat", "output": "result", "imflag": 1,
+            "gasmass": 28.0134, "pusher": 0,
+            "startz": 10, "endz": 10, "adductmass": 1.0,
+            "masslb": -49900, "massub": 50100, "massbins": 10,
+            "ccslb": 1000, "ccsub": 4000, "ccsbins": 1,
+            "poolflag": 0, "rawflag": 1, "numit": 0,
+            "mzsig": 0.1, "dtsig": 0.1, "msig": 0, "zzsig": 0, "csig": 0,
+        }
+        cases = (
+            (1, (0.3293, 6.3597, 0.0, 0.0), 1.57, (5, 12, 24), (1842.387939, 2468.689697, 3106.432129)),
+            (4, (153.38, 0.58873, -0.00034613, 1.2183e-07), 0.0,
+             (275, 400, 525), (2891.046875, 3334.912109, 3670.611572)),
+        )
+        for mode, coefficients, edc, drift_times, expected_ccs in cases:
+            with self.subTest(twaveflag=mode), tempfile.TemporaryDirectory(prefix="unidec-mobilion-") as directory:
+                root = Path(directory)
+                config = {
+                    **settings, "twaveflag": mode, "edc": edc,
+                    **dict(zip(("tcal1", "tcal2", "tcal3", "tcal4"), coefficients)),
+                }
+                config_path = root / "conf.dat"
+                config_path.write_text("".join(f"{key} {value}\n" for key, value in config.items()), encoding="ascii")
+                # All signal is at 50,000 Da and +10. The neighboring m/z rows have zero intensity.
+                np.array([
+                    (mz, dt, int(mz == 5001))
+                    for mz in (5000, 5001, 5002) for dt in drift_times
+                ], dtype=np.float32).tofile(root / "input.dat")
+                result = subprocess.run(
+                    [str(Path(engine.config.UniDecPath).resolve()), config_path.name],
+                    cwd=root, capture_output=True, text=True, env={**os.environ, "OMP_NUM_THREADS": "1"},
+                )
+                self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+
+                ccs = np.loadtxt(root / "result_ccs.txt")
+                self.assertTrue(np.isfinite(ccs).all())
+                # Each arrival time contributes intensity to adjacent CCS bins.
+                occupied = np.flatnonzero(ccs[:, 1] > 0)
+                self.assertGreater(occupied.size, 0)
+                peaks = np.split(occupied, np.flatnonzero(np.diff(occupied) > 1) + 1)
+                self.assertEqual(len(peaks), len(drift_times))
+                centroids = [np.average(ccs[peak, 0], weights=ccs[peak, 1]) for peak in peaks]
+                # Allow float32 rounding and text output differences across builds.
+                np.testing.assert_allclose(centroids, expected_ccs, rtol=0, atol=0.01)
+
     def test_native_twave_and_slim_ccs_calibrations(self):
         """All native calibration modes match their equations and invert on one physical branch."""
         library = _load_native_library()

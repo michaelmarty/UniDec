@@ -1,0 +1,29 @@
+# Ryan et al., doi:10.1021/jasms.3c00321, AAV2_empty1.d (MassIVE MSV000092048, CC0).
+# Source ZIP SHA-256: 2718cba23f37d20fd75abe328c012f59525b0f341c98e7f343742fec7bca667e
+# MSConvert 3.0.25279.7f02855: --mzML --64 --zlib --combineIonMobilitySpectra
+# --filter "index [529,574]" --filter "mzWindow [1150,1450]". Native IDs:
+# merged=530 frame=530 through merged=575 frame=575.
+# Sum profile intensities at each measured arrival time over all 46 frames
+# within m/z [1333.40,1334.10] (45+) and [1224.70,1225.40] (49+).
+# Find the apex in 36–46 ms. Keep its contiguous half-height peak and the
+# first below-half-height bin on either side. Use the intensity-weighted
+# m/z of all points within the retained time and m/z bounds for each trace.
+# charge,mz_centroid,arrival_time_ms,summed_intensity
+45,1333.75231735,40.992000,23713
+45,1333.75231735,41.155968,40199
+45,1333.75231735,41.319936,41571
+45,1333.75231735,41.483904,51139
+45,1333.75231735,41.647872,53924
+45,1333.75231735,41.811840,43049
+45,1333.75231735,41.975808,55093
+45,1333.75231735,42.139776,31349
+45,1333.75231735,42.303744,41686
+45,1333.75231735,42.467712,22004
+49,1225.04315688,39.516288,36266
+49,1225.04315688,39.680256,53076
+49,1225.04315688,39.844224,74357
+49,1225.04315688,40.008192,93894
+49,1225.04315688,40.172160,103258
+49,1225.04315688,40.336128,74646
+49,1225.04315688,40.500096,59259
+49,1225.04315688,40.664064,47240
