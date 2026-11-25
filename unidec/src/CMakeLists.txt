@@ -217,6 +217,12 @@ target_compile_options(unideclib PRIVATE
         $<$<AND:$<NOT:$<C_COMPILER_ID:MSVC>>,$<CONFIG:Release>>:-O3>
 )
 
+# Keep the arithmetic feeding the iterative deconvolution consistent across compilers.
+if(WIN32 AND CMAKE_C_COMPILER_ID STREQUAL "IntelLLVM")
+    set_property(SOURCE udcore.c udmain.c APPEND PROPERTY COMPILE_OPTIONS /fp:precise)
+elseif(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+    set_property(SOURCE udcore.c udmain.c udtools.c APPEND PROPERTY COMPILE_OPTIONS -ffp-contract=off)
+endif()
 
 # Install the executable
 install(TARGETS unidec unideclib

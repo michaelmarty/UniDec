@@ -277,8 +277,12 @@ void RunIteration(const Config *config, Decon *decon, IntraDecon * intra, const 
 	if (config->psig >= 1 && iterations > 0)
 	{
 		const double start = timings != NULL ? IterationWallTime() : 0;
-		point_smoothing(decon->blur, intra->smoothing_scratch, intra->smoothing_sums, intra->barr,
+		point_smoothing_to_scratch(decon->blur, intra->smoothing_scratch, intra->smoothing_sums, intra->barr,
 			config->lengthmz, config->numz, abs((int)config->psig));
+		// Reuse the previous grid as scratch for the next operation.
+		float *previous_blur = decon->blur;
+		decon->blur = intra->smoothing_scratch;
+		intra->smoothing_scratch = previous_blur;
 		if (timings != NULL) { timings->point_smoothing += IterationWallTime() - start; }
 		//printf("Point Smoothed %f\n", config.psig);
 	}

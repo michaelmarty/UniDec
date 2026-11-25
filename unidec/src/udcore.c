@@ -113,7 +113,7 @@ void blur_it_mean(const IntraDecon *intra, float * newblur, const float * blur, 
     } else {
         #pragma omp parallel for schedule(auto)
         for (int i = 0; i < intra->ln; i++) {
-            intra->log_blur[i] = blur[i] > 0 ? logf(blur[i]) : -INFINITY;
+            intra->log_blur[i] = blur[i] > 0 ? (float)log((double)blur[i]) : -INFINITY;
         }
 
         #pragma omp parallel for schedule(auto)
@@ -130,7 +130,7 @@ void blur_it_mean(const IntraDecon *intra, float * newblur, const float * blur, 
                     }
                     else { temp += zerolog; }
                 }
-                temp = expf(temp / (float) intra->numclose);
+                temp = (float)exp((double)(temp / (float)intra->numclose));
             }
             newblur[i] = temp;
         }
@@ -322,22 +322,26 @@ void midblur_baseline(float *baseline, const int lengthmz, const float *dataMZ, 
 void convolve_simp(const int lengthmz, const int maxlength, const int *__restrict starttab,
                    const int *__restrict endtab, const float *__restrict mzdist,
                    const float *__restrict deltas, float *__restrict denom, const int speedyflag) {
+    // Keep float products and use extra precision for the sums so SIMD
+    // reduction order has less effect on the float result.
     if (speedyflag == 0) {
         #pragma omp parallel for schedule(static)
         for (int i = 0; i < lengthmz; i++) {
-            float cv = 0;
+            double cv = 0;
             #pragma omp simd reduction(+:cv)
             for (int k = starttab[i]; k <= endtab[i]; k++) {
                 const int k2 = fixk(k, lengthmz);
-                const int start = starttab[k2];
-                cv += deltas[k2] * mzdist[index2D(maxlength, k2, i - start)];
+                const int offset = i - starttab[k2];
+                if (offset >= 0 && offset < maxlength) {
+                    cv += deltas[k2] * mzdist[index2D(maxlength, k2, offset)];
+                }
             }
-            denom[i] = cv;
+            denom[i] = (float)cv;
         }
     } else {
         #pragma omp parallel for schedule(static)
         for (int i = 0; i < lengthmz; i++) {
-            float cv = 0;
+            double cv = 0;
             const int start = starttab[i];
             const int end = endtab[i];
             const int unwrapped_end = end < i ? end : i;
@@ -352,7 +356,7 @@ void convolve_simp(const int lengthmz, const int maxlength, const int *__restric
             for (int k = wrapped_start; k <= end; k++) {
                 cv += deltas[k] * mzdist[lengthmz + i - k];
             }
-            denom[i] = cv;
+            denom[i] = (float)cv;
         }
     }
 }
@@ -882,31 +886,19 @@ static void point_smoothing_from_source(float *output, const float *source, floa
                 float *output_row = output + (size_t) i * numz;
                 const float *source_row = source + (size_t) i * numz;
                 const char *mask_row = barr + (size_t) i * numz;
+                const int remove_index = i - width;
+                const int add_index = i + width + 1;
+                const float *remove_row = remove_index >= 0 ? source + (size_t) remove_index * numz : NULL;
+                const float *add_row = add_index < lengthmz ? source + (size_t) add_index * numz : NULL;
+
+                // Write the current average before advancing each rolling sum.
                 #pragma omp simd
                 for (int j = charge_start; j < charge_end; j++) {
-                    if (mask_row[j] == 1) {
-                        output_row[j] = sums[j] / (1.0f + 2.0f * fwidth);
-                    } else {
-                        output_row[j] = source_row[j];
-                    }
-                }
-
-                const int remove_index = i - width;
-                if (remove_index >= 0) {
-                    const float *remove_row = source + (size_t) remove_index * numz;
-                    #pragma omp simd
-                    for (int j = charge_start; j < charge_end; j++) {
-                        sums[j] -= remove_row[j];
-                    }
-                }
-
-                const int add_index = i + width + 1;
-                if (add_index < lengthmz) {
-                    const float *add_row = source + (size_t) add_index * numz;
-                    #pragma omp simd
-                    for (int j = charge_start; j < charge_end; j++) {
-                        sums[j] += add_row[j];
-                    }
+                    float sum = sums[j];
+                    output_row[j] = mask_row[j] == 1 ? sum / (1.0f + 2.0f * fwidth) : source_row[j];
+                    if (remove_row) { sum -= remove_row[j]; }
+                    if (add_row) { sum += add_row[j]; }
+                    sums[j] = sum;
                 }
             }
         }
@@ -1210,14 +1202,15 @@ void MakeSparseBlur(const int numclose, char *barr, const int *closezind,
 
 
 void MakePeakShape2D(const Config config, Decon *decon, const Input *inp, const int makereverse, const int inflateflag) {
-    float mzsig = fabsf(config.mzsig);
+    float default_mzsig = fabsf(config.mzsig);
     if (inflateflag == 1) {
-        mzsig *= config.peakshapeinflate;
+        default_mzsig *= config.peakshapeinflate;
     }
     int maxlength = decon->maxlength;
 
     #pragma omp parallel for
     for (int i = 0; i < config.lengthmz; i++) {
+        float mzsig = default_mzsig;
         if (config.variablepw == 1) {
             mzsig = inp->fwhmlist[i];
             // printf("Using Variable Peak Width %f\n", mzsig);
@@ -1298,7 +1291,9 @@ int SetStartsEnds(const Config config, const Input *inp, int *starttab, int *end
             end = nearfast(inp->dataMZ, point, config.lengthmz);
         }
         endtab[i] = end;
-        if (end - start > maxlength) { maxlength = end - start; }
+        // The 2D kernel stores both endpoints in each row.
+        const int window_length = end - start + 1;
+        if (window_length > maxlength) { maxlength = window_length; }
         //printf("%d %d\n", start, end);
     }
     //printf("Max Length: %d\t", maxlength);
@@ -1440,7 +1435,7 @@ void SetUpBlur(Config config, Input inp, IntraDecon *intra, const int silent) {
 		#pragma omp parallel for schedule(auto)
 		for (int i = 0; i < newlen; i++) {
 			const float weight = intra->closearray[i];
-			intra->closearray[i] = weight > 0 ? logf(weight) : -INFINITY;
+			intra->closearray[i] = weight > 0 ? (float)log((double)weight) : -INFINITY;
 		}
 	}
 
@@ -1459,9 +1454,9 @@ float Reconvolve(const Config config, Decon *decon, const char *barr) {
                 if (barr[index2D(config.numz, i, j)] == 1) {
                     for (int k = decon->starttab[i]; k <= decon->endtab[i]; k++) {
                         int k2 = fixk(k, config.lengthmz);
-                        if (decon->blur[index2D(config.numz, k2, j)] != 0) {
-                            int start = decon->starttab[k2];
-                            cv += decon->blur[index2D(config.numz, k2, j)] * decon->mzdist[index2D(maxlength, k2, i - start)];
+                        const int offset = i - decon->starttab[k2];
+                        if (offset >= 0 && offset < maxlength && decon->blur[index2D(config.numz, k2, j)] != 0) {
+                            cv += decon->blur[index2D(config.numz, k2, j)] * decon->mzdist[index2D(maxlength, k2, offset)];
                         }
                     }
                 }
