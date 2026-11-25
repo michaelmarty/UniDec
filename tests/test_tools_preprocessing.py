@@ -1,5 +1,8 @@
 import os
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
+from subprocess import CompletedProcess
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -13,17 +16,34 @@ class TestNativeCall(unittest.TestCase):
         config = SimpleNamespace(UniDecPath="unidec", confname=os.path.join("run", "conf.dat"))
         confname = os.path.abspath(config.confname)
 
-        with patch.object(tools, "exe_call", return_value=(0, "diagnostic")) as exe_call:
+        with patch.object(tools.subprocess, "run", return_value=CompletedProcess([], 0, "diagnostic", "")) as run:
             result = tools.unidec_call(config, silent=True)
 
         self.assertEqual(result, 0)
         self.assertEqual(config.last_native_diagnostic, "diagnostic")
-        exe_call.assert_called_once_with(
+        run.assert_called_once_with(
             [config.UniDecPath, confname],
-            silent=True,
+            shell=False,
+            capture_output=True,
+            text=True,
             cwd=os.path.dirname(confname),
-            return_diagnostics=True,
         )
+
+    def test_native_failure_console_prefers_stderr_and_retains_both_streams(self):
+        config = SimpleNamespace(UniDecPath="unidec", confname="conf.dat")
+        progress = "Iteration completed\n" * 500
+        error = "Invalid spectrum data"
+        result = CompletedProcess([], 12, progress, error)
+        with patch.object(tools.subprocess, "run", return_value=result):
+            for silent in (False, True):
+                with self.subTest(silent=silent), redirect_stdout(StringIO()) as console:
+                    self.assertEqual(tools.unidec_call(config, silent=silent), 12)
+                    self.assertEqual(config.last_native_diagnostic, progress + error)
+                    if silent:
+                        self.assertEqual(console.getvalue(), "")
+                    else:
+                        self.assertIn(error, console.getvalue())
+                        self.assertNotIn("Iteration completed", console.getvalue())
 
 
 class TestNormalization(unittest.TestCase):

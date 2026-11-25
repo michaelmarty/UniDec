@@ -15,6 +15,7 @@ import zipfile
 import numpy as np
 
 from unidec.engine import UniDec
+from unidec.tools import native_diagnostic_excerpt
 
 
 class UniDecSessionEngineAdapter:
@@ -380,7 +381,7 @@ class UniDecSession:
                 pass
         return identity
 
-    def _record_run(self, operation_id, stage, started_at, duration, response):
+    def _record_run(self, operation_id, stage, started_at, duration, response, native_diagnostic=None):
         parameters = self.engine.config.parameter_values()
         previous = self._run_records[-1] if self._run_records else None
         previous_parameters = {} if previous is None else previous["parameters"]
@@ -426,11 +427,13 @@ class UniDecSession:
             results["peaks_truncated"] = len(ranked) > self.MAX_RECORDED_PEAKS
         if results:
             record["results"] = results
+        if native_diagnostic:
+            record["native_diagnostic"] = native_diagnostic
         self._run_records.append(record)
         del self._run_records[:-self.MAX_RUN_RECORDS]
 
-    def get_run_manifest(self, operation_id=None):
-        """Return a copy of a retained run record, defaulting to the latest run."""
+    def get_run_manifest(self, operation_id=None, include_diagnostic=False):
+        """Return a retained run record, with the full native diagnostic on request."""
         if operation_id is None:
             record = self._run_records[-1] if self._run_records else None
         elif isinstance(operation_id, int) and not isinstance(operation_id, bool):
@@ -443,7 +446,10 @@ class UniDecSession:
                 "invalid_operation_id", "operation_id must be an integer or null", set_error=False)
         if record is None:
             return self._failure("run_not_found", "No matching run manifest is available", set_error=False)
-        return {"ok": True, "manifest": deepcopy(record)}
+        manifest = dict(record)
+        if not include_diagnostic:
+            manifest.pop("native_diagnostic", None)
+        return {"ok": True, "manifest": deepcopy(manifest)}
 
     def compare_runs(self, before_operation_id, after_operation_id):
         """Compare retained runs by settings, fit R-squared, and peak metrics."""
@@ -573,9 +579,9 @@ class UniDecSession:
         started = time.perf_counter()
         started_at = datetime.now(timezone.utc).isoformat()
 
-        def finish(response):
+        def finish(response, native_diagnostic=None):
             duration = time.perf_counter() - started
-            self._record_run(operation_id, stage, started_at, duration, response)
+            self._record_run(operation_id, stage, started_at, duration, response, native_diagnostic)
             return response
 
         try:
@@ -601,11 +607,16 @@ class UniDecSession:
                     result = self.engine_adapter.deconvolve()
                     if result != 0:
                         diagnostic = getattr(self.engine, "last_run_diagnostic", None)
-                        return finish(self._failure(
+                        preferred = getattr(self.engine, "last_run_stderr", "") or diagnostic
+                        excerpt = native_diagnostic_excerpt(preferred) if preferred else ""
+                        response = self._failure(
                             "native_failed",
-                            f"UniDec returned {result}" + (f": {diagnostic}" if diagnostic else ""),
+                            f"UniDec returned {result}" + (f": {excerpt}" if excerpt else ""),
                             operation_id,
-                        ))
+                        )
+                        if diagnostic and excerpt != diagnostic:
+                            response["error"]["full_diagnostic_available"] = True
+                        return finish(response, diagnostic)
                     self._stage_revision["deconvolve"] = self.revision
                     self._stage_revision["pick_peaks"] = None
                 else:

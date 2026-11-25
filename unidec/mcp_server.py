@@ -64,10 +64,11 @@ def register_tools(server, session, annotations_factory, gui_bridge=None):
     def get_plot(name: str) -> dict:
         return _session_call(session.get_plot, name)
 
-    @tool("get_run_manifest", "Return bounded provenance for one run operation.", read_only=True,
+    @tool("get_run_manifest", "Return bounded provenance for one run. Set include_diagnostic to retrieve "
+          "the full native failure diagnostic for that operation when available.", read_only=True,
           idempotent=True)
-    def get_run_manifest(operation_id: int | None = None) -> dict:
-        return _session_call(session.get_run_manifest, operation_id)
+    def get_run_manifest(operation_id: int | None = None, include_diagnostic: bool = False) -> dict:
+        return _session_call(session.get_run_manifest, operation_id, include_diagnostic)
 
     @tool("compare_runs", "Compare parameters and summary metrics for two recorded runs.", read_only=True,
           idempotent=True)

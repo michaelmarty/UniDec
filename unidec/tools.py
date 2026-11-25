@@ -1819,6 +1819,30 @@ def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
 # ............................................................................
 
 
+def _run_executable(call, silent, cwd):
+    if not silent:
+        print("System Call:", call)
+    return subprocess.run(call, shell=False, capture_output=True, text=True, cwd=cwd)
+
+
+def _captured_diagnostic(result):
+    return "\n".join(part.strip() for part in (result.stdout, result.stderr) if part.strip())
+
+
+def native_diagnostic_excerpt(diagnostic):
+    """Keep the first and last parts of a native diagnostic within 2 KiB."""
+    encoded = diagnostic.strip().encode("utf-8", errors="replace")
+    if len(encoded) <= 2048:
+        return encoded.decode("utf-8")
+    marker = "\n[diagnostic truncated]\n"
+    edge = (2048 - len(marker)) // 2
+    return (
+        encoded[:edge].decode("utf-8", errors="ignore")
+        + marker
+        + encoded[-edge:].decode("utf-8", errors="ignore")
+    )
+
+
 def exe_call(call, silent=False, cwd=None, return_diagnostics=False):
     """
     Run the  binary specified in the call.
@@ -1829,22 +1853,20 @@ def exe_call(call, silent=False, cwd=None, return_diagnostics=False):
     :param silent: Whether to print the output of exepath to the standard out
     :return: Standard error of exepath execution
     """
-    if not silent:
-        print("System Call:", call)
-    result = subprocess.run(call, shell=False, capture_output=True, text=True, cwd=cwd)
+    result = _run_executable(call, silent, cwd)
     out = result.returncode
     if not silent:
         print(result.stdout)
     if return_diagnostics:
-        return out, "\n".join(part.strip() for part in (result.stdout, result.stderr) if part.strip())
+        return out, _captured_diagnostic(result)
     return out
 
 
 def unidec_call(config, silent=False, conv=False, **kwargs):
     """
     Run the unidec binary specified by exepath with the configuration file specified by configfile.
-    If silent is False (default), the output from exepath will be printed to the standard out.
-    If silent is True, the output is suppressed.
+    With silent=False (default), echo successful stdout or a failure excerpt.
+    Captured diagnostics are available on config.last_native_diagnostic.
 
     The binary is run as a commandline subprocess with a call of (for example):
 
@@ -1854,7 +1876,7 @@ def unidec_call(config, silent=False, conv=False, **kwargs):
     :param silent: Whether to print the output of exepath to the standard out
     :param conv: Whether to call the convolution function only rather than the standard deconvolution
     :param kwargs:
-    :return: Standard error of exepath execution
+    :return: Exit code of the executable
     """
 
     confname = os.path.abspath(config.confname)
@@ -1866,14 +1888,17 @@ def unidec_call(config, silent=False, conv=False, **kwargs):
     if conv:
         call.append("-conv")
 
-    out, diagnostic = exe_call(
-        call,
-        silent=silent,
-        cwd=os.path.dirname(confname),
-        return_diagnostics=True,
-    )
-    config.last_native_diagnostic = diagnostic
-    return out
+    result = _run_executable(call, silent, os.path.dirname(confname))
+    config.last_native_diagnostic = _captured_diagnostic(result)
+    config.last_native_stderr = result.stderr.strip() if result.returncode else ""
+    if not silent:
+        if result.returncode == 0:
+            print(result.stdout)
+        else:
+            excerpt = native_diagnostic_excerpt(config.last_native_stderr or result.stdout)
+            if excerpt:
+                print(excerpt)
+    return result.returncode
 
 
 # @jit(nopython=True)

@@ -406,6 +406,27 @@ The main GUI class is Launcher. You can launch the Launcher from the command lin
 
 Of course, using the pre-compiled version means you don't need to know Python at all and can just click the GUI_UniDec.exe icon to launch the program and get started. However you choose to do it, happy deconvolving!
 
+## Debugging UniDec runs
+
+Interactive deconvolution shows native progress and the result on success. On failure it shows
+a short explanation from the native executable when available and reports the exit code.
+In Python, read `engine.last_run_diagnostic` after `engine.run_unidec()` to inspect the captured
+stdout and stderr for that run.
+
+For the standard single-spectrum MCP session, use the operation ID in the error to request the
+full diagnostic from a retained run. Call `get_run_manifest` with `operation_id` and
+`include_diagnostic: true`. The full text appears in `manifest.native_diagnostic` when available.
+Leave the option off for a compact manifest.
+
+From the package directory, start with the affected test or method. For example:
+
+```shell
+python -m unittest -q -b -f tests.test_engine_failures
+```
+
+For a noisy reproduction, save both output streams to a local file and check the command's exit
+status. Share the relevant error and nearby lines. Use the saved output for the full traceback.
+
 ## Contributing
 
 We welcome contributions from people of all background. We are generally not interested in contributions from bots. Unfortunately, we have seen a rise in AI-generated code contributions that are not reviewed or tested by the contributor and that contain errors. This creates extra work for the maintainers and can introduce bugs and security vulnerabilities into the codebase.

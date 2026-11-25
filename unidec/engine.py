@@ -439,6 +439,8 @@ class UniDec(UniDecEngine):
         ValueError
             If the native process succeeds but the mass output is invalid.
         """
+        self.last_run_diagnostic = None
+        self.last_run_stderr = ""
         # Check to make sure everything is in order
         if self.config.procflag == 0:
             print("Need to process data first. Processing...")
@@ -472,9 +474,9 @@ class UniDec(UniDecEngine):
         self.data.mzgrid = np.array([])
         tstart = time.perf_counter()
 
-        self.last_run_diagnostic = None
         out = ud.unidec_call(self.config, silent=silent)
         self.last_run_diagnostic = getattr(self.config, "last_native_diagnostic", None)
+        self.last_run_stderr = getattr(self.config, "last_native_stderr", "")
 
         tend = time.perf_counter()
         self.config.runtime = (tend - tstart)
@@ -585,8 +587,8 @@ class UniDec(UniDecEngine):
                 except:
                     pass
         else:
-            print("No peaks detected", peaks, self.config.peakwindow, self.config.peakthresh)
-            print("Mass Data:", self.data.massdat)
+            print(f"No peaks detected (mass data shape={np.shape(self.data.massdat)}, "
+                  f"peak window={self.config.peakwindow}, threshold={self.config.peakthresh})")
         return peaks
 
     def setup_peaks(self, peaks):
@@ -627,8 +629,7 @@ class UniDec(UniDecEngine):
         try:
             ud.peaks_error_FWHM(self.pks, self.data.massdat)
         except Exception as e:
-            print("Error in FWHM calculation:", e)
-            print(self.data.massdat)
+            print(f"Error in FWHM calculation (mass data shape={np.shape(self.data.massdat)}):", e)
         try:
             ud.peaks_error_mean(self.pks, self.data.massgrid, self.data.ztab, self.data.massdat, self.config)
         except Exception as e:

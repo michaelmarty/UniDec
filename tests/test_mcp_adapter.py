@@ -1,4 +1,9 @@
+import tempfile
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
+from subprocess import CompletedProcess
+from unittest.mock import patch
 
 from unidec.mcp_server import (
     build_parser,
@@ -6,6 +11,7 @@ from unidec.mcp_server import (
     register_tools,
     register_unichrom_tools,
 )
+from unidec.session import UniDecSession
 
 
 EXPECTED_TOOLS = {
@@ -98,7 +104,7 @@ class TestMCPAdapter(unittest.TestCase):
             "run": ("process",),
             "get_results": (4,),
             "get_plot": ("mass_distribution",),
-            "get_run_manifest": (3,),
+            "get_run_manifest": (3, True),
             "compare_runs": (3, 6),
             "export_regression_fixture": (3, "failure.json"),
             "save_state": ("checkpoint.zip",),
@@ -110,6 +116,62 @@ class TestMCPAdapter(unittest.TestCase):
             self.assertTrue(response["ok"])
             self.assertEqual(response["method"], name)
         self.assertEqual([name for name, _ in self.session.calls], list(calls))
+        self.assertEqual(self.server.tools["get_run_manifest"][0](3)["args"], [3, False])
+
+    def test_native_failure_is_bounded_and_full_diagnostic_is_retained_by_operation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            session = UniDecSession(working_directory=directory)
+            engine = session.engine
+            engine.config.filename = "spectrum.txt"
+            engine.config.confname = "spectrum_conf.dat"
+            engine.config.procflag = 1
+            session._stage_revision["process"] = session.revision
+            server = FakeServer()
+            register_tools(server, session, lambda **values: values)
+            run = server.tools["run"][0]
+            manifest = server.tools["get_run_manifest"][0]
+
+            long_error = "Invalid charge range\n" + "é" * 4000 + "\nReview the charge bounds."
+            progress = "Iteration completed\n" * 500
+            cases = (
+                (progress, long_error, "Invalid charge range"),
+                ("Invalid spectrum data", "", "Invalid spectrum data"),
+            )
+            for stdout, stderr, actionable in cases:
+                with self.subTest(actionable=actionable), \
+                        patch.object(engine, "check_badness", return_value=0), \
+                        patch.object(engine, "export_config"), \
+                        patch("unidec.tools.subprocess.run",
+                              return_value=CompletedProcess([], 12, stdout, stderr)), \
+                        redirect_stdout(StringIO()) as protocol, redirect_stderr(StringIO()) as console:
+                    response = run("deconvolve")
+                    error = response["error"]
+                    self.assertEqual(error["code"], "native_failed")
+                    prefix, excerpt = error["message"].split(": ", 1)
+                    self.assertEqual(prefix, "UniDec returned 12")
+                    self.assertIn(actionable, excerpt)
+                    self.assertLessEqual(len(excerpt.encode("utf-8")), 2048)
+                    self.assertEqual(error, response["state"]["last_error"])
+                    self.assertEqual(protocol.getvalue(), "")
+                    self.assertIn("unidec Run Error: 12", console.getvalue())
+                    self.assertNotIn(actionable, console.getvalue())
+                    operation = error["operation_id"]
+                    self.assertNotIn("native_diagnostic", manifest(operation)["manifest"])
+                    self.assertEqual(manifest(operation, True)["manifest"]["native_diagnostic"],
+                                     engine.last_run_diagnostic)
+                    if stderr:
+                        self.assertTrue(error["full_diagnostic_available"])
+                        self.assertIn("[diagnostic truncated]", excerpt)
+                        self.assertIn("Review the charge bounds.", excerpt)
+                        self.assertNotIn("Iteration completed", excerpt)
+                        first_operation = operation
+                        first_diagnostic = stdout + stderr
+                    else:
+                        self.assertEqual(excerpt, stdout)
+                        self.assertNotIn("full_diagnostic_available", error)
+
+            self.assertEqual(manifest(first_operation, True)["manifest"]["native_diagnostic"],
+                             first_diagnostic)
 
     def test_optional_gui_tools_delegate_to_the_separate_bridge(self):
         bridge = FakeSession()
