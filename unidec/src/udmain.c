@@ -301,20 +301,7 @@ void RunIteration(const Config *config, Decon *decon, IntraDecon * intra, const 
 
 	//Run Blurs
 	const double blur_start = timings != NULL ? IterationWallTime() : 0;
-	if (config->zsig >= 0 && config->msig >= 0) {
-		blur_it_mean(intra, decon->newblur, decon->blur, config->zerolog);
-	}
-	else if (config->zsig > 0 && config->msig < 0)
-	{
-		blur_it_hybrid1(intra, config->lengthmz, config->numz, decon->newblur, decon->blur, config->zerolog);
-	}
-	else if (config->zsig < 0 && config->msig > 0)
-	{
-		blur_it_hybrid2(intra, config->lengthmz, config->numz, decon->newblur, decon->blur, config->zerolog);
-	}
-	else {
-		blur_it(intra, decon->newblur, decon->blur);
-	}
+	ApplyBlur(config, intra, decon->newblur, decon->blur);
 	if (timings != NULL) { timings->blur += IterationWallTime() - blur_start; }
 
 	//Run Richardson-Lucy Deconvolution

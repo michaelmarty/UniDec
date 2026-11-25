@@ -73,82 +73,6 @@ def peak(center, axis, width, shape):
                     lorentzian)
 
 
-def charge_smooth_reference(cube, mz, charges, config, floor):
-    """Apply one charge-smoothing pass from an unchanged input cube."""
-    mz_count, charge_count = cube.shape[1:]
-    up = np.empty(mz_count * charge_count, dtype=int)
-    down = np.empty_like(up)
-    for mz_index, mz_value in enumerate(mz):
-        for charge_index, charge in enumerate(charges):
-            index = mz_index * charge_count + charge_index
-            mass = (mz_value - config["adductmass"]) * charge
-            upper_mz = mass / (charge + 1) + config["adductmass"]
-            lower_mz = (mass / (charge - 1) + config["adductmass"]
-                        if charge != 1 else 0.)
-
-            def mapped_index(value):
-                position = ((value - mz[0]) / (mz[-1] - mz[0]) * (mz_count - 1))
-                return int(np.floor(position + .5))
-
-            upper_index = mapped_index(upper_mz)
-            if charge_index == charge_count - 1 or not 0 <= upper_index < mz_count:
-                up[index] = index
-            else:
-                up[index] = upper_index * charge_count + charge_index + 1
-            lower_index = mapped_index(lower_mz)
-            if charge_index == 0 or not 0 <= lower_index < mz_count:
-                down[index] = index
-            else:
-                down[index] = lower_index * charge_count + charge_index - 1
-
-    flat = cube.reshape(len(cube), -1)
-    if floor <= 0:
-        return ((flat + flat[:, down] * abs(floor) +
-                 flat[:, up] * abs(floor)) / 3).reshape(cube.shape)
-    logs = np.log(flat + floor)
-    logs[~np.isfinite(logs)] = 0
-    return np.maximum(np.exp((logs + logs[:, down] + logs[:, up]) / 3) - floor,
-                      0).reshape(cube.shape)
-
-
-def mass_smooth_indexes(mz, charges, config):
-    """Build the native mass-neighbor lookup tables."""
-    mz_count, charge_count = len(mz), len(charges)
-    up = np.empty(mz_count * charge_count, dtype=int)
-    down = np.empty_like(up)
-    for mz_index, mz_value in enumerate(mz):
-        for charge_index, charge in enumerate(charges):
-            index = mz_index * charge_count + charge_index
-            mass = (mz_value - config["adductmass"]) * charge
-
-            def mapped_index(value):
-                position = ((value - mz[0]) / (mz[-1] - mz[0]) * (mz_count - 1))
-                return int(np.floor(position + .5))
-
-            upper_index = mapped_index(
-                (mass + config["molig"]) / charge + config["adductmass"])
-            lower_index = mapped_index(
-                (mass - config["molig"]) / charge + config["adductmass"])
-            up[index] = (upper_index * charge_count + charge_index
-                         if 0 <= upper_index < mz_count else index)
-            down[index] = (lower_index * charge_count + charge_index
-                           if 0 <= lower_index < mz_count else index)
-    return up, down
-
-
-def mass_smooth_reference(cube, mz, charges, config, floor):
-    """Apply one mass-smoothing pass from an unchanged input cube."""
-    up, down = mass_smooth_indexes(mz, charges, config)
-    flat = cube.reshape(len(cube), -1)
-    if floor <= 0:
-        return ((flat + flat[:, down] * abs(floor) +
-                 flat[:, up] * abs(floor)) / 3).reshape(cube.shape)
-    logs = np.log(flat + floor)
-    logs[~np.isfinite(logs)] = 0
-    return np.maximum(np.exp((logs + logs[:, down] + logs[:, up]) / 3) - floor,
-                      0).reshape(cube.shape)
-
-
 def scan_source_indexes(scan_count, padding, zero_padding):
     indexes = np.arange(scan_count + 2 * padding) - padding
     if zero_padding:
@@ -213,14 +137,13 @@ def cube_reference(initial, mz, config):
                                    mz_index + width + 1].sum(axis=1) / (1 + 2 * width)
                 cube[:, mz_index] = np.where(allowed[mz_index], average,
                                              previous[:, mz_index])
-        if config["zzsig"] != 0:
-            cube = charge_smooth_reference(
-                cube, mz, charges, config, config["zzsig"] * observed.max())
-            cube *= allowed
-        if config["msig"] != 0:
-            cube = mass_smooth_reference(
-                cube, mz, charges, config, config["msig"] * observed.max())
-            cube *= allowed
+        if config["zzsig"] == 1:
+            # The narrow fixture puts adjacent charges of every mass outside the m/z axis.
+            # Only the center weight contributes, with two zerolog terms.
+            center_weight = 1 / (1 + 2 * np.exp(-.5))
+            with np.errstate(divide="ignore"):
+                center_log = np.where(cube > 0, np.log(cube * center_weight), -12.)
+            cube = np.exp((center_log - 24.) / 3.) * allowed
         predicted_cube = forward(cube)
         predicted = predicted_cube.sum(axis=2)
         ratio = np.divide(observed, predicted, out=np.zeros_like(observed), where=predicted > 0)
@@ -441,39 +364,29 @@ class TestUniChromNative(unittest.TestCase):
                 grid = hdf["ms_dataset/mz_grid"][:].reshape(-1, mz_count)
             self.assertLess(grid[-1].max(), grid[0].max() * .01)
 
-    def test_tiled_positive_smoothing_matches_reference_across_workers(self):
-        case = dict(scans=2, charges=2, wide_mz=True, mz_points=32769,
-                    zzsig=1., msig=1., numit=-2, rawflag=1,
-                    masslb=-100., massub=-10000., massbins=10.)
+    def test_unidec_charge_blur_ignores_legacy_flag_in_both_modes(self):
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory, "tiled.hdf5")
-            config = write_input(path, **case)
-            with h5py.File(path, "a") as hdf:
-                hdf["config"].attrs.modify("numit", np.int32(0))
-            self.run_native(path, "-nthreads", "1")
+            path = Path(directory, "blur.hdf5")
+            write_input(path, numit=0)
+            self.run_native(path)
             with h5py.File(path, "r") as hdf:
                 mz = hdf["ms_dataset/mz_axis"][:].astype(float)
-                initial = hdf["ms_dataset/mz_grid"][:].reshape(2, -1).astype(float)
-            self.assertGreater(len(mz) * case["charges"], 65536)
-            self.assertNotEqual((len(mz) * case["charges"]) % 65536, 0)
-            indexes = np.arange(len(mz) * case["charges"])
-            up, down = mass_smooth_indexes(
-                mz, np.arange(config["startz"], config["endz"] + 1), config)
-            crosses_tile = (((indexes < 65536) & ((up >= 65536) | (down >= 65536))) |
-                            ((indexes >= 65536) & ((up < 65536) | (down < 65536))))
-            self.assertTrue(crosses_tile.any())
-            expected, _ = cube_reference(initial, mz, config)
+                initial = hdf["ms_dataset/mz_grid"][:].reshape(-1, len(mz)).astype(float)
 
-            results = []
-            for workers in (1, 4):
-                write_input(path, **case)
-                output = self.run_native(path, "-nthreads", str(workers))
-                self.assertIn(f"x {case['charges']} charge", output)
-                with h5py.File(path, "r") as hdf:
-                    results.append(hdf["ms_dataset/mz_grid"][:].reshape(2, -1))
-                np.testing.assert_allclose(results[-1], expected.sum(axis=2),
-                                           rtol=3e-4, atol=3e-6)
-            np.testing.assert_array_equal(results[0], results[1])
+            case = dict(zzsig=1., numit=-1)
+            for mode in (0, 1):
+                with self.subTest(UClineardecon=mode):
+                    grids = []
+                    for flag in ({}, {"unichromuccdblur": 1}):
+                        config = write_input(path, UClineardecon=mode, **case, **flag)
+                        self.run_native(path)
+                        with h5py.File(path, "r") as hdf:
+                            grids.append(hdf["ms_dataset/mz_grid"][:])
+                    np.testing.assert_array_equal(grids[0], grids[1])
+                    if mode == 1:
+                        expected, _ = cube_reference(initial, mz, config)
+                        np.testing.assert_allclose(grids[0].reshape(initial.shape),
+                                                   expected.sum(axis=2), rtol=1e-4, atol=2e-6)
 
     def test_matches_charge_cube_reference(self):
         cases = [dict(psfun=shape, rawflag=rawflag, datanorm=norm)
@@ -486,13 +399,7 @@ class TestUniChromNative(unittest.TestCase):
                   dict(charges=12, rawflag=0,
                        masslb=3000., massub=4050.),
                   dict(psig=1.), dict(psig=3., charges=7),
-                  dict(psig=20., scans=1, charges=1),
-                  dict(wide_mz=True, charges=10, psig=1., zzsig=1., numit=-8,
-                       masslb=-100., massub=-25000., massbins=10.),
-                  dict(wide_mz=True, charges=10, zzsig=-1., numit=-8,
-                       masslb=-100., massub=-25000., massbins=10.),
-                  dict(wide_mz=True, charges=10, zzsig=1., numit=-8,
-                       masslb=-100., massub=-25000., massbins=10.)]
+                  dict(psig=20., scans=1, charges=1)]
         for case in cases:
             with self.subTest(**case), tempfile.TemporaryDirectory() as directory:
                 path = Path(directory, "chrom.hdf5")

@@ -10,6 +10,9 @@ Pass a raw source such as a multi-scan mzML file or an importer-supported vendor
 
 Use `run("all")` after window creation. It preprocesses the window spectra, runs native deconvolution, and extracts aggregate mass peaks. After changing window settings, call `create_time_windows` again to rebuild the spectra. Set `dtsig=0` for independent window deconvolution. A positive `dtsig` selects coupled chromatographic deconvolution. Its aggregate grids and extracts use the same project structure, while charge-resolved per-window outputs are unavailable in that mode.
 
+Coupled deconvolution uses the UniDec charge and mass blur settings (`zzsig`
+and `msig`) on both common and per-scan m/z axes.
+
 ## Run a small mzML chromatogram
 
 The example creates a real six-scan mzML from the packaged ADH spectrum with fixed scan times and intensity multipliers. Install the optional fixture writer with `python -m pip install psims` to run it. The regular analysis workflow can open an existing mzML without that writer.

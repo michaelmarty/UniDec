@@ -4,6 +4,11 @@
 
 #include "udcore.h"
 
+#include <limits.h>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 
 //..........
 //
@@ -80,6 +85,23 @@ void adjust_ratios(const Config config, char * barr, const int numclose,
 }
 
 
+void ApplyBlur(const Config *config, const IntraDecon *intra, float *output, const float *input) {
+	if (config->zsig >= 0 && config->msig >= 0) {
+		blur_it_mean(intra, output, input, config->zerolog);
+	}
+	else if (config->zsig > 0 && config->msig < 0)
+	{
+		blur_it_hybrid1(intra, intra->ln / config->numz, config->numz, output, input, config->zerolog);
+	}
+	else if (config->zsig < 0 && config->msig > 0)
+	{
+		blur_it_hybrid2(intra, intra->ln / config->numz, config->numz, output, input, config->zerolog);
+	}
+	else {
+		blur_it(intra, output, input);
+	}
+}
+
 //Convolution of neighborhood function with gaussian filter.
 void blur_it(const IntraDecon *intra, float * newblur, const float * blur) {
     if (intra->numclose == 1) {
@@ -133,6 +155,52 @@ void blur_it_mean(const IntraDecon *intra, float * newblur, const float * blur, 
                 temp = (float)exp((double)(temp / (float)intra->numclose));
             }
             newblur[i] = temp;
+        }
+    }
+}
+
+// Shared-grid mean blur for three neighborhood slots.
+// Keep the same double libm calls and float accumulation order as blur_it_mean.
+static inline float mean_blur_log_term(const float log_value, const float log_weight, const float zerolog)
+{
+    return log_value != -INFINITY ? log_value + log_weight : zerolog;
+}
+
+void blur_it_mean_three_batches(const IntraDecon *intra, float *output, const float *input,
+                                const int batch_count, const float zerolog)
+{
+    float empty_sum = 0;
+    for (int k = 0; k < 3; k++) { empty_sum += zerolog; }
+    const float empty_value = (float)exp((double)(empty_sum / 3.0f));
+
+    // Each worker completes a scan before reusing its private log buffer.
+    #pragma omp parallel for schedule(static)
+    for (int batch = 0; batch < batch_count; batch++) {
+        const size_t offset = (size_t)batch * intra->ln;
+        const float *blur = input + offset;
+        float *newblur = output + offset;
+        int worker = 0;
+#ifdef _OPENMP
+        worker = omp_get_thread_num();
+#endif
+        float *logs = intra->log_blur + (size_t)worker * (intra->ln + 1);
+        logs[intra->ln] = -INFINITY;
+        for (int i = 0; i < intra->ln; i++) {
+            logs[i] = blur[i] > 0 ? (float)log((double)blur[i]) : -INFINITY;
+        }
+        for (int i = 0; i < intra->ln; i++) {
+            float value = 0;
+            if (intra->barr[i] == 1) {
+                const size_t row = (size_t)i * 3;
+                const int *indices = intra->closeind + row;
+                const float *weights = intra->closearray + row;
+                float sum = 0;
+                sum += mean_blur_log_term(logs[indices[0]], weights[0], zerolog);
+                sum += mean_blur_log_term(logs[indices[1]], weights[1], zerolog);
+                sum += mean_blur_log_term(logs[indices[2]], weights[2], zerolog);
+                value = sum == empty_sum ? empty_value : (float)exp((double)(sum / 3.0f));
+            }
+            newblur[i] = isfinite(value) ? value : 0;
         }
     }
 }
@@ -1359,23 +1427,24 @@ int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, con
 }
 
 
-void SetUpBlur(Config config, Input inp, IntraDecon *intra, const int silent) {
-    //sets some parameters regarding the neighborhood blur function
-	if (config.zsig >= 0 && config.msig >= 0) {
-		intra->zlength = 1 + 2 * (int)config.zsig;
-		intra->mlength = 1 + 2 * (int)config.msig;
-	}
-	else {
-		if (config.zsig != 0) { intra->zlength = 1 + 2 * (int)(3 * fabsf(config.zsig) + 0.5); }
-		else { intra->zlength = 1; }
-		if (config.msig != 0) { intra->mlength = 1 + 2 * (int)(3 * fabsf(config.msig) + 0.5); }
-		else { intra->mlength = 1; }
-	}
+int PrepareBlur(Config config, Input inp, IntraDecon *intra, const int silent) {
+	const int mean = config.zsig >= 0 && config.msig >= 0;
+	const double z_radius = mean ? config.zsig : 3 * fabsf(config.zsig) + 0.5;
+	const double m_radius = mean ? config.msig : 3 * fabsf(config.msig) + 0.5;
+	if (!isfinite(z_radius) || !isfinite(m_radius) ||
+	    z_radius > (INT_MAX - 1) / 2 || m_radius > (INT_MAX - 1) / 2) { return 0; }
+	intra->zlength = 1 + 2 * (int)z_radius;
+	intra->mlength = 1 + 2 * (int)m_radius;
+	if (intra->zlength > INT_MAX / intra->mlength) { return 0; }
 	intra->numclose = intra->mlength * intra->zlength;
+
+	const int grid_length = config.lengthmz * config.numz;
+	if (intra->numclose > INT_MAX / grid_length) { return 0; }
 
 	//Sets up the blur function in oligomer mass and charge
 	intra->mind = calloc(intra->mlength, sizeof(int));
 	intra->mdist = calloc(intra->mlength, sizeof(float));
+	if (intra->mind == NULL || intra->mdist == NULL) { return 0; }
 
 	for (int i = 0; i < intra->mlength; i++)
 	{
@@ -1389,6 +1458,7 @@ void SetUpBlur(Config config, Input inp, IntraDecon *intra, const int silent) {
 
 	intra->zind = calloc(intra->zlength, sizeof(int));
 	intra->zdist = calloc(intra->zlength, sizeof(float));
+	if (intra->zind == NULL || intra->zdist == NULL) { return 0; }
 	for (int i = 0; i < intra->zlength; i++)
 	{
 		intra->zind[i] = i - (intra->zlength - 1) / 2;
@@ -1404,9 +1474,11 @@ void SetUpBlur(Config config, Input inp, IntraDecon *intra, const int silent) {
 	intra->closemind = calloc(intra->numclose, sizeof(int));
 	intra->closezind = calloc(intra->numclose, sizeof(int));
 	intra->closeval = calloc(intra->numclose, sizeof(float));
-	int newlen = intra->numclose * config.lengthmz * config.numz;
+	const int newlen = intra->numclose * grid_length;
 	intra->closeind = calloc(newlen, sizeof(int));
 	intra->closearray = calloc(newlen, sizeof(float));
+	if (intra->closemind == NULL || intra->closezind == NULL || intra->closeval == NULL ||
+	    intra->closeind == NULL || intra->closearray == NULL) { return 0; }
 
 	//Determines the indexes of things that are close as well as the values used in the neighborhood convolution
 	for (int k = 0; k < intra->numclose; k++)
@@ -1418,13 +1490,6 @@ void SetUpBlur(Config config, Input inp, IntraDecon *intra, const int silent) {
 	NormSum(intra->mdist, intra->mlength);
 	NormSum(intra->zdist, intra->zlength);
 	NormSum(intra->closeval, intra->numclose);
-
-	int badness1 = 1;
-	for (int i = 0; i < config.lengthmz * config.numz; i++)
-	{
-		if (intra->barr[i] == 1) { badness1 = 0; }
-	}
-	if (badness1 == 1) { printf("ERROR: No points are allowed. Setup is bad\n"); exit(10); }
 
 	//Set up blur
 	MakeSparseBlur(intra->numclose, intra->barr, intra->closezind, intra->closemind, intra->closeind, intra->closeval, intra->closearray, config, &inp);
@@ -1440,6 +1505,19 @@ void SetUpBlur(Config config, Input inp, IntraDecon *intra, const int silent) {
 	}
 
 	if (silent == 0) { printf("Charges blurred: %d  Masses blurred: %d\n", intra->zlength, intra->mlength); }
+	return 1;
+}
+
+void SetUpBlur(Config config, Input inp, IntraDecon *intra, const int silent) {
+	for (int i = 0; i < intra->ln; i++) {
+		if (intra->barr[i] == 1) {
+			if (PrepareBlur(config, inp, intra, silent)) { return; }
+			fprintf(stderr, "Unable to prepare UniDec blur neighborhood\n");
+			exit(11);
+		}
+	}
+	printf("ERROR: No points are allowed. Setup is bad\n");
+	exit(10);
 }
 
 

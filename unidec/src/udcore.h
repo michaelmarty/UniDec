@@ -35,7 +35,11 @@ void adjust_ratios(Config config, char * barr, int numclose,
 
 void blur_it(const IntraDecon *intra, float * newblur, const float * blur);
 
+void ApplyBlur(const Config *config, const IntraDecon *intra, float *output, const float *input);
 void blur_it_mean(const IntraDecon *intra, float * newblur, const float * blur, float zerolog);
+// Shared-grid setup reserves one ln+1 log buffer per active worker and maps missing neighbors to ln.
+void blur_it_mean_three_batches(const IntraDecon *intra, float *output, const float *input,
+                                int batch_count, float zerolog);
 
 void blur_it_hybrid1(const IntraDecon *intra, int lengthmz, int numz, float * newblur, const float * blur,
                      float zerolog);
@@ -103,6 +107,7 @@ void MakePeakShape2D(const Config config, Decon *decon, const Input *inp, int ma
 void MakePeakShape1D(const Config config, Decon * decon, const float *dataMZ, int makereverse, const int inflateflag, const int silent);
 int SetStartsEnds(const Config config, const Input *inp, int *starttab, int *endtab);
 int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, const int verbose);
+int PrepareBlur(Config config, Input inp, IntraDecon *intra, int silent);
 void SetUpBlur(Config config, Input inp, IntraDecon *intra, const int silent);
 float Reconvolve(const Config config, Decon *decon, const char *barr);
 void charge_scaling(float *blur, const int *nztab, const int lengthmz, const int numz);
