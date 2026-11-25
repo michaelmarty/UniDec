@@ -2081,16 +2081,16 @@ void dd_deconv2(float *kernel_y, const float *data_y, const int length, float *o
             complex_mult(kernel_ft, estimate_ft, product_ft, complen);
             fftwf_execute(p1r);
             for (int k = 0; k < length; k++) {
-                if (conv1[k] != 0) {
-                    conv1[k] = data_y[k] / conv1[k];
-                }
+                // Match the magnitude of the inverse FFT used by Python DoubleDec.
+                const float magnitude = fabsf(conv1[k]);
+                conv1[k] = magnitude > 0.0f ? data_y[k] / magnitude : 0.0f;
             }
             // cconv2fast(conv1, kernel_star, conv2, length);
             fftwf_execute(p2);
             complex_mult(conv1_ft, kernel_star_ft, product_ft, complen);
             fftwf_execute(p2r);
             for (int k = 0; k < length; k++) {
-                conv2[k] = conv2[k] * estimate[k]; // Store new estimate in conv2
+                conv2[k] = fabsf(conv2[k]) * estimate[k]; // Store new estimate in conv2
             }
             // Find how much the estimate changed
             float sum_diff = 0.0f;
