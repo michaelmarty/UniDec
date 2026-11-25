@@ -1,4 +1,5 @@
 import unittest
+import zlib
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -72,6 +73,32 @@ class TestHTDemultiplexing(unittest.TestCase):
         np.testing.assert_array_equal(engine.decontime, [0.0, 1.0])
         self.assertIs(returned_data, data)
 
+    def test_protein_mix_mrs_peak_matches_ensemble_control(self):
+        fixture = Path(__file__).parent / "fixtures" / "mrs" / "protein_mix_two_injections.u8.zlib"
+        counts = np.frombuffer(zlib.decompress(fixture.read_bytes()), dtype=np.uint8)
+        scans_per_run = 588
+        self.assertEqual(counts.size, 2 * scans_per_run)
+
+        engine = self._engine(demultiplexmode="MRS")
+        engine.fullscans = np.arange(1, counts.size + 1)
+        first_scan_minutes = 0.0022250317
+        last_scan_minutes = 5.5025247
+        scan_period_minutes = (last_scan_minutes - first_scan_minutes) / (scans_per_run - 1)
+        engine.fulltime = first_scan_minutes + (engine.fullscans - 1) * scan_period_minutes
+
+        engine.setup_demultiplex(cycleindex=scans_per_run)
+        output, _ = engine.run_demultiplex(counts)
+
+        self.assertEqual(output.shape, (scans_per_run,))
+        apex = int(np.argmax(output))
+        self.assertEqual(apex, 385)
+        self.assertAlmostEqual(output[apex], 94.0, places=9)
+        # The RAW endpoints approximate the archived time axis within 0.00017 min.
+        self.assertAlmostEqual(engine.decontime[apex], 3.6098639, delta=0.00017)
+        # Allow one scan interval from each of the CD-MS and ensemble acquisitions.
+        self.assertAlmostEqual(engine.decontime[apex], 3.6001669,
+                               delta=scan_period_minutes + 0.00809)
+
     def test_ft_returns_known_impulse_spectrum_and_zero_trace(self):
         engine = self._engine()
         engine.decontime = np.arange(5.0)
@@ -91,6 +118,28 @@ class TestHTDemultiplexing(unittest.TestCase):
         engine.setup_ft(FTstart=0.0, FTend=1.0, nzp=0)
         np.testing.assert_allclose(engine.decontime, [0.0, 750.0, 1500.0])
         np.testing.assert_array_equal(engine.deconscans, [0, 1, 2])
+
+    def test_gdh_ft_peak_matches_reviewed_4kv_drift_time(self):
+        fixture = Path(__file__).parent / "fixtures" / "ft_im" / "gdh_32plus_counts.u8.zlib"
+        counts = np.frombuffer(zlib.decompress(fixture.read_bytes()), dtype=np.uint8)
+        self.assertEqual(counts.size, 166)
+        step_hz = 3
+        start_hz = 5
+        engine = self._engine(demultiplexmode="FT", FTstart=start_hz,
+                              FTend=start_hz + counts.size * step_hz,
+                              HTtimepad=1, FTapodize=1, FTflatten=1)
+        engine.fullscans = np.arange(1, counts.size + 1)
+        engine.fulltime = engine.fullscans * (15 * 0.016044)
+
+        engine.setup_demultiplex()
+        output, _ = engine.run_demultiplex(counts)
+
+        self.assertEqual(output.shape, (129,))
+        apex = int(np.argmax(output))
+        self.assertEqual(apex, 76)  # Direct Fourier sum of the measured trace.
+        # Figure 2's 128.5 nm^2 apex corresponds to 98.23 ms at 4 kV.
+        native_bin_ms = 1000 / (counts.size * step_hz)
+        self.assertAlmostEqual(engine.decontime[apex], 98.23, delta=native_bin_ms)
 
     def test_absorption_ft_removes_dominant_tone_phase(self):
         """A cosine at bin 6 has DFT coefficient N*A/2 times exp(i*phase)."""
