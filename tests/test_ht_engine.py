@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -34,6 +35,29 @@ class TestHTDemultiplexing(unittest.TestCase):
 
         np.testing.assert_allclose(output, data, atol=1e-12)
         self.assertIs(returned_data, data)
+
+    def test_bgal_ht_peak_matches_single_injection_controls(self):
+        """Compare the Figure 2 multiplexed TIC with separately acquired runs."""
+        fixture = Path(__file__).parent / "fixtures" / "ht_sec" / "bgal_5bit_tic.u8"
+        counts = np.fromfile(fixture, dtype=np.uint8).astype(float)
+        self.assertEqual(counts.size, 474)
+        scan_bin_minutes = 41 / 474
+        engine = self._engine(htbit=5, HTtimepad=10, HTtimeshift=10,
+                              HTcycleindex=-1, HTksmooth=1)
+        engine.fullscans = np.arange(1, counts.size + 1)
+        engine.fulltime = engine.fullscans * scan_bin_minutes
+        engine.padindex = engine.shiftindex = 0
+
+        engine.setup_demultiplex()
+        output, _ = engine.run_demultiplex(counts)
+
+        self.assertEqual(output.shape, counts.shape)
+        apex = int(np.argmax(output))
+        # The median single-injection apex projects to output index 110.
+        # One compressed scan bin covers the measured control apex spread.
+        self.assertLessEqual(abs(apex - 110), 1)
+        self.assertAlmostEqual(engine.decontime[apex], 9.597744360902256,
+                               delta=scan_bin_minutes)
 
     def test_mrs_pools_matching_cycle_positions(self):
         engine = self._engine()
