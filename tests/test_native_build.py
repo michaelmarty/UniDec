@@ -1,4 +1,5 @@
 import ctypes
+import math
 import os
 import platform
 import subprocess
@@ -89,6 +90,46 @@ class TestNativeBuild(unittest.TestCase):
         self.assertIn("int start = i - gaussian_radius;", text)
         self.assertIn("int end = i + gaussian_radius + 1;", text)
         self.assertIn("gaussian[j - i + gaussian_radius]", text)
+
+    def test_non_speedy_peak_shape_rows_include_both_endpoints(self):
+        from unidec.modules.unidecwrapper import Config, Decon, Input, unideclib
+
+        mz = (ctypes.c_float * 6)(98, 100, 101, 102, 103, 105)
+        intensity = (ctypes.c_float * 6)(0.1, 0.4, 1, 0.8, 0.3, 0.1)
+        charges = (ctypes.c_int * 1)(2)
+        config = Config()
+        unideclib.SetDefaultConfig(ctypes.byref(config))
+        config.lengthmz = len(mz)
+        config.startz = config.endz = 2
+        config.numz = 1
+        config.numit = 1
+        config.masslb, config.massub, config.massbins = 190, 220, 1
+        config.linflag = 2
+        config.mzsig = 2.35482  # Gaussian FWHM for sigma = 1 m/z.
+        config.psthresh = 1
+        config.psfun = 0
+        config.silent = 1
+        unideclib.PostImport(ctypes.byref(config))
+        self.assertEqual(config.speedyflag, 0)
+
+        decon = Decon()
+        free_decon = unideclib.FreeDecon
+        free_decon.argtypes = [Decon]
+        free_decon.restype = None
+        self.addCleanup(free_decon, decon)
+        inputs = Input(dataMZ=mz, dataInt=intensity, nztab=charges)
+        self.assertEqual(unideclib.run_unidec_core(config, inputs, ctypes.byref(decon), 0), 0)
+
+        # Adjacent interior windows span m/z 100–102 and 101–103.
+        # Each Gaussian row needs three slots, including its right endpoint.
+        self.assertEqual(decon.maxlength, 3)
+        flank = math.exp(-0.5)
+        for row, start in ((2, 1), (3, 2)):
+            with self.subTest(row=row):
+                self.assertEqual((decon.starttab[row], decon.endtab[row]), (start, start + 2))
+                offset = row * decon.maxlength
+                for column, expected in enumerate((flank, 1, flank)):
+                    self.assertAlmostEqual(decon.mzdist[offset + column], expected, delta=1e-6)
 
     def test_in_process_wrapper_rejects_invalid_fwhm_arrays(self):
         import numpy as np
