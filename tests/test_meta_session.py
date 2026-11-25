@@ -1,5 +1,6 @@
 import hashlib
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -19,6 +20,31 @@ def file_digest(path):
 
 
 class TestMetaUniDecCollectionSession(unittest.TestCase):
+    def test_open_historical_8_2_1_project_without_minratio(self):
+        fixture = (Path(__file__).parent / "fixtures" / "historical_8_2_1" /
+                   "metaunidec-8.2.1-project.hdf5")
+        expected = [
+            np.array([[500, 2], [501, 4], [502, 8], [503, 6], [504, 2]], dtype=float),
+            np.array([[600, 1], [601, 3], [602, 4], [603, 2], [604, 1]], dtype=float),
+        ]
+        with tempfile.TemporaryDirectory(prefix="meta-historical-project-") as directory:
+            project = Path(directory) / fixture.name
+            shutil.copy2(fixture, project)
+            with h5py.File(project, "r") as hdf:
+                self.assertEqual(hdf["config"].attrs["version"], "8.2.0")
+                self.assertNotIn("minratio", hdf["config"].attrs)
+
+            meta = MetaUniDec()
+            meta.open(str(project))
+            self.assertEqual(meta.config.startz, 5)
+            self.assertEqual(meta.config.endz, 15)
+            self.assertEqual(meta.config.datanorm, 0)
+            self.assertEqual(meta.config.minratio, 0.0)
+            self.assertEqual([s.name for s in meta.data.spectra], ["low.txt", "high.txt"])
+            for spectrum, raw in zip(meta.data.spectra, expected):
+                np.testing.assert_allclose(spectrum.rawdata, raw, rtol=0, atol=1e-6)
+                np.testing.assert_allclose(spectrum.data2, raw, rtol=0, atol=1e-6)
+
     @staticmethod
     def _write_collection(path):
         with h5py.File(path, "w") as hdf:
