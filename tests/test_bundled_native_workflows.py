@@ -61,10 +61,10 @@ def _charge_summary(engine, peak):
 
 
 def _ccs_summary(engine, peak):
-    """Return the weighted and apex CCS at the mass-grid row nearest a picked peak."""
+    """Return the weighted CCS and apex bin for the mass-grid row nearest a peak."""
     row = engine.data.massccs[np.argmin(np.abs(engine.data.massdat[:, 0] - peak.mass))]
     axis = engine.data.ccsdata[:, 0]
-    return np.average(axis, weights=row), axis[np.argmax(row)]
+    return np.average(axis, weights=row), np.argmax(row)
 
 
 def _linear_ccs_reference(mass, charge, drift_time, config):
@@ -844,17 +844,20 @@ class TestBundledNativeWorkflows(unittest.TestCase):
                 key=lambda peak: peak.mass,
             )
             self.assertEqual(len(peaks), len(expected))
+            ccs_axis = engine.data.ccsdata[:, 0]
             for peak, values in zip(peaks, expected):
                 mass, height, mean_charge, apex_charge, mean_ccs, apex_ccs = values
                 weighted_charge, charge_apex = _charge_summary(engine, peak)
-                weighted_ccs, ccs_apex = _ccs_summary(engine, peak)
+                weighted_ccs, ccs_apex_bin = _ccs_summary(engine, peak)
                 self.assertAlmostEqual(peak.mass, mass, delta=20)
                 # Allow five percentage points of variation on the normalized height scale.
                 self.assertAlmostEqual(peak.height, height, delta=5)
                 self.assertAlmostEqual(weighted_charge, mean_charge, delta=0.1)
                 self.assertEqual(charge_apex, apex_charge)
                 self.assertAlmostEqual(weighted_ccs, mean_ccs, delta=25)
-                self.assertAlmostEqual(ccs_apex, apex_ccs, delta=20)
+                # Allow adjacent bins even when the exported CCS coordinates are rounded.
+                expected_apex_bin = np.argmin(np.abs(ccs_axis - apex_ccs))
+                self.assertLessEqual(abs(ccs_apex_bin - expected_apex_bin), 1)
             self.assertTrue(
                 all(engine.config.masslb <= peak.mass <= engine.config.massub for peak in engine.pks.peaks)
             )
