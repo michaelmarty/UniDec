@@ -328,13 +328,25 @@ If you would like to try to run experimental features from the v3 branch, this s
 
 ### The UniDec Binaries
 
-As described below, the Python code presented here relies on one critical binary, UniDec.exe. The binary should be in the /unidec_bin directory. 
+The native executable and shared library are deployed to `unidec/bin/`.
+The native source and [CMake project](unidec/src/CMakeLists.txt) are in
+`unidec/src/`. Building requires CMake 3.25 or later, HDF5 with C and
+high-level libraries, and single-precision FFTW or Intel MKL.
 
-If you are interested in building the binary or modifying the source code, the code and Visual Studio project files
-are in unidec_src/UniDec. It is currently configured for Visual Studio Community 2022 with HDF5 1.12.2 and the Intel oneAPI compiler.
-It can be easily compiled with other compilers but will show a significant performance loss without the Intel Compilers.
- 
-If you are interested in binaries for Mac and Linux, I would recommend building them yourself using the scripts in the unidec/src directory. UniDec compiles easily and works fine with these operating systems. I have provided some linux and mac version for you to test, but no promises they will work. Alternatively, you can use the [Docker container](https://hub.docker.com/r/michaeltmarty/unidec). 
+From the UniDec repository root, run `bash ./build_native.sh` on Linux or
+macOS. For an Intel oneAPI build on Windows, run `build_native_intel.bat`.
+That wrapper uses Ninja and the Visual Studio C++ build tools. For a direct
+CMake build, configure with any dependency paths or toolchain options your
+environment requires, then build:
+
+```shell
+cmake -S unidec/src -B build/native -DCMAKE_BUILD_TYPE=Release
+cmake --build build/native --config Release --parallel
+```
+
+For the retired Visual Studio solution and project, see the
+[archive index](docs/Archives/README.rst). You can also run UniDec using the
+[Docker container](https://hub.docker.com/r/michaeltmarty/unidec).
 
 ## UniDec Documentation
 
