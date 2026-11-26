@@ -16,13 +16,15 @@ static void point_smoothing_IM(const int *size, const float *blur, float *scratc
     #pragma omp parallel for collapse(2) schedule(static)
     for (int dt = 0; dt < numdt; dt++) {
         for (int z = 0; z < numz; z++) {
-            float sum = 0;
+            // Roundoff from the rolling sum can change the sign of near-zero
+            // values and send them down different branches of the log blur.
+            double sum = 0;
             for (int mz = 0; mz < initial_high; mz++) {
                 sum += blur[index3D(numdt, numz, mz, dt, z)];
             }
             for (int mz = 0; mz < lengthmz; mz++) {
                 const int index = index3D(numdt, numz, mz, dt, z);
-                scratch[index] = barr[index] == 1 ? sum / denominator : blur[index];
+                scratch[index] = barr[index] == 1 ? (float)(sum / denominator) : blur[index];
 
                 const int remove_index = mz - width;
                 if (remove_index >= 0) {

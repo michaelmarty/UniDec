@@ -526,22 +526,24 @@ void writemzgrid(char *outfile, char *suffix, const float *blur, const int *size
 
 float errfun(const int length, const float *dataInt, const float *fitdat)
 {
-	float tot = 0;
+	double tot = 0;
 	for (int i = 0; i<length; i++)
 	{
 		tot += fitdat[i];
 	}
-	const float mean = tot / ((float)length);
+	const double mean = tot / length;
 
-	float error = 0;
-	float error2 = 0;
+	double error = 0;
+	double error2 = 0;
 	for (int i = 0; i<length; i++)
 	{
-		error += powf((fitdat[i] - dataInt[i]), 2);
-		error2 += powf((mean - dataInt[i]), 2);
+		const double residual = (double)fitdat[i] - dataInt[i];
+		const double centered = mean - dataInt[i];
+		error += residual * residual;
+		error2 += centered * centered;
 	}
 	if (error2 == 0) { printf("Error function divide by 0!"); error2 = 1; }
-	return 1.0f - error / error2;
+	return (float)(1.0 - error / error2);
 }
 
 void writezslice(const int *size, char *outfile, char *suffix, const int *ztab, const float *array, const int k)
