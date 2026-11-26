@@ -834,11 +834,18 @@ class TestBundledNativeWorkflows(unittest.TestCase):
             # The fit score uses an R²-like scale. Require a good fit across FFT backends.
             self.assertGreaterEqual(engine.config.error, 0.86)
             self.assertLessEqual(engine.config.error, 1.0)
+            observed = engine.data.data3[:, 2].astype(np.float64)
+            observed /= observed.max()
+            fitted = engine.data.fitdat2d[:, 2].astype(np.float64)
+            expected_fit = 1 - np.sum((fitted - observed) ** 2) / np.sum((fitted.mean() - observed) ** 2)
+            # The native error file reports six decimal places.
+            self.assertAlmostEqual(engine.config.error, expected_fit, delta=1e-6)
             # The middle peak's normalized height varies more across FFT builds.
             expected = (
                 (98849.92, 100, 5, 13.47, 13, 5508.26, 5001.27),
                 (99619.92, 91.56, 8, 13.37, 13, 5465.03, 4921.27),
-                (100389.92, 47.03, 5, 13.31, 13, 5440.15, 4921.27),
+                # Direct double-precision summation of each smoothing window gives 56.36.
+                (100389.92, 56.36, 5, 13.31, 13, 5440.15, 4921.27),
             )
             peaks = sorted(
                 sorted(engine.pks.peaks, key=lambda peak: peak.height, reverse=True)[: len(expected)],
