@@ -147,8 +147,6 @@ CONVENTIONAL_PARAMETER_SPECS = (
     ParameterSpec("nativezlb", float, "nativezlb", "nativezlb", public=False, default=-1000),
     ParameterSpec("poolflag", int, "poolflag", "poolflag", public=False, default=2),
     ParameterSpec("detectoreffva", float, "accvol", "accvol", public=False, default=0),
-    ParameterSpec("inflate", float, "peakshapeinflate", "peakshapeinflate",
-                  public=False, default=1),
     ParameterSpec("noiseflag", int, "noiseflag", "noiseflag", public=False, default=0),
     ParameterSpec("linflag", int, "linflag", "linflag", public=False, default=2),
     ParameterSpec("cmap", str, "cmap", "cmap", public=False, default="nipy_spectral"),
@@ -759,7 +757,6 @@ class UniDecConfig(object):
         self.poolflag = 2
         self.nativezub = 1000
         self.nativezlb = -1000
-        self.inflate = 1
         self.integratelb = None
         self.integrateub = None
         self.filterwidth = 20
@@ -907,7 +904,6 @@ class UniDecConfig(object):
             "nativezlb": (self.nativezlb, float),
             "poolflag": (self.poolflag, int),
             "accvol": (self.detectoreffva, float),
-            "peakshapeinflate": (self.inflate, float),
             "noiseflag": (self.noiseflag, int),
             "linflag": (self.linflag, int),
             "cmap": (self.cmap, str),
@@ -1160,7 +1156,6 @@ class UniDecConfig(object):
         self.poolflag = 2
         self.nativezub = 1000
         self.nativezlb = -1000
-        self.inflate = 1
         self.linflag = 2
         self.integratelb = None
         self.integrateub = None
@@ -1542,8 +1537,6 @@ class UniDecConfig(object):
                             self.poolflag = ud.string_to_int(line.split()[1])
                         if key == "accvol":
                             self.detectoreffva = ud.string_to_value(line.split()[1])
-                        if key == "peakshapeinflate":
-                            self.inflate = ud.string_to_value(line.split()[1])
                         if key == "noiseflag":
                             self.noiseflag = ud.string_to_value(line.split()[1])
                         if key == "linflag":
@@ -1729,7 +1722,7 @@ class UniDecConfig(object):
             "aggressive": self.aggressiveflag, "rawflag": self.rawflag,
             "rescale_newblur": self.rescale_newblur, "adductmass": self.adductmass,
             "nativezub": self.nativezub, "nativezlb": self.nativezlb, "poolflag": self.poolflag,
-            "accvol": self.detectoreffva, "peakshapeinflate": self.inflate, "noiseflag": self.noiseflag,
+            "accvol": self.detectoreffva, "noiseflag": self.noiseflag,
             "linflag": self.linflag, "cmap": self.cmap, "peakcmap": self.peakcmap, "spectracmap": self.spectracmap,
             "publicationmode": self.publicationmode, "isotopemode": self.isotopemode, "peaknorm": self.peaknorm,
             "baselineflag": self.baselineflag, "orbimode": self.orbimode, "zout": self.zout, "pusher": self.pusher,
@@ -1764,6 +1757,7 @@ class UniDecConfig(object):
             file_name = self.hdf_file
         hdf = h5py.File(file_name, 'a')
         config_group = hdf.require_group("config")
+        config_group.attrs.pop("peakshapeinflate", None)
 
         cdict = self.get_config_dict()
         scalar_keys = {

@@ -54,7 +54,8 @@ void midblur_baseline(float *baseline, int lengthmz, const float *dataMZ, float 
 
 void convolve_simp(int lengthmz, int maxlength, const int *__restrict starttab,
                    const int *__restrict endtab, const float *__restrict mzdist,
-                   const float *__restrict deltas, float *__restrict denom, int speedyflag);
+                   const float *__restrict deltas, float *__restrict denom, int speedyflag,
+                   int variablepw);
 
 void sum_deltas(int lengthmz, int numz, const float *__restrict blur, const char *__restrict barr,
                 float *deltas);
@@ -85,11 +86,6 @@ UDCORE_EXPORTS void apply_suppressions(float *blur, float *scratch, int lengthmz
                                       int satellite_n, int harmonic, const int *ztab, int top_n,
                                       float top_x, float suppression_percent);
 
-float getfitdatspeedy(float *fitdat, const float *blur, const int lengthmz, const int numz,
-                      const int maxlength, const float maxint,
-                      const int *starttab,
-                      const int *endtab, const float *mzdist, const int speedyflag);
-
 float errfunspeedy(Config config, Decon decon, const float *dataInt, float *rsquared, float *fitdatnorm);
 
 void CalcMasses(const Config *config, Input *inp);
@@ -102,9 +98,6 @@ void KillB(const float *I, char *B, const float intthresh, const int lengthmz, c
 
 void MakeSparseBlur(const int numclose, char *barr, const int *closezind,
                     const int *closemind, int *closeind, const float *closeval, float *closearray, const Config config, const Input *inp);
-void MakePeakShape2D(const Config config, Decon *decon, const Input *inp, int makereverse,
-                     const int inflateflag);
-void MakePeakShape1D(const Config config, Decon * decon, const float *dataMZ, int makereverse, const int inflateflag, const int silent);
 int SetStartsEnds(const Config config, const Input *inp, int *starttab, int *endtab);
 int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, const int verbose);
 int PrepareBlur(Config config, Input inp, IntraDecon *intra, int silent);

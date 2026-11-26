@@ -86,7 +86,7 @@ Config get_global_min_max(int argc, char* argv[], Config config, const char* dty
 
 	float minval = 1000000000.f;
 	float maxval = 0;
-	float minres = minval;
+	float minres = 0;
 
 	for (int i = 0; i < num; i++)
 	{
@@ -100,6 +100,7 @@ Config get_global_min_max(int argc, char* argv[], Config config, const char* dty
 		float newmax = 0;
 		if (!mh5readfile2d_axis_bounds(config.file_id, outdat, &templen, &newmin, &newmax)) {
 			int fallback_len = mh5getfilelength(config.file_id, outdat);
+			if (fallback_len < 1) { continue; }
 			float* temp = calloc(fallback_len, sizeof(float));
 			float* tempaxis = calloc(fallback_len, sizeof(float));
 			if (temp == NULL || tempaxis == NULL) {
@@ -113,11 +114,12 @@ Config get_global_min_max(int argc, char* argv[], Config config, const char* dty
 			free(temp);
 			free(tempaxis);
 		}
-		float newres = (newmax - newmin) / (float) templen;
-
 		if (newmin < minval) { minval = newmin; }
 		if (newmax > maxval) { maxval = newmax; }
-		if (newres < minres) { minres = newres; }
+		if (templen > 1 && newmax > newmin) {
+			const float newres = (newmax - newmin) / (float)(templen - 1);
+			if (isfinite(newres) && (minres == 0 || newres < minres)) { minres = newres; }
+		}
 
 	}
 
@@ -161,10 +163,22 @@ void make_grid(int argc, char *argv[], Config config, const char *dtype, const c
 		minval = config.minmz;
 		maxval = config.maxmz;
 		binval = config.mzres;
+		if (maxval < minval || (maxval > minval && binval <= 0)) {
+			fprintf(stderr, "Unable to determine m/z grid spacing from processed spectra\n");
+			exit(1);
+		}
 	}
 	printf("Template: %f to %f by %f\n", minval, maxval, binval);
 
-	int mlen = 1 + (int)((maxval - minval) / binval);
+	int mlen = 1;
+	if (maxval != minval) {
+		float intervals = (maxval - minval) / binval;
+		if (strcmp(dtype, "/processed_data") == 0) {
+			// Keep the last point when the inferred spacing rounds up.
+			intervals = nextafterf(intervals, INFINITY);
+		}
+		mlen += (int)intervals;
+	}
 
 	float *massgrid = NULL;
 	float *massaxis = NULL;
@@ -193,6 +207,7 @@ void make_grid(int argc, char *argv[], Config config, const char *dtype, const c
 		strjoin(dataset, dtype, outdat);
 
 		int templen = mh5getfilelength(config.file_id, outdat);
+		if (templen < 1) { continue; }
 
 		float *temp = NULL;
 		float *tempaxis = NULL;

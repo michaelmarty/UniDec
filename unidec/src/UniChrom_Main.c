@@ -225,20 +225,27 @@ static int make_sensitivity_UniChrom(float *sensitivity,
 
 static int make_kernel_fft_UniChrom(fftwf_complex *kernel_fft,
                                     UniChromFFT *context, const int size[3],
-                                    const float *mz_axis,
-                                    const Config config)
+                                    const float *mz_axis, const Config config)
 {
-    /* Reproduce the charge-zero plane of make_kernel3D_UCCD: the m/z
-     * corner-image sum from MakeKernel2D and the periodic scan peak. Using
-     * PeakDist preserves its zero-width and asymmetric peak-shape behavior.
+    /* Truncate each m/z image separately before summing them. Like the
+     * direct kernel, include target - source offsets in (-window, window].
      * Build the m/z row first, then copy it backwards so scan zero is last. */
+    const float window = mz_kernel_window_UniChrom(&config);
+    const float mz_width = fabsf(config.mzsig);
+    const float mz_start = mz_axis[0];
     const float mz_end = 2 * mz_axis[size[0] - 1] - mz_axis[size[0] - 2];
     for (int mz = 0; mz < size[0]; mz++) {
-        context->real_work[mz] =
-            PeakDist(mz_axis[0], mz_axis[mz], 0, 0, config.mzsig, 0,
-                     config.psfun, config.zpsfun) +
-            PeakDist(mz_end, mz_axis[mz], 0, 0, config.mzsig, 0,
-                     config.psfun, config.zpsfun);
+        const float target = mz_axis[mz];
+        float weight = 0;
+        if (target - mz_start <= window) {
+            weight += PeakDist(mz_start, target, 0, 0, mz_width, 0,
+                               config.psfun, config.zpsfun);
+        }
+        if (mz_end - target < window) {
+            weight += PeakDist(mz_end, target, 0, 0, mz_width, 0,
+                               config.psfun, config.zpsfun);
+        }
+        context->real_work[mz] = weight;
     }
     for (int scan = context->padded_scan_count - 1; scan >= 0; scan--) {
         const float scan_peak = context->padded_scan_count == 1 ? 1.0f :

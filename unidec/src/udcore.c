@@ -387,17 +387,35 @@ void midblur_baseline(float *baseline, const int lengthmz, const float *dataMZ, 
 //...............
 
 
+static inline void convolution_source_bounds(const int target, const int lengthmz,
+                                             const int maxlength, const int variablepw,
+                                             int *start, int *end) {
+    if (!variablepw) { return; }
+
+    // A wider source row can reach this target even when the target's own
+    // window misses that source. Keep existing reflected boundary samples.
+    const int radius = maxlength - 1;
+    if (*start > 0) { *start = target > radius ? target - radius : 0; }
+    if (*end < lengthmz - 1) {
+        *end = radius < lengthmz - 1 - target ? target + radius : lengthmz - 1;
+    }
+}
+
+
 void convolve_simp(const int lengthmz, const int maxlength, const int *__restrict starttab,
                    const int *__restrict endtab, const float *__restrict mzdist,
-                   const float *__restrict deltas, float *__restrict denom, const int speedyflag) {
+                   const float *__restrict deltas, float *__restrict denom, const int speedyflag,
+                   const int variablepw) {
     // Keep float products and use extra precision for the sums so SIMD
     // reduction order has less effect on the float result.
     if (speedyflag == 0) {
         #pragma omp parallel for schedule(static)
         for (int i = 0; i < lengthmz; i++) {
             double cv = 0;
+            int start = starttab[i], end = endtab[i];
+            convolution_source_bounds(i, lengthmz, maxlength, variablepw, &start, &end);
             #pragma omp simd reduction(+:cv)
-            for (int k = starttab[i]; k <= endtab[i]; k++) {
+            for (int k = start; k <= end; k++) {
                 const int k2 = fixk(k, lengthmz);
                 const int offset = i - starttab[k2];
                 if (offset >= 0 && offset < maxlength) {
@@ -517,7 +535,8 @@ float deconvolve_iteration_speedy(const Config *config, Decon *decon, IntraDecon
     //printf("2\n");
     if (mzsig != 0 && psig >= 0) {
         //Convolve with peak shape
-        convolve_simp(lengthmz, maxlength, decon->starttab, decon->endtab, decon->mzdist, deltas, denom, speedyflag);
+        convolve_simp(lengthmz, maxlength, decon->starttab, decon->endtab, decon->mzdist, deltas, denom, speedyflag,
+                      config->variablepw);
     } else {
         memcpy(denom, deltas, sizeof(float) * lengthmz);
     }
@@ -537,14 +556,15 @@ float deconvolve_iteration_speedy(const Config *config, Decon *decon, IntraDecon
     //printf("5\n");
     if (mzsig < 0) {
         //Real Richardson-Lucy Second Convolution
-        convolve_simp(lengthmz, maxlength, decon->starttab, decon->endtab, decon->rmzdist, denom, deltas, speedyflag);
+        convolve_simp(lengthmz, maxlength, decon->starttab, decon->endtab, decon->rmzdist, denom, deltas, speedyflag,
+                      config->variablepw);
         memcpy(denom, deltas, sizeof(float) * lengthmz);
         /*
         for (i = 0; i<lengthmz; i++)
         {
             deltas[lengthmz - 1 - i] = denom[i];
         }
-        convolve_simp(lengthmz, maxlength, starttab, endtab, mzdist, deltas, denom, speedyflag);
+        convolve_simp(lengthmz, maxlength, starttab, endtab, mzdist, deltas, denom, speedyflag, config->variablepw);
         for (i = 0; i<lengthmz; i++)
         {
             deltas[lengthmz - 1 - i] = denom[i];
@@ -632,9 +652,9 @@ void softmax_peakwidth(const Config config, const Decon decon, float *blur, cons
     }
 
     convolve_simp(lengthmz, decon.maxlength, decon.starttab, decon.endtab, decon.mzdist, exps, localsums,
-                  config.speedyflag);
+                  config.speedyflag, config.variablepw);
     convolve_simp(lengthmz, decon.maxlength, decon.starttab, decon.endtab, decon.mzdist, deltas, convdeltas,
-                  config.speedyflag);
+                  config.speedyflag, config.variablepw);
 
     # pragma omp parallel for schedule(auto)
     for (int i = 0; i < lengthmz; i++) {
@@ -996,10 +1016,10 @@ void point_smoothing_to_scratch(const float *blur, float *scratch, float *sums, 
 
 
 
-float getfitdatspeedy(float *fitdat, const float *blur, const int lengthmz, const int numz,
+static float getfitdatspeedy(float *fitdat, const float *blur, const int lengthmz, const int numz,
                       const int maxlength, const float maxint,
                       const int *starttab,
-                      const int *endtab, const float *mzdist, const int speedyflag) {
+                      const int *endtab, const float *mzdist, const int speedyflag, const int variablepw) {
 
     float *deltas = NULL;
     deltas = (float *) calloc(lengthmz, sizeof(float));
@@ -1019,7 +1039,7 @@ float getfitdatspeedy(float *fitdat, const float *blur, const int lengthmz, cons
     }
 
     if (maxlength != 0) {
-        convolve_simp(lengthmz, maxlength, starttab, endtab, mzdist, deltas, fitdat, speedyflag);
+        convolve_simp(lengthmz, maxlength, starttab, endtab, mzdist, deltas, fitdat, speedyflag, variablepw);
     } else {
         memcpy(fitdat, deltas, sizeof(float) * lengthmz);
     }
@@ -1047,7 +1067,8 @@ float errfunspeedy(Config config, Decon decon, const float *dataInt, float *rsqu
     }
 
     const float fitmax = getfitdatspeedy(decon.fitdat, decon.blur, config.lengthmz, config.numz, decon.maxlength,
-                                         maxint, decon.starttab, decon.endtab, decon.mzdist, config.speedyflag);
+                                         maxint, decon.starttab, decon.endtab, decon.mzdist,
+                                         config.speedyflag, config.variablepw);
     *fitdatnorm = fitmax != 0 ? maxint / fitmax : 1;
 
     if (config.baselineflag == 1) {
@@ -1269,26 +1290,23 @@ void MakeSparseBlur(const int numclose, char *barr, const int *closezind,
 }
 
 
-void MakePeakShape2D(const Config config, Decon *decon, const Input *inp, const int makereverse, const int inflateflag) {
-    float default_mzsig = fabsf(config.mzsig);
-    if (inflateflag == 1) {
-        default_mzsig *= config.peakshapeinflate;
-    }
+static float mz_kernel_width(const Config *config, const Input *inp, const int i) {
+    const float default_width = fabsf(config->mzsig);
+    if (config->variablepw == 0) { return default_width; }
+
+    // The input array contains FWHM in m/z, even for a Gaussian.
+    float width = inp->fwhmlist[i];
+    if (config->psfun == 0) { width /= 2.35482f; }
+    if (config->variablepw == 2) { width = fminf(width, default_width); }
+    return width;
+}
+
+static void MakePeakShape2D(const Config config, Decon *decon, const Input *inp, const int makereverse) {
     int maxlength = decon->maxlength;
 
     #pragma omp parallel for
     for (int i = 0; i < config.lengthmz; i++) {
-        float mzsig = default_mzsig;
-        if (config.variablepw == 1) {
-            mzsig = inp->fwhmlist[i];
-            // printf("Using Variable Peak Width %f\n", mzsig);
-        }
-        else if (config.variablepw == 2) {
-            mzsig = inp->fwhmlist[i];
-            if (mzsig > config.mzsig) {
-                mzsig = config.mzsig;
-            }
-        }
+        const float mzsig = mz_kernel_width(&config, inp, i);
 
         int start = decon->starttab[i];
         int end = decon->endtab[i];
@@ -1302,14 +1320,11 @@ void MakePeakShape2D(const Config config, Decon *decon, const Input *inp, const 
     }
 }
 
-void MakePeakShape1D(const Config config, Decon * decon, const float *dataMZ, const int makereverse, const int inflateflag, const int silent) {
+static void MakePeakShape1D(const Config config, Decon *decon, const float *dataMZ, const int makereverse, const int silent) {
     float binsize = dataMZ[1] - dataMZ[0];
     float newrange = config.psmzthresh / binsize;
 
-    float mzsig = fabsf(config.mzsig);
-    if (inflateflag == 1) {
-        mzsig *= config.peakshapeinflate;
-    }
+    const float mzsig = fabsf(config.mzsig);
 
     for (int n = (int) -newrange; n < (int) newrange; n++) {
         decon->mzdist[indexmod(config.lengthmz, 0, n)] = mzpeakshape(0, (float) n * binsize, mzsig, config.psfun);
@@ -1324,22 +1339,8 @@ void MakePeakShape1D(const Config config, Decon * decon, const float *dataMZ, co
 int SetStartsEnds(const Config config, const Input *inp, int *starttab, int *endtab) {
     int maxlength = 1;
     for (int i = 0; i < config.lengthmz; i++) {
-        float window;
-        if (config.variablepw == 0) {
-            window = config.psmzthresh;
-        }
-        else if (config.variablepw ==2) {
-            float localmzsig =  inp->fwhmlist[i];
-            if (localmzsig > config.psmzthresh) {
-                window = config.psmzthresh;
-            }
-            else {
-                window = localmzsig * config.psthresh * config.peakshapeinflate;
-            }
-        }
-        else {
-            window = inp->fwhmlist[i] * config.psthresh * config.peakshapeinflate;
-        }
+        const float window = config.variablepw == 0 ? config.psmzthresh :
+            mz_kernel_width(&config, inp, i) * config.psthresh;
         float point = inp->dataMZ[i] - window;
 
         int start, end;
@@ -1410,11 +1411,11 @@ int SetUpPeakShape(Config config, Input inp, Decon *decon, const int silent, con
 
         if (config.speedyflag == 0) {
             if (verbose == 1) { printf("Making Peak Shape 2D\n"); }
-            MakePeakShape2D(config, decon, &inp, makereverse, 1);
+            MakePeakShape2D(config, decon, &inp, makereverse);
         } else {
             if (verbose == 1) { printf("Making Peak Shape 1D\n"); }
             //Calculates peak shape as a 1D list centered at the first element for circular convolutions
-            MakePeakShape1D(config, decon, inp.dataMZ, makereverse, 0, silent);
+            MakePeakShape1D(config, decon, inp.dataMZ, makereverse, silent);
         }
         if (silent == 0) { printf("mzdist set: %f\t maxlength: %d\n", decon->mzdist[0], maxlength); }
     } else {
@@ -1527,10 +1528,12 @@ float Reconvolve(const Config config, Decon *decon, const char *barr) {
     if (config.speedyflag == 0) {
         #pragma omp parallel for schedule(auto) reduction(max:newblurmax)
         for (int i = 0; i < config.lengthmz; i++) {
+            int start = decon->starttab[i], end = decon->endtab[i];
+            convolution_source_bounds(i, config.lengthmz, maxlength, config.variablepw, &start, &end);
             for (int j = 0; j < config.numz; j++) {
                 float cv = 0;
                 if (barr[index2D(config.numz, i, j)] == 1) {
-                    for (int k = decon->starttab[i]; k <= decon->endtab[i]; k++) {
+                    for (int k = start; k <= end; k++) {
                         int k2 = fixk(k, config.lengthmz);
                         const int offset = i - decon->starttab[k2];
                         if (offset >= 0 && offset < maxlength && decon->blur[index2D(config.numz, k2, j)] != 0) {

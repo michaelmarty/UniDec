@@ -29,6 +29,12 @@ typedef struct IterationTimings {
 	double convergence;
 } IterationTimings;
 
+typedef enum {
+	SETUP_READY,
+	SETUP_EMPTY,
+	SETUP_INVALID
+} DeconSetup;
+
 static double IterationWallTime(void) {
 #ifdef _OPENMP
 	return omp_get_wtime();
@@ -79,17 +85,17 @@ void SetupInputs(const Config config, Input *inp, const int verbose){
 }
 
 
-int SetupDeconvolution(const Config config, const Input inp, Decon *decon, IntraDecon *intra, const int silent)
+DeconSetup SetupDeconvolution(const Config config, const Input inp, Decon *decon, IntraDecon *intra, const int silent)
 {
 	if (config.variablepw != 0) {
 		if (inp.fwhmlist == NULL) {
 			fprintf(stderr, "Variable peak width requires one FWHM value per m/z point.\n");
-			return 1;
+			return SETUP_INVALID;
 		}
 		for (int i = 0; i < config.lengthmz; i++) {
 			if (!isfinite(inp.fwhmlist[i]) || inp.fwhmlist[i] <= 0) {
 				fprintf(stderr, "Invalid FWHM value at index %d: %g.\n", i, inp.fwhmlist[i]);
-				return 1;
+				return SETUP_INVALID;
 			}
 		}
 	}
@@ -218,12 +224,11 @@ int SetupDeconvolution(const Config config, const Input inp, Decon *decon, Intra
 	if (dmax > 1) { intra->betafactor=dmax; }
 
 	// Final check that there are actually possible data in the set
-	int badness = 1;
-	for (int i = 0; i < config.lengthmz * config.numz; i++)
+	for (int i = 0; i < intra->ln; i++)
 	{
-		if (intra->barr[i] == 1) { badness = 0; break;}
+		if (intra->barr[i] == 1) { return SETUP_READY; }
 	}
-	return badness;
+	return SETUP_EMPTY;
 }
 
 int CheckConvergence(const Config *config, Decon * decon, IntraDecon *intra, int iterations, const int silent) {
@@ -316,20 +321,6 @@ void SetupOutputs(const Config config, Decon * decon, const IntraDecon intra, co
 	//     Setting up the outputs
 	//
 	//...............................................................
-
-	//Reset the peak shape if it was inflated
-	if (config.peakshapeinflate != 1 && config.mzsig != 0) {
-		if (config.speedyflag == 0)
-		{
-			MakePeakShape2D(config, decon, &inp, 0, 0);
-		}
-		else
-		{
-			MakePeakShape1D(config, decon, inp.dataMZ, 0, 0, silent);
-		}
-		if (silent == 0) { printf("mzdist reset: %f\n", config.mzsig); }
-	}
-
 
 	//Determine the maximum intensity in the blur matrix
 	float blurmax = Max(decon->blur, config.lengthmz * config.numz);
@@ -491,7 +482,7 @@ void SetupOutputs(const Config config, Decon * decon, const IntraDecon intra, co
 		}
 
 		// Run DoubleDec if it's checked
-		if (config.doubledec) { // Use Python to confirm kernel file is selected
+		if (config.doubledec && blurmax > 0) { // Use Python to confirm kernel file is selected
 			printf("Running DoubleDec now\n");
 			DoubleDecon(&config, decon);
 		}
@@ -508,14 +499,15 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 	Decon decon = InitDecon();
 	IntraDecon intra = InitIntraDecon();
 
-	int badness = SetupDeconvolution(config, inp, &decon, &intra, silent);
+	const DeconSetup setup = SetupDeconvolution(config, inp, &decon, &intra, silent);
 
-	// If badness found, abort
-	if (badness == 1) {
-		if (silent == 0) { printf("ERROR: Setup is bad. No points are allowed.\n Check that either mass smoothing, charge smoothing, manual assignment, or isotope mode are on.\n"); };
+	if (setup == SETUP_INVALID) {
 		decon = ExitToBlank(config, decon);
 		FreeIntraDecon(intra);
 		return(decon);
+	}
+	if (setup == SETUP_EMPTY && silent == 0) {
+		printf("No m/z-charge points remain after smoothing setup and intensity filtering. Writing blank outputs.\n");
 	}
 
 	//Run the iteration
@@ -526,7 +518,8 @@ Decon MainDeconvolution(const Config config, const Input inp, const int silent)
 
 	if (silent == 0) { printf("Iterating..."); }
 
-	const int max_iterations = abs(config.numit);
+	// The initialized zero grids still need fit and mass outputs.
+	const int max_iterations = setup == SETUP_EMPTY ? 0 : abs(config.numit);
 	const int final_convergence_start = 9 * max_iterations / 10;
 	IterationTimings timings = {0};
 	IterationTimings *timing_ptr = silent == 0 ? &timings : NULL;

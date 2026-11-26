@@ -141,7 +141,8 @@ class ChromWindow(mainwindow_base.MainwindowBase):
         figsize = (4.99, 4)
         self.plotc = PlottingWindow.Plot1d(plotwindow, figsize=figsize)  # Chromatogram
         self.plotm = PlottingWindow.Plot1d(plotwindow, figsize=figsize)  # Selection from chromatogram
-        self.plot1 = PlottingWindow.Plot1d(plotwindow, smash=1, figsize=figsize)  # MUD Plot 1 m/z cascade
+        self.plot1 = PlottingWindow.Plot1d(plotwindow, smash=1, figsize=figsize,
+                                           axes=[0.2, 0.2, 0.75, 0.71])  # MUD Plot 1 m/z cascade
         self.plot2 = PlottingWindow.Plot1d(plotwindow, figsize=figsize,
                                            axes=[0.11, 0.11, 0.86, 0.8])  # MUD Deconvolved Data
         self.plot7 = PlottingWindow.Plot1d(plotwindow, figsize=figsize)  # MUD Extraction

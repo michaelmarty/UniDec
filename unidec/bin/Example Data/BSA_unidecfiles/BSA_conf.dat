@@ -49,7 +49,6 @@ nativezub 1000.0
 nativezlb -1000.0
 poolflag 2
 accvol 0.0
-peakshapeinflate 1.0
 noiseflag 0
 linflag 2
 cmap nipy_spectral

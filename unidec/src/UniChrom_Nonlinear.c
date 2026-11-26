@@ -189,7 +189,7 @@ static size_t count_mz_edges_UC(const UCRaggedData *data,
         return (size_t)interpolation_neighbors_UC(axis, length, target_mz,
                                                    indexes, weights);
     }
-    const float window = config.psmzthresh > 0 ? config.psmzthresh : 6 * fabsf(config.mzsig);
+    const float window = mz_kernel_window_UniChrom(&config);
     const int begin = lower_bound_UC(axis, length, target_mz - window);
     const int end = lower_bound_UC(axis, length, target_mz + window);
     return end > begin ? (size_t)(end - begin) : 0;
@@ -199,6 +199,7 @@ static size_t count_mz_edges_UC(const UCRaggedData *data,
 static size_t write_mz_edges_UC(const UCRaggedData *data,
                                 const int source_scan, const float target_mz,
                                 const float time_weight, const Config config,
+                                const float mz_width,
                                 int *indices, float *weights)
 {
     const int first = data->scan_offsets[source_scan];
@@ -214,14 +215,13 @@ static size_t write_mz_edges_UC(const UCRaggedData *data,
         }
         return (size_t)count;
     }
-    const float window = config.psmzthresh > 0 ? config.psmzthresh : 6 * fabsf(config.mzsig);
+    const float window = mz_kernel_window_UniChrom(&config);
     const int begin = lower_bound_UC(axis, length, target_mz - window);
     const int end = lower_bound_UC(axis, length, target_mz + window);
     size_t written = 0;
     for (int source = begin; source < end; source++) {
         const float weight = time_weight * mzpeakshape(
-            axis[source], target_mz,
-            fabsf(config.mzsig) * config.peakshapeinflate, config.psfun);
+            axis[source], target_mz, mz_width, config.psfun);
         if (weight > 0 && isfinite(weight)) {
             indices[written] = first + source;
             weights[written++] = weight;
@@ -237,6 +237,7 @@ static int build_direct_operator_UC(const UCRaggedData *data,
 {
     memset(op, 0, sizeof(*op));
     op->length = data->point_count;
+    const float mz_width = fabsf(config.mzsig);
     const double padding_value = config.UCtype == 1 ? 0 : ceil(3.0 * config.dtsig);
     if (padding_value > (INT_MAX - data->scan_count) / 2.0) { return 0; }
     const int padding = (int)padding_value;
@@ -314,14 +315,16 @@ static int build_direct_operator_UC(const UCRaggedData *data,
                 data->scan_count, target_scan, source_scan)];
             if (!(time_weight > 0)) { continue; }
             edge += write_mz_edges_UC(data, source_scan, data->mz[target_point],
-                                      time_weight, config,
+                                      time_weight, config, mz_width,
                                       op->indices + edge, op->weights + edge);
         }
         op->offsets[target_point + 1] = edge;
     }
     op->edge_count = op->offsets[op->length];
+    free(time_weights);
+
     op->transpose_offsets = calloc((size_t)op->length + 1, sizeof(size_t));
-    if (op->transpose_offsets == NULL) { free(time_weights); return 0; }
+    if (op->transpose_offsets == NULL) { return 0; }
     for (size_t edge = 0; edge < op->edge_count; edge++) {
         op->transpose_offsets[op->indices[edge] + 1]++;
     }
@@ -334,7 +337,7 @@ static int build_direct_operator_UC(const UCRaggedData *data,
     op->sensitivity = calloc((size_t)op->length, sizeof(float));
     if (op->transpose_indices == NULL || op->transpose_weights == NULL ||
         positions == NULL || op->sensitivity == NULL) {
-        free(time_weights); free(positions); return 0;
+        free(positions); return 0;
     }
     memcpy(positions, op->transpose_offsets, (size_t)op->length * sizeof(size_t));
     for (int row = 0; row < op->length; row++) {
@@ -347,7 +350,6 @@ static int build_direct_operator_UC(const UCRaggedData *data,
         }
     }
     free(positions);
-    free(time_weights);
     for (int i = 0; i < op->length; i++) {
         if (!(op->sensitivity[i] > 0) || op->offsets[i] == op->offsets[i + 1]) {
             fprintf(stderr, "Nonlinear UniChrom response has an unsupported m/z point\n");

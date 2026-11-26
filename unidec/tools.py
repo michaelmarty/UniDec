@@ -2136,7 +2136,7 @@ def makeconvspecies(processed_data, pks, config):
     if config.mzsig == 0:
         stickdat = [sticks_only(p.mztab, xvals) for p in pks.peaks]
     else:
-        if config.linflag != 2:
+        if config.linflag in (0, 3):
             peakwidth = config.mzsig / config.mzbins
             kernel = conv_peak_shape_kernel(xvals, config.psfun, peakwidth)
             stickdat = [stickconv(p.mztab, kernel) for p in pks.peaks]
@@ -2158,9 +2158,9 @@ def makeconvspecies(processed_data, pks, config):
 def nonlinstickconv(xvals, mztab, fwhm, psfun):
     """
     Python-based Nonlinear convolution. First makes a stick spectrum. Then, convolved with peak shape kernel.
-    :param xvals: x-axis
+    :param xvals: Sorted m/z axis
     :param mztab: mztab from make_peaks_mztab
-    :param fwhm: Full width half max
+    :param fwhm: Full width half max in m/z
     :param psfun: Peak shape function integer
     :return: Convolved output
     """
@@ -2171,10 +2171,12 @@ def nonlinstickconv(xvals, mztab, fwhm, psfun):
     xlen = len(xvals)
     stick = np.zeros(xlen)
     stick[np.array(mztab[:, 2]).astype(int)] = mztab[:, 1]
-    bool1 = [np.abs(xvals - xvals[i]) < window for i in range(0, xlen)]
-    kernels = np.array([make_peak_shape(-xvals[bool1[i]], psfun, fwhm, -xvals[i]) for i in range(0, xlen)],
-                       dtype=object)
-    output = np.array([np.sum(kernels[i] * stick[bool1[i]]) for i in range(0, xlen)])
+    output = np.zeros(xlen)
+    for index in np.flatnonzero(stick):
+        center = xvals[index]
+        start = np.searchsorted(xvals, center - window, side="right")
+        stop = np.searchsorted(xvals, center + window, side="left")
+        output[start:stop] += stick[index] * make_peak_shape(xvals[start:stop], psfun, fwhm, center)
     return output
 
 

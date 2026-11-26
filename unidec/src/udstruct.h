@@ -151,7 +151,7 @@ struct Config {
     int poolflag;
     int manualflag;
     float intthresh;
-    float peakshapeinflate;
+    float reserved_peakshape; // Preserve the shared-library Config layout.
     int fixedmassaxis;
     int isotopemode;
     int filetype;

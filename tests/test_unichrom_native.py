@@ -22,7 +22,7 @@ def write_input(path, scans=5, charges=4, wide_mz=False, mz_points=None,
         zzsig=0., msig=0., psig=0., beta=0.,
         masslb=-2008., massub=-4040., massbins=1., adductmass=0.,
         nativezlb=-100., nativezub=100., intthresh=0., molig=1.,
-        UClineardecon=1, UCtype=0, poolflag=0,
+        UClineardecon=1, UCtype=0, poolflag=0, psthresh=6.,
         minmz=0., maxmz=2000., mzbins=0., subbuff=0., reductionpercent=0.,
     )
     if charges == 1:
@@ -101,8 +101,12 @@ def cube_reference(initial, mz, config):
     padding = int(np.ceil(3 * dtsig))
     padded_scans = len(initial) + 2 * padding
     t = np.arange(padded_scans, dtype=float)
-    km = peak(mz[0], mz, mzsig, config["psfun"])
-    km += peak(2 * mz[-1] - mz[-2], mz, mzsig, config["psfun"])
+    window = config["psthresh"] * abs(mzsig)
+    if window <= 0:
+        window = 6 * abs(mzsig)
+    mz_end = 2 * mz[-1] - mz[-2]
+    km = np.where(mz - mz[0] <= window, peak(mz[0], mz, mzsig, config["psfun"]), 0)
+    km += np.where(mz_end - mz < window, peak(mz_end, mz, mzsig, config["psfun"]), 0)
     kt = peak(0, t, dtsig, config["psfun"]) + peak(len(t), t, dtsig, config["psfun"])
     kernel = np.zeros((padded_scans, len(mz), len(charges)))
     kernel[:, :, 0] = kt[:, None] * km
@@ -240,6 +244,85 @@ class TestUniChromNative(unittest.TestCase):
                 self.assertIn("charge-resolved per-scan outputs", result.stderr)
                 self.assertNotIn("iterating", result.stdout)
 
+    def test_linear_grid_preserves_fwhm_at_different_mz_spacings(self):
+        fwhm = 4.0
+        center = 1000.0
+        with tempfile.TemporaryDirectory() as directory:
+            # The last case has a rounded spacing that can lose the endpoint.
+            for half_span, points in ((16, 129), (16, 33), (16.0625, 127)):
+                with self.subTest(half_span=half_span, points=points):
+                    path = Path(directory, "impulse.hdf5")
+                    write_input(path, scans=1, charges=1, mzsig=fwhm, numit=0, rawflag=0)
+                    mz = np.linspace(center - half_span, center + half_span, points, dtype=np.float32)
+                    # A flat pedestal keeps preprocessing and the output mask
+                    # from dropping bins around the impulse.
+                    intensity = np.full_like(mz, 0.01)
+                    intensity[mz == center] += 1
+                    with h5py.File(path, "a") as hdf:
+                        del hdf["ms_dataset/0/raw_data"]
+                        hdf["ms_dataset/0/raw_data"] = np.column_stack((mz, intensity))
+
+                    self.run_native(path)
+                    with h5py.File(path, "r") as hdf:
+                        axis = hdf["ms_dataset/mz_axis"][:]
+                        profile = hdf["ms_dataset/mz_grid"][:]
+
+                    np.testing.assert_allclose(axis, mz, rtol=0, atol=np.spacing(mz[-1]))
+                    self.assertEqual(axis[profile.argmax()], center)
+                    profile -= profile[0]
+                    half_height = profile.max() / 2
+                    above_half = np.flatnonzero(profile >= half_height)
+                    first, last = above_half[0], above_half[-1]
+                    left = np.interp(half_height, profile[first - 1:first + 1], axis[first - 1:first + 1])
+                    right = np.interp(half_height, profile[[last + 1, last]], axis[[last + 1, last]])
+                    self.assertAlmostEqual(right - left, fwhm, delta=0.005)
+
+    def test_legacy_peak_shape_inflation_is_ignored(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory, "legacy.hdf5")
+            for mode in (0, 1):
+                with self.subTest(mode=mode):
+                    settings = dict(UClineardecon=mode, nonlinear_mz=mode == 0,
+                                    mzsig=1.2, rawflag=0)
+                    write_input(path, **settings)
+                    self.run_native(path)
+                    with h5py.File(path, "r") as hdf:
+                        base = hdf["ms_dataset/mz_grid"][:]
+
+                    write_input(path, peakshapeinflate=2., **settings)
+                    self.run_native(path)
+                    with h5py.File(path, "r") as hdf:
+                        np.testing.assert_allclose(hdf["ms_dataset/mz_grid"][:], base,
+                                                   rtol=1e-5, atol=1e-6)
+
+    def test_lorentzian_tails_respect_mz_cutoff(self):
+        center = 1000.
+        fwhm = 2.
+        cases = ((0.5, 2., 4.), (1., 2., 4.), (1., 0., 12.))
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory, "lorentzian.hdf5")
+            for spacing, psthresh, window in cases:
+                with self.subTest(spacing=spacing, psthresh=psthresh):
+                    offsets = np.arange(-16., 16. + spacing, spacing, dtype=np.float32)
+                    intensity = np.full_like(offsets, 1e-7)
+                    intensity[offsets == 0] += 1
+                    raw = np.column_stack((center + offsets, intensity))
+                    expected = np.where((offsets > -window) & (offsets <= window),
+                                        1 / (1 + (offsets / (fwhm / 2)) ** 2), 0)
+                    write_input(path, scans=1, charges=1,
+                                mzsig=fwhm, psfun=1, psthresh=psthresh,
+                                numit=0, rawflag=0)
+                    with h5py.File(path, "a") as hdf:
+                        del hdf["ms_dataset/0/raw_data"]
+                        hdf["ms_dataset/0/raw_data"] = raw
+                    self.run_native(path)
+                    with h5py.File(path, "r") as hdf:
+                        axis = hdf["ms_dataset/mz_axis"][:]
+                        profile = hdf["ms_dataset/mz_grid"][:]
+                    np.testing.assert_array_equal(axis, raw[:, 0])
+                    profile /= profile[offsets == 0][0]
+                    np.testing.assert_allclose(profile, expected, rtol=1e-5, atol=1e-6)
+
     def test_nonlinear_direct_mode_matches_linearized_outputs(self):
         case = dict(scans=4, charges=5, wide_mz=True, mz_points=128,
                     nonlinear_mz=True, mzsig=15., numit=-8, rawflag=0,
@@ -282,7 +365,7 @@ class TestUniChromNative(unittest.TestCase):
                         self.assertLess(abs(direct_grid.sum() / linear_grid.sum() - 1), .02)
                     return linear_axis, direct_axis
 
-                compare_grid("mz")
+                linear_mz, _ = compare_grid("mz")
                 linear_mass, direct_mass = compare_grid("mass")
                 with h5py.File(baseline_path, "r") as baseline:
                     baseline_total = baseline["ms_dataset/mz_grid"][:].sum()
@@ -291,7 +374,11 @@ class TestUniChromNative(unittest.TestCase):
                     self.assertLess(abs(total / baseline_total - 1), .02)
                 linear_peak = linear_mass[np.argmax(linear["ms_dataset/mass_sum"][:])]
                 direct_peak = direct_mass[np.argmax(direct["ms_dataset/mass_sum"][:])]
-                self.assertLessEqual(abs(linear_peak - direct_peak), case["massbins"])
+                # The common m/z grid limits apex sampling in mass. The
+                # fixture's highest charge is charges + 1 because it starts at 2.
+                mass_step = (linear_mz[1] - linear_mz[0]) * (case["charges"] + 1)
+                tolerance = max(case["massbins"], mass_step)
+                self.assertLessEqual(abs(linear_peak - direct_peak), tolerance)
                 self.assertEqual(linear["config"].attrs["gridsflag"], 1)
                 self.assertEqual(direct["config"].attrs["gridsflag"], 1)
 
@@ -392,7 +479,7 @@ class TestUniChromNative(unittest.TestCase):
         cases = [dict(psfun=shape, rawflag=rawflag, datanorm=norm)
                  for shape in range(3) for rawflag in range(4) for norm in range(2)]
         cases += [dict(scans=1), dict(scans=1, zzsig=1.),
-                  dict(charges=1), dict(mzsig=0.),
+                  dict(charges=1), dict(mzsig=0.), dict(psfun=1, psthresh=1.75),
                   dict(scans=4, charges=3), dict(dtsig=.05),
                   dict(unichromzeropad=1),
                   dict(charges=7, rawflag=0),

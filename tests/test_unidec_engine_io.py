@@ -27,6 +27,29 @@ class TestUniDecFileValidation(unittest.TestCase):
 
 
 class TestUniDecConfigSerialization(unittest.TestCase):
+    def test_legacy_peak_shape_inflation_is_dropped_on_export(self):
+        with tempfile.TemporaryDirectory() as directory:
+            text_path = Path(directory, "conf.dat")
+            text_path.write_text("mzsig 2.5\npeakshapeinflate 3\n", encoding="utf-8")
+            hdf_path = Path(directory, "config.hdf5")
+            with h5py.File(hdf_path, "w") as hdf:
+                hdf.create_group("config").attrs.update(mzsig=2.5, peakshapeinflate=3)
+
+            config = UniDecConfig()
+            config.config_import(str(text_path))
+            self.assertEqual(config.mzsig, 2.5)
+            self.assertFalse(hasattr(config, "inflate"))
+            config.config_export(str(text_path))
+            self.assertNotIn("peakshapeinflate", text_path.read_text(encoding="utf-8"))
+
+            config = UniDecConfig()
+            config.read_hdf5(str(hdf_path))
+            self.assertEqual(config.mzsig, 2.5)
+            self.assertFalse(hasattr(config, "inflate"))
+            config.write_hdf5(str(hdf_path))
+            with h5py.File(hdf_path, "r") as hdf:
+                self.assertNotIn("peakshapeinflate", hdf["config"].attrs)
+
     conventional_text_scalar_keys = {
         "version", "imflag", "cdmsflag", "input", "output", "original_file",
         "numit", "numz", "endz", "startz", "zzsig", "psig", "beta",
@@ -38,7 +61,7 @@ class TestUniDecConfigSerialization(unittest.TestCase):
         "peakthresh", "normthresh", "peakplotthresh", "plotsep", "intthresh",
         "reductionpercent", "aggressive", "rawflag", "rescale_newblur",
         "adductmass", "nativezub", "nativezlb", "poolflag", "accvol",
-        "peakshapeinflate", "noiseflag", "linflag", "cmap", "peakcmap",
+        "noiseflag", "linflag", "cmap", "peakcmap",
         "spectracmap", "publicationmode", "isotopemode", "peaknorm", "datanorm",
         "baselineflag", "orbimode", "integratelb", "integrateub", "filterwidth",
         "zerolog", "doubledec", "centroided", "verbose", "variablepw", "minratio",
@@ -53,7 +76,7 @@ class TestUniDecConfigSerialization(unittest.TestCase):
         "subtype", "smooth", "mzbins", "peakwindow", "peakthresh", "normthresh",
         "peakplotthresh", "plotsep", "intthresh", "reductionpercent", "aggressive",
         "rawflag", "rescale_newblur", "adductmass", "nativezub", "nativezlb",
-        "poolflag", "accvol", "peakshapeinflate", "noiseflag", "linflag", "cmap",
+        "poolflag", "accvol", "noiseflag", "linflag", "cmap",
         "peakcmap", "spectracmap", "publicationmode", "isotopemode", "peaknorm",
         "datanorm", "baselineflag", "orbimode", "integratelb", "integrateub",
         "filterwidth", "zerolog", "manualfileflag", "mfileflag", "doubledec",

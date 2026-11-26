@@ -5,6 +5,7 @@
 #ifndef UNICHROM_MAIN_H
 #define UNICHROM_MAIN_H
 
+#include <math.h>
 #include "MetaUniDec_Main.h"
 
 /*
@@ -14,6 +15,11 @@
  * UClineardecon=0 keeps each processed m/z axis and uses direct convolution.
  */
 int run_chromatogram(int argc, char *argv[], Config config);
+
+static inline float mz_kernel_window_UniChrom(const Config *config)
+{
+    return config->psmzthresh > 0 ? config->psmzthresh : 6 * fabsf(config->mzsig);
+}
 
 int setup_blur_UniChrom(Config config, float *mz_axis, int mz_count,
                         const char *allowed, int batch_count, IntraDecon *intra);
