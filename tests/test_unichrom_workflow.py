@@ -11,6 +11,23 @@ from unidec.modules.unidecstructure import UniDecConfig
 
 
 class TestUniChromWorkflow(unittest.TestCase):
+    def test_legacy_outputs_are_discovered_without_redirecting_project_writes(self):
+        with tempfile.TemporaryDirectory(prefix="unichrom-legacy-outputs-") as directory:
+            root = Path(directory)
+            project = root / "sample.hdf5"
+            project.touch()
+            legacy_directory = root / "UniDec_Figures_and_Files"
+            legacy_directory.mkdir()
+            legacy_output = legacy_directory / "sample_report.html"
+            legacy_output.write_text("legacy", encoding="utf-8")
+
+            engine = ChromEngine()
+            engine.setup_filenames(str(project))
+
+            self.assertEqual(Path(engine.find_output_file("report.html")), legacy_output)
+            self.assertEqual(Path(engine.config.output_file("report.html")),
+                             root / "sample_unidecfiles" / "report.html")
+
     def test_unichrom_settings_round_trip_through_hdf5(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory, "config.hdf5")

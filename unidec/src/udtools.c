@@ -645,7 +645,12 @@ int nearunsorted2D(const float *testmasses, const float *testtimes, const float 
 // ............
 
 
-//Perform a linear interpolation. I've left the code for other interpolation functions below but they don't seem to matter.
+// Preserve the operation order used by the mass-grid interpolation.
+#if defined(_WIN32) && defined(__INTEL_LLVM_COMPILER)
+#pragma float_control(precise, on, push)
+#endif
+
+// Perform a linear interpolation.
 float LinearInterpolate(const float y1, const float y2, const float mu) {
     return (y1 * (1 - mu) + y2 * mu);
 }
@@ -665,6 +670,10 @@ float CubicInterpolate(const float y0, const float y1, const float y2, const flo
     const float a3 = y1;
     return (a0 * mu * mu2 + a1 * mu2 + a2 * mu + a3);
 }
+
+#if defined(_WIN32) && defined(__INTEL_LLVM_COMPILER)
+#pragma float_control(pop)
+#endif
 
 // Perform cubic spline interpolation
 float CRSplineInterpolate(const float y0, const float y1, const float y2, const float y3, const float mu) {

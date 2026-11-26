@@ -5,8 +5,8 @@
 #ifndef UNICHROM_MAIN_H
 #define UNICHROM_MAIN_H
 
+#include <math.h>
 #include "MetaUniDec_Main.h"
-#include "UCCD_Main.h"
 
 /*
  * config.dtsig is the chromatography peak width in scans (UCtype=0) or
@@ -15,6 +15,14 @@
  * UClineardecon=0 keeps each processed m/z axis and uses direct convolution.
  */
 int run_chromatogram(int argc, char *argv[], Config config);
+
+static inline float mz_kernel_window_UniChrom(const Config *config)
+{
+    return config->psmzthresh > 0 ? config->psmzthresh : 6 * fabsf(config->mzsig);
+}
+
+int setup_blur_UniChrom(Config config, float *mz_axis, int mz_count,
+                        const char *allowed, int batch_count, IntraDecon *intra);
 
 void transform_mass_grid_UniChrom(Config config, const float *cube,
                                   const float *mz_axis, int scan_count,

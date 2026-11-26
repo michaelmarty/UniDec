@@ -33,7 +33,12 @@ def score_minimum(height, minimum):
 
 
 class UniDec(UniDecEngine):
-    """Engine for conventional one-dimensional mass spectra."""
+    """Engine for conventional one-dimensional mass spectra.
+
+    Pass ``ignore_args=True`` in Python scripts to skip command-line parsing.
+    Open a spectrum before processing. Configuration, arrays, and peak objects
+    are available through ``config``, ``data``, and ``pks``, respectively.
+    """
 
     mode_imflag = 0
 
@@ -172,21 +177,28 @@ class UniDec(UniDecEngine):
 
     def open_file(self, file_name, file_directory=None, time_range=None, refresh=False, load_results=False,
                  isodeceng=None, simple_output=None, *args, **kwargs):
-        """
-        Open text or mzML file. Will create _unidecfiles directory if it does not exist.
+        """Open a spectrum using its format-specific importer.
 
-        If it finds a _conf.dat file in _unidecfiles, it will import the old configuration.
-        Otherwise, it keeps the existing configuration but resets file names.
+        Use a full path or pass a filename and its directory separately.
+        For scan-based files, pass ``time_range=(start, end)`` in retention-time
+        minutes to select the range to average. Selection follows the reader.
+        This resets data and peaks and uses a sibling ``_unidecfiles`` directory
+        by default. Existing processed data and configuration can be reused
+        unless ``refresh=True``. Pass ``load_results=True`` to import native
+        results and pick peaks from the working files.
 
-        If silent=True is passed in kwargs, prints are suppressed.
-        :param: file_name: Name of file to open.
-        May be in  x y or x y z text format or in mzML format. May be tab or space delimited
-        :param file_directory: Directory in which filename is located.
-        Default is current directory. If None, will get from file_name.
-        :param time_range: Array or tuple of (start, end) times to load from data file. Default is to load all.
-        :param refresh: If True, will refresh the data file even if it already exists.
-        :param load_results: If True, will load the results from the _unidecfiles directory.
-        :return: None
+        Returns
+        -------
+        numpy.ndarray
+            The working spectrum in ``data.data2``, with columns for m/z
+            and intensity. Contains the imported spectrum when no processed
+            spectrum was restored.
+
+        Raises
+        ------
+        ImportError
+            If the imported spectrum is empty. The importer can also raise
+            format-specific errors.
         """
         tstart = time.perf_counter()
         self.pks = peakstructure.Peaks()
@@ -346,12 +358,17 @@ class UniDec(UniDecEngine):
 
 
     def process_data(self, **kwargs):
-        """
-        Process data according to parameters in config.
+        """Prepare the opened spectrum for native deconvolution.
 
-        Checks certain parameters to make sure the limits make sense.
-        Will accept silent=True kwarg to suppress printing.
-        :return: None
+        Exports configuration, writes the processed m/z and intensity array
+        to the native input file, and stores it in ``data.data2``. Sets
+        ``config.procflag`` on success. Pass ``silent=True`` to hide timing.
+
+        Returns
+        -------
+        int or None
+            ``1`` if the configuration check rejects the run, otherwise
+            ``None`` on success.
         """
         tstart = time.perf_counter()
         self.export_config()
@@ -403,17 +420,27 @@ class UniDec(UniDecEngine):
 
 
     def run_unidec(self, silent=False, efficiency=False):
-        """
-        Runs unidec.
+        """Run the native UniDec executable and import its output on success.
 
-        Checks that everything is set to go and then calls the UniDec executable.
+        Process the opened spectrum first to check preprocessing separately.
+        The engine attempts preprocessing if ``config.procflag`` is clear.
+        The run exports configuration and clears previous peak and fit data.
+        Use ``silent=True`` to suppress routine output and ``efficiency=True``
+        to skip importing large outputs such as the fit and charge grids.
 
-        If successful, calls self.unidec_imports()
-        If not, prints the error code.
-        :param silent: If True, it will suppress printing the output from unidec
-        :param efficiency: Passed to self.unidec_imports()
-        :return: out (stdout from external unidec call)
+        Returns
+        -------
+        int
+            Zero on success or a nonzero validation or execution status.
+            Check ``last_run_diagnostic`` for diagnostic text when available.
+
+        Raises
+        ------
+        ValueError
+            If the native process succeeds but the mass output is invalid.
         """
+        self.last_run_diagnostic = None
+        self.last_run_stderr = ""
         # Check to make sure everything is in order
         if self.config.procflag == 0:
             print("Need to process data first. Processing...")
@@ -447,9 +474,9 @@ class UniDec(UniDecEngine):
         self.data.mzgrid = np.array([])
         tstart = time.perf_counter()
 
-        self.last_run_diagnostic = None
         out = ud.unidec_call(self.config, silent=silent)
         self.last_run_diagnostic = getattr(self.config, "last_native_diagnostic", None)
+        self.last_run_stderr = getattr(self.config, "last_native_stderr", "")
 
         tend = time.perf_counter()
         self.config.runtime = (tend - tstart)
@@ -538,9 +565,16 @@ class UniDec(UniDecEngine):
                 self.config.avgscore = float(r[2])
 
     def pick_peaks(self, calc_dscore=True):
-        """
-        Detect, Normalize, and Output Peaks
-        :return: None
+        """Find peaks in the deconvolved mass distribution.
+
+        When peaks are found, writes the peak list, replaces ``pks``, and
+        normalizes peak heights and mass-distribution intensities. Attempts
+        to calculate peak quality scores when ``calc_dscore=True``.
+
+        Returns
+        -------
+        numpy.ndarray
+            Detected mass (Da) and height pairs, or an empty array.
         """
         self.export_config()
         # Detect Peaks and Normalize
@@ -553,8 +587,8 @@ class UniDec(UniDecEngine):
                 except:
                     pass
         else:
-            print("No peaks detected", peaks, self.config.peakwindow, self.config.peakthresh)
-            print("Mass Data:", self.data.massdat)
+            print(f"No peaks detected (mass data shape={np.shape(self.data.massdat)}, "
+                  f"peak window={self.config.peakwindow}, threshold={self.config.peakthresh})")
         return peaks
 
     def setup_peaks(self, peaks):
@@ -595,8 +629,7 @@ class UniDec(UniDecEngine):
         try:
             ud.peaks_error_FWHM(self.pks, self.data.massdat)
         except Exception as e:
-            print("Error in FWHM calculation:", e)
-            print(self.data.massdat)
+            print(f"Error in FWHM calculation (mass data shape={np.shape(self.data.massdat)}):", e)
         try:
             ud.peaks_error_mean(self.pks, self.data.massgrid, self.data.ztab, self.data.massdat, self.config)
         except Exception as e:
@@ -717,15 +750,20 @@ class UniDec(UniDecEngine):
             return None
 
     def kendrick_continuous(self, ref_mass=None, centermode=0, nbins=50, transformmode=0, xaxistype=1):
-        """
-        Runs continuous Kendrick analysis on self.data.massdat
-        :param ref_mass: Kendrick mass. Default is self.config.kendrickmass if it is already set and >0.
-        Otherwise, default is oligomer mass (self.config.molig)
-        :param centermode: Set range for normalization 0=(0,1),1=(-0.5,0.5). Default is 0.
-        :param nbins: Set mass defect axis density. Default is 50 bins.
-        :param transformmode: Set type of transformation. 0=Interpolation. 1=Integration. Default is 0.
-        :param xaxistype: Set x-axis dimensions. 0=Kendrick Mass Number, 1=Mass Number * Kendrick Mass. Default is 1.
-        :return: mass grid, mass defect grid, intensity grid. All with shape (len(self.data.massdat),nbins)
+        """Map mass defects in ``data.massdat`` and write 1D and 2D text exports.
+
+        Uses the configured repeat mass, falling back to the oligomer mass
+        when needed. As in ``tools.kendrick_analysis``, centering uses
+        rounding (``0``) or flooring (``1``), and the transform sums into
+        bins (``0``) or interpolates (``1``). ``xaxistype`` selects fractional
+        defects (``0``) or defects in mass units (``1``).
+
+        Returns
+        -------
+        tuple
+            Nominal mass, defect, and intensity grids with one row per
+            nominal repeat count and ``nbins`` columns. Returns three
+            ``None`` values if no positive repeat mass is available.
         """
         if ref_mass is not None:
             self.config.kendrickmass = ref_mass
@@ -770,8 +808,7 @@ class UniDec(UniDecEngine):
         """
         Perform automatic integration of peaks.
 
-        If self.config.integrateup is empty, the upperbound becomes self.config.peakwindow.
-        If self.config.integratelb is empty, the lowerbound becomes -self.config.peakwindow.
+        Automatic bounds use +/- self.config.peakwindow. A configured 0/0 range uses peak height.
 
         Integral range for each peak is set to peak.integralrange.
         Integral value is set to peak.integral.
@@ -782,16 +819,18 @@ class UniDec(UniDecEngine):
         :return: zarea: P x Z array where P is the number of peaks and Z is the number of charge states.
         Each value of the array is the integral of peak P at charge state Z.
         """
-        if self.config.integrateub == "":
-            ub = self.config.peakwindow
-        else:
-            ub = self.config.integrateub
-        if self.config.integratelb == "":
-            lb = -self.config.peakwindow
-        else:
-            lb = self.config.integratelb
+        bounds = self.config.resolved_integration_bounds()
         zarea = []
         for p in self.pks.peaks:
+            if bounds is None:
+                p.integralrange = []
+                p.integral = p.height
+                if ztab is None:
+                    zarea.append([])
+                else:
+                    zarea.append(np.asarray(p.mztab)[:, 1].tolist())
+                continue
+            lb, ub = bounds
             p.integralrange = [p.mass + lb, p.mass + ub]
             p.integral = self.integrate(p.integralrange)[0]
             zlist = []
@@ -814,6 +853,9 @@ class UniDec(UniDecEngine):
         :return: None
         """
         if self.pks.plen > 0:
+            # Validate the configured integration contract before export fallbacks
+            # can substitute heights for unrelated data/shape failures.
+            self.config.resolved_integration_bounds()
             # Export Peaks Height by Charge Grid
             mztab = np.array([p.mztab for p in self.pks.peaks])
             ud.dataexport(mztab[:, :, 1], self.config.output_file("chargedata.dat"))
@@ -960,15 +1002,21 @@ class UniDec(UniDecEngine):
             return None
 
     def save_state(self, file_name):
+        """Write the current working directory to a ZIP, replacing an existing archive."""
         ud.zip_folder(file_name, directory=self.config.udir)
 
     def load_state(self, load_path):
-        """
-        Load unidec state from a zip save file.
+        """Restore an engine from a trusted ZIP produced by ``save_state``.
 
-        Note: save_state is located under unidectools (ud.savestate)
-        :param load_path: .zip file to load
-        :return: True is successful, False if failed
+        Extracts working files and writes a reconstructed text spectrum
+        alongside the ZIP. Use an isolated directory because files there can
+        be overwritten. Imports processed data and results when present.
+
+        Returns
+        -------
+        bool
+            True when restored, or False if no raw spectrum is in the archive.
+            Archive and file I/O errors can propagate.
         """
         print("Loading Zip File:", load_path)
         # Set up extensions
@@ -1128,6 +1176,11 @@ class UniDec(UniDecEngine):
             ints = p.zstack[1:]  # mzgrid
             msum = np.sum(ints, axis=0)
             zsum = np.sum(ints, axis=1)
+            if not np.any(ints):
+                p.mdist = np.transpose([m, msum])
+                p.zdist = np.transpose([self.data.ztab, zsum])
+                p.mscore = 0
+                continue
             msum /= np.amax(msum)
             zsum /= np.amax(zsum)
             p.mdist = np.transpose([m, msum])
@@ -1166,6 +1219,9 @@ class UniDec(UniDecEngine):
             # mmax = np.argmax(msum)
             sumz = np.sum(ints, axis=1)
             # sumz = deepcopy(ints[:, mmax]) # Switch to peak center only
+            if not np.any(sumz):
+                p.cs_score = 0
+                continue
             sumz /= np.amax(sumz)
             # sumz = deepcopy(p.pca_zdist[:, 1])
             # sumz -= np.amin(sumz)
@@ -1247,7 +1303,7 @@ class UniDec(UniDecEngine):
                 sy = np.sum(Y)
                 # r = 1 - ud.safedivide1(np.abs(sy - sz), sy)
                 sae = np.sum(np.abs(X - Y))  # ** 2)
-                U = 1 - ud.safedivide1(sae, sx)
+                U = 0 if sx == 0 else 1 - sae / sx
                 rats.append(U)
                 weights.append(sy)
                 # try:
@@ -1271,6 +1327,9 @@ class UniDec(UniDecEngine):
             diff = np.abs(np.array(p.intervalFWHM) - p.mass)
 
             p.fscore = 1
+            if height == 0:
+                p.fscore = 0
+                continue
             if p.badFWHM:
                 if diff[0] > diff[1]:
                     dcut1 = ud.datachop(self.data.massdat, interval[0] - self.config.massbins, p.mass)
@@ -1324,18 +1383,12 @@ class UniDec(UniDecEngine):
         return tscore'''
 
     def dscore(self, xfwhm=2, power=2, uscore_fitdat=True):
-        """
-        Combined score should include:
+        """Update scores for the picked peaks using current deconvolution outputs.
 
-        1) Fit to data -> Uniqueness Score
-        2) Background -> Uniqueness Score
-        3) Unique evidence for each peak -> Uniqueness Score
-        4) Noise -> M Score
-        5) Consistent peak shape -> M Score
-        6) Charge state distribution -> Z_Score
-        7) FWHM -> Penalties for poor FWHM
-
-        :return:
+        Each DScore is the product of mass shape, uniqueness, FWHM, and
+        charge-distribution scores. UniScore weights each DScore by peak
+        height raised to ``power`` and multiplies the weighted mean by fit
+        R-squared. ``xfwhm`` scales the scoring window around a peak.
         """
         if len(self.pks.peaks) > 0:
             self.pks_mscore(xfwhm=xfwhm, power=power)
@@ -1399,6 +1452,13 @@ class UniDec(UniDecEngine):
         pass
 
     def pass_data_in(self, data, n=1, dirname=None, fname=None, **kwargs):
+        """Write an m/z and intensity array to text and open it as a spectrum.
+
+        Pass a finite ``(N, 2)`` array with an ascending m/z axis. Use
+        ``dirname`` and ``fname`` to choose the file location. The method
+        overwrites the input file if it exists and refreshes cached data
+        by default. It updates the m/z bounds from the array.
+        """
         # Specify the directory for the new file
         # If one is not specified, then use the TestSpectra location
         if dirname is None:

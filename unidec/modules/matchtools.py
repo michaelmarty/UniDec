@@ -128,6 +128,20 @@ def index_to_sname(index, names, sitenames):
 
 
 def site_match(pks, oligomasslist, oligoindexes, onames, sitenames, tolerance=None):
+    """Annotate picked peaks with their nearest site-combination mass.
+
+    Supply a nonempty mass vector and an index matrix with one row per
+    candidate and one column per site. Its entries index the per-site
+    option names in ``onames``. Observed and candidate masses and the
+    tolerance must share units. A peak outside the strict tolerance still
+    records the match mass and signed error, with an empty label.
+
+    Returns
+    -------
+    numpy.ndarray
+        Four rows containing observed masses, match masses, signed errors,
+        and labels. Combining the rows can coerce the numbers to strings.
+    """
     print("Starting Match")
     starttime = time.perf_counter()
     matches = []
@@ -301,7 +315,7 @@ def calc_bispecific_correct(row, a_code="BsAb (Correct)", b_code="LC1 Mispair (I
                             c_code="LC2 Mispair (Incorrect)"):
     """
     Calculate the correct bispecific pairing from three columns of heights.
-    Ref: http://dx.doi.org/10.1080/19420862.2016.1232217
+    Ref: https://pubmed.ncbi.nlm.nih.gov/27610742/
     :param row: df row with the three columns
     :param a_code: the code for the first column with the correct pairing
     :param b_code: the code for the second column with the incorrect pairing

@@ -480,8 +480,8 @@ class MainControls(wx.Panel):  # scrolled.ScrolledPanel):
             self.ctlmaxshift.SetValue(str(int(self.config.idconfig.maxshift)))
             self.ctlencodingthresh.SetValue(str(self.config.idconfig.datathreshold))
             self.ctlccsthresh.SetValue(str(self.config.idconfig.css_thresh))
-            self.ctlmzwindowlb.SetValue(str(self.config.integratelb))
-            self.ctlmzwindowub.SetValue(str(self.config.integrateub))
+            self.ctlmzwindowlb.SetValue("" if self.config.integratelb is None else str(self.config.integratelb))
+            self.ctlmzwindowub.SetValue("" if self.config.integrateub is None else str(self.config.integrateub))
             self.ctlminusone.SetValue(self.config.idconfig.minusoneaszero)
             self.ctlverbose.SetValue(self.config.verbose)
 
@@ -565,8 +565,8 @@ class MainControls(wx.Panel):  # scrolled.ScrolledPanel):
 
         self.config.idconfig.avgpeakmasses = int(self.ctlavgpeakmasses.GetValue())
         # pull integratelb and integrateub from mzwindowlb and mzwindowub
-        self.config.integratelb = ud.string_to_value(self.ctlmzwindowlb.GetValue())
-        self.config.integrateub = ud.string_to_value(self.ctlmzwindowub.GetValue())
+        self.config.integratelb = ud.string_to_optional_float(self.ctlmzwindowlb.GetValue())
+        self.config.integrateub = ud.string_to_optional_float(self.ctlmzwindowub.GetValue())
         # matchtol goes to idconfig.matchtol
         self.config.idconfig.matchtol = ud.string_to_value(self.ctlmatchtol.GetValue())
         # Maxshift goes to idconfig.maxshift

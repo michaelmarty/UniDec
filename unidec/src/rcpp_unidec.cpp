@@ -101,7 +101,6 @@ SEXP run_unidec(Rcpp::XPtr<Config> config, Rcpp::XPtr<InputVec> input) {
 //        .field("poolflag",           &Config::poolflag)
 //        .field("manualflag",         &Config::manualflag)
 //        .field("intthresh",          &Config::intthresh)
-//        .field("peakshapeinflate",   &Config::peakshapeinflate)
 //        .field("fixedmassaxis",      &Config::fixedmassaxis)
 //        .field("isotopemode",        &Config::isotopemode)
 //        .field("filetype",           &Config::filetype)

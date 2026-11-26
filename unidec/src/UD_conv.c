@@ -4,6 +4,8 @@
 
 #include "UD_conv.h"
 
+#include <limits.h>
+
 void create_sim_spec(Config config, Input inp, const float* blur, const float mass, float* simint)
 {
 	for (int i = 0; i < config.numz; i++)
@@ -34,9 +36,15 @@ int conv_main(int argc, char* argv[], Config config)
 	char pfile[510];
 	sprintf(pfile, "%s%s", config.outfile, output_suffix(config.outfile, "_peaks.dat"));
 	int plen = getfilelength(pfile);
+	if (config.lengthmz <= 0 || plen > INT_MAX / config.lengthmz) {
+		fprintf(stderr, "Invalid convolution output dimensions.\n");
+		FreeInputs(inp);
+		return 1;
+	}
+	const int output_length = config.lengthmz * plen;
 	float* peakmasses, * peakints;
-	peakmasses = calloc(plen, sizeof(float));
-	peakints = calloc(plen, sizeof(float));
+	peakmasses = calloc(plen > 0 ? plen : 1, sizeof(float));
+	peakints = calloc(plen > 0 ? plen : 1, sizeof(float));
 	if (peakmasses == NULL || peakints == NULL) {
 		printf("Error allocating memory for peak masses and intensities.\n");
 		return 1;
@@ -67,7 +75,7 @@ int conv_main(int argc, char* argv[], Config config)
 	//....................................................................
 
 	Decon decon = InitDecon();
-	float* outarray = calloc(config.lengthmz * config.numz, sizeof(float));
+	float* outarray = calloc(output_length > 0 ? output_length : 1, sizeof(float));
 	if (outarray == NULL) {
 		printf("Error allocating memory for output array.\n");
 		free(peakmasses);
@@ -100,7 +108,8 @@ int conv_main(int argc, char* argv[], Config config)
 
 		create_sim_spec(config, inp, blur, mass, simint);
 
-		convolve_simp(config.lengthmz, maxlength, decon.starttab, decon.endtab, decon.mzdist, simint, convint, config.speedyflag);
+		convolve_simp(config.lengthmz, maxlength, decon.starttab, decon.endtab,
+			decon.mzdist, simint, convint, config.speedyflag, config.variablepw);
 
 		memcpy(outptr, convint, config.lengthmz * sizeof(float));
 
@@ -111,7 +120,7 @@ int conv_main(int argc, char* argv[], Config config)
 
 	char gfileout[510];
 	sprintf(gfileout, "%s%s", config.outfile, output_suffix(config.outfile, "_conv.bin"));
-	writefile1bin(gfileout, config.lengthmz * plen, outarray);
+	writefile1bin(gfileout, output_length, outarray);
 
 	FreeDecon(decon);
 	free(outarray);

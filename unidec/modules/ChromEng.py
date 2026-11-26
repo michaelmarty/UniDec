@@ -18,7 +18,12 @@ def plot_intensity(data, normalize=False):
 
 
 def chromatographic_peak_scores(xvalues, intensities):
-    """Return FWHM symmetry and within-FWHM monotonicity scores."""
+    """Return FWHM symmetry and within-FWHM monotonicity, each in [0, 1].
+
+    Supply equal-length finite vectors with at least three samples and
+    strictly increasing x coordinates. An invalid trace or one without
+    two half-height crossings returns ``(0.0, 0.0)``.
+    """
     xvalues = np.asarray(xvalues, dtype=float)
     intensities = np.asarray(intensities, dtype=float)
     if (xvalues.ndim != 1 or intensities.ndim != 1 or len(xvalues) != len(intensities)
@@ -94,6 +99,8 @@ def chromatographic_peak_scores(xvalues, intensities):
 
 
 class ChromEngine(MetaUniDec):
+    """Turn chromatogram scan selections into a writable HDF5 spectrum collection."""
+
     """
     UniChrom Engine.
     """
@@ -137,6 +144,11 @@ class ChromEngine(MetaUniDec):
         return 1
 
     def pick_peaks(self, refresh=True):
+        """Load aggregate mass peaks and optionally score their retention traces.
+
+        With ``calc_unichrom_scores`` enabled, store peak score components
+        and UniScore in the project in addition to updating the peak objects.
+        """
         super().pick_peaks(refresh=refresh)
         if not self.config.calc_unichrom_scores:
             return
@@ -171,6 +183,11 @@ class ChromEngine(MetaUniDec):
         self.data.export_unichrom_scores(np.asarray(score_rows).reshape((-1, 5)), self.pks.uniscore)
 
     def open_chrom(self, path, load_hdf5=True, refresh=False, output_path=None):
+        """Open a chromatogram and initialize its derived HDF5 project.
+
+        For raw sources, use ``output_path`` to place the project in a chosen
+        directory. Otherwise the project path is derived from the source name.
+        """
         if os.path.splitext(path)[1] == ".hdf5":
             self.open_hdf5_file(path)
             return True

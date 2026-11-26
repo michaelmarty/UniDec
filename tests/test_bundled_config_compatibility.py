@@ -14,7 +14,6 @@ class TestBundledConfigCompatibility(unittest.TestCase):
         (
             ("ADH_unidecfiles", "ADH_conf.dat"),
             {
-                "inputversion": "9.0.0b1",
                 "imflag": 0,
                 "cdmsflag": 0,
                 "startz": 1,
@@ -28,7 +27,6 @@ class TestBundledConfigCompatibility(unittest.TestCase):
         (
             ("IMMS", "aqpz_unidecfiles", "aqpz_conf.dat"),
             {
-                "inputversion": "9.0.0b1",
                 "imflag": 1,
                 "cdmsflag": 0,
                 "startz": 10,
@@ -42,7 +40,6 @@ class TestBundledConfigCompatibility(unittest.TestCase):
         (
             ("CDMS", "BgalGroEL_unidecfiles", "BgalGroEL_conf.dat"),
             {
-                "inputversion": "8.1.3",
                 "imflag": 0,
                 "cdmsflag": 1,
                 "startz": 30,
@@ -87,6 +84,17 @@ class TestBundledConfigCompatibility(unittest.TestCase):
 
             for name, value in defaults.items():
                 self.assertEqual(getattr(config, name), value)
+
+    def test_bsa_legacy_minus_one_pair_uses_automatic_peak_window(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-bsa-integration-") as directory:
+            path = copy_unidec_example(directory, "BSA_unidecfiles", "BSA_conf.dat")
+            config = UniDecConfig()
+
+            config.config_import(str(path))
+
+            self.assertIsNone(config.integratelb)
+            self.assertIsNone(config.integrateub)
+            self.assertEqual(config.resolved_integration_bounds(), (-500.0, 500.0))
 
     def test_import_then_export_rebases_files_and_round_trips_values(self):
         with tempfile.TemporaryDirectory(prefix="unidec-config-roundtrip-") as directory:

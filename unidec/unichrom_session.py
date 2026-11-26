@@ -108,6 +108,7 @@ class UniChromSession:
         }
 
     def get_state(self):
+        """Return scan and window summaries with the current stage availability."""
         return self._state()
 
     def _manifest_workload(self):
@@ -133,6 +134,7 @@ class UniChromSession:
         )
 
     def get_run_manifest(self, operation_id=None):
+        """Read a retained chromatogram run record, defaulting to the latest run."""
         try:
             manifest = self._run_history.get(operation_id)
         except ValueError as error:
@@ -143,6 +145,7 @@ class UniChromSession:
         return {"ok": True, "manifest": manifest}
 
     def compare_runs(self, before_operation_id, after_operation_id):
+        """Compare parameters, window counts, and metrics across retained chromatogram runs."""
         try:
             comparison = self._run_history.compare(before_operation_id, after_operation_id)
         except ValueError as error:
@@ -153,6 +156,7 @@ class UniChromSession:
         return {"ok": True, **comparison}
 
     def get_parameters(self, names=None):
+        """Read selected values and the full parameter schema for the open chromatogram."""
         if self._managed_project is None:
             return self._failure("no_chromatogram", "Open a chromatogram before reading parameters",
                                  set_error=False)
@@ -181,6 +185,7 @@ class UniChromSession:
             self._stage_revision[stage] = None
 
     def open_chromatogram(self, path):
+        """Open an allowed raw source and create an empty managed HDF5 project."""
         if not self._lock.acquire(blocking=False):
             return self._failure("busy", "Another session mutation is running", set_error=False)
         self.operation_id += 1
@@ -217,6 +222,12 @@ class UniChromSession:
             self._lock.release()
 
     def create_time_windows(self, width, start=None, end=None):
+        """Replace project spectra with averaged scans in regular time windows.
+
+        Use the importer's time units and a positive finite width. If set,
+        both bounds must be finite and increasing. They select window start
+        times. Each window requests a full interval of length ``width``.
+        """
         if not self._lock.acquire(blocking=False):
             return self._failure("busy", "Another session mutation is running", set_error=False)
         self.operation_id += 1
@@ -257,6 +268,11 @@ class UniChromSession:
             self._lock.release()
 
     def set_parameters(self, values):
+        """Apply a validated update and invalidate results for the current chromatogram.
+
+        Call ``create_time_windows`` again to apply new window settings to
+        the spectra in the managed project.
+        """
         if not self._lock.acquire(blocking=False):
             return self._failure("busy", "Another session mutation is running", set_error=False)
         self.operation_id += 1
@@ -286,6 +302,7 @@ class UniChromSession:
             self._lock.release()
 
     def run(self, stage="all"):
+        """Preprocess current windows, deconvolve, and extract aggregate peaks."""
         if stage != "all":
             return self._failure("invalid_stage", "UniChrom currently supports only stage='all'",
                                  set_error=False)
@@ -360,6 +377,7 @@ class UniChromSession:
         }
 
     def get_results(self, max_peaks=100):
+        """Return current window and mass metadata and up to 100 height-ranked peaks."""
         if not isinstance(max_peaks, int) or isinstance(max_peaks, bool) or max_peaks < 1:
             return self._failure("invalid_limit", "max_peaks must be a positive integer",
                                  set_error=False)
@@ -373,6 +391,7 @@ class UniChromSession:
         }
 
     def export_regression_fixture(self, operation_id, path):
+        """Write failed chromatogram run metadata to a new workspace JSON file."""
         previous_status = self.status
         previous_error = self.last_error
         if not self._lock.acquire(blocking=False):

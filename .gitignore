@@ -3,6 +3,7 @@
 *.md5
 *.tex
 *.hdf5
+!/tests/fixtures/historical_8_2_1/metaunidec-8.2.1-project.hdf5
 *.idea
 *.sdf
 *.vcxproj.filters

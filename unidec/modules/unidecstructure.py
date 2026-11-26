@@ -1,4 +1,5 @@
 import os
+import ntpath
 import time
 from dataclasses import asdict, dataclass
 from numbers import Integral, Real
@@ -27,6 +28,13 @@ NO_UNSET_VALUE = _RegistrySentinel()
 
 @dataclass(frozen=True)
 class ParameterSpec:
+    """Metadata for one setting and its applicable acquisition modes.
+
+    Public specs appear in the automation schema. Bounds are inclusive,
+    optional specs accept ``None``, and ``affects`` identifies the stage
+    associated with the setting.
+    """
+
     attribute: str
     dtype: type
     text_key: str | None
@@ -57,28 +65,44 @@ class ParameterSpec:
 CONVENTIONAL_PARAMETER_SPECS = (
     ParameterSpec("minmz", float, "minmz", "minmz", 0, 1e9,
                   affects="processing", units="m/z", optional=True, default="",
-                  text_unset=-1, hdf5_unset=0.0),
+                  text_unset=-1, hdf5_unset=0.0,
+                  description="Lower m/z limit. Unset uses the minimum of the input."),
     ParameterSpec("maxmz", float, "maxmz", "maxmz", 0, 1e9,
                   affects="processing", units="m/z", optional=True, default="",
-                  text_unset=-1, hdf5_unset=1000000.0),
+                  text_unset=-1, hdf5_unset=1000000.0,
+                  description="Upper m/z limit. Unset uses the maximum of the input."),
     ParameterSpec("mzbins", float, "mzbins", "mzbins", 0, 1000,
-                  affects="processing", units="m/z", default=0),
-    ParameterSpec("startz", int, "startz", "startz", 1, 1000, units="charge", default=1),
-    ParameterSpec("endz", int, "endz", "endz", 1, 1000, units="charge", default=50),
-    ParameterSpec("masslb", float, "masslb", "masslb", 0, 1e9, units="Da", default=5000),
-    ParameterSpec("massub", float, "massub", "massub", 0, 1e9, units="Da", default=500000),
-    ParameterSpec("massbins", float, "massbins", "massbins", 1e-12, 1e6, units="Da", default=10),
-    ParameterSpec("numit", int, "numit", "numit", 1, 1000000, default=100),
-    ParameterSpec("mzsig", float, "mzsig", "mzsig", 1e-12, 1e6, units="m/z", default=0.85),
-    ParameterSpec("psig", float, "psig", "psig", 0, 1e6, default=1),
-    ParameterSpec("beta", float, "beta", "beta", 0, 1e6, default=0),
-    ParameterSpec("psfun", int, "psfun", "psfun", choices=(0, 1, 2), default=0),
+                  affects="processing", units="m/z", default=0,
+                  description="m/z bin width. Zero skips resampling onto m/z bins."),
+    ParameterSpec("startz", int, "startz", "startz", 1, 1000, units="charge", default=1,
+                  description="Lowest charge state in the deconvolution range."),
+    ParameterSpec("endz", int, "endz", "endz", 1, 1000, units="charge", default=50,
+                  description="Highest charge state in the deconvolution range."),
+    ParameterSpec("masslb", float, "masslb", "masslb", 0, 1e9, units="Da", default=5000,
+                  description="Lower mass limit for deconvolution."),
+    ParameterSpec("massub", float, "massub", "massub", 0, 1e9, units="Da", default=500000,
+                  description="Upper mass limit for deconvolution."),
+    ParameterSpec("massbins", float, "massbins", "massbins", 1e-12, 1e6, units="Da", default=10,
+                  description="Mass-axis spacing in the deconvolved distribution."),
+    ParameterSpec("numit", int, "numit", "numit", 1, 1000000, default=100,
+                  description="Maximum number of deconvolution iterations."),
+    ParameterSpec("mzsig", float, "mzsig", "mzsig", 1e-12, 1e6, units="m/z", default=0.85,
+                  description="Expected m/z peak width at half maximum."),
+    ParameterSpec("psig", float, "psig", "psig", 0, 1e6, default=1,
+                  description="Width of smoothing across neighboring data points for the same charge state."),
+    ParameterSpec("beta", float, "beta", "beta", 0, 1e6, default=0,
+                  description="Strength of charge-state softmax. Zero disables it."),
+    ParameterSpec("psfun", int, "psfun", "psfun", choices=(0, 1, 2), default=0,
+                  description="Peak shape in the m/z dimension."),
     ParameterSpec("psfunz", int, "zpsfn", "psfunz", choices=(0, 1, 2), default=0,
-                  hdf5_aliases=("zpsfn",)),
+                  hdf5_aliases=("zpsfn",),
+                  description="Peak shape in the charge dimension."),
     ParameterSpec("peakwindow", float, "peakwindow", "peakwindow", 0, 1e9,
-                  affects="peaks", units="Da", default=500),
+                  affects="peaks", units="Da", default=500,
+                  description="Mass neighborhood used to identify local maxima during peak picking."),
     ParameterSpec("peakthresh", float, "peakthresh", "peakthresh", 0, 1,
-                  affects="peaks", default=0.1),
+                  affects="peaks", default=0.1,
+                  description="Minimum intensity relative to the maximum for peak picking."),
     ParameterSpec("imflag", int, "imflag", "imflag", public=False, default=0),
     ParameterSpec("cdmsflag", int, "cdmsflag", "cdmsflag", public=False, default=0),
     ParameterSpec("zzsig", float, "zzsig", "zzsig", public=False, default=1),
@@ -123,8 +147,6 @@ CONVENTIONAL_PARAMETER_SPECS = (
     ParameterSpec("nativezlb", float, "nativezlb", "nativezlb", public=False, default=-1000),
     ParameterSpec("poolflag", int, "poolflag", "poolflag", public=False, default=2),
     ParameterSpec("detectoreffva", float, "accvol", "accvol", public=False, default=0),
-    ParameterSpec("inflate", float, "peakshapeinflate", "peakshapeinflate",
-                  public=False, default=1),
     ParameterSpec("noiseflag", int, "noiseflag", "noiseflag", public=False, default=0),
     ParameterSpec("linflag", int, "linflag", "linflag", public=False, default=2),
     ParameterSpec("cmap", str, "cmap", "cmap", public=False, default="nipy_spectral"),
@@ -139,9 +161,9 @@ CONVENTIONAL_PARAMETER_SPECS = (
     ParameterSpec("baselineflag", int, "baselineflag", "baselineflag", public=False, default=1),
     ParameterSpec("orbimode", int, "orbimode", "orbimode", public=False, default=0),
     ParameterSpec("integratelb", float, "integratelb", "integratelb", public=False,
-                  optional=True, default="", text_unset=-1, hdf5_unset=-1.0),
+                  optional=True, default=None, text_unset="auto"),
     ParameterSpec("integrateub", float, "integrateub", "integrateub", public=False,
-                  optional=True, default="", text_unset=-1, hdf5_unset=-1.0),
+                  optional=True, default=None, text_unset="auto"),
     ParameterSpec("filterwidth", int, "filterwidth", "filterwidth", public=False, default=20),
     ParameterSpec("zerolog", float, "zerolog", "zerolog", public=False, default=-12),
     ParameterSpec("doubledec", bool, "doubledec", "doubledec", public=False, default=False),
@@ -152,56 +174,81 @@ CONVENTIONAL_PARAMETER_SPECS = (
 
 ION_MOBILITY_PARAMETER_SPECS = (
     ParameterSpec("mindt", float, "mindt", "mindt", 0, 1e9,
-                  modes=("imms",), affects="processing", units="ms", optional=True),
+                  modes=("imms",), affects="processing", units="ms", optional=True,
+                  description="Lower drift-time limit for preprocessing."),
     ParameterSpec("maxdt", float, "maxdt", "maxdt", 0, 1e9,
-                  modes=("imms",), affects="processing", units="ms", optional=True),
+                  modes=("imms",), affects="processing", units="ms", optional=True,
+                  description="Upper drift-time limit for preprocessing."),
     ParameterSpec("smoothdt", float, "smoothdt", "smoothdt", 0, 1e6,
-                  modes=("imms",), affects="processing"),
+                  modes=("imms",), affects="processing",
+                  description="Smoothing width along the drift-time axis."),
     ParameterSpec("subbufdt", float, "subbufdt", "subbufdt", 0, 1e6,
-                  modes=("imms",), affects="processing"),
+                  modes=("imms",), affects="processing",
+                  description="Background subtraction window along the drift-time axis."),
     ParameterSpec("dtsig", float, "dtsig", "dtsig", 0, 1e6,
-                  modes=("imms",), units="ms"),
+                  modes=("imms",), units="ms",
+                  description="Drift-time peak width used in IM-MS deconvolution."),
     ParameterSpec("ccslb", float, "ccslb", "ccslb", 0, 1e9,
-                  modes=("imms",), units="CCS"),
+                  modes=("imms",), units="CCS",
+                  description="Lower collision cross section limit."),
     ParameterSpec("ccsub", float, "ccsub", "ccsub", 0, 1e9,
-                  modes=("imms",), units="CCS"),
+                  modes=("imms",), units="CCS",
+                  description="Upper collision cross section limit."),
     ParameterSpec("ccsbins", float, "ccsbins", "ccsbins", 1e-12, 1e9,
-                  modes=("imms",), units="CCS"),
+                  modes=("imms",), units="CCS",
+                  description="Collision cross section bin width."),
 )
 
 
 CDMS_PARAMETER_SPECS = (
     ParameterSpec("CDslope", float, "CDslope", "CDslope", -1e12, 1e12,
-                  modes=("cdms",), affects="processing"),
+                  modes=("cdms",), affects="processing",
+                  description="Calibration slope used to estimate charge from ion intensity."),
     ParameterSpec("CDzbins", int, "CDzbins", "CDzbins", 1, 1000,
-                  modes=("cdms",), affects="processing", units="charge"),
+                  modes=("cdms",), affects="processing", units="charge",
+                  description="Charge binning setting for the CD-MS histogram."),
     ParameterSpec("CDres", float, "CDres", "CDres", 0, 1e6,
-                  modes=("cdms",), affects="processing", units="m/z"),
+                  modes=("cdms",), affects="processing", units="m/z",
+                  description="m/z resolution setting used to filter centroids in CD-MS preprocessing."),
     ParameterSpec("csig", float, "csig", "csig", 0, 1e6,
-                  modes=("cdms",), units="charge"),
+                  modes=("cdms",), units="charge",
+                  description="Charge-domain smoothing width."),
     ParameterSpec("zzsig", float, "zzsig", "zzsig", 0, 1e6,
-                  modes=("cdms",), units="charge"),
+                  modes=("cdms",), units="charge",
+                  description="Charge-state smoothing width."),
     ParameterSpec("subtype", int, "subtype", "subtype", choices=(0, 1),
-                  modes=("cdms",), affects="processing"),
+                  modes=("cdms",), affects="processing",
+                  description="CD-MS calibration branch. Use 0 for noise-scaled calibration or 1 for direct calibration with a positive slope."),
 )
 
 
 UNICHROM_PARAMETER_SPECS = (
     ParameterSpec("chromatogram_type", int, "chromatogram_type", "chromatogram_type",
-                  choices=(0, 1), modes=("unichrom",), affects="windowing"),
+                  choices=(0, 1), modes=("unichrom",), affects="windowing",
+                  description="Chromatogram selection. Use 0 for TIC or 1 for BPC."),
     ParameterSpec("time_window", float, "chrom_time_window", "chrom_time_window", 1e-12, 1e9,
-                  modes=("unichrom",), affects="windowing", units="time"),
+                  modes=("unichrom",), affects="windowing", units="time",
+                  description="Width of regular chromatographic time windows."),
     ParameterSpec("chrom_peak_width", float, "chrom_peak_width", "chrom_peak_width", 1e-12, 1e9,
-                  modes=("unichrom",), affects="windowing", units="time"),
+                  modes=("unichrom",), affects="windowing", units="time",
+                  description="Time window used to average a spectrum around a chromatographic peak."),
     ParameterSpec("scan_window", float, "scan_window", "scan_window", 1e-12, 1e9,
-                  modes=("unichrom",), affects="windowing", units="scan"),
+                  modes=("unichrom",), affects="windowing", units="scan",
+                  description="Number of scans per scan window."),
     ParameterSpec("time_start", float, "time_start", "time_start", 0, 1e12,
-                  modes=("unichrom",), affects="windowing", units="time", optional=True),
+                  modes=("unichrom",), affects="windowing", units="time", optional=True,
+                  description="Lower time bound for chromatogram windowing."),
     ParameterSpec("time_end", float, "time_end", "time_end", 0, 1e12,
-                  modes=("unichrom",), affects="windowing", units="time", optional=True),
+                  modes=("unichrom",), affects="windowing", units="time", optional=True,
+                  description="Upper time bound for chromatogram windowing."),
     ParameterSpec("dtsig", float, "dtsig", "dtsig", 0, 1e6,
-                  modes=("unichrom",), units="time"),
+                  modes=("unichrom",), units="time",
+                  description="Width used for coupled chromatographic deconvolution."),
 )
+
+
+_PARAMETER_SPECS = (CONVENTIONAL_PARAMETER_SPECS + ION_MOBILITY_PARAMETER_SPECS
+                    + CDMS_PARAMETER_SPECS + UNICHROM_PARAMETER_SPECS)
 
 
 def ofile_reader(path):
@@ -230,32 +277,13 @@ def read_attr(thing, string, config_group):
 
 
 class UniDecConfig(object):
+    """Mutable engine settings, file paths, and mode-aware parameter validation."""
     """
     Class containing all options and configurations for UniDec GUI and Program. Contains methods to export and import
     config to text file for running UniDec core binaries and for storing parameters for GUI.
     """
 
-    _HDF5_INT_KEYS = frozenset({
-        "numit", "endz", "startz", "suppression_topn", "suppression_startit",
-        "suppression_harmonic", "suppression_satellite", "psfun", "psfunz",
-        "variablepw", "discreteplot", "subtype", "normthresh", "aggressive",
-        "rawflag", "rescale_newblur", "poolflag", "noiseflag", "linflag",
-        "publicationmode", "isotopemode", "peaknorm", "datanorm", "baselineflag",
-        "orbimode", "filterwidth", "manualfileflag", "mfileflag", "imflag",
-        "cdmsflag", "smashflag",
-    })
-    _HDF5_FLOAT_KEYS = frozenset({
-        "zzsig", "psig", "mzsig", "beta", "suppression_topx",
-        "suppression_percent", "massub", "masslb", "msig", "molig", "massbins",
-        "mtabsig", "minmz", "maxmz", "subbuff", "smooth", "mzbins", "peakwindow",
-        "peakthresh", "peakplotthresh", "plotsep", "intthresh", "reductionpercent",
-        "minratio", "adductmass", "nativezub", "nativezlb", "accvol",
-        "peakshapeinflate", "integratelb", "integrateub", "zerolog",
-    })
-    _HDF5_BOOL_KEYS = frozenset({"doubledec"})
-    _HDF5_STRING_KEYS = frozenset({
-        "version", "original_file", "cmap", "peakcmap", "spectracmap",
-    })
+    _HDF5_COMPAT_STRING_KEYS = frozenset({"version", "original_file"})
 
     @staticmethod
     def scalar_parameter_specs():
@@ -340,6 +368,8 @@ class UniDecConfig(object):
             if not (file_format == "text" and using_unset_value):
                 if spec.dtype is bool:
                     value = bool(value)
+                    if file_format == "text":
+                        value = int(value)
                 elif spec.dtype is int:
                     value = int(value)
                 elif spec.dtype is float:
@@ -347,6 +377,52 @@ class UniDecConfig(object):
                 elif spec.dtype is str:
                     value = str(value)
             yield key, value, spec.dtype
+
+    def _read_hdf5_scalar_parameters(self, config_group):
+        """Read reviewed conventional scalars with canonical-key precedence."""
+        self.integratelb = None
+        self.integrateub = None
+        if config_group is None:
+            return
+        index = self.serialized_parameter_index("hdf5")
+        attributes = config_group.attrs
+        for spec in self.scalar_parameter_specs():
+            keys = (spec.hdf5_key,) + spec.hdf5_aliases
+            for key in keys:
+                if key is None or key not in attributes:
+                    continue
+                matched_spec = index[key]
+                value = attributes[key]
+                if isinstance(value, np.ndarray):
+                    value = value[0]
+                if matched_spec.dtype is bool:
+                    value = bool(value)
+                setattr(self, matched_spec.attribute, value)
+                break
+        self.normalize_integration_bounds()
+
+    def normalize_integration_bounds(self):
+        """Normalize legacy automatic integration values to the runtime ``None`` form."""
+        for attribute in ("integratelb", "integrateub"):
+            value = getattr(self, attribute)
+            if value == "" or value is None:
+                setattr(self, attribute, None)
+        if self.integratelb == -1 and self.integrateub == -1:
+            self.integratelb = None
+            self.integrateub = None
+
+    def resolved_integration_bounds(self):
+        """Return effective offsets, or ``None`` when peak height should be used."""
+        self.normalize_integration_bounds()
+        if self.integratelb == 0 and self.integrateub == 0:
+            return None
+        lb = -float(self.peakwindow) if self.integratelb is None else float(self.integratelb)
+        ub = float(self.peakwindow) if self.integrateub is None else float(self.integrateub)
+        if not np.isfinite(lb) or not np.isfinite(ub):
+            raise ValueError("Integration bounds must be finite")
+        if lb >= ub:
+            raise ValueError("Integration lower bound must be less than upper bound")
+        return lb, ub
 
     def _parameter_specs(self):
         if getattr(self, "agent_mode", None) == "unichrom":
@@ -359,16 +435,14 @@ class UniDecConfig(object):
             mode = "metaunidec"
         else:
             mode = "ms"
-        specs = (CONVENTIONAL_PARAMETER_SPECS + ION_MOBILITY_PARAMETER_SPECS
-                 + CDMS_PARAMETER_SPECS + UNICHROM_PARAMETER_SPECS)
         return {
             spec.attribute: spec
-            for spec in specs
+            for spec in _PARAMETER_SPECS
             if spec.public and mode in spec.modes
         }
 
     def parameter_schema(self):
-        """Return serializable metadata for supported conventional-MS parameters."""
+        """Return serializable metadata by public parameter name for the active mode."""
         return {name: spec.schema() for name, spec in self._parameter_specs().items()}
 
     def parameter_values(self, names=None):
@@ -466,7 +540,11 @@ class UniDecConfig(object):
         return normalized
 
     def update_parameters(self, values):
-        """Atomically validate and apply supported conventional-MS parameters."""
+        """Apply a mapping of public settings and return the normalized values.
+
+        Raises ``ValueError`` without changing the configuration if validation
+        fails. This updates the in-memory configuration only.
+        """
         normalized = self.validate_parameters(values)
         for name, value in normalized.items():
             spec = self._parameter_specs()[name]
@@ -679,9 +757,8 @@ class UniDecConfig(object):
         self.poolflag = 2
         self.nativezub = 1000
         self.nativezlb = -1000
-        self.inflate = 1
-        self.integratelb = ""
-        self.integrateub = ""
+        self.integratelb = None
+        self.integrateub = None
         self.filterwidth = 20
         self.zerolog = -12
 
@@ -827,7 +904,6 @@ class UniDecConfig(object):
             "nativezlb": (self.nativezlb, float),
             "poolflag": (self.poolflag, int),
             "accvol": (self.detectoreffva, float),
-            "peakshapeinflate": (self.inflate, float),
             "noiseflag": (self.noiseflag, int),
             "linflag": (self.linflag, int),
             "cmap": (self.cmap, str),
@@ -850,6 +926,7 @@ class UniDecConfig(object):
             "CDres": (self.CDres, float),
             "CDScanStart": (self.CDScanStart, int),
             "CDScanEnd": (self.CDScanEnd, int),
+            "CDiitflag": (self.CDiitflag, bool),
             "CDprethresh": (self.CDprethresh, float),
             "HTksmooth": (self.HTksmooth, float),
             "CDScanCompress": (self.CDScanCompress, int),
@@ -1079,10 +1156,9 @@ class UniDecConfig(object):
         self.poolflag = 2
         self.nativezub = 1000
         self.nativezlb = -1000
-        self.inflate = 1
         self.linflag = 2
-        self.integratelb = ""
-        self.integrateub = ""
+        self.integratelb = None
+        self.integrateub = None
         self.filterwidth = 20
         self.zerolog = -12
 
@@ -1171,11 +1247,13 @@ class UniDecConfig(object):
                 if dtype == float:
                     try:
                         value = float(value)
-                    except ValueError:
-                        if value == '':
-                            value = -1
+                    except (TypeError, ValueError):
+                        if value in ('', None):
+                            value = "auto" if key in ("integratelb", "integrateub") else -1
                         else:
                             raise ValueError(f"Value for {key} is not a valid float: {value}")
+                elif dtype == bool:
+                    value = int(bool(value))
                 elif dtype == int:
                     try:
                         value = int(value)
@@ -1303,7 +1381,7 @@ class UniDecConfig(object):
                         if key == "CDslope":
                             self.CDslope = ud.string_to_value(line.split()[1])
                         if key == "CDzbins":
-                            self.CDzbins = ud.string_to_value(line.split()[1])
+                            self.CDzbins = ud.string_to_int(line.split()[1])
                         if key == "CDres":
                             self.CDres = ud.string_to_value(line.split()[1])
                         if key == "CDScanStart":
@@ -1312,6 +1390,8 @@ class UniDecConfig(object):
                             self.CDprethresh = ud.string_to_value(line.split()[1])
                         if key == "CDScanEnd":
                             self.CDScanEnd = ud.string_to_int(line.split()[1])
+                        if key == "CDiitflag":
+                            self.CDiitflag = bool(ud.string_to_int(line.split()[1]))
                         if key == "HTksmooth":
                             self.HTksmooth = ud.string_to_value(line.split()[1])
                         if key == "HTtimeshift":
@@ -1323,13 +1403,13 @@ class UniDecConfig(object):
                         if key == "HTxaxis":
                             self.HTxaxis = line.split()[1]
                         if key == "HTcycleindex":
-                            self.HTcycleindex = ud.string_to_value(line.split()[1])
+                            self.HTcycleindex = ud.string_to_int(line.split()[1])
                         if key == "HTcylctime":
                             self.HTcycletime = ud.string_to_value(line.split()[1])
                         if key == "htbit":
                             self.htbit = str(line.split()[1])
                         if key == "CDScanCompress":
-                            self.CDScanCompress = ud.string_to_value(line.split()[1])
+                            self.CDScanCompress = ud.string_to_int(line.split()[1])
                         if key == "chromatogram_type":
                             self.chromatogram_type = ud.string_to_int(line.split()[1])
                         if key == "chromatogram_norm":
@@ -1347,15 +1427,15 @@ class UniDecConfig(object):
                         if key == "FTend":
                             self.FTend = ud.string_to_value(line.split()[1])
                         if key == "FTflatten":
-                            self.FTflatten = ud.string_to_int(line.split()[1])
+                            self.FTflatten = bool(ud.string_to_int(line.split()[1]))
                         if key == "FTapodize":
                             self.FTapodize = ud.string_to_int(line.split()[1])
                         if key == "FTsmooth":
                             self.FTsmooth = ud.string_to_value(line.split()[1])
                         if key == "HTmaskn":
-                            self.HTmaskn = ud.string_to_value(line.split()[1])
+                            self.HTmaskn = ud.string_to_int(line.split()[1])
                         if key == "HTwin":
-                            self.HTwin = ud.string_to_value(line.split()[1])
+                            self.HTwin = ud.string_to_int(line.split()[1])
                         if key == "zzsig":
                             self.zzsig = ud.string_to_value(line.split()[1])
                         if key == "psig":
@@ -1393,7 +1473,7 @@ class UniDecConfig(object):
                         if key == "minratio":
                             self.minratio = ud.string_to_value(line.split()[1])
                         if key == "fwhmfile":
-                            self.fwhmfile = os.path.join(config_dir, line.partition(" ")[2].strip())
+                            self.fwhmfile = self._resolve_config_path(line.partition(" ")[2].strip(), config_dir)
                         if key == "discreteplot":
                             self.discreteplot = ud.string_to_int(line.split()[1])
                         if key == "smashflag":
@@ -1411,10 +1491,10 @@ class UniDecConfig(object):
                         if key == "mtabsig":
                             self.mtabsig = ud.string_to_value(line.split()[1])
                         if key == "mfile":
-                            self.mfile = os.path.join(config_dir, line.partition(" ")[2].strip())
+                            self.mfile = self._resolve_config_path(line.partition(" ")[2].strip(), config_dir)
                             self.mfileflag = 1
                         if key == "manualfile":
-                            self.manualfile = os.path.join(config_dir, line.partition(" ")[2].strip())
+                            self.manualfile = self._resolve_config_path(line.partition(" ")[2].strip(), config_dir)
                             self.manualfileflag = 1
                         if key == "subbuff":
                             self.subbuff = ud.string_to_value(line.split()[1])
@@ -1457,8 +1537,6 @@ class UniDecConfig(object):
                             self.poolflag = ud.string_to_int(line.split()[1])
                         if key == "accvol":
                             self.detectoreffva = ud.string_to_value(line.split()[1])
-                        if key == "peakshapeinflate":
-                            self.inflate = ud.string_to_value(line.split()[1])
                         if key == "noiseflag":
                             self.noiseflag = ud.string_to_value(line.split()[1])
                         if key == "linflag":
@@ -1474,9 +1552,9 @@ class UniDecConfig(object):
                         if key == "isotopemode":
                             self.isotopemode = ud.string_to_int(line.split()[1])
                         if key == "integratelb":
-                            self.integratelb = ud.string_to_value(line.split()[1])
+                            self.integratelb = ud.string_to_optional_float(line.split()[1])
                         if key == "integrateub":
-                            self.integrateub = ud.string_to_value(line.split()[1])
+                            self.integrateub = ud.string_to_optional_float(line.split()[1])
                         if key == "filterwidth":
                             self.filterwidth = ud.string_to_int(line.split()[1])
                         if key == "zerolog":
@@ -1496,7 +1574,7 @@ class UniDecConfig(object):
                             else:
                                 self.doubledec = True
                         if key == "kernel":
-                            self.kernel = os.path.join(config_dir, line.partition(" ")[2].strip())
+                            self.kernel = self._resolve_config_path(line.partition(" ")[2].strip(), config_dir)
 
                         # IM Imports
                         if key == "ccsub":
@@ -1540,7 +1618,7 @@ class UniDecConfig(object):
                         if key == "pusher":
                             self.pusher = ud.string_to_value(line.split()[1])
                         if key == "zout":
-                            self.zout = ud.string_to_value(line.split()[1])
+                            self.zout = ud.string_to_int(line.split()[1])
                         if key == "nativeccsub" or key == "ubnativeccs":
                             self.nativeccsub = ud.string_to_value(line.split()[1])
                         if key == "nativeccslb" or key == "lbnativeccs":
@@ -1549,6 +1627,8 @@ class UniDecConfig(object):
                             self.isomode = ud.string_to_int(line.split()[1])
 
             f.close()
+
+            self.normalize_integration_bounds()
 
             self.idconfig.config_import(name)
 
@@ -1619,14 +1699,9 @@ class UniDecConfig(object):
 
         tcal3 = 0.0 if self.tcal3 == "" else self.tcal3
         tcal4 = 0.0 if self.tcal4 == "" else self.tcal4
-        try:
-            integratelb = float(self.integratelb)
-        except (TypeError, ValueError):
-            integratelb = -1.0
-        try:
-            integrateub = float(self.integrateub)
-        except (TypeError, ValueError):
-            integrateub = -1.0
+        self.normalize_integration_bounds()
+        integratelb = self.integratelb
+        integrateub = self.integrateub
 
         cdict = {  # "input": self.infname, "output": self.outfname,
             "numit": self.numit, "version": self.version,
@@ -1647,7 +1722,7 @@ class UniDecConfig(object):
             "aggressive": self.aggressiveflag, "rawflag": self.rawflag,
             "rescale_newblur": self.rescale_newblur, "adductmass": self.adductmass,
             "nativezub": self.nativezub, "nativezlb": self.nativezlb, "poolflag": self.poolflag,
-            "accvol": self.detectoreffva, "peakshapeinflate": self.inflate, "noiseflag": self.noiseflag,
+            "accvol": self.detectoreffva, "noiseflag": self.noiseflag,
             "linflag": self.linflag, "cmap": self.cmap, "peakcmap": self.peakcmap, "spectracmap": self.spectracmap,
             "publicationmode": self.publicationmode, "isotopemode": self.isotopemode, "peaknorm": self.peaknorm,
             "baselineflag": self.baselineflag, "orbimode": self.orbimode, "zout": self.zout, "pusher": self.pusher,
@@ -1682,19 +1757,26 @@ class UniDecConfig(object):
             file_name = self.hdf_file
         hdf = h5py.File(file_name, 'a')
         config_group = hdf.require_group("config")
+        config_group.attrs.pop("peakshapeinflate", None)
 
         cdict = self.get_config_dict()
+        scalar_keys = {
+            spec.hdf5_key
+            for spec in self.scalar_parameter_specs()
+            if spec.hdf5_key is not None
+        }
+
+        for key, value, _ in self.iter_serialized_parameters("hdf5"):
+            config_group.attrs[key] = value
+
+        for key in ("integratelb", "integrateub"):
+            if getattr(self, key) is None and key in config_group.attrs:
+                del config_group.attrs[key]
 
         for key, value in cdict.items():
-            if value is not None:
+            if key not in scalar_keys and value is not None:
                 try:
-                    if key in self._HDF5_INT_KEYS:
-                        value = int(value)
-                    elif key in self._HDF5_FLOAT_KEYS:
-                        value = float(value)
-                    elif key in self._HDF5_BOOL_KEYS:
-                        value = bool(value)
-                    elif key in self._HDF5_STRING_KEYS:
+                    if key in self._HDF5_COMPAT_STRING_KEYS:
                         value = str(value)
                     config_group.attrs[key] = value
                 except Exception as e:
@@ -1732,72 +1814,11 @@ class UniDecConfig(object):
             file_name = self.hdf_file
         hdf = h5py.File(file_name, 'r')
         config_group = hdf.get("config")
+        self._read_hdf5_scalar_parameters(config_group)
         # self.infname = self.read_attr(self.infname, "input", config_group)
         self.inputversion = read_attr(self.inputversion, "version", config_group)
-        self.maxmz = read_attr(self.maxmz, "maxmz", config_group)
-        self.minmz = read_attr(self.minmz, "minmz", config_group)
         self.metamode = read_attr(self.metamode, "metamode", config_group)
         # self.outfname = self.read_attr(self.outfname, "output", config_group)
-        self.numit = read_attr(self.numit, "numit", config_group)
-        self.endz = read_attr(self.endz, "endz", config_group)
-        self.startz = read_attr(self.startz, "startz", config_group)
-        self.zzsig = read_attr(self.zzsig, "zzsig", config_group)
-        self.psig = read_attr(self.psig, "psig", config_group)
-        self.beta = read_attr(self.beta, "beta", config_group)
-        # self.suppression_topn = read_attr(self.suppression_topn, "topncharges", config_group)
-        self.suppression_topn = read_attr(self.suppression_topn, "suppression_topn", config_group)
-        # self.suppression_topx = read_attr(self.suppression_topx, "zcutoff", config_group)
-        self.suppression_topx = read_attr(self.suppression_topx, "suppression_topx", config_group)
-        # self.suppression_percent = read_attr(self.suppression_percent, "zcutpercent", config_group)
-        self.suppression_percent = read_attr(self.suppression_percent, "suppression_percent", config_group)
-        # self.suppression_startit = read_attr(self.suppression_startit, "zcutstartit", config_group)
-        self.suppression_startit = read_attr(self.suppression_startit, "suppression_startit", config_group)
-        self.suppression_harmonic = read_attr(self.suppression_harmonic, "suppression_harmonic", config_group)
-        self.suppression_satellite = read_attr(self.suppression_satellite, "suppression_satellite", config_group)
-        self.mzsig = read_attr(self.mzsig, "mzsig", config_group)
-        self.psfun = read_attr(self.psfun, "psfun", config_group)
-        self.psfunz = read_attr(self.psfunz, "psfunz", config_group)
-        self.variablepw = read_attr(self.variablepw, "variablepw", config_group)
-        self.minratio = read_attr(self.minratio, "minratio", config_group)
-        self.discreteplot = read_attr(self.discreteplot, "discreteplot", config_group)
-        self.massub = read_attr(self.massub, "massub", config_group)
-        self.masslb = read_attr(self.masslb, "masslb", config_group)
-        self.molig = read_attr(self.molig, "molig", config_group)
-        self.msig = read_attr(self.msig, "msig", config_group)
-        self.massbins = read_attr(self.massbins, "massbins", config_group)
-        self.mtabsig = read_attr(self.mtabsig, "mtabsig", config_group)
-        self.subbuff = read_attr(self.subbuff, "subbuff", config_group)
-        self.subtype = read_attr(self.subtype, "subtype", config_group)
-        self.smooth = read_attr(self.smooth, "smooth", config_group)
-        self.mzbins = read_attr(self.mzbins, "mzbins", config_group)
-        self.peakwindow = read_attr(self.peakwindow, "peakwindow", config_group)
-        self.peakthresh = read_attr(self.peakthresh, "peakthresh", config_group)
-        self.normthresh = read_attr(self.normthresh, "normthresh", config_group)
-        self.peakplotthresh = read_attr(self.peakplotthresh, "peakplotthresh", config_group)
-        self.separation = read_attr(self.separation, "separation", config_group)
-        self.separation = read_attr(self.separation, "plotsep", config_group)
-        self.intthresh = read_attr(self.intthresh, "intthresh", config_group)
-        self.reductionpercent = read_attr(self.reductionpercent, "reductionpercent", config_group)
-        self.aggressiveflag = read_attr(self.aggressiveflag, "aggressiveflag", config_group)
-        self.aggressiveflag = read_attr(self.aggressiveflag, "aggressive", config_group)
-        self.rawflag = read_attr(self.rawflag, "rawflag", config_group)
-        self.rescale_newblur = read_attr(self.rescale_newblur, "rescale_newblur", config_group)
-        self.adductmass = read_attr(self.adductmass, "adductmass", config_group)
-        self.nativezub = read_attr(self.nativezub, "nativezub", config_group)
-        self.nativezlb = read_attr(self.nativezlb, "nativezlb", config_group)
-        self.poolflag = read_attr(self.poolflag, "poolflag", config_group)
-        self.detectoreffva = read_attr(self.detectoreffva, "accvol", config_group)
-        self.inflate = read_attr(self.inflate, "peakshapeinflate", config_group)
-        self.noiseflag = read_attr(self.noiseflag, "noiseflag", config_group)
-        self.linflag = read_attr(self.linflag, "linflag", config_group)
-        self.cmap = read_attr(self.cmap, "cmap", config_group)
-        self.peakcmap = read_attr(self.peakcmap, "peakcmap", config_group)
-        self.spectracmap = read_attr(self.spectracmap, "spectracmap", config_group)
-        self.publicationmode = read_attr(self.publicationmode, "publicationmode", config_group)
-        self.isotopemode = read_attr(self.isotopemode, "isotopemode", config_group)
-        self.peaknorm = read_attr(self.peaknorm, "peaknorm", config_group)
-        self.baselineflag = read_attr(self.baselineflag, "baselineflag", config_group)
-        self.orbimode = read_attr(self.orbimode, "orbimode", config_group)
         self.zout = read_attr(self.zout, "zout", config_group)
 
         self.pusher = read_attr(self.pusher, "pusher", config_group)
@@ -1815,8 +1836,10 @@ class UniDecConfig(object):
         self.ccsbins = read_attr(self.ccsbins, "ccsbins", config_group)
         self.subbufdt = read_attr(self.subbufdt, "subbufdt", config_group)
         self.smoothdt = read_attr(self.smoothdt, "smoothdt", config_group)
-        self.nativeccsub = read_attr(self.nativeccsub, "nativeccsub", config_group)
-        self.nativeccslb = read_attr(self.nativeccslb, "nativeccslb", config_group)
+        self.nativeccsub = read_attr(
+            read_attr(self.nativeccsub, "nativeccsub", config_group), "ubnativeccs", config_group)
+        self.nativeccslb = read_attr(
+            read_attr(self.nativeccslb, "nativeccslb", config_group), "lbnativeccs", config_group)
         self.twaveflag = read_attr(self.twaveflag, "twaveflag", config_group)
         self.temp = read_attr(self.temp, "temp", config_group)
         self.pressure = read_attr(self.pressure, "pressure", config_group)
@@ -1830,16 +1853,6 @@ class UniDecConfig(object):
         self.edc = read_attr(self.edc, "edc", config_group)
         self.gasmass = read_attr(self.gasmass, "gasmass", config_group)
 
-        self.integratelb = read_attr(self.integratelb, "integratelb", config_group)
-        self.integrateub = read_attr(self.integrateub, "integrateub", config_group)
-        self.filterwidth = read_attr(self.filterwidth, "filterwidth", config_group)
-        self.zerolog = read_attr(self.zerolog, "zerolog", config_group)
-        self.mfileflag = read_attr(self.mfileflag, "mfileflag", config_group)
-        self.manualfileflag = read_attr(self.manualfileflag, "manualfileflag", config_group)
-        self.imflag = read_attr(self.imflag, "imflag", config_group)
-        self.cdmsflag = read_attr(self.cdmsflag, "cdmsflag", config_group)
-        self.doubledec = bool(read_attr(self.doubledec, "doubledec", config_group))
-        self.smashflag = read_attr(self.smashflag, "smashflag", config_group)
         self.original_file = read_attr(self.original_file, "original_file", config_group)
 
         self.exchoice = read_attr(self.exchoice, "exchoice", config_group)
@@ -1847,7 +1860,6 @@ class UniDecConfig(object):
         self.exthresh = read_attr(self.exthresh, "exthresh", config_group)
         self.exnorm = read_attr(self.exnorm, "exnorm", config_group)
         self.exnormz = read_attr(self.exnormz, "exnormz", config_group)
-        self.datanorm = read_attr(self.datanorm, "datanorm", config_group)
         self.exwindow = read_attr(self.exwindow, "exwindow", config_group)
 
         self.masslist = get_dataset(config_group, "masslist")
@@ -1924,9 +1936,27 @@ class UniDecConfig(object):
         return self.outfname + separator + name
 
     @staticmethod
-    def _path_for_config(path, config_dir):
+    def _is_absolute_path(path):
+        """Recognize POSIX, drive-letter, and UNC absolute paths on every host OS."""
+        drive, tail = ntpath.splitdrive(path)
+        return path.startswith(("/", "\\")) or bool(drive and tail.startswith(("/", "\\")))
+
+    @classmethod
+    def _resolve_config_path(cls, path, config_dir):
+        """Resolve a relative config value without rewriting foreign absolute paths."""
+        if not path or cls._is_absolute_path(path):
+            return path
+        return os.path.normpath(os.path.join(config_dir, path))
+
+    @classmethod
+    def _path_for_config(cls, path, config_dir):
         """Serialize managed paths relative to the config file when possible."""
         if not path:
+            return str(path)
+        if os.name == "nt":
+            if path.startswith("/") and not path.startswith("//"):
+                return str(path)
+        elif ntpath.isabs(path) and not path.startswith("/"):
             return str(path)
         absolute = os.path.abspath(path)
         try:
@@ -2038,6 +2068,12 @@ class UniDecConfig(object):
             badest = 1
             warning = "ERROR: PATH LENGTH TOO LONG: Windows sets a 260 character path length." \
                       "\nPlease shorten your file and folder path lengths."
+
+        try:
+            self.resolved_integration_bounds()
+        except (TypeError, ValueError):
+            badest = 1
+            warning = "Integration lower bound must be less than upper bound and both must be finite."
 
         return badest, warning
 
@@ -2569,6 +2605,14 @@ class OligomerContainer:
 
 
 class DataContainer:
+    """Mutable arrays from one engine run.
+
+    For conventional MS, ``rawdata`` and ``data2`` hold m/z and intensity
+    pairs before and after processing. ``massdat`` holds mass (Da) and
+    intensity after deconvolution, and ``ztab`` holds integer charge states.
+    Arrays start empty and stages can replace them.
+    """
+
     def __init__(self):
         """
         Initialize DataContainer with empty arrays.

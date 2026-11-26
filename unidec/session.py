@@ -15,6 +15,7 @@ import zipfile
 import numpy as np
 
 from unidec.engine import UniDec
+from unidec.tools import native_diagnostic_excerpt
 
 
 class UniDecSessionEngineAdapter:
@@ -114,7 +115,13 @@ class UniDecCDSessionEngineAdapter(UniDecSessionEngineAdapter):
 
 
 class UniDecSession:
-    """Own one conventional-MS engine and serialize its mutable operations."""
+    """Own one single-spectrum engine and serialize its mutations.
+
+    The default engine handles conventional MS. Pass a working directory
+    for artifacts and existing allowed roots for input files. Relative
+    output paths resolve under the workspace. Mutations return an
+    ``ok`` flag and session state, with a structured error on failure.
+    """
 
     STAGES = ("process", "deconvolve", "pick_peaks", "all")
     MAX_RUN_RECORDS = 100
@@ -170,9 +177,15 @@ class UniDecSession:
         }
 
     def get_state(self):
+        """Return the revision, status, and stage availability for the current spectrum."""
         return self._state()
 
     def get_parameters(self, names=None):
+        """Return selected values and the full mode schema.
+
+        Pass a name or sequence of names to select values. An unknown name
+        raises ``ValueError``.
+        """
         return {
             "session_id": self.session_id,
             "revision": self.revision,
@@ -234,6 +247,7 @@ class UniDecSession:
         return resolved
 
     def open_spectrum(self, path):
+        """Read an allowed spectrum file and allocate a new operation directory."""
         operation_id = self._begin_mutation()
         if operation_id is None:
             return self._failure("busy", "Another session mutation is running", set_error=False)
@@ -258,6 +272,7 @@ class UniDecSession:
             self._lock.release()
 
     def set_parameters(self, values):
+        """Validate a mapping, apply it atomically, and clear all stage freshness."""
         operation_id = self._begin_mutation()
         if operation_id is None:
             return self._failure("busy", "Another session mutation is running", set_error=False)
@@ -273,6 +288,7 @@ class UniDecSession:
             self._lock.release()
 
     def save_state(self, path):
+        """Write a new ZIP checkpoint below the workspace without overwriting."""
         previous_status = self.status
         operation_id = self._begin_mutation()
         if operation_id is None:
@@ -301,6 +317,7 @@ class UniDecSession:
             self._lock.release()
 
     def load_state(self, path):
+        """Copy and restore an allowed ZIP, leaving stages stale until rerun."""
         operation_id = self._begin_mutation()
         if operation_id is None:
             return self._failure("busy", "Another session mutation is running", set_error=False)
@@ -364,7 +381,7 @@ class UniDecSession:
                 pass
         return identity
 
-    def _record_run(self, operation_id, stage, started_at, duration, response):
+    def _record_run(self, operation_id, stage, started_at, duration, response, native_diagnostic=None):
         parameters = self.engine.config.parameter_values()
         previous = self._run_records[-1] if self._run_records else None
         previous_parameters = {} if previous is None else previous["parameters"]
@@ -410,10 +427,13 @@ class UniDecSession:
             results["peaks_truncated"] = len(ranked) > self.MAX_RECORDED_PEAKS
         if results:
             record["results"] = results
+        if native_diagnostic:
+            record["native_diagnostic"] = native_diagnostic
         self._run_records.append(record)
         del self._run_records[:-self.MAX_RUN_RECORDS]
 
-    def get_run_manifest(self, operation_id=None):
+    def get_run_manifest(self, operation_id=None, include_diagnostic=False):
+        """Return a retained run record, with the full native diagnostic on request."""
         if operation_id is None:
             record = self._run_records[-1] if self._run_records else None
         elif isinstance(operation_id, int) and not isinstance(operation_id, bool):
@@ -426,9 +446,13 @@ class UniDecSession:
                 "invalid_operation_id", "operation_id must be an integer or null", set_error=False)
         if record is None:
             return self._failure("run_not_found", "No matching run manifest is available", set_error=False)
-        return {"ok": True, "manifest": deepcopy(record)}
+        manifest = dict(record)
+        if not include_diagnostic:
+            manifest.pop("native_diagnostic", None)
+        return {"ok": True, "manifest": deepcopy(manifest)}
 
     def compare_runs(self, before_operation_id, after_operation_id):
+        """Compare retained runs by settings, fit R-squared, and peak metrics."""
         before_response = self.get_run_manifest(before_operation_id)
         after_response = self.get_run_manifest(after_operation_id)
         if not before_response.get("ok"):
@@ -473,6 +497,7 @@ class UniDecSession:
         }
 
     def export_regression_fixture(self, operation_id, path):
+        """Write metadata for a retained failed run to a new workspace JSON file."""
         previous_status = self.status
         previous_error = self.last_error
         export_operation_id = self._begin_mutation()
@@ -541,6 +566,11 @@ class UniDecSession:
             self._lock.release()
 
     def run(self, stage="all"):
+        """Run one stage or process, deconvolve, and pick peaks in order.
+
+        Individual stages require fresh prerequisites for the current
+        revision. Deconvolution calls the native UniDec executable.
+        """
         if stage not in self.STAGES:
             return self._failure("invalid_stage", f"Unsupported run stage: {stage}", set_error=False)
         operation_id = self._begin_mutation()
@@ -549,9 +579,9 @@ class UniDecSession:
         started = time.perf_counter()
         started_at = datetime.now(timezone.utc).isoformat()
 
-        def finish(response):
+        def finish(response, native_diagnostic=None):
             duration = time.perf_counter() - started
-            self._record_run(operation_id, stage, started_at, duration, response)
+            self._record_run(operation_id, stage, started_at, duration, response, native_diagnostic)
             return response
 
         try:
@@ -577,11 +607,16 @@ class UniDecSession:
                     result = self.engine_adapter.deconvolve()
                     if result != 0:
                         diagnostic = getattr(self.engine, "last_run_diagnostic", None)
-                        return finish(self._failure(
+                        preferred = getattr(self.engine, "last_run_stderr", "") or diagnostic
+                        excerpt = native_diagnostic_excerpt(preferred) if preferred else ""
+                        response = self._failure(
                             "native_failed",
-                            f"UniDec returned {result}" + (f": {diagnostic}" if diagnostic else ""),
+                            f"UniDec returned {result}" + (f": {excerpt}" if excerpt else ""),
                             operation_id,
-                        ))
+                        )
+                        if diagnostic and excerpt != diagnostic:
+                            response["error"]["full_diagnostic_available"] = True
+                        return finish(response, diagnostic)
                     self._stage_revision["deconvolve"] = self.revision
                     self._stage_revision["pick_peaks"] = None
                 else:
@@ -602,6 +637,7 @@ class UniDecSession:
             self._lock.release()
 
     def get_results(self, max_peaks=100):
+        """Return the fit and first ``max_peaks`` peaks after fresh peak picking."""
         if not isinstance(max_peaks, int) or isinstance(max_peaks, bool) or max_peaks < 0:
             return self._failure("invalid_limit", "max_peaks must be a nonnegative integer", set_error=False)
         if not self._require_fresh("pick_peaks"):

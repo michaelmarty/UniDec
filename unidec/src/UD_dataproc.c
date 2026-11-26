@@ -237,12 +237,13 @@ void norm1d(float *dataInt, const int lengthmz)
 
 void background_subtract(float *dataInt, const int bsub, const int lengthmz)
 {
+	const int radius = abs(bsub);
 	float *background = calloc(lengthmz, sizeof(float));
 	// Get Local Mins
 	for (int i=0; i < lengthmz; i++)
 	{
-		int start = i - abs(bsub);
-		int end = i + abs(bsub);
+		int start = i - radius;
+		int end = i + radius + 1;
 		if (start < 0) { start = 0; }
 		if (end > lengthmz) { end = lengthmz; }
 		float min = dataInt[start];
@@ -253,24 +254,25 @@ void background_subtract(float *dataInt, const int bsub, const int lengthmz)
 		background[i] = min;
 	}
 	// Smooth Local Mins and Subtract
-	const int threshold = abs(bsub) * 6;
+	const int gaussian_radius = radius * 3;
+	const int threshold = gaussian_radius * 2 + 1;
 	float *gaussian = calloc(threshold, sizeof(float));
 	for (int i = 0; i < threshold; i++)
 	{
-		gaussian[i] = ndis((float) i, (float) abs(bsub) * 3, (float) abs(bsub));
+		gaussian[i] = ndis((float) i, (float) gaussian_radius, (float) radius);
 	}
 
 	#pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i < lengthmz; i++)
 	{
-		int start = i - abs(bsub)*3;
-		int end = i + abs(bsub)*3;
+		int start = i - gaussian_radius;
+		int end = i + gaussian_radius + 1;
 		if (start < 0) { start = 0; }
 		if (end > lengthmz) { end = lengthmz; }
 		float val = 0;
 		for (int j = start; j < end; j++)
 		{
-			val += background[j] * gaussian[j - start];
+			val += background[j] * gaussian[j - i + gaussian_radius];
 		}
 		dataInt[i] -= val;
 	}

@@ -11,6 +11,25 @@ from tests._test_support import copy_unidec_example
 
 
 class TestBundledCDProcessing(unittest.TestCase):
+    def test_engine_opens_legacy_data_only_npz_cache(self):
+        with tempfile.TemporaryDirectory(prefix="unidec-legacy-cd-cache-") as directory:
+            path = Path(directory, "sample_rawdata.npz")
+            data = np.array([
+                [5000.0, 1000.0, 1.0, 10.0, 2.0],
+                [5001.0, 1100.0, 2.0, 11.0, 2.0],
+                [5002.0, 1200.0, 3.0, 12.0, 2.0],
+            ])
+            np.savez_compressed(path, data=data)
+
+            engine = UniDecCD()
+            try:
+                engine.open_file(str(path))
+                np.testing.assert_allclose(engine.darray, data)
+                self.assertEqual(engine.config.original_file, path.name)
+            finally:
+                if getattr(engine, "importer", None) is not None:
+                    engine.importer.close()
+
     def test_new_cd_run_uses_standard_names_and_versioned_cache(self):
         with tempfile.TemporaryDirectory(prefix="unidec-bundled-cd-short-") as directory:
             root = Path(directory)
@@ -88,8 +107,8 @@ class TestBundledCDProcessing(unittest.TestCase):
             np.testing.assert_array_equal(dmt[:, 3], np.full(len(dmt), 5.0))
             np.testing.assert_array_equal(dmt[:, 4], np.full(len(dmt), -1.0))
 
-    def test_dmt_configured_processing_matches_independent_event_mask_and_charge_formula(self):
-        """Configured strict m/z/charge filters leave exactly the independently selected events."""
+    def test_dmt_configured_processing_matches_reviewed_calibration_and_populations(self):
+        """The reviewed slope resolves the expected Bgal and GroEL mass populations."""
         with tempfile.TemporaryDirectory(prefix="unidec-bundled-cd-process-") as directory:
             root = Path(directory)
             dmt_path = copy_unidec_example(root, "CDMS", "BgalGroEL.dmt")
@@ -104,6 +123,7 @@ class TestBundledCDProcessing(unittest.TestCase):
                 engine.open_file(str(dmt_path), refresh=True)
                 original = engine.darray.copy()
                 slope = engine.config.CDslope
+                self.assertEqual(slope, 110750.0)
                 charge = original[:, 1] / slope
                 expected_mask = (
                     (original[:, 0] > engine.config.minmz)
@@ -113,6 +133,7 @@ class TestBundledCDProcessing(unittest.TestCase):
                 )
 
                 self.assertEqual(engine.process_data(transform=True), 1)
+                engine.pick_peaks(calc_dscore=False)
             finally:
                 if getattr(engine, "importer", None) is not None:
                     engine.importer.close()
@@ -126,6 +147,13 @@ class TestBundledCDProcessing(unittest.TestCase):
             self.assertEqual(engine.data.massdat.shape[1], 2)
             self.assertTrue(np.isfinite(engine.harray).all())
             self.assertTrue(np.isfinite(engine.data.massdat).all())
+            detected_masses = np.array([peak.mass for peak in engine.pks.peaks])
+            for name, expected_mass in (("Bgal", 466000.0), ("GroEL", 801000.0)):
+                with self.subTest(population=name):
+                    self.assertTrue(
+                        np.any(np.abs(detected_masses - expected_mass) <= expected_mass * 0.02),
+                        f"No {name} population detected within 2% of {expected_mass:g} Da",
+                    )
 
 
 if __name__ == "__main__":

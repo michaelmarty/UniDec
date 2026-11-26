@@ -189,7 +189,7 @@ static size_t count_mz_edges_UC(const UCRaggedData *data,
         return (size_t)interpolation_neighbors_UC(axis, length, target_mz,
                                                    indexes, weights);
     }
-    const float window = config.psmzthresh > 0 ? config.psmzthresh : 6 * fabsf(config.mzsig);
+    const float window = mz_kernel_window_UniChrom(&config);
     const int begin = lower_bound_UC(axis, length, target_mz - window);
     const int end = lower_bound_UC(axis, length, target_mz + window);
     return end > begin ? (size_t)(end - begin) : 0;
@@ -199,6 +199,7 @@ static size_t count_mz_edges_UC(const UCRaggedData *data,
 static size_t write_mz_edges_UC(const UCRaggedData *data,
                                 const int source_scan, const float target_mz,
                                 const float time_weight, const Config config,
+                                const float mz_width,
                                 int *indices, float *weights)
 {
     const int first = data->scan_offsets[source_scan];
@@ -214,14 +215,13 @@ static size_t write_mz_edges_UC(const UCRaggedData *data,
         }
         return (size_t)count;
     }
-    const float window = config.psmzthresh > 0 ? config.psmzthresh : 6 * fabsf(config.mzsig);
+    const float window = mz_kernel_window_UniChrom(&config);
     const int begin = lower_bound_UC(axis, length, target_mz - window);
     const int end = lower_bound_UC(axis, length, target_mz + window);
     size_t written = 0;
     for (int source = begin; source < end; source++) {
         const float weight = time_weight * mzpeakshape(
-            axis[source], target_mz,
-            fabsf(config.mzsig) * config.peakshapeinflate, config.psfun);
+            axis[source], target_mz, mz_width, config.psfun);
         if (weight > 0 && isfinite(weight)) {
             indices[written] = first + source;
             weights[written++] = weight;
@@ -237,6 +237,7 @@ static int build_direct_operator_UC(const UCRaggedData *data,
 {
     memset(op, 0, sizeof(*op));
     op->length = data->point_count;
+    const float mz_width = fabsf(config.mzsig);
     const double padding_value = config.UCtype == 1 ? 0 : ceil(3.0 * config.dtsig);
     if (padding_value > (INT_MAX - data->scan_count) / 2.0) { return 0; }
     const int padding = (int)padding_value;
@@ -314,14 +315,16 @@ static int build_direct_operator_UC(const UCRaggedData *data,
                 data->scan_count, target_scan, source_scan)];
             if (!(time_weight > 0)) { continue; }
             edge += write_mz_edges_UC(data, source_scan, data->mz[target_point],
-                                      time_weight, config,
+                                      time_weight, config, mz_width,
                                       op->indices + edge, op->weights + edge);
         }
         op->offsets[target_point + 1] = edge;
     }
     op->edge_count = op->offsets[op->length];
+    free(time_weights);
+
     op->transpose_offsets = calloc((size_t)op->length + 1, sizeof(size_t));
-    if (op->transpose_offsets == NULL) { free(time_weights); return 0; }
+    if (op->transpose_offsets == NULL) { return 0; }
     for (size_t edge = 0; edge < op->edge_count; edge++) {
         op->transpose_offsets[op->indices[edge] + 1]++;
     }
@@ -334,7 +337,7 @@ static int build_direct_operator_UC(const UCRaggedData *data,
     op->sensitivity = calloc((size_t)op->length, sizeof(float));
     if (op->transpose_indices == NULL || op->transpose_weights == NULL ||
         positions == NULL || op->sensitivity == NULL) {
-        free(time_weights); free(positions); return 0;
+        free(positions); return 0;
     }
     memcpy(positions, op->transpose_offsets, (size_t)op->length * sizeof(size_t));
     for (int row = 0; row < op->length; row++) {
@@ -347,7 +350,6 @@ static int build_direct_operator_UC(const UCRaggedData *data,
         }
     }
     free(positions);
-    free(time_weights);
     for (int i = 0; i < op->length; i++) {
         if (!(op->sensitivity[i] > 0) || op->offsets[i] == op->offsets[i + 1]) {
             fprintf(stderr, "Nonlinear UniChrom response has an unsupported m/z point\n");
@@ -392,54 +394,6 @@ static void adjoint_UC(const UCDirectOperator *op, const float *input, float *ou
             value += op->transpose_weights[edge] * input[op->transpose_indices[edge]];
         }
         output[row] = value;
-    }
-}
-
-
-static int nearest_in_scan_UC(const UCRaggedData *data, const int scan,
-                              const float value)
-{
-    const int first = data->scan_offsets[scan];
-    const int length = data->scan_offsets[scan + 1] - first;
-    if (length < 1) { return -1; }
-    if (value < data->mz[first] || value > data->mz[first + length - 1]) { return -1; }
-    return first + nearfast(data->mz + first, value, length);
-}
-
-
-static void make_regularizer_indexes_UC(const UCRaggedData *data,
-                                        const Config config,
-                                        int *zup, int *zdown,
-                                        int *mup, int *mdown)
-{
-    const int charge_count = config.numz;
-    #pragma omp parallel for schedule(static) if(data->point_count * charge_count >= UC_DIRECT_OMP_MIN_LENGTH)
-    for (int point = 0; point < data->point_count; point++) {
-        const int scan = scan_for_point_UC(data, point);
-        const float mz = data->mz[point];
-        for (int zi = 0; zi < charge_count; zi++) {
-            const int index = point * charge_count + zi;
-            const int charge = config.startz + zi;
-            const float mass = calcmass(mz, charge, config.adductmass);
-            if (zup != NULL) {
-                const int mapped = nearest_in_scan_UC(
-                    data, scan, calcmz(mass, charge + 1, config.adductmass));
-                zup[index] = zi == charge_count - 1 || mapped < 0 ? index :
-                    mapped * charge_count + zi + 1;
-                const int lower = charge == 1 ? -1 : nearest_in_scan_UC(
-                    data, scan, calcmz(mass, charge - 1, config.adductmass));
-                zdown[index] = zi == 0 || lower < 0 ? index :
-                    lower * charge_count + zi - 1;
-            }
-            if (mup != NULL) {
-                const int upper = nearest_in_scan_UC(
-                    data, scan, calcmz(mass + config.molig, charge, config.adductmass));
-                const int lower = nearest_in_scan_UC(
-                    data, scan, calcmz(mass - config.molig, charge, config.adductmass));
-                mup[index] = upper < 0 ? index : upper * charge_count + zi;
-                mdown[index] = lower < 0 ? index : lower * charge_count + zi;
-            }
-        }
     }
 }
 
@@ -694,23 +648,17 @@ int run_chromatogram_nonlinear(int argc, char *argv[], Config config)
     float *smoothing_sums = config.psig >= 1 ?
         calloc((size_t)data.scan_count * config.numz, sizeof(float)) : NULL;
     char *allowed = calloc((size_t)cube_length, sizeof(char));
-    int *zup = config.zsig != 0 ? malloc((size_t)cube_length * sizeof(int)) : NULL;
-    int *zdown = config.zsig != 0 ? malloc((size_t)cube_length * sizeof(int)) : NULL;
-    int *mup = config.msig != 0 ? malloc((size_t)cube_length * sizeof(int)) : NULL;
-    int *mdown = config.msig != 0 ? malloc((size_t)cube_length * sizeof(int)) : NULL;
+    IntraDecon *unidec_blurs = (config.zsig != 0 || config.msig != 0) ?
+        calloc((size_t)scan_count, sizeof(IntraDecon)) : NULL;
     int *nztab = config.suppression_harmonic > 0 ?
         malloc((size_t)config.numz * sizeof(int)) : NULL;
     if (blur == NULL || scratch == NULL || oldblur == NULL || projection == NULL ||
         response == NULL || ratio == NULL || correction == NULL || allowed == NULL ||
         (config.psig >= 1 && smoothing_sums == NULL) ||
-        (config.zsig != 0 && (zup == NULL || zdown == NULL)) ||
-        (config.msig != 0 && (mup == NULL || mdown == NULL)) ||
+        ((config.zsig != 0 || config.msig != 0) && unidec_blurs == NULL) ||
         (config.suppression_harmonic > 0 && nztab == NULL)) {
         fprintf(stderr, "Unable to allocate nonlinear UniChrom iteration arrays\n");
-        free(blur); free(scratch); free(oldblur); free(projection); free(response);
-        free(ratio); free(correction); free(smoothing_sums); free(allowed);
-        free(zup); free(zdown); free(mup); free(mdown); free(nztab);
-        goto cleanup;
+        goto cleanup_iteration;
     }
 
     for (int point = 0; point < data.point_count; point++) {
@@ -729,7 +677,18 @@ int run_chromatogram_nonlinear(int argc, char *argv[], Config config)
         }
     }
     memcpy(oldblur, blur, (size_t)cube_length * sizeof(float));
-    make_regularizer_indexes_UC(&data, config, zup, zdown, mup, mdown);
+    if (unidec_blurs != NULL) {
+        for (int scan = 0; scan < scan_count; scan++) {
+            const int first = data.scan_offsets[scan];
+            const int count = data.scan_offsets[scan + 1] - first;
+            if (!setup_blur_UniChrom(config, data.mz + first, count,
+                                    allowed + (size_t)first * config.numz, 1,
+                                    &unidec_blurs[scan])) {
+                fprintf(stderr, "Unable to prepare UniChrom blur neighborhood for scan %d\n", scan);
+                goto cleanup_iteration;
+            }
+        }
+    }
     if (nztab != NULL) {
         for (int zi = 0; zi < config.numz; zi++) { nztab[zi] = config.startz + zi; }
     }
@@ -764,11 +723,15 @@ int run_chromatogram_nonlinear(int argc, char *argv[], Config config)
                                nztab, config.suppression_topn, config.suppression_topx,
                                config.suppression_percent);
         }
-        if (config.zsig != 0) {
-            blur_it_UCCD(blur, scratch, zup, zdown, cube_length, config.zsig * data_max);
-        }
-        if (config.msig != 0) {
-            blur_it_UCCD(blur, scratch, mup, mdown, cube_length, config.msig * data_max);
+        if (unidec_blurs != NULL) {
+            #pragma omp parallel for schedule(static) if(scan_count > 1)
+            for (int scan = 0; scan < scan_count; scan++) {
+                const IntraDecon *scan_blur = &unidec_blurs[scan];
+                if (scan_blur->ln == 0) { continue; }
+                const size_t offset = (size_t)data.scan_offsets[scan] * config.numz;
+                ApplyBlur(&config, scan_blur, scratch + offset, blur + offset);
+            }
+            float *swap = blur; blur = scratch; scratch = swap;
         }
         clear_cube_UC(blur, allowed, cube_length);
         #pragma omp parallel for schedule(static) if(data.point_count >= UC_DIRECT_OMP_MIN_LENGTH)
@@ -816,9 +779,14 @@ int run_chromatogram_nonlinear(int argc, char *argv[], Config config)
     }
     printf(" done (metric %.6g)\n", convergence);
     if (write_outputs_UC(config, &data, &op, blur, allowed)) { result = 0; }
+cleanup_iteration:
+    if (unidec_blurs != NULL) {
+        for (int scan = 0; scan < scan_count; scan++) { FreeIntraDecon(unidec_blurs[scan]); }
+        free(unidec_blurs);
+    }
     free(blur); free(scratch); free(oldblur); free(projection); free(response);
     free(ratio); free(correction); free(smoothing_sums); free(allowed);
-    free(zup); free(zdown); free(mup); free(mdown); free(nztab);
+    free(nztab);
 
 cleanup:
     free_direct_operator_UC(&op);

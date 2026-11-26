@@ -13,8 +13,11 @@ __author__ = 'Michael.Marty'
 
 
 class Peak:
-    """
-    Class for a single peak. Contains all key parameters for describing and plotting the peak.
+    """A detected peak with measurements and plotting metadata.
+
+    For a conventional mass peak, ``mass`` is in daltons and ``height``
+    uses the configured normalization. ``integral`` and ``dscore`` default
+    to zero until peak integration or scoring populates them.
     """
 
     def __init__(self):
@@ -333,6 +336,13 @@ class Peaks:
                 else:
                     print("ERROR IN INTEGRATION. Need to calc FWHM first.")
                     ub = 0
+            if lb == 0 and ub == 0:
+                p.integralrange = []
+                p.integral = p.height
+                self.areas.append(p.integral)
+                continue
+            if lb >= ub:
+                raise ValueError("Integration lower bound must be less than upper bound")
             p.integralrange = [p.mass + lb, p.mass + ub]
             p.integral = ud.integrate(data, p.integralrange[0], p.integralrange[1])[0]
             self.areas.append(p.integral)

@@ -52,6 +52,8 @@ add_library(unideclib SHARED udmain.c udmain.h
         UD_dataproc.h
         UD_conv.h
         UD_conv.c
+        UniDecIM.c
+        UniDecIM.h
         udinterface.cpp
         udinterface.hpp
 )
@@ -141,16 +143,21 @@ endif()
 
 # Set linking for FFTW libraries
 # Find MKL (Math Kernel Library)
+if(WIN32)
+    # Link the Windows MKL implementation into both binaries so they can run
+    # from unidec/bin after an MKL upgrade without finding versioned DLLs on PATH.
+    set(MKL_LINK static)
+    set(MKL_INTERFACE lp64)
+endif()
 find_package(MKL QUIET)
 if (MKL_FOUND)
     target_compile_definitions(unidec PRIVATE UNIDEC_USE_MKL)
     target_include_directories(unidec PRIVATE "${MKL_ROOT}/include")
-    target_link_libraries(unidec PUBLIC ${MKL_LIBRARIES})
     if (WIN32)
-        target_link_libraries(unidec PUBLIC "${MKL_ROOT}/lib/mkl_rt.lib")
-        target_link_libraries(unideclib PUBLIC "${MKL_ROOT}/lib/mkl_rt.lib")
+        target_link_libraries(unidec PRIVATE MKL::MKL)
+        target_link_libraries(unideclib PRIVATE MKL::MKL)
     else()
-        target_link_libraries(unidec PUBLIC mkl_rt)
+        target_link_libraries(unidec PUBLIC ${MKL_LIBRARIES} mkl_rt)
         target_link_libraries(unideclib PUBLIC mkl_rt)
     endif()
     include_directories(${MKL_INCLUDE_DIRS})
@@ -215,6 +222,12 @@ target_compile_options(unideclib PRIVATE
         $<$<AND:$<NOT:$<C_COMPILER_ID:MSVC>>,$<CONFIG:Release>>:-O3>
 )
 
+# Keep the arithmetic feeding the iterative deconvolution consistent across compilers.
+if(WIN32 AND CMAKE_C_COMPILER_ID STREQUAL "IntelLLVM")
+    set_property(SOURCE udcore.c udmain.c APPEND PROPERTY COMPILE_OPTIONS /fp:precise)
+elseif(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+    set_property(SOURCE udcore.c udmain.c udtools.c APPEND PROPERTY COMPILE_OPTIONS -ffp-contract=off)
+endif()
 
 # Install the executable
 install(TARGETS unidec unideclib

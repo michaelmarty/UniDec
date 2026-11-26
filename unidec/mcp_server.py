@@ -64,10 +64,11 @@ def register_tools(server, session, annotations_factory, gui_bridge=None):
     def get_plot(name: str) -> dict:
         return _session_call(session.get_plot, name)
 
-    @tool("get_run_manifest", "Return bounded provenance for one run operation.", read_only=True,
+    @tool("get_run_manifest", "Return bounded provenance for one run. Set include_diagnostic to retrieve "
+          "the full native failure diagnostic for that operation when available.", read_only=True,
           idempotent=True)
-    def get_run_manifest(operation_id: int | None = None) -> dict:
-        return _session_call(session.get_run_manifest, operation_id)
+    def get_run_manifest(operation_id: int | None = None, include_diagnostic: bool = False) -> dict:
+        return _session_call(session.get_run_manifest, operation_id, include_diagnostic)
 
     @tool("compare_runs", "Compare parameters and summary metrics for two recorded runs.", read_only=True,
           idempotent=True)
@@ -283,6 +284,12 @@ def build_parser():
 
 
 def main(argv=None):
+    """Start the UniDec MCP STDIO server for the selected acquisition mode.
+
+    ``argv`` accepts command-line arguments without the executable name.
+    The server requires the optional ``agent`` dependencies, input roots,
+    and a working directory.
+    """
     args = build_parser().parse_args(argv)
     with redirect_stdout(sys.stderr):
         if args.mode == "metaunidec":

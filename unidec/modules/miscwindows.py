@@ -217,7 +217,6 @@ class AdditionalParameters(wx.Dialog):
         self.SetSize((400, 200))
         self.SetTitle("Set Experimental Parameters")
         self.config = None
-        self.inputbox5 = None
         self.inputbox6 = None
         self.inputbox6b = None
         self.inputbox7 = None
@@ -236,13 +235,6 @@ class AdditionalParameters(wx.Dialog):
 
         sb = wx.StaticBox(pnl, label='Set Experimental Parameters')
         sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
-
-        hbox5 = wx.BoxSizer(wx.HORIZONTAL)
-        self.inputbox5 = wx.TextCtrl(sb, value=str(self.config.inflate))
-        hbox5.Add(wx.StaticText(sb, label='Peak Inflation Parameter: '), 0, wx.ALIGN_CENTER_VERTICAL)
-        hbox5.Add(self.inputbox5, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
-        hbox5.Add(wx.StaticText(sb, label=' x Peak Shape '), 0, wx.ALIGN_CENTER_VERTICAL)
-        sbs.Add(hbox5, 1)
 
         hbox7 = wx.BoxSizer(wx.HORIZONTAL)
         self.inputbox7 = wx.TextCtrl(sb, value=str(self.config.filterwidth))
@@ -301,7 +293,6 @@ class AdditionalParameters(wx.Dialog):
         :return: None
         """
         # self.config.suppression = ud.string_to_int(self.inputbox6b.GetSelection())
-        self.config.inflate = ud.string_to_value(self.inputbox5.GetValue())
         self.config.filterwidth = ud.string_to_value(self.inputbox7.GetValue())
         self.config.zerolog = ud.string_to_value(self.inputbox8.GetValue())
         # self.config.damp = ud.string_to_value(self.inputbox6.GetValue())

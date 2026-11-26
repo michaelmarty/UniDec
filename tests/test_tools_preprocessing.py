@@ -1,5 +1,8 @@
 import os
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
+from subprocess import CompletedProcess
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -13,17 +16,34 @@ class TestNativeCall(unittest.TestCase):
         config = SimpleNamespace(UniDecPath="unidec", confname=os.path.join("run", "conf.dat"))
         confname = os.path.abspath(config.confname)
 
-        with patch.object(tools, "exe_call", return_value=(0, "diagnostic")) as exe_call:
+        with patch.object(tools.subprocess, "run", return_value=CompletedProcess([], 0, "diagnostic", "")) as run:
             result = tools.unidec_call(config, silent=True)
 
         self.assertEqual(result, 0)
         self.assertEqual(config.last_native_diagnostic, "diagnostic")
-        exe_call.assert_called_once_with(
+        run.assert_called_once_with(
             [config.UniDecPath, confname],
-            silent=True,
+            shell=False,
+            capture_output=True,
+            text=True,
             cwd=os.path.dirname(confname),
-            return_diagnostics=True,
         )
+
+    def test_native_failure_console_prefers_stderr_and_retains_both_streams(self):
+        config = SimpleNamespace(UniDecPath="unidec", confname="conf.dat")
+        progress = "Iteration completed\n" * 500
+        error = "Invalid spectrum data"
+        result = CompletedProcess([], 12, progress, error)
+        with patch.object(tools.subprocess, "run", return_value=result):
+            for silent in (False, True):
+                with self.subTest(silent=silent), redirect_stdout(StringIO()) as console:
+                    self.assertEqual(tools.unidec_call(config, silent=silent), 12)
+                    self.assertEqual(config.last_native_diagnostic, progress + error)
+                    if silent:
+                        self.assertEqual(console.getvalue(), "")
+                    else:
+                        self.assertIn(error, console.getvalue())
+                        self.assertNotIn("Iteration completed", console.getvalue())
 
 
 class TestNormalization(unittest.TestCase):
@@ -133,6 +153,37 @@ class TestThresholdCropAndPipeline(unittest.TestCase):
         np.testing.assert_allclose(result[:, 1], [0.5, 1.0])
         np.testing.assert_array_equal(raw, original)
 
+    def test_dataprep_rejects_every_nonfinite_axis_or_intensity_value(self):
+        for column, name in ((0, "m/z"), (1, "intensity")):
+            for value in (np.nan, np.inf, -np.inf):
+                with self.subTest(column=name, value=value):
+                    raw = np.array([[1.0, 1.0], [2.0, 2.0], [3.0, 3.0]])
+                    raw[1, column] = value
+                    original = raw.copy()
+
+                    with self.assertRaisesRegex(ValueError, f"non-finite values in {name}"):
+                        tools.dataprep(raw, self._config(), silent=True)
+
+                    np.testing.assert_equal(raw, original)
+
+    def test_dataprep_rejects_nonfinite_row_outside_crop_and_engine_propagates(self):
+        raw = np.array([[1.0, 1.0], [2.0, 2.0], [100.0, np.nan]])
+        config = self._config(minmz=1.0, maxmz=3.0)
+        with self.assertRaisesRegex(ValueError, "non-finite values in intensity"):
+            tools.dataprep(raw, config, silent=True)
+
+        from unidec.engine import UniDec
+        engine = UniDec(ignore_args=True, silent=True)
+        engine.data.rawdata = raw
+        engine.config.minmz = 1.0
+        engine.config.maxmz = 3.0
+        with (
+            patch.object(engine, "export_config"),
+            patch.object(engine, "check_badness", return_value=0),
+            self.assertRaisesRegex(ValueError, "non-finite values in intensity"),
+        ):
+            engine.process_data(silent=True)
+
     def test_detector_correction_matches_documented_efficiency_formula(self):
         data = np.array([[1000.0, 2.0], [2000.0, 4.0], [4000.0, 8.0]])
         original_x = data[:, 0].copy()
@@ -201,6 +252,31 @@ class TestBackgroundSubtraction(unittest.TestCase):
                     self.assertLess(result[50, 1], 5.0)
                 else:
                     self.assertAlmostEqual(result[50, 1], 5.0, places=10)
+
+    def test_savgol_symmetric_peak_has_exact_symmetric_residual(self):
+        anchors = tools.calc_local_mins(self.with_peak, 5)
+        np.testing.assert_allclose(anchors[:, 0], np.arange(2.5, 100.0, 5.0))
+
+        result = tools.savgol_background_subtract(self.with_peak.copy(), 5)
+        expected_center = np.array([
+            0.2326530612244948,
+            0.2837317784256612,
+            0.32851311953353246,
+            0.0,
+            2.0714868804664768,
+            2.783673469387759,
+            2.0714868804664768,
+            0.0,
+            0.32851311953353246,
+            0.2837317784256612,
+            0.2326530612244948,
+        ])
+
+        np.testing.assert_allclose(result[:, 1], result[::-1, 1], rtol=0, atol=1e-12)
+        np.testing.assert_allclose(result[45:56, 1], expected_center, rtol=1e-9, atol=1e-10)
+        np.testing.assert_allclose(result[[0, -1], 1], 0, rtol=0, atol=1e-12)
+        self.assertEqual(np.argmax(result[:, 1]), 50)
+        self.assertAlmostEqual(np.sum(result[:, 1]), 9.662087463557288, places=9)
 
     @staticmethod
     def _minimum_subtract(data):

@@ -167,9 +167,9 @@ UniChrom checkpoint tools are intentionally absent. The current derived HDF5 pro
 
 ## Security boundary
 
-- Input paths are resolved and must remain below an explicitly configured root.
+- Input paths are resolved against the allowed roots. Single-spectrum and MetaUniDec sessions also accept inputs from their working directory. UniChrom accepts inputs from its configured input roots.
 - The server mode is fixed at startup as `ms`, `imms`, `cdms`, `metaunidec`, or `unichrom`; changing modes is not a tool operation.
 - Plots, operation files, and saved checkpoints remain below the working directory.
 - Checkpoint archives with absolute or parent-traversal members are rejected before extraction.
-- The adapter declares twelve single-spectrum tools, eleven MetaUniDec collection tools, or ten UniChrom tools and, only for the single-spectrum server when configured, three allowlisted GUI tools; it has no generic command, import, or file tool.
+- The adapter declares twelve single-spectrum tools, eleven MetaUniDec collection tools, or ten UniChrom tools. A single-spectrum server configured with a bridge can also expose three allowlisted tools for a separate conventional GUI.
 - Run the server with a dedicated working directory and only the minimum input roots needed for the task.

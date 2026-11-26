@@ -216,6 +216,8 @@ def quadraticmodel(x, a, b, c):
 
 
 class UniDecCD(engine.UniDec):
+    """Engine for calibrated single-ion events and charge-by-m/z histograms."""
+
     def __init__(self):
         """
         UniDecCD Engine
@@ -398,6 +400,14 @@ class UniDecCD(engine.UniDec):
                                   for obs, fit in zip(self.observed, response)])
 
     def dscore(self, xfwhm=2, power=2, uscore_method=None):
+        """Score picked peaks in place using the observed and fitted histograms.
+
+        Pass UScore method ``1`` for convolution-based scoring, ``2`` for
+        local area agreement, or ``0`` to use a neutral UScore of one. With
+        ``None``, use the engine's current method. Scoring picked peaks
+        requires fit evidence, a positive finite FWHM window multiplier,
+        and a nonnegative finite weight exponent.
+        """
         self.pks.uniscore = 0
         if not self.pks.peaks:
             return
@@ -443,31 +453,17 @@ class UniDecCD(engine.UniDec):
         self.open_cdms_file(path, refresh=refresh)
 
     def open_cdms_file(self, path, refresh=False):
-        """
-        Main function for opening CD-MS files. Supports Thermo Raw and DMT, mzML, text, binary, and numpy compressed.
+        """Open a supported single-ion event file and initialize the run.
 
-        Calls self.before_open() first to setup UniDec files and directories. Searches first for previously opened
-        numpy compressed data. Switches path to that if found. Otherwise it opens the specified path.
+        The importer supplies m/z, intensity, scan, injection-time metadata,
+        and acquisition time. The engine keeps positive-intensity events
+        in ``darray``, estimates noise, and starts ``farray`` as a working copy.
+        Settings and the event cache live in the working directory, which
+        defaults to a sibling ``_unidecfiles`` directory. Use ``refresh=True``
+        to load the input rather than reuse an event cache.
 
-        Thermo Data via .Raw or .mzML needs to be corrected first by multiplying by the injection times in units of s.
-
-        Text, binary, and numpy files are opened assuming the first column is m/z, the second is intensity, the third is scans.
-        If no third column is provided, it assigns a scan number of 1 to each.
-        The m/z, intensity, and scan data is saved in self.darray (the raw data array).
-
-        Next, it filters out any data with intensities of zero.
-        The noise is calculated as the maximum of the second derivative of the intensity distribution, also known as the Gmax2.
-        The self.farray (filtered array) is created from self.darray.
-
-        An Import Error is raised if the darray is empty
-
-        The min and max m/z values are set from the darray.
-
-        Then, saves a numpy compressed file if it doesn't exist for faster imports in the future.
-        Finally, it opens the config file if found in the _unidecfiles folder.
-
-        :param path: File path to open.
-        :return: None
+        The engine retains the importer. Close it when finished with the
+        input. Supported formats and their runtimes depend on UniDecImporter.
         """
         self._clear_scores()
         if platform.system() != "Windows" and path.split(".")[-1].lower() == "raw":
@@ -608,13 +604,16 @@ class UniDecCD(engine.UniDec):
 
 
     def process_data(self, transform=True):
-        """
-        Main function for processing CDMS data, includes filtering, converting intensity to charge, histogramming,
-        processing the histograms, and transforming (if specified). Transforming is sometimes unnecessary, which is why
-        it can be turned off for speed.
+        """Filter events, estimate charges, and build a charge-by-m/z histogram.
 
-        :param transform: Sets whether to transform the data from m/z to mass. Default True.
-        :return: None
+        Rebuilds ``farray`` and ``harray`` from the current input and settings,
+        clears peak and fit data, and writes the m/z projection. With
+        ``transform=True`` also writes the pre-deconvolution mass projection.
+
+        Returns
+        -------
+        int
+            ``1`` when the histogram is populated or ``0`` when it is empty.
         """
         self._clear_scores()
         starttime = time.perf_counter()
@@ -1310,10 +1309,23 @@ class UniDecCD(engine.UniDec):
         return self.harray
 
     def run_deconvolution(self, process_data=True):
-        """
-        Function for running the full deconvolution sequence, including setup, pre-, and post-processing.
+        """Deconvolve the histogram and write the resulting mass distribution.
 
-        :return: None
+        Pass ``process_data=False`` to use an already processed histogram.
+        The default native path replaces ``harray`` and records aligned
+        observed and fitted histograms for scoring. Peak detection is a
+        separate step.
+
+        Returns
+        -------
+        int or None
+            ``0`` if processing yields an empty histogram, otherwise
+            ``None`` on success. This is independent of the native exit code.
+
+        Raises
+        ------
+        RuntimeError
+            If the native executable exits with an error.
         """
         self._clear_scores()
         if process_data:

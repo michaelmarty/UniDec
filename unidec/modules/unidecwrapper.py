@@ -191,7 +191,7 @@ struct Config {
     int poolflag;
     int manualflag;
     float intthresh;
-    float peakshapeinflate;
+    float reserved_peakshape;
     int fixedmassaxis;
     int isotopemode;
     int filetype;
@@ -303,7 +303,7 @@ class Config(ctypes.Structure):
         ("poolflag", ctypes.c_int),
         ("manualflag", ctypes.c_int),
         ("intthresh", ctypes.c_float),
-        ("peakshapeinflate", ctypes.c_float),
+        ("_reserved_peakshape", ctypes.c_float),
         ("fixedmassaxis", ctypes.c_int),
         ("isotopemode", ctypes.c_int),
         ("filetype", ctypes.c_int),

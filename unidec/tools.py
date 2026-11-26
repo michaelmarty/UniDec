@@ -181,6 +181,16 @@ def string_to_value(s):
         return ""
 
 
+def string_to_optional_float(s):
+    """Convert a numeric string to ``float`` and an automatic/blank value to ``None``."""
+    if s is None or str(s).strip().lower() in ("", "auto", "none"):
+        return None
+    try:
+        return float(s)
+    except (ValueError, TypeError):
+        return None
+
+
 def simp_string_to_value(s):
     """
     Try to convert string to float. Raise False if not possible.
@@ -351,7 +361,7 @@ nativez_coefficients = [0.0467, 0.533]  # Coefficients for the native charge pre
 def predict_charge(mass):
     """
     Give predicted native charge state of species of defined mass
-    https://www.pnas.org/content/107/5/2007.long
+    https://ora.ox.ac.uk/objects/uuid%3A80bc4bde-76f2-49e0-bbef-bbb9dfc2e1c0
     :param mass: Mass in Da
     :return: Float, predicted average native charge state
     """
@@ -429,6 +439,11 @@ def get_zvalue(ci=0.99):
 
 
 def integrate(data, start, end):
+    """Return the trapezoidal area and rows with ``start <= x < end``.
+
+    Column zero is the x axis and column one is intensity. The area for
+    an empty range is zero. A single row contributes its intensity.
+    """
     boo1 = data[:, 0] < end
     boo2 = data[:, 0] >= start
     intdat = data[np.all([boo1, boo2], axis=0)]
@@ -527,13 +542,21 @@ def limit_data(data, start, end):
 
 def data_extract(data, x, extract_method, window=None, **kwargs):
     """
-    Assumes a sorted array in data[:,0]
+    Assumes a sorted, finite array in data[:,0]. Non-finite inputs raise
+    ``ValueError`` before extraction begins.
     :param data:
     :param x:
     :param extract_method:
     :param window:
     :return:
     """
+    if not np.all(np.isfinite(data)):
+        raise ValueError("Extraction data must contain only finite values")
+    if not np.isfinite(x):
+        raise ValueError("Extraction target must be finite")
+    if window is not None and not np.isfinite(window):
+        raise ValueError("Extraction window must be finite")
+
     if extract_method == 0:
         val = simple_extract(data, x, **kwargs)
 
@@ -760,6 +783,10 @@ def extract_from_data_matrix(xaxis, matrix, midpoint, extract_method=0, window=0
 
 
 def normalize_extracts(grid, norm_method=0):
+    """Normalize an extraction grid in place after validating finite input."""
+    if not np.all(np.isfinite(grid)):
+        raise ValueError("Extraction grid must contain only finite values")
+
     xlen, ylen = grid.shape
     xarray = range(0, xlen)
     yarray = range(0, ylen)
@@ -795,6 +822,12 @@ def normalize_extracts(grid, norm_method=0):
 
 
 def simple_mass_defect(mass, refmass, centermode=1, normtype=1):
+    """Return the residual from an integer multiple of a positive repeat mass.
+
+    Select flooring with ``centermode=1`` or nearest-integer rounding with
+    ``centermode=0``. The residual is in mass units for ``normtype=1``
+    and fractional otherwise.
+    """
     if refmass == 0:
         print("Error: Reference Mass is 0.")
         return None, None, None, None, None
@@ -810,6 +843,20 @@ def simple_mass_defect(mass, refmass, centermode=1, normtype=1):
 
 
 def kendrick_analysis(massdat, kendrickmass, centermode=1, nbins=50, transformmode=1, xaxistype=1, massrange=None):
+    """Map a mass/intensity distribution onto nominal mass and defect axes.
+
+    Pass an ascending mass axis, a positive repeat mass, and positive
+    signal in the mapped range. Use ``transformmode=0`` to sum intensities
+    into bins or ``1`` to interpolate. The grid is normalized to its maximum.
+    ``xaxistype=0`` gives fractional defects and ``1`` gives mass-unit defects.
+
+    Returns
+    -------
+    tuple of numpy.ndarray
+        The two-column defect projection, the flattened three-column map,
+        and aligned nominal mass, defect, and intensity grids. Each grid
+        has one row per nominal repeat count and ``nbins`` columns.
+    """
     # Calculate Defects for Deconvolved Masses
     if kendrickmass == 0:
         print("Error: Kendrick mass is 0.")
@@ -1152,9 +1199,10 @@ def calc_local_mins(data, w):
 
     localmins = []
     for winstart in windows:
-        chopdata = datachop(data, winstart, winstart + w)
+        winend = min(winstart + w, stop)
+        chopdata = datachop(data, winstart, winend)
         localmin = np.amin(chopdata[:, 1])
-        localminpos = chopdata[np.argmin(chopdata[:, 1]), 0]
+        localminpos = (winstart + winend) / 2
         localmins.append([localminpos, localmin])
     return np.array(localmins)
 
@@ -1653,6 +1701,13 @@ def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
     :param silent: Boolean to suppress output
     :return: Processed data
     """
+    invalid_columns = [
+        name for index, name in enumerate(("m/z", "intensity"))
+        if np.any(~np.isfinite(datatop[:, index]))
+    ]
+    if invalid_columns:
+        raise ValueError(f"Input data contains non-finite values in {' and '.join(invalid_columns)}")
+
     newmin = config.minmz
     newmax = config.maxmz
     buff = config.subbuff
@@ -1764,6 +1819,30 @@ def dataprep(datatop, config, peaks=True, intthresh=True, silent=False):
 # ............................................................................
 
 
+def _run_executable(call, silent, cwd):
+    if not silent:
+        print("System Call:", call)
+    return subprocess.run(call, shell=False, capture_output=True, text=True, cwd=cwd)
+
+
+def _captured_diagnostic(result):
+    return "\n".join(part.strip() for part in (result.stdout, result.stderr) if part.strip())
+
+
+def native_diagnostic_excerpt(diagnostic):
+    """Keep the first and last parts of a native diagnostic within 2 KiB."""
+    encoded = diagnostic.strip().encode("utf-8", errors="replace")
+    if len(encoded) <= 2048:
+        return encoded.decode("utf-8")
+    marker = "\n[diagnostic truncated]\n"
+    edge = (2048 - len(marker)) // 2
+    return (
+        encoded[:edge].decode("utf-8", errors="ignore")
+        + marker
+        + encoded[-edge:].decode("utf-8", errors="ignore")
+    )
+
+
 def exe_call(call, silent=False, cwd=None, return_diagnostics=False):
     """
     Run the  binary specified in the call.
@@ -1774,22 +1853,20 @@ def exe_call(call, silent=False, cwd=None, return_diagnostics=False):
     :param silent: Whether to print the output of exepath to the standard out
     :return: Standard error of exepath execution
     """
-    if not silent:
-        print("System Call:", call)
-    result = subprocess.run(call, shell=False, capture_output=True, text=True, cwd=cwd)
+    result = _run_executable(call, silent, cwd)
     out = result.returncode
     if not silent:
         print(result.stdout)
     if return_diagnostics:
-        return out, "\n".join(part.strip() for part in (result.stdout, result.stderr) if part.strip())
+        return out, _captured_diagnostic(result)
     return out
 
 
 def unidec_call(config, silent=False, conv=False, **kwargs):
     """
     Run the unidec binary specified by exepath with the configuration file specified by configfile.
-    If silent is False (default), the output from exepath will be printed to the standard out.
-    If silent is True, the output is suppressed.
+    With silent=False (default), echo successful stdout or a failure excerpt.
+    Captured diagnostics are available on config.last_native_diagnostic.
 
     The binary is run as a commandline subprocess with a call of (for example):
 
@@ -1799,7 +1876,7 @@ def unidec_call(config, silent=False, conv=False, **kwargs):
     :param silent: Whether to print the output of exepath to the standard out
     :param conv: Whether to call the convolution function only rather than the standard deconvolution
     :param kwargs:
-    :return: Standard error of exepath execution
+    :return: Exit code of the executable
     """
 
     confname = os.path.abspath(config.confname)
@@ -1811,14 +1888,17 @@ def unidec_call(config, silent=False, conv=False, **kwargs):
     if conv:
         call.append("-conv")
 
-    out, diagnostic = exe_call(
-        call,
-        silent=silent,
-        cwd=os.path.dirname(confname),
-        return_diagnostics=True,
-    )
-    config.last_native_diagnostic = diagnostic
-    return out
+    result = _run_executable(call, silent, os.path.dirname(confname))
+    config.last_native_diagnostic = _captured_diagnostic(result)
+    config.last_native_stderr = result.stderr.strip() if result.returncode else ""
+    if not silent:
+        if result.returncode == 0:
+            print(result.stdout)
+        else:
+            excerpt = native_diagnostic_excerpt(config.last_native_stderr or result.stdout)
+            if excerpt:
+                print(excerpt)
+    return result.returncode
 
 
 # @jit(nopython=True)
@@ -2056,7 +2136,7 @@ def makeconvspecies(processed_data, pks, config):
     if config.mzsig == 0:
         stickdat = [sticks_only(p.mztab, xvals) for p in pks.peaks]
     else:
-        if config.linflag != 2:
+        if config.linflag in (0, 3):
             peakwidth = config.mzsig / config.mzbins
             kernel = conv_peak_shape_kernel(xvals, config.psfun, peakwidth)
             stickdat = [stickconv(p.mztab, kernel) for p in pks.peaks]
@@ -2078,9 +2158,9 @@ def makeconvspecies(processed_data, pks, config):
 def nonlinstickconv(xvals, mztab, fwhm, psfun):
     """
     Python-based Nonlinear convolution. First makes a stick spectrum. Then, convolved with peak shape kernel.
-    :param xvals: x-axis
+    :param xvals: Sorted m/z axis
     :param mztab: mztab from make_peaks_mztab
-    :param fwhm: Full width half max
+    :param fwhm: Full width half max in m/z
     :param psfun: Peak shape function integer
     :return: Convolved output
     """
@@ -2091,10 +2171,12 @@ def nonlinstickconv(xvals, mztab, fwhm, psfun):
     xlen = len(xvals)
     stick = np.zeros(xlen)
     stick[np.array(mztab[:, 2]).astype(int)] = mztab[:, 1]
-    bool1 = [np.abs(xvals - xvals[i]) < window for i in range(0, xlen)]
-    kernels = np.array([make_peak_shape(-xvals[bool1[i]], psfun, fwhm, -xvals[i]) for i in range(0, xlen)],
-                       dtype=object)
-    output = np.array([np.sum(kernels[i] * stick[bool1[i]]) for i in range(0, xlen)])
+    output = np.zeros(xlen)
+    for index in np.flatnonzero(stick):
+        center = xvals[index]
+        start = np.searchsorted(xvals, center - window, side="right")
+        stop = np.searchsorted(xvals, center + window, side="left")
+        output[start:stop] += stick[index] * make_peak_shape(xvals[start:stop], psfun, fwhm, center)
     return output
 
 

@@ -47,6 +47,27 @@ class TestDataExtraction(unittest.TestCase):
             places=10,
         )
 
+    def test_nonfinite_inputs_raise_before_extraction(self):
+        """Non-finite spectra, targets, and windows are invalid extraction inputs."""
+        for value in (np.nan, np.inf, -np.inf):
+            for column in (0, 1):
+                with self.subTest(value=value, column=column):
+                    data = self.data.copy()
+                    data[2, column] = value
+                    original = data.copy()
+                    with self.assertRaisesRegex(ValueError, "finite"):
+                        tools.data_extract(data, 12.0, 0, window=1.0)
+                    np.testing.assert_array_equal(data, original)
+
+            for argument in ("target", "window"):
+                with self.subTest(value=value, argument=argument):
+                    original = self.data.copy()
+                    kwargs = {"x": 12.0, "window": 1.0}
+                    kwargs[argument if argument == "window" else "x"] = value
+                    with self.assertRaisesRegex(ValueError, "finite"):
+                        tools.data_extract(self.data, extract_method=0, **kwargs)
+                    np.testing.assert_array_equal(self.data, original)
+
 
 class TestExtractNormalization(unittest.TestCase):
     def test_all_normalization_modes_and_mutation_contract(self):
@@ -71,6 +92,17 @@ class TestExtractNormalization(unittest.TestCase):
                 grid = np.zeros((2, 2))
                 np.testing.assert_array_equal(tools.normalize_extracts(grid, mode), np.zeros((2, 2)))
                 self.assertTrue(np.all(np.isfinite(grid)))
+
+    def test_nonfinite_grid_raises_before_mutation(self):
+        """Validation precedes every in-place row or column normalization."""
+        for mode in range(5):
+            for value in (np.nan, np.inf, -np.inf):
+                with self.subTest(mode=mode, value=value):
+                    grid = np.array([[1.0, value], [2.0, 3.0]])
+                    original = grid.copy()
+                    with self.assertRaisesRegex(ValueError, "finite"):
+                        tools.normalize_extracts(grid, mode)
+                    np.testing.assert_array_equal(grid, original)
 
 
 if __name__ == "__main__":

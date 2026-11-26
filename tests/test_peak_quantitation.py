@@ -10,6 +10,7 @@ import numpy as np
 from unidec import tools
 from unidec.engine import UniDec
 from unidec.modules import MassFitter, peakstructure
+from unidec.modules.unidecstructure import UniDecConfig
 
 
 class TestPeakIntegrationAndNormalization(unittest.TestCase):
@@ -21,6 +22,63 @@ class TestPeakIntegrationAndNormalization(unittest.TestCase):
         np.testing.assert_array_equal(peaks.areas, [2.0, 2.0])
         self.assertEqual(peaks.peaks[0].integralrange, [1.0, 4.0])
         self.assertEqual(peaks.peaks[1].integralrange, [3.0, 6.0])
+
+    def test_zero_zero_uses_peak_height(self):
+        data = np.column_stack((np.arange(5.0), np.ones(5)))
+        peaks = peakstructure.Peaks()
+        peaks.add_peaks([[2.0, 7.0]])
+
+        peaks.integrate(data, lb=0.0, ub=0.0)
+
+        self.assertEqual(peaks.peaks[0].integral, 7.0)
+        self.assertEqual(peaks.peaks[0].integralrange, [])
+        np.testing.assert_array_equal(peaks.areas, [7.0])
+
+    def test_automatic_explicit_and_invalid_integration_bounds(self):
+        config = UniDecConfig()
+        config.peakwindow = 5.0
+        self.assertEqual(config.resolved_integration_bounds(), (-5.0, 5.0))
+
+        config.integratelb = None
+        config.integrateub = 3.0
+        self.assertEqual(config.resolved_integration_bounds(), (-5.0, 3.0))
+
+        config.integratelb = -1.0
+        config.integrateub = 2.0
+        self.assertEqual(config.resolved_integration_bounds(), (-1.0, 2.0))
+
+        config.integratelb = -1.0
+        config.integrateub = -1.0
+        self.assertEqual(config.resolved_integration_bounds(), (-5.0, 5.0))
+        self.assertIsNone(config.integratelb)
+        self.assertIsNone(config.integrateub)
+
+        config.integratelb = 0.0
+        config.integrateub = 0.0
+        self.assertIsNone(config.resolved_integration_bounds())
+
+        for lower, upper in ((2.0, 1.0), (1.0, 1.0), (np.nan, 2.0)):
+            with self.subTest(lower=lower, upper=upper):
+                config.integratelb = lower
+                config.integrateub = upper
+                with self.assertRaises(ValueError):
+                    config.resolved_integration_bounds()
+
+    def test_engine_zero_zero_autointegration_uses_height(self):
+        engine = UniDec(silent=True)
+        engine.config.peaknorm = 0
+        engine.config.integratelb = 0.0
+        engine.config.integrateub = 0.0
+        engine.data.massdat = np.array([[9.0, 1.0], [10.0, 4.0], [11.0, 1.0]])
+        engine.pks = peakstructure.Peaks()
+        engine.pks.add_peaks([[10.0, 4.0]])
+
+        engine.autointegrate()
+
+        peak = engine.pks.peaks[0]
+        self.assertEqual(peak.integral, peak.height)
+        self.assertEqual(peak.integral, 4.0)
+        self.assertEqual(peak.integralrange, [])
 
     def test_all_peak_normalization_modes(self):
         expected = {
@@ -251,6 +309,43 @@ class TestPeakScoreComponents(unittest.TestCase):
         self.assertEqual(peak.dscore, 0.75)
         self.assertEqual(peak.lscore, 0.75)
         self.assertAlmostEqual(engine.pks.uniscore, 0.6, places=12)
+
+    def test_all_zero_evidence_produces_finite_zero_scores(self):
+        """A picked location without mass, m/z, charge, or height evidence scores zero."""
+        engine = UniDec(silent=True)
+        engine.config = SimpleNamespace(
+            massbins=1.0,
+            adductmass=0.0,
+            orbimode=0,
+            error=1.0,
+        )
+        engine.data = SimpleNamespace(
+            ztab=np.array([1.0, 2.0]),
+            massdat=np.array([[9.0, 0.0], [10.0, 0.0], [11.0, 0.0]]),
+            massgrid=np.zeros(6),
+            data2=np.array([[4.0, 0.0], [5.0, 0.0], [6.0, 0.0]]),
+            fitdat=np.zeros(3),
+            mzgrid=np.array([
+                [4.0, 1.0, 1.0], [4.0, 2.0, 1.0],
+                [5.0, 1.0, 1.0], [5.0, 2.0, 1.0],
+                [6.0, 1.0, 1.0], [6.0, 2.0, 1.0],
+            ]),
+        )
+        engine.pks = peakstructure.Peaks()
+        engine.pks.add_peaks([[10.0, 0.0]])
+        peak = engine.pks.peaks[0]
+        peak.intervalFWHM = [9.0, 11.0]
+
+        engine.dscore()
+
+        np.testing.assert_array_equal(peak.mdist[:, 1], 0)
+        np.testing.assert_array_equal(peak.zdist[:, 1], 0)
+        scores = np.array([
+            peak.mscore, peak.uscore, peak.cs_score, peak.fscore,
+            peak.lscore, peak.dscore, engine.pks.uniscore,
+        ])
+        self.assertTrue(np.isfinite(scores).all())
+        np.testing.assert_array_equal(scores, 0)
 
     def test_asymmetric_bad_fwhm_applies_minimum_penalty(self):
         engine = UniDec(silent=True)

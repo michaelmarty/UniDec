@@ -1,8 +1,9 @@
-version 9.0.0b1
+version 9.0.2
 imflag 0
 cdmsflag 0
-input C:\Python\UniDecDev\public\UniDec\unidec\bin\Example Data\ADH_unidecfiles\ADH_input.dat
-output C:\Python\UniDecDev\public\UniDec\unidec\bin\Example Data\ADH_unidecfiles\ADH
+input ADH_input.dat
+output ADH
+original_file ADH.txt
 numit 100
 numz 70
 endz 70
@@ -43,12 +44,12 @@ intthresh 0.0
 reductionpercent 0.0
 aggressive 0
 rawflag 0
+rescale_newblur 1
 adductmass 1.007276467
 nativezub 1000.0
 nativezlb -1000.0
 poolflag 2
 accvol 0.0
-peakshapeinflate 1.0
 noiseflag 0
 linflag 3
 cmap nipy_spectral
@@ -68,11 +69,13 @@ doubledec False
 CDslope 0.2074
 CDzbins 1
 CDres 1.0
-CDScanStart 0.0
-CDScanEnd 0.0
+CDScanStart 0
+CDScanEnd 0
 CDprethresh 0.0
 HTksmooth 0.0
 CDScanCompress 0
+chromatogram_type 0
+chromatogram_norm 0
 HTmaxscans -1
 HToutlb -1.0
 HToutub -1.0
@@ -97,7 +100,7 @@ subbufdt 0.0
 centroided 0
 verbose 0
 zout 0
-pusher 0
+pusher 0.0
 mindt 0.0
 maxdt 30.0
 ccsub 25000.0

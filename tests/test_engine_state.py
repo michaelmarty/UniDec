@@ -1,7 +1,8 @@
 import shutil
 import tempfile
 import unittest
-from pathlib import Path
+import zipfile
+from pathlib import Path, PureWindowsPath
 
 import numpy as np
 
@@ -11,6 +12,35 @@ from tests._test_support import copy_unidec_example
 
 
 class TestEngineState(unittest.TestCase):
+    def test_historical_8_2_1_state_restores_from_original_archive(self):
+        fixture = (Path(__file__).parent / "fixtures" / "historical_8_2_1" /
+                   "unidec-8.2.1-state.zip")
+        low = np.array([[500, 2], [501, 4], [502, 8], [503, 6], [504, 2]], dtype=float)
+        with tempfile.TemporaryDirectory(prefix="unidec-historical-state-") as directory:
+            state = Path(directory) / fixture.name
+            shutil.copy2(fixture, state)
+            with zipfile.ZipFile(state) as archive:
+                self.assertEqual(set(archive.namelist()), {
+                    "legacy_ms_conf.dat", "legacy_ms_input.dat", "legacy_ms_rawdata.txt",
+                })
+                config = archive.read("legacy_ms_conf.dat").decode("utf-8")
+                values = dict(line.split(maxsplit=1) for line in config.splitlines() if line.strip())
+                self.assertEqual(values["version"], "8.2.0")
+                self.assertFalse(PureWindowsPath(values["input"]).anchor)
+                self.assertFalse(PureWindowsPath(values["output"]).anchor)
+
+            restored = UniDec(ignore_args=True, silent=True)
+            self.assertTrue(restored.load_state(str(state)))
+            self.assertEqual(restored.config.startz, 4)
+            self.assertEqual(restored.config.endz, 12)
+            self.assertEqual(restored.config.procflag, 1)
+            np.testing.assert_allclose(restored.data.rawdata, low, rtol=0, atol=1e-6)
+            np.testing.assert_allclose(
+                restored.data.data2,
+                [[501, 0.5], [502, 1.0], [503, 0.75]],
+                rtol=0, atol=1e-6,
+            )
+
     def test_short_name_state_restores_from_npz_cache(self):
         with tempfile.TemporaryDirectory(prefix="unidec-short-state-") as directory:
             root = Path(directory)

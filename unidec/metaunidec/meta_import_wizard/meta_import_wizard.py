@@ -178,7 +178,7 @@ class ImportWizard(wx.Frame):
                 self.rb.SetSelection(0)
                 self.my_grid.EvtDriftType(0)
 
-            data = np.genfromtxt(file_path, delimiter=",", skip_header=2, dtype=np.str)
+            data = np.genfromtxt(file_path, delimiter=",", skip_header=2, dtype=str)
             print("Data:", data)
 
             self.my_grid.load_data(data)

@@ -336,7 +336,6 @@ Config mh5LoadConfig(Config config, hid_t file_id)
 	config.nativezub=float_attr(file_id, "/config", "nativezub", config.nativezub);
 	config.nativezlb=float_attr(file_id, "/config", "nativezlb", config.nativezlb);
 	config.intthresh=float_attr(file_id, "/config", "intthresh", config.intthresh);
-	config.peakshapeinflate=float_attr(file_id, "/config", "peakshapeinflate", config.peakshapeinflate);
 	//IM Parameters
 	config.csig =float_attr(file_id, "/config", "csig", config.csig);
 	// Shared chromatography peak width used by UCCD and HDF5 UniChrom.

@@ -298,16 +298,19 @@ def voigt_fit(xvals, yvals, mguess=0, sguess=0.1, gguess=0, aguess=0, bguess=0):
 
 # noinspection PyTupleAssignmentBalance
 def fit_peak(xvals, yvals, psfun, midguess, fwhmguess, aguess, bguess):
-    """
-    Fit peak from xvals and yvals data to defined peak shape function.
-    :param xvals: x values of data
-    :param yvals: y values of data
-    :param psfun: peak shape function integer code
-    :param midguess: midpoint guess
-    :param fwhmguess: fwhm guess
-    :param aguess: amplitude guess
-    :param bguess: background guess
-    :return: popt, perr, fitdat (optimized parameters [fwhm, mid, a, b], std error of parameters, fit to data)
+    """Fit an isolated peak plus a constant background.
+
+    Give equal-length one-dimensional x and intensity arrays and starting
+    estimates for center, positive FWHM, peak area, and background. Use
+    shape code ``0`` for Gaussian, ``1`` for Lorentzian, or ``2`` for split
+    Gaussian/Lorentzian.
+
+    Returns
+    -------
+    tuple of numpy.ndarray
+        Parameters in FWHM, center, area, and background order. The next
+        array gives corresponding standard errors, followed by the fitted
+        intensities at the supplied x coordinates.
     """
     guess = [fwhmguess, midguess, aguess, bguess]
     if psfun == 0:

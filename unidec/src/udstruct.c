@@ -188,7 +188,7 @@ void SetDefaultConfig(Config *config) {
     config->manualflag = 0;
     config->fwhmfile[0] = '\0';
     config->intthresh = 0;
-    config->peakshapeinflate = 1;
+    config->reserved_peakshape = 0;
     config->fixedmassaxis = 0;
     config->isotopemode = 0;
     config->filetype = 0;
@@ -270,10 +270,11 @@ void PostImport(Config *config) {
 
     config->numz = config->endz - config->startz + 1;
 
-    //If linflag is active, overwrite speedy}
+    // Only constant-spacing axes can use a kernel sampled at one bin size.
     if (config->linflag != -1) {
-        if (config->linflag != 2) { config->speedyflag = 1; } else { config->speedyflag = 0; }
+        config->speedyflag = config->linflag == 0 || config->linflag == 3;
     }
+    if (config->variablepw != 0) { config->speedyflag = 0; }
     if (config->speedyflag == 1) { printf("Speedy mode: Assuming Linearized Data\n"); }
     //
     // if (config->filetype == 0) {
@@ -308,7 +309,7 @@ void PostImport(Config *config) {
     if (config->psig < 0) { config->mzsig /= 3; }
 
     //Sets a threshold for m/z values to check. Things that are far away in m/z space don't need to be considered in the iterations.
-    config->psmzthresh = config->psthresh * fabsf(config->mzsig) * config->peakshapeinflate;
+    config->psmzthresh = config->psthresh * fabsf(config->mzsig);
 }
 
 Config LoadConfig(Config config, const char *filename) {
@@ -368,8 +369,6 @@ Config LoadConfig(Config config, const char *filename) {
                 strcpy(config.manualfile, y);
             } //  printf(" manualfile"); }
             else if (strcmp(x, "intthresh") == 0) { config.intthresh = strtof(y, &endptr); } // printf(" intthresh"); }
-            else if (strcmp(x, "peakshapeinflate") == 0) { config.peakshapeinflate = strtof(y, &endptr); }
-            // printf(" peakshapeinflate"); }
             else if (strcmp(x, "isotopemode") == 0) { config.isotopemode = strtol(y, &endptr, 10); } // printf(" isotopemode"); }
             else if (strcmp(x, "orbimode") == 0) { config.orbimode = strtol(y, &endptr, 10); } // printf(" orbimode"); }
             else if (strcmp(x, "datanorm") == 0) { config.datanorm = strtol(y, &endptr, 10); } // printf(" datanorm"); }
@@ -427,6 +426,7 @@ Config LoadConfig(Config config, const char *filename) {
     resolve_config_path(config.outfile, sizeof(config.outfile), directory, 1);
     if (config.mflag) { resolve_config_path(config.mfile, sizeof(config.mfile), directory, 0); }
     if (config.manualflag) { resolve_config_path(config.manualfile, sizeof(config.manualfile), directory, 0); }
+    if (config.variablepw) { resolve_config_path(config.fwhmfile, sizeof(config.fwhmfile), directory, 0); }
     if (config.kernel[0] != '\0') { resolve_config_path(config.kernel, sizeof(config.kernel), directory, 0); }
 
     PostImport(&config);
@@ -550,7 +550,6 @@ void PrintConfig(Config config) {
     printf("poolflag: %d\n", config.poolflag);
     printf("manualflag: %d manualfile:%s \n", config.manualflag, config.manualfile);
     printf("intthresh:%f \n", config.intthresh);
-    printf("peakshapeinflate:%f \n", config.peakshapeinflate);
     //IM Parameters
     if (config.imflag == 1) {
         printf("\nIM-MS Parameters:\n");

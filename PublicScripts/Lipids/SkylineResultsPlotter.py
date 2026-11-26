@@ -1402,7 +1402,8 @@ def compare_pipeline(file1, set1, set2, mode="Products", drop_IS=True, normalize
                   piecharts=True, figsavepath=None, heatmap_cutoffs=True, write_output=True, fold_range=1.5,
                      otherthresh=0.035, set1_name="Set 1", set2_name="Set 2",
                      show_plots=True,
-                     is_standard_overrides=None, file2=None, missing_set2_as_zero=True):
+                     is_standard_overrides=None, file2=None, missing_set2_as_zero=True,
+                     cholesterol_file=None):
     """Compare replicate groups from one or two Skyline results CSVs.
 
     set1/set2 can each be {"file1": [replicate names], "file2": [replicate names]}.
@@ -1417,6 +1418,9 @@ def compare_pipeline(file1, set1, set2, mode="Products", drop_IS=True, normalize
     missing_set2_as_zero treats absent input rows in set2 as zero signal when
     the lipid is present in set1. Quantification failures remain visible as missing estimates.
     Tests then include zeros, with this assumption recorded in Test basis.
+    cholesterol_file optionally adds precursor transitions from a separate CSV
+    before normalization. Its Replicate Name values must match selected samples;
+    names shared by selected samples in both input files are ambiguous and rejected.
     """
     file1 = os.path.abspath(os.fspath(file1))
     paths = {"file1": file1}
@@ -1481,6 +1485,32 @@ def compare_pipeline(file1, set1, set2, mode="Products", drop_IS=True, normalize
     input_label = "; ".join(paths[label] for label, selected in selections.items() if selected)
     source_df = df.copy()
     df = filter_transition_mode(df, mode)
+    if cholesterol_file is not None:
+        cholesterol_file = os.path.abspath(os.fspath(cholesterol_file))
+        cholesterol = pd.read_csv(cholesterol_file)
+        aliases = {}
+        for selected in selections.values():
+            for name, alias in selected.items():
+                if name in aliases and cholesterol["Replicate Name"].eq(name).any():
+                    raise ValueError(f"Cholesterol replicate {name} matches selected samples in both CSVs")
+                aliases[name] = alias
+        cholesterol = cholesterol.loc[cholesterol["Replicate Name"].isin(aliases)].copy()
+        if cholesterol.empty:
+            raise ValueError("No cholesterol replicates match the selected samples")
+        cholesterol["Original Replicate Name"] = cholesterol["Replicate Name"]
+        cholesterol["Replicate Name"] = cholesterol["Replicate Name"].map(aliases)
+        cholesterol["Input Source"] = cholesterol_file
+        # Some APCI exports put the d7 precursor under the analyte's name.
+        # Separate it before sum_transitions removes isotope labels from adducts.
+        d7_standard = (cholesterol["Molecule"].eq("ST 27:1;1")
+                       & cholesterol["Precursor Adduct"].eq("[M7H2+H-H2O]"))
+        cholesterol.loc[d7_standard, "Molecule"] = "IS ST 27:1;1(+[2]H7)"
+        source_df = pd.concat([source_df, cholesterol], ignore_index=True)
+        cholesterol = filter_transition_mode(cholesterol, "Precursors")
+        if cholesterol.empty:
+            raise ValueError("No cholesterol precursor transitions remain for the selected samples")
+        df = pd.concat([df, cholesterol], ignore_index=True)
+        input_label += "; " + cholesterol_file
 
     notes_path = os.path.splitext(file1)[0] + "_quantification_notes.csv"
     if write_output:
@@ -1722,13 +1752,14 @@ def lipid_bar_chart_compare(df, classes=["PC"], ax=None, fontsize=8, s1name="Set
 
 
 if __name__ == "__main__":
-    file1 = r"Z:\Group Share\Annika\Stellar\EC\B2 Discs\MSP Titr\MolTransResults_MSP_Titr_vs_B2.csv"
+    file1 = r"Z:\Group Share\Annika\Stellar\EC\B2 Discs\Detergent trials\B2_vs_HEK_results.csv"
     file2 = None
     output_dir = Path(r"Z:\Group Share\Annika\Stellar\EC\B2 Discs\Comparison Results")
-    output_name = "MSP_E1vs_B2_volcano_pies"
-    set1_name = "B2 Membrane Extract"
-    set2_name = "MSP Titr E1"
-    #cholesterol_file = r"Z:\Group Share\Annika\Stellar\FAM\B2 Discs\Cholesterol\Molecule Transition Results_cholesterol.csv"
+    output_name = "HEK_B2_withcholesterol_volcano_pies"
+    set1_name = "HEK Extract"
+    set2_name = "B2 Overexpressed Extract"
+    cholesterol_file = r"Z:\Group Share\Annika\Stellar\EC\B2 Discs\APCI\Chol_TransResults_B2Extr.csv"  # Set to a cholesterol Skyline CSV with matching replicate names.
+    # cholesterol_file = r"Z:\Group Share\Annika\Stellar\FAM\B2 Discs\Cholesterol\Molecule Transition Results_cholesterol.csv"
     # file1 = r"C:\Users\marty\Downloads\Extr_US_MoleculeTransResults.csv"
 
     # set1 = ["noEDTA_E_01", "noEDTA_E_02", "noEDTA_E_03"]
@@ -1742,8 +1773,8 @@ if __name__ == "__main__":
 
     # Select exact Replicate Name values from either or both files for each group.
     # Leave a file's list empty to omit its samples from that group.
-    set2 = {"file1": ["MSP_Titr_1_E_01", "MSP_Titr_1_E_02", "MSP_Titr_1_E_03"]}
-    set1 = {"file1": ["B2_01", "B2_02", "B2_03"]}
+    set1 = {"file1": ["HEK_01", "HEK_02", "HEK_03"]}
+    set2 = {"file1": ["B2_01", "B2_02", "B2_03"]}
     # Count missing analyte rows as zero detected signal; preserve measured low values.
     missing_set2_as_zero = True
     fold_range = np.log2(2)  # Twofold effect-size cutoff, shared by plots and export flags.
@@ -1760,6 +1791,7 @@ if __name__ == "__main__":
     # exit()
 
     normdf, classdf = compare_pipeline(file1, set1, set2, mode="Products", file2=file2,
+                                       cholesterol_file=cholesterol_file,
                                        missing_set2_as_zero=missing_set2_as_zero,
                                        drop_IS=True, normalize_IS=True, norm_tmm=False,
                   normalize_TIC=True, paired=False, bh_correction=True, plot_results=True, show_plots=False, write_output=True,

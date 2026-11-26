@@ -428,12 +428,7 @@ class HTEng:
                 seq[np.random.randint(len(seq), size=win)] = -1
             elif mode == "alt":
                 starti = np.random.randint(len(seq))
-                endi = starti + win * 2
-                if endi > len(seq):
-                    seq[starti::2] = -1
-                    seq[:endi % len(seq):2] = -1
-                else:
-                    seq[starti:endi:2] = -1
+                seq[(starti + 2 * np.arange(win)) % len(seq)] = -1
             # Set window to -1
             self.setup_ht(seq=seq)
             out, _ = self.htdecon(data, **kwargs)
