@@ -1,6 +1,7 @@
 name: Build and deploy documentation
 
 on:
+  workflow_dispatch:
   workflow_call:
 
 permissions:
